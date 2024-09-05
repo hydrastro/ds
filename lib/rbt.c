@@ -395,6 +395,7 @@ void rbt_destroy(rbt_t *tree, rbt_node_t *node,
   }
   rbt_destroy(tree, node->left, destroy);
   rbt_destroy(tree, node->right, destroy);
+  rbt_delete_node(tree, node);
   destroy(RBT_GET_STRUCT_FROM_NODE(node, void));
 }
 
