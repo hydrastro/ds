@@ -1,6 +1,6 @@
-#include "rbt.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "rbt.h"
 
 void rbt_set_parent(rbt_node_t *node, rbt_node_t *parent) {
   node->parent_color = RBT_GET_COLOR_FROM_NODE(node) + (unsigned long)parent;
@@ -68,7 +68,7 @@ rbt_node_t *rbt_search(rbt_t *tree, rbt_node_t *node_x, void *data,
                                int (*compare)(void *, void *)) {
   int cmp;
   while (node_x != tree->nil) {
-    cmp = compare(RBT_GET_STRUCT_FROM_NODE(node_x, void), data);
+    cmp = compare(CAST(node_x, void), data);
     if (cmp == 0) {
       return node_x;
     } else if (cmp > 0) {
@@ -86,7 +86,7 @@ rbt_bigger_than(rbt_t *tree, rbt_node_t *node_x, void *key,
   rbt_node_t *node_y = tree->nil;
   int cmp;
   while (node_x != tree->nil) {
-    cmp = compare(RBT_GET_STRUCT_FROM_NODE(node_x, void), key);
+    cmp = compare(CAST(node_x, void), key);
     if (cmp >= 0) {
       node_y = node_x;
       node_x = node_x->left;
@@ -103,7 +103,7 @@ rbt_smaller_than(rbt_t *tree, rbt_node_t *node_x, void *key,
   rbt_node_t *node_y = tree->nil;
   int cmp;
   while (node_x != tree->nil) {
-    cmp = compare(RBT_GET_STRUCT_FROM_NODE(node_x, void), key);
+    cmp = compare(CAST(node_x, void), key);
     if (cmp <= 0) {
       node_y = node_x;
       node_x = node_x->right;
@@ -212,7 +212,7 @@ void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
   node_x = tree->root;
   while (node_x != tree->nil) {
     node_y = node_x;
-    if (compare(RBT_GET_STRUCT_FROM_NODE(node_z, void), RBT_GET_STRUCT_FROM_NODE(node_x, void)) < 0) {
+    if (compare(CAST(node_z, void), CAST(node_x, void)) < 0) {
       node_x = node_x->left;
     } else {
       node_x = node_x->right;
@@ -221,7 +221,7 @@ void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
   rbt_set_parent(node_z, node_y);
   if (node_y == tree->nil) {
     tree->root = node_z;
-  } else if (compare(RBT_GET_STRUCT_FROM_NODE(node_z, void), RBT_GET_STRUCT_FROM_NODE(node_y, void)) < 0) {
+  } else if (compare(CAST(node_z, void), CAST(node_y, void)) < 0) {
     node_y->left = node_z;
   } else {
     node_y->right = node_z;
@@ -385,7 +385,7 @@ void rbt_delete(rbt_t *tree) { tree->root = tree->nil; }
 void rbt_destroy_node(rbt_t *tree, rbt_node_t *node,
                                     void (*destroy)(void *)) {
   rbt_delete_node(tree, node);
-  destroy(RBT_GET_STRUCT_FROM_NODE(node, void));
+  destroy(CAST(node, void));
 }
 
 void rbt_destroy(rbt_t *tree, rbt_node_t *node,
@@ -396,7 +396,7 @@ void rbt_destroy(rbt_t *tree, rbt_node_t *node,
   rbt_destroy(tree, node->left, destroy);
   rbt_destroy(tree, node->right, destroy);
   rbt_delete_node(tree, node);
-  destroy(RBT_GET_STRUCT_FROM_NODE(node, void));
+  destroy(CAST(node, void));
 }
 
 void rbt_destroy_tree(rbt_t *tree, void (*destroy)(void *)) {

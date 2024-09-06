@@ -1,20 +1,20 @@
-#include "../lib/rbt.h"
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
+#include "../lib/rbt.h"
 
 #define MAL(type) ((type *) malloc(sizeof(type)) )
 #define IN(tree,nd,cmp) (rbt_insert(tree, (&(nd)->node), (cmp)))
-#define SEARCH(tree,node,cmp,type) (RBT_GET_STRUCT_FROM_NODE(rbt_search((tree),(tree)->root,(node),(cmp)),type))
+#define SEARCH(tree,node,cmp,type) (CAST(rbt_search((tree),(tree)->root,(node),(cmp)),type))
 #define IFNIL(tree,result) if((tree->nil) == &result->node)
 #define FF (fflush(stdout))
 #define WALK(tree,print_node) (rbt_inorder_walk_tree(tree, print_node))
-#define PN(node,print,type) (print(RBT_GET_STRUCT_FROM_NODE(node,type)))
-#define NEXT(tree,nd,type) (RBT_GET_STRUCT_FROM_NODE(rbt_successor(tree,&nd->node),type))
-#define PREV(tree,nd,type) (RBT_GET_STRUCT_FROM_NODE(rbt_predecessor(tree,&nd->node),type))
+#define PN(node,print,type) (print(CAST(node,type)))
+#define NEXT(tree,nd,type) (CAST(rbt_successor(tree,&nd->node),type))
+#define PREV(tree,nd,type) (CAST(rbt_predecessor(tree,&nd->node),type))
 #define ISINT(x) (x >= '0' && x <= '9')
-#define TFIRST(tree, nd) (RBT_GET_STRUCT_FROM_NODE(rbt_minimum(tree,&nd->node))
-#define TLAST(tree, nd) (RBT_GET_STRUCT_FROM_NODE(rbt_maximum(tree,&nd->node))
+#define TFIRST(tree, nd) (CAST(rbt_minimum(tree,&nd->node))
+#define TLAST(tree, nd) (CAST(rbt_maximum(tree,&nd->node))
 
 typedef struct my_node {
   rbt_node_t node;
@@ -22,16 +22,17 @@ typedef struct my_node {
 } my_node_t;
 
 int compare_nodes(void *node1, void *node2) {
-  return ((my_node_t *)node1)->data -
-         ((my_node_t *)node2)->data;
+  return (CAST(node1, my_node_t))->data -
+         (CAST(node2,my_node_t))->data;
 }
 
 void print_node(void *node) {
-  printf("%d ", ((my_node_t *)node)->data);
+  printf("%d ", (CAST(node, my_node_t))->data);
 }
 
 void destroy_node(void *node) {
-  free(node);
+  my_node_t *my_node = CAST(node, my_node_t);
+  free(my_node);
 }
 
 void main(void) {

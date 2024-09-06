@@ -1,6 +1,8 @@
 #ifndef DS_RBT_H
 #define DS_RBT_H
 
+#define CAST(node, type) ((type *)(node))
+
 typedef struct rbt_node {
   unsigned long parent_color;
   struct rbt_node *right;
@@ -34,8 +36,6 @@ typedef struct rbt_node {
 #define RBT_SET_COLOR_FROM_NODE(node, color)                                   \
   ((node)->parent_color =                                                      \
        (unsigned long)RBT_GET_PARENT_FROM_NODE(node) + (color))
-
-#define RBT_GET_STRUCT_FROM_NODE(node, type) ((type *)(node))
 
 typedef struct rbt {
   rbt_node_t *root;
