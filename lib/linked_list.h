@@ -1,7 +1,9 @@
 #ifndef DS_LINKED_LIST_H
 #define DS_LINKED_LIST_H
 
+#ifndef CAST
 #define CAST(node, type) ((type *)(node))
+#endif
 
 typedef struct linked_list_node {
   struct linked_list_node *next;

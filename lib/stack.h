@@ -1,7 +1,9 @@
 #ifndef DS_STACK_H
 #define DS_STACK_H
 
+#ifndef CAST
 #define CAST(node, type) ((type *)(node))
+#endif
 
 typedef struct stack_node {
   struct stack_node *next;

@@ -1,7 +1,9 @@
 #ifndef DS_DEQUE_H
 #define DS_DEQUE_H
 
+#ifndef CAST
 #define CAST(node, type) ((type *)(node))
+#endif
 
 typedef struct deque_node {
   struct deque_node *next;

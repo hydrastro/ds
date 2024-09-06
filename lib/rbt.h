@@ -1,7 +1,9 @@
 #ifndef DS_RBT_H
 #define DS_RBT_H
 
+#ifndef CAST
 #define CAST(node, type) ((type *)(node))
+#endif
 
 typedef struct rbt_node {
   unsigned long parent_color;
