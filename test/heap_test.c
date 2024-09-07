@@ -23,7 +23,7 @@ void destroy_int_node(void *node) {
   free(node);
 }
 
-void main() {
+int main() {
   srand(time(NULL));
   int i;
   heap_t *heap = heap_create(10);
@@ -42,4 +42,6 @@ void main() {
   }
 
   heap_destroy(heap, NULL);
+
+  return 0;
 }

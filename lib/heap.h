@@ -14,11 +14,17 @@ typedef struct heap {
   void *nil;
 } heap_t;
 
+void swap(void **a, void **b);
+
+void heapify_up(heap_t *heap, size_t index, int (*compare)(void *, void *));
+
+void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *));
+
 heap_t *heap_create(size_t capacity);
 
-void heap_insert(heap_t *heap, void *node, int (*cmp)(void *, void *));
+void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *));
 
-void *heap_extract_root(heap_t *heap, int (*cmp)(void *, void *));
+void *heap_extract_root(heap_t *heap, int (*compare)(void *, void *));
 
 void *heap_peek_root(heap_t *heap);
 

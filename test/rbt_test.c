@@ -35,7 +35,7 @@ void destroy_node(void *node) {
   free(my_node);
 }
 
-void main(void) {
+int main(void) {
   int i;
   my_node_t *node, *result_node, *search_data;
   rbt_t *tree;
@@ -60,4 +60,6 @@ void main(void) {
     print_node(result_node);
   }
   rbt_destroy(tree, tree->root, destroy_node);
+
+  return 0;
 }
