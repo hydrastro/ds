@@ -3,12 +3,16 @@
 
 #include <stddef.h>
 
+#ifdef HASH_TABLE_THREAD_SAFE
+#include <pthread.h>
+#endif
+
 #ifndef CAST
 #define CAST(node, type) ((type *)(node))
 #endif
 
-#ifndef DS_HASH_TABLE_RESIZE_FACTOR
-#define DS_HASH_TABLE_RESIZE_FACTOR 0.75
+#ifndef HASH_TABLE_RESIZE_FACTOR
+#define HASH_TABLE_RESIZE_FACTOR 0.75
 #endif
 
 typedef enum {
@@ -38,6 +42,9 @@ typedef struct hash_table {
   void *tombstone;
   hash_table_mode_t mode;
   hash_probing_func_t probing_func;
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_t mutex;
+#endif
 } hash_table_t;
 
 size_t hash_func_string_djb2(void *key);

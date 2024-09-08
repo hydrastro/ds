@@ -154,6 +154,10 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
     }
   }
 
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_init(&table->mutex, NULL);
+#endif
+
   return table;
 }
 
@@ -201,6 +205,9 @@ void hash_table_resize(hash_table_t *table, size_t new_capacity,
 void hash_table_insert(hash_table_t *table, void *key, void *value,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *)) {
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_lock(&table->mutex);
+#endif
   if ((double)table->size / table->capacity > DS_HASH_TABLE_RESIZE_FACTOR) {
     hash_table_resize(table, next_prime_capacity(table->capacity), hash_func,
                       compare);
@@ -214,6 +221,9 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
     while (current != NULL) {
       if (compare(current->key, key) == 0) {
         current->value = value;
+#ifdef HASH_TABLE_THREAD_SAFE
+        pthread_mutex_unlock(&table->mutex);
+#endif
         return;
       }
       current = current->next;
@@ -229,6 +239,9 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
         }
       } else if (compare(table->entries[index].key, key) == 0) {
         table->entries[index].value = value;
+#ifdef HASH_TABLE_THREAD_SAFE
+        pthread_mutex_unlock(&table->mutex);
+#endif
         return;
       }
       iteration++;
@@ -244,11 +257,18 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
   }
 
   table->size++;
+
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_unlock(&table->mutex);
+#endif
 }
 
 void *hash_table_lookup(hash_table_t *table, void *key,
                         size_t (*hash_func)(void *),
                         int (*compare)(void *, void *)) {
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_lock(&table->mutex);
+#endif
   size_t base_index = hash_func(key) % table->capacity;
   size_t index = base_index;
   size_t iteration = 0;
@@ -257,6 +277,9 @@ void *hash_table_lookup(hash_table_t *table, void *key,
     hash_node_t *current = table->buckets[index];
     while (current != NULL) {
       if (compare(current->key, key) == 0) {
+#ifdef HASH_TABLE_THREAD_SAFE
+        pthread_mutex_unlock(&table->mutex);
+#endif
         return current->value;
       }
       current = current->next;
@@ -265,12 +288,18 @@ void *hash_table_lookup(hash_table_t *table, void *key,
     while (table->entries[index].key != table->nil) {
       if (table->entries[index].key != table->tombstone &&
           compare(table->entries[index].key, key) == 0) {
+#ifdef HASH_TABLE_THREAD_SAFE
+        pthread_mutex_unlock(&table->mutex);
+#endif
         return table->entries[index].value;
       }
       iteration++;
       index = table->probing_func(base_index, iteration, table->capacity);
     }
   }
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_unlock(&table->mutex);
+#endif
 
   return table->nil;
 }
@@ -279,6 +308,9 @@ void hash_table_remove(hash_table_t *table, void *key,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *),
                        void (*destroy_node)(hash_node_t *)) {
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_lock(&table->mutex);
+#endif
   size_t base_index = hash_func(key) % table->capacity;
   size_t index = base_index;
   size_t iteration = 0;
@@ -299,6 +331,9 @@ void hash_table_remove(hash_table_t *table, void *key,
         } else {
           free(current);
         }
+#ifdef HASH_TABLE_THREAD_SAFE
+        pthread_mutex_unlock(&table->mutex);
+#endif
         return;
       }
       prev = current;
@@ -309,12 +344,18 @@ void hash_table_remove(hash_table_t *table, void *key,
       if (compare(table->entries[index].key, key) == 0) {
         table->entries[index].key = table->tombstone;
         table->size--;
+#ifdef HASH_TABLE_THREAD_SAFE
+        pthread_mutex_unlock(&table->mutex);
+#endif
         return;
       }
       iteration++;
       index = table->probing_func(base_index, iteration, table->capacity);
     }
   }
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_unlock(&table->mutex);
+#endif
 }
 
 int hash_table_is_empty(hash_table_t *table) { return table->size == 0; }
@@ -335,9 +376,13 @@ void hash_table_destroy(hash_table_t *table,
       }
     }
     free(table->buckets);
-  } else if (table->mode == HASH_LINEAR_PROBING) {
+  } else if (table->mode == HASH_LINEAR_PROBING ||
+             table->mode == HASH_QUADRATIC_PROBING) {
     free(table->entries);
   }
+#ifdef HASH_TABLE_THREAD_SAFE
+  pthread_mutex_destroy(&table->mutex);
+#endif
   free(table->nil);
   free(table->tombstone);
   free(table);
