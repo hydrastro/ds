@@ -1,13 +1,11 @@
 #ifndef DS_DOUBLY_LINKED_LIST_H
 #define DS_DOUBLY_LINKED_LIST_H
 
+#include "common.h"
+
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
 #include <pthread.h>
 #include <stdbool.h>
-#endif
-
-#ifndef CAST
-#define CAST(node, type) ((type *)(node))
 #endif
 
 typedef struct doubly_linked_list_node {

@@ -18,9 +18,7 @@ queue_t *queue_create() {
 
 void queue_enqueue(queue_t *queue, queue_node_t *node) {
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_lock(&queue->lock);
-  }
+ LOCK(queue)
 #endif
 
   node->next = queue->nil;
@@ -33,24 +31,18 @@ void queue_enqueue(queue_t *queue, queue_node_t *node) {
   }
 
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_unlock(&queue->lock);
-  }
+ UNLOCK(queue)
 #endif
 }
 
 queue_node_t *queue_dequeue(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_lock(&queue->lock);
-  }
+ LOCK(queue)
 #endif
 
   if (queue->head == queue->nil) {
 #ifdef QUEUE_THREAD_SAFE
-    if (queue->is_thread_safe) {
-      pthread_mutex_unlock(&queue->lock);
-    }
+ UNLOCK(queue)
 #endif
     return NULL;
   }
@@ -61,9 +53,7 @@ queue_node_t *queue_dequeue(queue_t *queue) {
   }
 
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_unlock(&queue->lock);
-  }
+ UNLOCK(queue)
 
 #endif
 
@@ -72,24 +62,18 @@ queue_node_t *queue_dequeue(queue_t *queue) {
 
 queue_node_t *queue_peek(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_lock(&queue->lock);
-  }
+ LOCK(queue)
 #endif
 
   if (queue->head == queue->nil) {
 #ifdef QUEUE_THREAD_SAFE
-    if (queue->is_thread_safe) {
-      pthread_mutex_unlock(&queue->lock);
-    }
+ UNLOCK(queue)
 #endif
     return NULL;
   }
 
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_unlock(&queue->lock);
-  }
+ UNLOCK(queue)
 #endif
 
   return queue->head;
@@ -97,24 +81,18 @@ queue_node_t *queue_peek(queue_t *queue) {
 
 queue_node_t *queue_peek_tail(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_lock(&queue->lock);
-  }
+ LOCK(queue)
 #endif
 
   if (queue->tail == queue->nil) {
 #ifdef QUEUE_THREAD_SAFE
-    if (queue->is_thread_safe) {
-      pthread_mutex_unlock(&queue->lock);
-    }
+ UNLOCK(queue)
 #endif
     return NULL;
   }
 
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_unlock(&queue->lock);
-  }
+ UNLOCK(queue)
 #endif
 
   return queue->tail;
@@ -122,17 +100,13 @@ queue_node_t *queue_peek_tail(queue_t *queue) {
 
 int queue_is_empty(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_lock(&queue->lock);
-  }
+ LOCK(queue)
 #endif
 
   int empty = queue->head == queue->nil;
 
 #ifdef QUEUE_THREAD_SAFE
-  if (queue->is_thread_safe) {
-    pthread_mutex_unlock(&queue->lock);
-  }
+ UNLOCK(queue)
 #endif
 
   return empty;

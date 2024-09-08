@@ -13,9 +13,7 @@ stack_t *stack_create() {
 
 void stack_push(stack_t *stack, stack_node_t *node) {
 #ifdef STACK_THREAD_SAFE
-  if (stack->is_thread_safe) {
-    pthread_mutex_lock(&stack->lock);
-  }
+ LOCK(stack)
 #endif
   if (node == NULL) {
     return;
@@ -23,17 +21,13 @@ void stack_push(stack_t *stack, stack_node_t *node) {
   node->next = stack->top;
   stack->top = node;
 #ifdef STACK_THREAD_SAFE
-  if (stack->is_thread_safe) {
-    pthread_mutex_unlock(&stack->lock);
-  }
+ UNLOCK(stack)
 #endif
 }
 
 stack_node_t *stack_pop(stack_t *stack) {
 #ifdef STACK_THREAD_SAFE
-  if (stack->is_thread_safe) {
-    pthread_mutex_lock(&stack->lock);
-  }
+ LOCK(stack)
 #endif
   if (stack_is_empty(stack)) {
     return NULL;
@@ -41,9 +35,7 @@ stack_node_t *stack_pop(stack_t *stack) {
   stack_node_t *node = stack->top;
   stack->top = node->next;
 #ifdef STACK_THREAD_SAFE
-  if (stack->is_thread_safe) {
-    pthread_mutex_unlock(&stack->lock);
-  }
+ UNLOCK(stack)
 #endif
   return node;
 }

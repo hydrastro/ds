@@ -1,13 +1,11 @@
 #ifndef DS_DEQUE_H
 #define DS_DEQUE_H
 
+#include "common.h"
+
 #ifdef DEQUE_THREAD_SAFE
 #include <pthread.h>
 #include <stdbool.h>
-#endif
-
-#ifndef CAST
-#define CAST(node, type) ((type *)(node))
 #endif
 
 typedef struct deque_node {

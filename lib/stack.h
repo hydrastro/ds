@@ -1,13 +1,11 @@
 #ifndef DS_STACK_H
 #define DS_STACK_H
 
+#include "common.h"
+
 #ifdef STACK_THREAD_SAFE
 #include <pthread.h>
 #include <stdbool.h>
-#endif
-
-#ifndef CAST
-#define CAST(node, type) ((type *)(node))
 #endif
 
 typedef struct stack_node {

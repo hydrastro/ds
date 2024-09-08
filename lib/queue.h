@@ -1,13 +1,11 @@
 #ifndef DS_QUEUE_H
 #define DS_QUEUE_H
 
+#include "common.h"
+
 #ifdef QUEUE_THREAD_SAFE
 #include <pthread.h>
 #include <stdbool.h>
-#endif
-
-#ifndef CAST
-#define CAST(node, type) ((type *)(node))
 #endif
 
 typedef struct queue_node {

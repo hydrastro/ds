@@ -10,9 +10,7 @@ void swap(void **a, void **b) {
 
 void heapify_up(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_lock(&heap->lock);
-  }
+ LOCK(heap)
 #endif
   size_t parent = (index - 1) / 2;
   while (index > 0 && compare(heap->data[index], heap->data[parent]) < 0) {
@@ -21,17 +19,13 @@ void heapify_up(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
     parent = (index - 1) / 2;
   }
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_unlock(&heap->lock);
-  }
+ UNLOCK(heap)
 #endif
 }
 
 void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_lock(&heap->lock);
-  }
+ LOCK(heap)
 #endif
   size_t left, right, smallest;
   while (1) {
@@ -55,9 +49,7 @@ void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
     }
   }
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_unlock(&heap->lock);
-  }
+ UNLOCK(heap)
 #endif
 }
 
@@ -79,9 +71,7 @@ heap_t *heap_create(size_t capacity) {
 
 void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *)) {
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_lock(&heap->lock);
-  }
+ LOCK(heap)
 #endif
   if (heap->size >= heap->capacity) {
     heap->capacity *= 2;
@@ -91,23 +81,17 @@ void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *)) {
   heapify_up(heap, heap->size, compare);
   heap->size++;
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_unlock(&heap->lock);
-  }
+UNLOCK(heap)
 #endif
 }
 
 void *heap_extract_root(heap_t *heap, int (*compare)(void *, void *)) {
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_lock(&heap->lock);
-  }
+ LOCK(heap)
 #endif
   if (heap_is_empty(heap)) {
 #ifdef HEAP_THREAD_SAFE
-    if (heap->is_thread_safe) {
-      pthread_mutex_unlock(&heap->lock);
-    }
+ UNLOCK(heap)
 #endif
     return heap->nil;
   }
@@ -116,31 +100,23 @@ void *heap_extract_root(heap_t *heap, int (*compare)(void *, void *)) {
   heap->size--;
   heapify_down(heap, 0, compare);
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_unlock(&heap->lock);
-  }
+ UNLOCK(heap)
 #endif
   return root;
 }
 
 void *heap_peek_root(heap_t *heap) {
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_lock(&heap->lock);
-  }
+ LOCK(heap)
 #endif
   if (heap_is_empty(heap)) {
 #ifdef HEAP_THREAD_SAFE
-    if (heap->is_thread_safe) {
-      pthread_mutex_unlock(&heap->lock);
-    }
+ UNLOCK(heap)
 #endif
     return heap->nil;
   }
 #ifdef HEAP_THREAD_SAFE
-  if (heap->is_thread_safe) {
-    pthread_mutex_unlock(&heap->lock);
-  }
+ UNLOCK(heap)
 #endif
   return heap->data[0];
 }

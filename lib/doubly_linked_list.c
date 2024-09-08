@@ -24,30 +24,22 @@ doubly_linked_list_t *doubly_linked_list_create() {
 void doubly_linked_list_append(doubly_linked_list_t *list,
                                doubly_linked_list_node_t *node) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+LOCK(list)
 #endif
   doubly_linked_list_insert_after(list, node, list->tail);
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
 }
 
 void doubly_linked_list_prepend(doubly_linked_list_t *list,
                                 doubly_linked_list_node_t *node) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   doubly_linked_list_insert_before(list, node, list->head);
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
 }
 
@@ -55,9 +47,7 @@ doubly_linked_list_node_t *
 doubly_linked_list_search(doubly_linked_list_t *list, void *data,
                           int (*compare)(doubly_linked_list_node_t *, void *)) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   doubly_linked_list_node_t *node = list->head;
   while (node != list->nil && compare(node, data) != 0) {
@@ -65,16 +55,12 @@ doubly_linked_list_search(doubly_linked_list_t *list, void *data,
   }
   if (node == list->nil) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-    if (list->is_thread_safe) {
-      pthread_mutex_unlock(&list->lock);
-    }
+ UNLOCK(list)
 #endif
     return NULL;
   }
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
   return node;
 }
@@ -83,9 +69,7 @@ void doubly_linked_list_insert_before(doubly_linked_list_t *list,
                                       doubly_linked_list_node_t *node,
                                       doubly_linked_list_node_t *next) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   node->next = next;
   node->prev = next->prev;
@@ -100,9 +84,7 @@ void doubly_linked_list_insert_before(doubly_linked_list_t *list,
     list->tail = node;
   }
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+UNLOCK(list)
 #endif
 }
 
@@ -110,9 +92,7 @@ void doubly_linked_list_insert_after(doubly_linked_list_t *list,
                                      doubly_linked_list_node_t *node,
                                      doubly_linked_list_node_t *prev) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   node->next = prev->next;
   node->prev = prev;
@@ -127,18 +107,14 @@ void doubly_linked_list_insert_after(doubly_linked_list_t *list,
     list->head = node;
   }
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
 }
 
 void doubly_linked_list_delete_node(doubly_linked_list_t *list,
                                     doubly_linked_list_node_t *node) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   node->prev->next = node->next;
   node->next->prev = node->prev;
@@ -151,9 +127,7 @@ void doubly_linked_list_delete_node(doubly_linked_list_t *list,
     list->tail = node->prev;
   }
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
 }
 
@@ -161,16 +135,12 @@ void doubly_linked_list_destroy_node(
     doubly_linked_list_t *list, doubly_linked_list_node_t *node,
     void (*destroy)(doubly_linked_list_node_t *)) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   doubly_linked_list_delete_node(list, node);
   destroy(node);
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
 }
 
@@ -193,18 +163,14 @@ void doubly_linked_list_walk_forward(doubly_linked_list_t *list,
                                      doubly_linked_list_node_t *node,
                                      void (*callback)(void *)) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   while (node != list->nil) {
     callback(CAST(node, void));
     node = node->next;
   }
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
 }
 
@@ -212,17 +178,13 @@ void doubly_linked_list_walk_backwards(doubly_linked_list_t *list,
                                        doubly_linked_list_node_t *node,
                                        void (*callback)(void *)) {
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_lock(&list->lock);
-  }
+ LOCK(list)
 #endif
   while (node != list->nil) {
     callback(CAST(node, void));
     node = node->prev;
   }
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  if (list->is_thread_safe) {
-    pthread_mutex_unlock(&list->lock);
-  }
+ UNLOCK(list)
 #endif
 }

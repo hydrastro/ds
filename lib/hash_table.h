@@ -1,23 +1,12 @@
 #ifndef DS_HASH_TABLE_H
 #define DS_HASH_TABLE_H
 
+#include "common.h"
 #include <stddef.h>
 
 #ifdef HASH_TABLE_THREAD_SAFE
 #include <pthread.h>
 #include <stdbool.h>
-#endif
-
-#ifndef CAST
-#define CAST(node, type) ((type *)(node))
-#endif
-
-#ifndef LOCK
-#define LOCK(structure) (if(structure->is_thread_safe){pthread_mutex_lock(&(structure)->lock);})
-#endif
-
-#ifndef UNLOCK
-#define UNLOCK(structure) (if(structure->is_thread_safe){pthread_mutex_unlock(&(structure)->lock);})
 #endif
 
 #ifndef HASH_TABLE_RESIZE_FACTOR
@@ -52,7 +41,7 @@ typedef struct hash_table {
   hash_table_mode_t mode;
   hash_probing_func_t probing_func;
 #ifdef HASH_TABLE_THREAD_SAFE
-  pthread_mutex_t mutex;
+  pthread_mutex_t lock;
   bool is_thread_safe;
 #endif
 } hash_table_t;

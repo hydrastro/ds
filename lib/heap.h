@@ -1,15 +1,12 @@
 #ifndef DS_HEAP_H
 #define DS_HEAP_H
 
+#include "common.h"
 #include <stddef.h>
 
 #ifdef HEAP_THREAD_SAFE
 #include <pthread.h>
 #include <stdbool.h>
-#endif
-
-#ifndef CAST
-#define CAST(node, type) ((type *)(node))
 #endif
 
 typedef struct heap {
