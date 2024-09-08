@@ -65,6 +65,15 @@ static const size_t prime_capacities[] = {5,
                                           3620140286502504283,
                                           7240280573005008577};
 
+size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity) {
+  const size_t c1 = 1, c2 = 1;
+  return (base_index + c1 * iteration + c2 * iteration * iteration) % capacity;
+}
+
+size_t linear_probing(size_t base_index, size_t iteration, size_t capacity) {
+  return (base_index + iteration) % capacity;
+}
+
 size_t hash_func_string_djb2(void *key) {
   char *str = (char *)key;
   size_t hash = 5381;
@@ -115,7 +124,8 @@ static size_t next_prime_capacity(size_t current_capacity) {
   return current_capacity * 2;
 }
 
-hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode) {
+hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
+                                hash_probing_func_t probing_func) {
   hash_table_t *table = (hash_table_t *)malloc(sizeof(hash_table_t));
   table->capacity = next_prime_capacity(capacity);
   table->size = 0;
@@ -134,13 +144,24 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode) {
     }
   }
 
+  if (probing_func) {
+    table->probing_func = probing_func;
+  } else {
+    if (mode == HASH_LINEAR_PROBING) {
+      table->probing_func = linear_probing;
+    } else if (mode == HASH_QUADRATIC_PROBING) {
+      table->probing_func = quadratic_probing;
+    }
+  }
+
   return table;
 }
 
 void hash_table_resize(hash_table_t *table, size_t new_capacity,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *)) {
-  hash_table_t *new_table = hash_table_create(new_capacity, table->mode);
+  hash_table_t *new_table =
+      hash_table_create(new_capacity, table->mode, table->probing_func);
 
   if (table->mode == HASH_CHAINING) {
     for (size_t i = 0; i < table->capacity; i++) {
@@ -184,7 +205,10 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
     hash_table_resize(table, next_prime_capacity(table->capacity), hash_func,
                       compare);
   }
-  size_t index = hash_func(key) % table->capacity;
+  size_t base_index = hash_func(key) % table->capacity;
+  size_t index = base_index;
+  size_t iteration = 0;
+  size_t tombstone_index = -1;
   if (table->mode == HASH_CHAINING) {
     hash_node_t *current = table->buckets[index];
     while (current != NULL) {
@@ -197,8 +221,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
     hash_node_t *new_node = hash_node_create(key, value);
     new_node->next = table->buckets[index];
     table->buckets[index] = new_node;
-  } else if (table->mode == HASH_LINEAR_PROBING) {
-    size_t tombstone_index = -1;
+  } else {
     while (table->entries[index].key != table->nil) {
       if (table->entries[index].key == table->tombstone) {
         if (tombstone_index == -1) {
@@ -208,7 +231,8 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
         table->entries[index].value = value;
         return;
       }
-      index = (index + 1) % table->capacity;
+      iteration++;
+      index = table->probing_func(base_index, iteration, table->capacity);
     }
 
     if (tombstone_index != -1) {
@@ -225,7 +249,9 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
 void *hash_table_lookup(hash_table_t *table, void *key,
                         size_t (*hash_func)(void *),
                         int (*compare)(void *, void *)) {
-  size_t index = hash_func(key) % table->capacity;
+  size_t base_index = hash_func(key) % table->capacity;
+  size_t index = base_index;
+  size_t iteration = 0;
 
   if (table->mode == HASH_CHAINING) {
     hash_node_t *current = table->buckets[index];
@@ -235,13 +261,14 @@ void *hash_table_lookup(hash_table_t *table, void *key,
       }
       current = current->next;
     }
-  } else if (table->mode == HASH_LINEAR_PROBING) {
+  } else {
     while (table->entries[index].key != table->nil) {
       if (table->entries[index].key != table->tombstone &&
           compare(table->entries[index].key, key) == 0) {
         return table->entries[index].value;
       }
-      index = (index + 1) % table->capacity;
+      iteration++;
+      index = table->probing_func(base_index, iteration, table->capacity);
     }
   }
 
@@ -252,7 +279,9 @@ void hash_table_remove(hash_table_t *table, void *key,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *),
                        void (*destroy_node)(hash_node_t *)) {
-  size_t index = hash_func(key) % table->capacity;
+  size_t base_index = hash_func(key) % table->capacity;
+  size_t index = base_index;
+  size_t iteration = 0;
 
   if (table->mode == HASH_CHAINING) {
     hash_node_t *current = table->buckets[index];
@@ -282,7 +311,8 @@ void hash_table_remove(hash_table_t *table, void *key,
         table->size--;
         return;
       }
-      index = (index + 1) % table->capacity;
+      iteration++;
+      index = table->probing_func(base_index, iteration, table->capacity);
     }
   }
 }

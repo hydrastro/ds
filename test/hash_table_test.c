@@ -19,7 +19,7 @@ int string_compare(void *key1, void *key2) {
 }
 
 int main() {
-  hash_table_t *table = hash_table_create(4000, HASH_CHAINING);
+  hash_table_t *table = hash_table_create(4000, HASH_CHAINING, NULL);
 
   hash_table_insert(table, "key1", "hmmm", string_hash, string_compare);
   hash_table_insert(table, "key2", "hmmm", string_hash, string_compare);
