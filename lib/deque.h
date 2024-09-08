@@ -5,7 +5,7 @@
 #define CAST(node, type) ((type *)(node))
 #endif
 
-#ifdef THREAD_SAFE
+#ifdef DEQUE_THREAD_SAFE
 #include <pthread.h>
 #endif
 
@@ -19,7 +19,7 @@ typedef struct deque {
   deque_node_t *tail;
   deque_node_t *nil;
 
-#ifdef THREAD_SAFE
+#ifdef DEQUE_THREAD_SAFE
   pthread_mutex_t lock;
 #endif
 } deque_t;
