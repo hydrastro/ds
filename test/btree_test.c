@@ -1,4 +1,4 @@
-#include "btree.h"
+#include "../lib/btree.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,9 +43,10 @@ void test_btree_operations() {
 
   for (int i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
     int key = values[i];
-    int *result = (int *)btree_search(tree, &key, compare_int);
-    if (result) {
-      printf("found: %d\n", *result);
+    void *result = btree_search(tree, &key, compare_int);
+    if (result != tree->nil) {
+      int *value = result;
+      printf("found: %d\n", *value);
     } else {
       printf("%d not found\n", key);
     }
