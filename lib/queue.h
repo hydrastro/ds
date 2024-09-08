@@ -5,6 +5,10 @@
 #define CAST(node, type) ((type *)(node))
 #endif
 
+#ifdef THREAD_SAFE
+#include <pthread.h>
+#endif
+
 typedef struct queue_node {
   struct queue_node *next;
 } queue_node_t;
@@ -13,6 +17,10 @@ typedef struct queue {
   queue_node_t *head;
   queue_node_t *tail;
   queue_node_t *nil;
+
+#ifdef THREAD_SAFE
+  pthread_mutex_t lock;
+#endif
 } queue_t;
 
 queue_t *queue_create();

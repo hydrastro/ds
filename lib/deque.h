@@ -5,6 +5,10 @@
 #define CAST(node, type) ((type *)(node))
 #endif
 
+#ifdef THREAD_SAFE
+#include <pthread.h>
+#endif
+
 typedef struct deque_node {
   struct deque_node *next;
   struct deque_node *prev;
@@ -14,6 +18,10 @@ typedef struct deque {
   deque_node_t *head;
   deque_node_t *tail;
   deque_node_t *nil;
+
+#ifdef THREAD_SAFE
+  pthread_mutex_t lock;
+#endif
 } deque_t;
 
 deque_t *deque_create();
