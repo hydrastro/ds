@@ -1,13 +1,12 @@
+#include "rbt.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "rbt.h"
 
 void rbt_set_parent(rbt_node_t *node, rbt_node_t *parent) {
   node->parent_color = RBT_GET_COLOR_FROM_NODE(node) + (unsigned long)parent;
 }
 
-void rbt_set_parent_color(rbt_node_t *node, rbt_node_t *parent,
-                                        int color) {
+void rbt_set_parent_color(rbt_node_t *node, rbt_node_t *parent, int color) {
   node->parent_color = (unsigned long)parent + color;
 }
 
@@ -65,7 +64,7 @@ rbt_node_t *rbt_predecessor(rbt_t *tree, rbt_node_t *node_x) {
 }
 
 rbt_node_t *rbt_search(rbt_t *tree, rbt_node_t *node_x, void *data,
-                               int (*compare)(void *, void *)) {
+                       int (*compare)(void *, void *)) {
   int cmp;
   while (node_x != tree->nil) {
     cmp = compare(CAST(node_x, void), data);
@@ -80,9 +79,8 @@ rbt_node_t *rbt_search(rbt_t *tree, rbt_node_t *node_x, void *data,
   return tree->nil;
 }
 
-rbt_node_t *
-rbt_bigger_than(rbt_t *tree, rbt_node_t *node_x, void *key,
-                               int (*compare)(void *, void *)) {
+rbt_node_t *rbt_bigger_than(rbt_t *tree, rbt_node_t *node_x, void *key,
+                            int (*compare)(void *, void *)) {
   rbt_node_t *node_y = tree->nil;
   int cmp;
   while (node_x != tree->nil) {
@@ -97,9 +95,8 @@ rbt_bigger_than(rbt_t *tree, rbt_node_t *node_x, void *key,
   return node_y;
 }
 
-rbt_node_t *
-rbt_smaller_than(rbt_t *tree, rbt_node_t *node_x, void *key,
-                               int (*compare)(void *, void *)) {
+rbt_node_t *rbt_smaller_than(rbt_t *tree, rbt_node_t *node_x, void *key,
+                             int (*compare)(void *, void *)) {
   rbt_node_t *node_y = tree->nil;
   int cmp;
   while (node_x != tree->nil) {
@@ -205,7 +202,7 @@ void rbt_insert_fixup(rbt_t *tree, rbt_node_t *node_z) {
 }
 
 void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
-                              int (*compare)(void *, void *)) {
+                int (*compare)(void *, void *)) {
   rbt_node_t *node_y;
   rbt_node_t *node_x;
   node_y = tree->nil;
@@ -232,8 +229,7 @@ void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
   rbt_insert_fixup(tree, node_z);
 }
 
-void rbt_inorder_walk(rbt_t *tree, rbt_node_t *node,
-                                    void (*callback)(void *)) {
+void rbt_inorder_walk(rbt_t *tree, rbt_node_t *node, void (*callback)(void *)) {
   if (node != tree->nil) {
     rbt_inorder_walk(tree, node->left, callback);
     callback(node);
@@ -241,13 +237,12 @@ void rbt_inorder_walk(rbt_t *tree, rbt_node_t *node,
   }
 }
 
-void rbt_inorder_walk_tree(rbt_t *tree,
-                                         void (*callback)(void *)) {
+void rbt_inorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
   rbt_inorder_walk(tree, tree->root, callback);
 }
 
 void rbt_preorder_walk(rbt_t *tree, rbt_node_t *node,
-                                         void (*callback)(void *)) {
+                       void (*callback)(void *)) {
   if (node != tree->nil) {
     callback(node);
     rbt_preorder_walk(tree, node->left, callback);
@@ -255,13 +250,12 @@ void rbt_preorder_walk(rbt_t *tree, rbt_node_t *node,
   }
 }
 
-void rbt_preorder_walk_tree(rbt_t *tree,
-                                         void (*callback)(void *)) {
+void rbt_preorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
   rbt_preorder_walk(tree, tree->root, callback);
 }
 
 void rbt_postorder_walk(rbt_t *tree, rbt_node_t *node,
-                                         void (*callback)(void *)) {
+                        void (*callback)(void *)) {
   if (node != tree->nil) {
     rbt_postorder_walk(tree, node->left, callback);
     rbt_postorder_walk(tree, node->right, callback);
@@ -269,13 +263,11 @@ void rbt_postorder_walk(rbt_t *tree, rbt_node_t *node,
   }
 }
 
-void rbt_postorder_walk_tree(rbt_t *tree,
-                                         void (*callback)(void *)) {
+void rbt_postorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
   rbt_postorder_walk(tree, tree->root, callback);
 }
 
-void rbt_transplant(rbt_t *tree, rbt_node_t *node_u,
-                                  rbt_node_t *node_v) {
+void rbt_transplant(rbt_t *tree, rbt_node_t *node_u, rbt_node_t *node_v) {
   if (RBT_GET_PARENT_FROM_NODE(node_u) == tree->nil) {
     tree->root = node_v;
   } else if (node_u == RBT_GET_PARENT_FROM_NODE(node_u)->left) {
@@ -382,14 +374,12 @@ void rbt_delete_node(rbt_t *tree, rbt_node_t *node_z) {
 
 void rbt_delete(rbt_t *tree) { tree->root = tree->nil; }
 
-void rbt_destroy_node(rbt_t *tree, rbt_node_t *node,
-                                    void (*destroy)(void *)) {
+void rbt_destroy_node(rbt_t *tree, rbt_node_t *node, void (*destroy)(void *)) {
   rbt_delete_node(tree, node);
   destroy(CAST(node, void));
 }
 
-void rbt_destroy(rbt_t *tree, rbt_node_t *node,
-                               void (*destroy)(void *)) {
+void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(void *)) {
   if (node == tree->nil) {
     return;
   }

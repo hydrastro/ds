@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include "queue.h"
+#include <stdlib.h>
 
 queue_t *queue_create() {
   queue_t *queue = (queue_t *)malloc(sizeof(queue_t));
@@ -27,7 +27,7 @@ queue_node_t *queue_dequeue(queue_t *queue) {
   }
   queue_node_t *node = queue->head;
   queue->head = node->next;
-  if(queue->head == queue->nil) {
+  if (queue->head == queue->nil) {
     queue->tail = queue->nil;
   }
   return node;

@@ -1,7 +1,7 @@
+#include "../lib/heap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "../lib/heap.h"
 
 typedef struct int_node {
   int value;
@@ -19,16 +19,14 @@ int_node_t *create_int_node(int value) {
   return node;
 }
 
-void destroy_int_node(void *node) {
-  free(node);
-}
+void destroy_int_node(void *node) { free(node); }
 
 int main() {
   srand(time(NULL));
   int i;
   heap_t *heap = heap_create(10);
 
-  for(i = 0; i < 20; i++) {
+  for (i = 0; i < 20; i++) {
     heap_insert(heap, (void *)create_int_node(rand() % 100), compare_int_nodes);
   }
 
@@ -36,7 +34,8 @@ int main() {
   printf("root: %d\n", root->value);
 
   while (!heap_is_empty(heap)) {
-    int_node_t *min_node = (int_node_t *)heap_extract_root(heap, compare_int_nodes);
+    int_node_t *min_node =
+        (int_node_t *)heap_extract_root(heap, compare_int_nodes);
     printf("extract: %d\n", min_node->value);
     destroy_int_node((void *)min_node);
   }

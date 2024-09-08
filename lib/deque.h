@@ -32,7 +32,6 @@ deque_node_t *deque_peek_back(deque_t *deque);
 
 int deque_is_empty(deque_t *deque);
 
-void deque_destroy(deque_t *deque,
-                                 void (*destroy_node)(deque_node_t *));
+void deque_destroy(deque_t *deque, void (*destroy_node)(deque_node_t *));
 
 #endif // DS_DEQUE_H

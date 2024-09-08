@@ -1,6 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include "doubly_linked_list.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 doubly_linked_list_t *doubly_linked_list_create() {
   doubly_linked_list_t *list =
@@ -15,12 +15,12 @@ doubly_linked_list_t *doubly_linked_list_create() {
 }
 
 void doubly_linked_list_append(doubly_linked_list_t *list,
-                                             doubly_linked_list_node_t *node) {
+                               doubly_linked_list_node_t *node) {
   doubly_linked_list_insert_after(list, node, list->tail);
 }
 
 void doubly_linked_list_prepend(doubly_linked_list_t *list,
-                                              doubly_linked_list_node_t *node) {
+                                doubly_linked_list_node_t *node) {
   doubly_linked_list_insert_before(list, node, list->head);
 }
 
@@ -37,10 +37,9 @@ doubly_linked_list_search(doubly_linked_list_t *list, void *data,
   return node;
 }
 
-void
-doubly_linked_list_insert_before(doubly_linked_list_t *list,
-                                 doubly_linked_list_node_t *node,
-                                 doubly_linked_list_node_t *next) {
+void doubly_linked_list_insert_before(doubly_linked_list_t *list,
+                                      doubly_linked_list_node_t *node,
+                                      doubly_linked_list_node_t *next) {
   node->next = next;
   node->prev = next->prev;
   next->prev->next = node;
@@ -55,10 +54,9 @@ doubly_linked_list_insert_before(doubly_linked_list_t *list,
   }
 }
 
-void
-doubly_linked_list_insert_after(doubly_linked_list_t *list,
-                                doubly_linked_list_node_t *node,
-                                doubly_linked_list_node_t *prev) {
+void doubly_linked_list_insert_after(doubly_linked_list_t *list,
+                                     doubly_linked_list_node_t *node,
+                                     doubly_linked_list_node_t *prev) {
   node->next = prev->next;
   node->prev = prev;
   prev->next->prev = node;
@@ -73,9 +71,8 @@ doubly_linked_list_insert_after(doubly_linked_list_t *list,
   }
 }
 
-void
-doubly_linked_list_delete_node(doubly_linked_list_t *list,
-                               doubly_linked_list_node_t *node) {
+void doubly_linked_list_delete_node(doubly_linked_list_t *list,
+                                    doubly_linked_list_node_t *node) {
   node->prev->next = node->next;
   node->next->prev = node->prev;
 
@@ -88,17 +85,15 @@ doubly_linked_list_delete_node(doubly_linked_list_t *list,
   }
 }
 
-void
-doubly_linked_list_destroy_node(doubly_linked_list_t *list,
-                                doubly_linked_list_node_t *node,
-                                void (*destroy)(doubly_linked_list_node_t *)) {
+void doubly_linked_list_destroy_node(
+    doubly_linked_list_t *list, doubly_linked_list_node_t *node,
+    void (*destroy)(doubly_linked_list_node_t *)) {
   doubly_linked_list_delete_node(list, node);
   destroy(node);
 }
 
-void
-doubly_linked_list_destroy(doubly_linked_list_t *list,
-                           void (*destroy)(doubly_linked_list_node_t *)) {
+void doubly_linked_list_destroy(doubly_linked_list_t *list,
+                                void (*destroy)(doubly_linked_list_node_t *)) {
   doubly_linked_list_node_t *node = list->head;
   while (node != list->nil) {
     doubly_linked_list_node_t *next = node->next;
@@ -109,28 +104,21 @@ doubly_linked_list_destroy(doubly_linked_list_t *list,
   free(list);
 }
 
-void
-doubly_linked_list_walk_forward(doubly_linked_list_t *list,
-                                doubly_linked_list_node_t *node,
-                                void (*callback)(void *)) {
-    while (node != list->nil) {
-        callback(DOUBLY_LINKED_LIST_GET_STRUCT_FROM_NODE(node, void));
-        node = node->next;
-    }
-    printf("\n");
+void doubly_linked_list_walk_forward(doubly_linked_list_t *list,
+                                     doubly_linked_list_node_t *node,
+                                     void (*callback)(void *)) {
+  while (node != list->nil) {
+    callback(DOUBLY_LINKED_LIST_GET_STRUCT_FROM_NODE(node, void));
+    node = node->next;
+  }
+  printf("\n");
 }
 
-void walk_backwards(doubly_linked_list_t *list) {
-    doubly_linked_list_node_t *node = list->tail;
-    printf("\n");
-}
-
-void
-doubly_linked_list_walk_backwards(doubly_linked_list_t *list,
-                                doubly_linked_list_node_t *node,
-                                void (*callback)(void *)) {
-    while (node != list->nil) {
-        callback(DOUBLY_LINKED_LIST_GET_STRUCT_FROM_NODE(node, void));
-        node = node->prev;
-    }
+void doubly_linked_list_walk_backwards(doubly_linked_list_t *list,
+                                       doubly_linked_list_node_t *node,
+                                       void (*callback)(void *)) {
+  while (node != list->nil) {
+    callback(DOUBLY_LINKED_LIST_GET_STRUCT_FROM_NODE(node, void));
+    node = node->prev;
+  }
 }

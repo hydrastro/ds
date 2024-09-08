@@ -1,6 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include "heap.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void swap(void **a, void **b) {
   void *temp = *a;
@@ -24,10 +24,12 @@ void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
     right = 2 * index + 2;
     smallest = index;
 
-    if (left < heap->size && compare(heap->data[left], heap->data[smallest]) < 0) {
+    if (left < heap->size &&
+        compare(heap->data[left], heap->data[smallest]) < 0) {
       smallest = left;
     }
-    if (right < heap->size && compare(heap->data[right], heap->data[smallest]) < 0) {
+    if (right < heap->size &&
+        compare(heap->data[right], heap->data[smallest]) < 0) {
       smallest = right;
     }
     if (smallest != index) {
@@ -58,7 +60,7 @@ void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *)) {
   heap->size++;
 }
 
-void *heap_extract_root(heap_t *heap, int (*compare)(void *, void*)) {
+void *heap_extract_root(heap_t *heap, int (*compare)(void *, void *)) {
   if (heap_is_empty(heap)) {
     return heap->nil;
   }
@@ -76,9 +78,7 @@ void *heap_peek_root(heap_t *heap) {
   return heap->data[0];
 }
 
-int heap_is_empty(heap_t *heap) {
-  return heap->size == 0;
-}
+int heap_is_empty(heap_t *heap) { return heap->size == 0; }
 
 void heap_destroy(heap_t *heap, void (*destroy_node)(void *)) {
   if (destroy_node) {

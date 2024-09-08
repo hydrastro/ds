@@ -5,7 +5,7 @@
 #define CAST(node, type) ((type *)(node))
 #endif
 
-#include<stddef.h>
+#include <stddef.h>
 
 typedef struct heap {
   void **data;

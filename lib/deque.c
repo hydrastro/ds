@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include "deque.h"
+#include <stdlib.h>
 
 deque_t *deque_create() {
   deque_t *deque = (deque_t *)malloc(sizeof(deque_t));
@@ -77,9 +77,7 @@ deque_node_t *deque_peek_back(deque_t *deque) {
   return deque->tail;
 }
 
-int deque_is_empty(deque_t *deque) {
-  return deque->head == deque->nil;
-}
+int deque_is_empty(deque_t *deque) { return deque->head == deque->nil; }
 
 void deque_destroy(deque_t *deque, void (*destroy_node)(deque_node_t *)) {
   deque_node_t *node = deque->head;

@@ -23,7 +23,6 @@ stack_node_t *stack_peek(stack_t *stack);
 
 int stack_is_empty(stack_t *stack);
 
-void stack_destroy(stack_t *stack,
-                                 void (*destroy_node)(stack_node_t *));
+void stack_destroy(stack_t *stack, void (*destroy_node)(stack_node_t *));
 
 #endif // DS_STACK_H

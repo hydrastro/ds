@@ -1,6 +1,6 @@
+#include "../lib/stack.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "../lib/stack.h"
 
 typedef struct int_node {
   stack_node_t node;
@@ -13,9 +13,7 @@ int_node_t *create_int_node(int value) {
   return new_node;
 }
 
-void destroy_node(stack_node_t *node) {
-  free(node);
-}
+void destroy_node(stack_node_t *node) { free(node); }
 
 int main() {
   stack_t *stack = stack_create();

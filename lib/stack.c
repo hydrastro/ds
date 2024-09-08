@@ -1,5 +1,5 @@
-#include <stdlib.h>
 #include "stack.h"
+#include <stdlib.h>
 
 stack_t *stack_create() {
   stack_t *stack = (stack_t *)malloc(sizeof(stack_t));
@@ -8,7 +8,9 @@ stack_t *stack_create() {
 }
 
 void stack_push(stack_t *stack, stack_node_t *node) {
-  if (node == NULL) return;
+  if (node == NULL) {
+    return;
+  }
   node->next = stack->top;
   stack->top = node;
 }
@@ -22,13 +24,9 @@ stack_node_t *stack_pop(stack_t *stack) {
   return node;
 }
 
-stack_node_t *stack_peek(stack_t *stack) {
-  return stack->top;
-}
+stack_node_t *stack_peek(stack_t *stack) { return stack->top; }
 
-int stack_is_empty(stack_t *stack) {
-  return stack->top == NULL;
-}
+int stack_is_empty(stack_t *stack) { return stack->top == NULL; }
 
 void stack_destroy(stack_t *stack, void (*destroy_node)(stack_node_t *)) {
   stack_node_t *node = stack->top;
