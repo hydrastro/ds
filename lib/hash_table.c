@@ -208,7 +208,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
 #ifdef HASH_TABLE_THREAD_SAFE
   pthread_mutex_lock(&table->mutex);
 #endif
-  if ((double)table->size / table->capacity > DS_HASH_TABLE_RESIZE_FACTOR) {
+  if ((double)table->size / table->capacity > HASH_TABLE_RESIZE_FACTOR) {
     hash_table_resize(table, next_prime_capacity(table->capacity), hash_func,
                       compare);
   }
