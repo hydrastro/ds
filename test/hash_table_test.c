@@ -18,7 +18,7 @@ int string_compare(void *key1, void *key2) {
   return strcmp((char *)key1, (char *)key2);
 }
 
-int main() {
+int main(void) {
   hash_table_t *table = hash_table_create(4000, HASH_CHAINING, NULL);
 
   hash_table_insert(table, "key1", "hmmm", string_hash, string_compare);

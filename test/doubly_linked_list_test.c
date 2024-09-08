@@ -24,7 +24,7 @@ void destroy_node(doubly_linked_list_node_t *node) {
   free(my_node);
 }
 
-int main() {
+int main(void) {
   int i, search_value;
   my_node_t *node, *found_node;
   doubly_linked_list_t *list;

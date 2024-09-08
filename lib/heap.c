@@ -58,7 +58,7 @@ heap_t *heap_create(size_t capacity) {
   heap->data = (void **)malloc(capacity * sizeof(void *));
   heap->size = 0;
   heap->capacity = capacity;
-  heap->nil = (void *)malloc(sizeof(void));
+  heap->nil = (void *)malloc(sizeof(void *));
 #ifdef HEAP_THREAD_SAFE
   LOCK_INIT_RECURSIVE(heap)
 #endif

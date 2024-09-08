@@ -15,7 +15,7 @@ int_node_t *create_int_node(int value) {
 
 void destroy_node(stack_node_t *node) { free(node); }
 
-int main() {
+int main(void) {
   stack_t *stack = stack_create();
 
   for (int i = 1; i <= 5; ++i) {

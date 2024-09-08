@@ -7,7 +7,7 @@ void rbt_set_parent(rbt_node_t *node, rbt_node_t *parent) {
 }
 
 void rbt_set_parent_color(rbt_node_t *node, rbt_node_t *parent, int color) {
-  node->parent_color = (unsigned long)parent + color;
+  node->parent_color = (unsigned long)parent + (long unsigned int)color;
 }
 
 rbt_t *rbt_create() {

@@ -18,7 +18,7 @@ void destroy_deque_node(deque_node_t *deque_node) {
   free(node);
 }
 
-int main() {
+int main(void) {
   int i;
   deque_t *deque;
   my_deque_node_t *node;

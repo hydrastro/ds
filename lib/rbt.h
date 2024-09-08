@@ -17,14 +17,14 @@ typedef struct rbt_node {
 #define RBT_RED 0
 #define RBT_BLACK 1
 
-#define RBT_GET_PARENT_FROM_COLOR(color) ((rbt_node_t *)((color) & ~3))
+#define RBT_GET_PARENT_FROM_COLOR(color) ((rbt_node_t *)((color) & (long unsigned int)~3))
 #define RBT_GET_COLOR_FROM_COLOR(color) ((color) & 1)
 #define RBT_IS_RED_FROM_COLOR(color)                                           \
   (RBT_GET_COLOR_FROM_COLOR(color) == RBT_RED)
 #define RBT_IS_BLACK_FROM_COLOR(color)                                         \
   (RBT_GET_COLOR_FROM_COLOR(color) == RBT_BLACK)
-#define RBT_SET_RED_FROM_COLOR(color) ((color) &= ~1)
-#define RBT_SET_BLACK_FROM_COLOR(color) ((color) |= 1)
+#define RBT_SET_RED_FROM_COLOR(color) ((color) &= (long unsigned int)~1)
+#define RBT_SET_BLACK_FROM_COLOR(color) ((color) |= (long unsigned int)1)
 
 #define RBT_GET_PARENT_FROM_NODE(node)                                         \
   (RBT_GET_PARENT_FROM_COLOR((node)->parent_color))
@@ -40,7 +40,7 @@ typedef struct rbt_node {
   (RBT_SET_BLACK_FROM_COLOR((node)->parent_color))
 #define RBT_SET_COLOR_FROM_NODE(node, color)                                   \
   ((node)->parent_color =                                                      \
-       (unsigned long)RBT_GET_PARENT_FROM_NODE(node) + (color))
+       (unsigned long)RBT_GET_PARENT_FROM_NODE(node) + ((long unsigned int)color))
 
 typedef struct rbt {
   rbt_node_t *root;

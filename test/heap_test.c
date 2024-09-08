@@ -21,7 +21,7 @@ int_node_t *create_int_node(int value) {
 
 void destroy_int_node(void *node) { free(node); }
 
-int main() {
+int main(void) {
   unsigned long seed = 0ul;
   srand(time(seed));
   int i;

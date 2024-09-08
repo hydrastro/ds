@@ -24,7 +24,7 @@ void destroy_node(void *data) {
   free(node);
 }
 
-int main() {
+int main(void) {
   int i, search_value;
   my_node_t *node, *found_node;
   linked_list_t *list;

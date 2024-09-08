@@ -129,8 +129,8 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
   hash_table_t *table = (hash_table_t *)malloc(sizeof(hash_table_t));
   table->capacity = next_prime_capacity(capacity);
   table->size = 0;
-  table->nil = (void *)malloc(sizeof(void));
-  table->tombstone = (void *)malloc(sizeof(void));
+  table->nil = (void *)malloc(sizeof(void *));
+  table->tombstone = (void *)malloc(sizeof(void *));
   table->mode = mode;
 
   if (mode == HASH_CHAINING) {
@@ -216,7 +216,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
   size_t base_index = hash_func(key) % table->capacity;
   size_t index = base_index;
   size_t iteration = 0;
-  size_t tombstone_index = 18446744073709551615u;
+  size_t tombstone_index = (long unsigned int) -1;
   if (table->mode == HASH_CHAINING) {
     hash_node_t *current = table->buckets[index];
     while (current != NULL) {
@@ -235,7 +235,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
   } else {
     while (table->entries[index].key != table->nil) {
       if (table->entries[index].key == table->tombstone) {
-        if (tombstone_index == 18446744073709551615u) {
+        if (tombstone_index == (long unsigned int)-1) {
           tombstone_index = index;
         }
       } else if (compare(table->entries[index].key, key) == 0) {
@@ -249,7 +249,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
       index = table->probing_func(base_index, iteration, table->capacity);
     }
 
-    if (tombstone_index != 18446744073709551615u) {
+    if (tombstone_index != (long unsigned int)-1) {
       index = tombstone_index;
     }
 

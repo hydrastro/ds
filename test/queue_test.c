@@ -18,7 +18,7 @@ void destroy_queue_node(queue_node_t *queue_node) {
   free(node);
 }
 
-int main() {
+int main(void) {
   int i;
   queue_t *queue;
   my_queue_node_t *node;
