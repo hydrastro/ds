@@ -14,13 +14,14 @@ typedef struct stack_node {
 
 typedef struct stack {
   stack_node_t *top;
+  stack_node_t *nil;
 #ifdef STACK_THREAD_SAFE
   pthread_mutex_t lock;
   bool is_thread_safe;
 #endif
 } stack_t;
 
-stack_t *stack_create();
+stack_t *stack_create(void);
 
 void stack_push(stack_t *stack, stack_node_t *node);
 

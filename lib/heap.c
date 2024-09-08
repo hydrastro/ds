@@ -94,7 +94,7 @@ void *heap_extract_root(heap_t *heap, int (*compare)(void *, void *)) {
   void *root = heap->data[0];
   heap->data[0] = heap->data[heap->size - 1];
   heap->size--;
-  heapify_down(heap, 0, compare);
+  heapify_down(heap, (size_t)0, compare);
 #ifdef HEAP_THREAD_SAFE
   UNLOCK(heap)
 #endif

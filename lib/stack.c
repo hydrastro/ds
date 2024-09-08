@@ -4,6 +4,8 @@
 stack_t *stack_create() {
   stack_t *stack = (stack_t *)malloc(sizeof(stack_t));
   stack->top = NULL;
+  stack->nil = (stack_node_t *)malloc(sizeof(stack_t));
+  stack->nil->next = stack->nil;
 #ifdef STACK_THREAD_SAFE
   LOCK_INIT(stack)
 #endif
@@ -29,7 +31,7 @@ stack_node_t *stack_pop(stack_t *stack) {
   LOCK(stack)
 #endif
   if (stack_is_empty(stack)) {
-    return NULL;
+    return stack->nil;
   }
   stack_node_t *node = stack->top;
   stack->top = node->next;

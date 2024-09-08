@@ -57,7 +57,7 @@ linked_list_node_t *linked_list_search(linked_list_t *list, void *data,
 #ifdef LINKED_LIST_THREAD_SAFE
     UNLOCK(list)
 #endif
-    return NULL;
+    return list->nil;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
   UNLOCK(list)

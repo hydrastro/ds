@@ -53,7 +53,7 @@ typedef struct rbt {
 
 void rbt_set_parent(rbt_node_t *node, rbt_node_t *parent);
 void rbt_set_parent_color(rbt_node_t *node, rbt_node_t *parent, int color);
-rbt_t *rbt_create();
+rbt_t *rbt_create(void);
 rbt_node_t *rbt_minimum(rbt_t *tree, rbt_node_t *node_x);
 rbt_node_t *rbt_maximum(rbt_t *tree, rbt_node_t *node_x);
 rbt_node_t *rbt_successor(rbt_t *tree, rbt_node_t *node_x);

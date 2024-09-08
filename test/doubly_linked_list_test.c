@@ -28,7 +28,8 @@ int main() {
   int i, search_value;
   my_node_t *node, *found_node;
   doubly_linked_list_t *list;
-  srand(time(NULL));
+  unsigned long seed = 0ul;
+  srand(time(seed));
   list = doubly_linked_list_create();
   search_value = 10;
 
@@ -57,7 +58,7 @@ int main() {
   printf("prepend: ");
   doubly_linked_list_walk_forward(list, list->head, print_node);
 
-  if (found_node) {
+  if (&found_node->node != list->nil) {
     doubly_linked_list_delete_node(list, &found_node->node);
     printf("delete node: ");
     doubly_linked_list_walk_forward(list, list->head, print_node);

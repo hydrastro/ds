@@ -53,7 +53,8 @@ doubly_linked_list_search(doubly_linked_list_t *list, void *data,
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
     UNLOCK(list)
 #endif
-    return NULL;
+
+    return list->nil;
   }
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
   UNLOCK(list)

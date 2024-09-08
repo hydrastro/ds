@@ -65,7 +65,7 @@ deque_node_t *deque_pop_front(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
     UNLOCK(deque)
 #endif
-    return NULL;
+    return deque->nil;
   }
   deque_node_t *node = deque->head;
   deque->head = node->next;
@@ -91,7 +91,7 @@ deque_node_t *deque_pop_back(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
     UNLOCK(deque)
 #endif
-    return NULL;
+    return deque->nil;
   }
   deque_node_t *node = deque->tail;
   deque->tail = node->prev;
@@ -117,7 +117,7 @@ deque_node_t *deque_peek_front(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
     UNLOCK(deque)
 #endif
-    return NULL;
+    return deque->nil;
   }
 
 #ifdef DEQUE_THREAD_SAFE
@@ -136,7 +136,7 @@ deque_node_t *deque_peek_back(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
     UNLOCK(deque)
 #endif
-    return NULL;
+    return deque->nil;
   }
 
 #ifdef DEQUE_THREAD_SAFE

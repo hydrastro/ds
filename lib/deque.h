@@ -23,7 +23,7 @@ typedef struct deque {
 #endif
 } deque_t;
 
-deque_t *deque_create();
+deque_t *deque_create(void);
 void deque_push_front(deque_t *deque, deque_node_t *node);
 void deque_push_back(deque_t *deque, deque_node_t *node);
 deque_node_t *deque_pop_front(deque_t *deque);

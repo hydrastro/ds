@@ -22,7 +22,8 @@ int_node_t *create_int_node(int value) {
 void destroy_int_node(void *node) { free(node); }
 
 int main() {
-  srand(time(NULL));
+  unsigned long seed = 0ul;
+  srand(time(seed));
   int i;
   heap_t *heap = heap_create(10);
 

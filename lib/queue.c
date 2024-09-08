@@ -4,7 +4,7 @@
 queue_t *queue_create() {
   queue_t *queue = (queue_t *)malloc(sizeof(queue_t));
   queue->nil = (queue_node_t *)malloc(sizeof(queue_node_t));
-  queue->nil->next = NULL;
+  queue->nil->next = queue->nil;
   queue->head = queue->nil;
   queue->tail = queue->nil;
 
@@ -43,7 +43,7 @@ queue_node_t *queue_dequeue(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
     UNLOCK(queue)
 #endif
-    return NULL;
+    return queue->nil;
   }
   queue_node_t *node = queue->head;
   queue->head = node->next;
@@ -68,7 +68,7 @@ queue_node_t *queue_peek(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
     UNLOCK(queue)
 #endif
-    return NULL;
+    return queue->nil;
   }
 
 #ifdef QUEUE_THREAD_SAFE
@@ -87,7 +87,7 @@ queue_node_t *queue_peek_tail(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
     UNLOCK(queue)
 #endif
-    return NULL;
+    return queue->nil;
   }
 
 #ifdef QUEUE_THREAD_SAFE

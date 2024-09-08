@@ -22,7 +22,7 @@ typedef struct queue {
 #endif
 } queue_t;
 
-queue_t *queue_create();
+queue_t *queue_create(void);
 void queue_enqueue(queue_t *queue, queue_node_t *node);
 queue_node_t *queue_dequeue(queue_t *queue);
 queue_node_t *queue_peek(queue_t *queue);

@@ -28,7 +28,8 @@ int main() {
   int i, search_value;
   my_node_t *node, *found_node;
   linked_list_t *list;
-  srand(time(NULL));
+  unsigned long seed = 0ul;
+  srand(time(seed));
   list = linked_list_create();
   search_value = 10;
 
@@ -59,7 +60,7 @@ int main() {
   linked_list_walk_forward(list, list->head, print_node);
   printf("\n");
 
-  if (found_node) {
+  if (&found_node->node != list->nil) {
     linked_list_delete_node(list, &found_node->node);
     printf("delete node: ");
     linked_list_walk_forward(list, list->head, print_node);

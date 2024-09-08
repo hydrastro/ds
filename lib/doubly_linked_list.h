@@ -23,7 +23,7 @@ typedef struct doubly_linked_list {
 #endif
 } doubly_linked_list_t;
 
-doubly_linked_list_t *doubly_linked_list_create();
+doubly_linked_list_t *doubly_linked_list_create(void);
 
 void doubly_linked_list_append(doubly_linked_list_t *list,
                                doubly_linked_list_node_t *node);

@@ -37,7 +37,8 @@ int main(void) {
   int i;
   my_node_t *node, *result_node, *search_data;
   rbt_t *tree;
-  srand(time(NULL));
+  unsigned long seed = 0ul;
+  srand(time((seed));
 
   tree = rbt_create();
   for (i = 0; i < 20; i++) {

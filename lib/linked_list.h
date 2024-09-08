@@ -22,7 +22,7 @@ typedef struct linked_list {
 #endif
 } linked_list_t;
 
-linked_list_t *linked_list_create();
+linked_list_t *linked_list_create(void);
 
 void linked_list_append(linked_list_t *list, linked_list_node_t *node);
 

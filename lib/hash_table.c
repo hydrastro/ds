@@ -77,8 +77,8 @@ size_t linear_probing(size_t base_index, size_t iteration, size_t capacity) {
 size_t hash_func_string_djb2(void *key) {
   char *str = (char *)key;
   size_t hash = 5381;
-  int c;
-  while ((c = *str++)) {
+  size_t c;
+  while ((c = (size_t)*str++)) {
     hash = ((hash << 5) + hash) + c;
   }
   return hash;
@@ -208,14 +208,15 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
 #ifdef HASH_TABLE_THREAD_SAFE
   LOCK(table)
 #endif
-  if ((double)table->size / table->capacity > HASH_TABLE_RESIZE_FACTOR) {
+  if ((double)table->size / (double)table->capacity >
+      HASH_TABLE_RESIZE_FACTOR) {
     hash_table_resize(table, next_prime_capacity(table->capacity), hash_func,
                       compare);
   }
   size_t base_index = hash_func(key) % table->capacity;
   size_t index = base_index;
   size_t iteration = 0;
-  size_t tombstone_index = -1;
+  size_t tombstone_index = 18446744073709551615u;
   if (table->mode == HASH_CHAINING) {
     hash_node_t *current = table->buckets[index];
     while (current != NULL) {
@@ -234,7 +235,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
   } else {
     while (table->entries[index].key != table->nil) {
       if (table->entries[index].key == table->tombstone) {
-        if (tombstone_index == -1) {
+        if (tombstone_index == 18446744073709551615u) {
           tombstone_index = index;
         }
       } else if (compare(table->entries[index].key, key) == 0) {
@@ -248,7 +249,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
       index = table->probing_func(base_index, iteration, table->capacity);
     }
 
-    if (tombstone_index != -1) {
+    if (tombstone_index != 18446744073709551615u) {
       index = tombstone_index;
     }
 
