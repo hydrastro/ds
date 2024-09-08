@@ -1,12 +1,13 @@
 #ifndef DS_QUEUE_H
 #define DS_QUEUE_H
 
-#ifndef CAST
-#define CAST(node, type) ((type *)(node))
-#endif
-
 #ifdef QUEUE_THREAD_SAFE
 #include <pthread.h>
+#include <stdbool.h>
+#endif
+
+#ifndef CAST
+#define CAST(node, type) ((type *)(node))
 #endif
 
 typedef struct queue_node {
@@ -17,9 +18,9 @@ typedef struct queue {
   queue_node_t *head;
   queue_node_t *tail;
   queue_node_t *nil;
-
 #ifdef QUEUE_THREAD_SAFE
   pthread_mutex_t lock;
+  bool is_thread_safe;
 #endif
 } queue_t;
 

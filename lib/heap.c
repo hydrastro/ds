@@ -9,15 +9,30 @@ void swap(void **a, void **b) {
 }
 
 void heapify_up(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_lock(&heap->lock);
+  }
+#endif
   size_t parent = (index - 1) / 2;
   while (index > 0 && compare(heap->data[index], heap->data[parent]) < 0) {
     swap(&heap->data[index], &heap->data[parent]);
     index = parent;
     parent = (index - 1) / 2;
   }
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_unlock(&heap->lock);
+  }
+#endif
 }
 
 void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_lock(&heap->lock);
+  }
+#endif
   size_t left, right, smallest;
   while (1) {
     left = 2 * index + 1;
@@ -39,6 +54,11 @@ void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
       break;
     }
   }
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_unlock(&heap->lock);
+  }
+#endif
 }
 
 heap_t *heap_create(size_t capacity) {
@@ -47,10 +67,22 @@ heap_t *heap_create(size_t capacity) {
   heap->size = 0;
   heap->capacity = capacity;
   heap->nil = (void *)malloc(sizeof(void));
+#ifdef HEAP_THREAD_SAFE
+  heap->is_thread_safe = true;
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&heap->lock, &attr);
+#endif
   return heap;
 }
 
 void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *)) {
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_lock(&heap->lock);
+  }
+#endif
   if (heap->size >= heap->capacity) {
     heap->capacity *= 2;
     heap->data = (void **)realloc(heap->data, heap->capacity * sizeof(void *));
@@ -58,23 +90,58 @@ void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *)) {
   heap->data[heap->size] = node;
   heapify_up(heap, heap->size, compare);
   heap->size++;
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_unlock(&heap->lock);
+  }
+#endif
 }
 
 void *heap_extract_root(heap_t *heap, int (*compare)(void *, void *)) {
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_lock(&heap->lock);
+  }
+#endif
   if (heap_is_empty(heap)) {
+#ifdef HEAP_THREAD_SAFE
+    if (heap->is_thread_safe) {
+      pthread_mutex_unlock(&heap->lock);
+    }
+#endif
     return heap->nil;
   }
   void *root = heap->data[0];
   heap->data[0] = heap->data[heap->size - 1];
   heap->size--;
   heapify_down(heap, 0, compare);
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_unlock(&heap->lock);
+  }
+#endif
   return root;
 }
 
 void *heap_peek_root(heap_t *heap) {
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_lock(&heap->lock);
+  }
+#endif
   if (heap_is_empty(heap)) {
+#ifdef HEAP_THREAD_SAFE
+    if (heap->is_thread_safe) {
+      pthread_mutex_unlock(&heap->lock);
+    }
+#endif
     return heap->nil;
   }
+#ifdef HEAP_THREAD_SAFE
+  if (heap->is_thread_safe) {
+    pthread_mutex_unlock(&heap->lock);
+  }
+#endif
   return heap->data[0];
 }
 
@@ -86,6 +153,9 @@ void heap_destroy(heap_t *heap, void (*destroy_node)(void *)) {
       destroy_node(heap->data[i]);
     }
   }
+#ifdef HEAP_THREAD_SAFE
+  pthread_mutex_destroy(&heap->lock);
+#endif
   free(heap->nil);
   free(heap->data);
   free(heap);

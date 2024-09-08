@@ -1,6 +1,11 @@
 #ifndef DS_LINKED_LIST_H
 #define DS_LINKED_LIST_H
 
+#ifdef LINKED_LIST_THREAD_SAFE
+#include <pthread.h>
+#include <stdbool.h>
+#endif
+
 #ifndef CAST
 #define CAST(node, type) ((type *)(node))
 #endif
@@ -13,6 +18,10 @@ typedef struct linked_list {
   linked_list_node_t *head;
   linked_list_node_t *tail;
   linked_list_node_t *nil;
+#ifdef LINKED_LIST_THREAD_SAFE
+  pthread_mutex_t lock;
+  bool is_thread_safe;
+#endif
 } linked_list_t;
 
 linked_list_t *linked_list_create();

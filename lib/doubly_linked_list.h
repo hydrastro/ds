@@ -1,6 +1,11 @@
 #ifndef DS_DOUBLY_LINKED_LIST_H
 #define DS_DOUBLY_LINKED_LIST_H
 
+#ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
+#include <pthread.h>
+#include <stdbool.h>
+#endif
+
 #ifndef CAST
 #define CAST(node, type) ((type *)(node))
 #endif
@@ -14,6 +19,10 @@ typedef struct doubly_linked_list {
   doubly_linked_list_node_t *head;
   doubly_linked_list_node_t *tail;
   doubly_linked_list_node_t *nil;
+#ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
+  pthread_mutex_t lock;
+  bool is_thread_safe;
+#endif
 } doubly_linked_list_t;
 
 doubly_linked_list_t *doubly_linked_list_create();

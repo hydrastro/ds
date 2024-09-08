@@ -1,17 +1,26 @@
 #ifndef DS_HEAP_H
 #define DS_HEAP_H
 
+#include <stddef.h>
+
+#ifdef HEAP_THREAD_SAFE
+#include <pthread.h>
+#include <stdbool.h>
+#endif
+
 #ifndef CAST
 #define CAST(node, type) ((type *)(node))
 #endif
-
-#include <stddef.h>
 
 typedef struct heap {
   void **data;
   size_t size;
   size_t capacity;
   void *nil;
+#ifdef HEAP_THREAD_SAFE
+  pthread_mutex_t lock;
+  bool is_thread_safe;
+#endif
 } heap_t;
 
 void swap(void **a, void **b);
