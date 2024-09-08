@@ -216,7 +216,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
   size_t base_index = hash_func(key) % table->capacity;
   size_t index = base_index;
   size_t iteration = 0;
-  size_t tombstone_index = (long unsigned int) -1;
+  size_t tombstone_index = (long unsigned int)-1;
   if (table->mode == HASH_CHAINING) {
     hash_node_t *current = table->buckets[index];
     while (current != NULL) {
