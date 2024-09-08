@@ -10,11 +10,7 @@ deque_t *deque_create() {
   deque->tail = deque->nil;
 
 #ifdef DEQUE_THREAD_SAFE
-  deque->is_thread_safe = true;
-  pthread_mutexattr_t attr;
-  pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init(&deque->lock, &attr);
+  LOCK_INIT_RECURSIVE(deque);
 #endif
 
   return deque;
@@ -22,7 +18,7 @@ deque_t *deque_create() {
 
 void deque_push_front(deque_t *deque, deque_node_t *node) {
 #ifdef DEQUE_THREAD_SAFE
-LOCK(deque)
+  LOCK(deque)
 #endif
 
   node->next = deque->head;
@@ -36,13 +32,13 @@ LOCK(deque)
   }
 
 #ifdef DEQUE_THREAD_SAFE
-UNLOCK(deque)
+  UNLOCK(deque)
 #endif
 }
 
 void deque_push_back(deque_t *deque, deque_node_t *node) {
 #ifdef DEQUE_THREAD_SAFE
-LOCK(deque)
+  LOCK(deque)
 #endif
 
   node->next = deque->nil;
@@ -56,18 +52,18 @@ LOCK(deque)
   }
 
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+  UNLOCK(deque)
 #endif
 }
 
 deque_node_t *deque_pop_front(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
- LOCK(deque)
+  LOCK(deque)
 #endif
 
   if (deque_is_empty(deque)) {
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+    UNLOCK(deque)
 #endif
     return NULL;
   }
@@ -80,7 +76,7 @@ deque_node_t *deque_pop_front(deque_t *deque) {
   }
 
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+  UNLOCK(deque)
 #endif
 
   return node;
@@ -88,12 +84,12 @@ deque_node_t *deque_pop_front(deque_t *deque) {
 
 deque_node_t *deque_pop_back(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
-LOCK(deque)
+  LOCK(deque)
 #endif
 
   if (deque_is_empty(deque)) {
 #ifdef DEQUE_THREAD_SAFE
-UNLOCK(deque)
+    UNLOCK(deque)
 #endif
     return NULL;
   }
@@ -106,7 +102,7 @@ UNLOCK(deque)
   }
 
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+  UNLOCK(deque)
 #endif
 
   return node;
@@ -114,18 +110,18 @@ UNLOCK(deque)
 
 deque_node_t *deque_peek_front(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
- LOCK(deque)
+  LOCK(deque)
 #endif
 
   if (deque->head == deque->nil) {
 #ifdef DEQUE_THREAD_SAFE
-UNLOCK(deque)
+    UNLOCK(deque)
 #endif
     return NULL;
   }
 
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+  UNLOCK(deque)
 #endif
 
   return deque->head;
@@ -133,18 +129,18 @@ UNLOCK(deque)
 
 deque_node_t *deque_peek_back(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
-LOCK(deque)
+  LOCK(deque)
 #endif
 
   if (deque->tail == deque->nil) {
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+    UNLOCK(deque)
 #endif
     return NULL;
   }
 
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+  UNLOCK(deque)
 #endif
 
   return deque->tail;
@@ -152,13 +148,13 @@ LOCK(deque)
 
 int deque_is_empty(deque_t *deque) {
 #ifdef DEQUE_THREAD_SAFE
- LOCK(deque)
+  LOCK(deque)
 #endif
 
   int empty = deque->head == deque->nil;
 
 #ifdef DEQUE_THREAD_SAFE
- UNLOCK(deque)
+  UNLOCK(deque)
 #endif
 
   return empty;
@@ -174,7 +170,7 @@ void deque_destroy(deque_t *deque, void (*destroy_node)(deque_node_t *)) {
   free(deque->nil);
 
 #ifdef DEQUE_THREAD_SAFE
-  pthread_mutex_destroy(&deque->lock);
+  LOCK_DESTROY(deque)
 #endif
 
   free(deque);

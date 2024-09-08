@@ -8,18 +8,14 @@ linked_list_t *linked_list_create() {
   list->tail = list->nil;
   list->nil->next = list->nil;
 #ifdef LINKED_LIST_THREAD_SAFE
-  list->is_thread_safe = true;
-  pthread_mutexattr_t attr;
-  pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init(&list->lock, &attr);
+  LOCK_INIT_RECURSIVE(list)
 #endif
   return list;
 }
 
 void linked_list_append(linked_list_t *list, linked_list_node_t *node) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   node->next = list->nil;
   list->tail->next = node;
@@ -28,13 +24,13 @@ void linked_list_append(linked_list_t *list, linked_list_node_t *node) {
     list->head = node;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }
 
 void linked_list_prepend(linked_list_t *list, linked_list_node_t *node) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   node->next = list->head;
   list->head = node;
@@ -42,7 +38,7 @@ void linked_list_prepend(linked_list_t *list, linked_list_node_t *node) {
     list->tail = node;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }
 
@@ -50,7 +46,7 @@ linked_list_node_t *linked_list_search(linked_list_t *list, void *data,
                                        int (*compare)(linked_list_node_t *,
                                                       void *)) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   linked_list_node_t *node;
   node = list->head;
@@ -59,12 +55,12 @@ linked_list_node_t *linked_list_search(linked_list_t *list, void *data,
   }
   if (node == list->nil) {
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+    UNLOCK(list)
 #endif
     return NULL;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
   return node;
 }
@@ -72,7 +68,7 @@ linked_list_node_t *linked_list_search(linked_list_t *list, void *data,
 void linked_list_insert_before(linked_list_t *list, linked_list_node_t *node,
                                linked_list_node_t *next) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   linked_list_node_t *prev;
   prev = list->head;
@@ -88,14 +84,14 @@ void linked_list_insert_before(linked_list_t *list, linked_list_node_t *node,
     list->tail = node;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }
 
 void linked_list_insert_after(linked_list_t *list, linked_list_node_t *node,
                               linked_list_node_t *prev) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   node->next = prev->next;
   prev->next = node;
@@ -108,13 +104,13 @@ void linked_list_insert_after(linked_list_t *list, linked_list_node_t *node,
     list->head = node;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }
 
 void linked_list_delete_node(linked_list_t *list, linked_list_node_t *node) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   linked_list_node_t *prev;
   prev = list->nil;
@@ -129,19 +125,19 @@ void linked_list_delete_node(linked_list_t *list, linked_list_node_t *node) {
     list->tail = prev;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }
 
 void linked_list_destroy_node(linked_list_t *list, linked_list_node_t *node,
                               void (*destroy_node)(void *)) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   linked_list_delete_node(list, node);
   destroy_node(CAST(node, void));
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }
 
@@ -154,7 +150,7 @@ void linked_list_destroy(linked_list_t *list, void (*destroy_node)(void *)) {
     node = next;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
-  pthread_mutex_destroy(&list->lock);
+  LOCK_DESTROY(list)
 #endif
   free(list->nil);
   free(list);
@@ -163,7 +159,7 @@ void linked_list_destroy(linked_list_t *list, void (*destroy_node)(void *)) {
 void linked_list_walk_forward(linked_list_t *list, linked_list_node_t *node,
                               void (*callback)(void *)) {
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   linked_list_node_t *cur;
   cur = node;
@@ -172,7 +168,7 @@ void linked_list_walk_forward(linked_list_t *list, linked_list_node_t *node,
     cur = cur->next;
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }
 
@@ -180,13 +176,13 @@ void linked_list_walk_backwards(linked_list_t *list, linked_list_node_t *node,
                                 void (*callback)(void *)) {
 
 #ifdef LINKED_LIST_THREAD_SAFE
- LOCK(list)
+  LOCK(list)
 #endif
   if (node != list->nil) {
     linked_list_walk_backwards(list, node->next, callback);
     callback(CAST(node, void));
   }
 #ifdef LINKED_LIST_THREAD_SAFE
- UNLOCK(list)
+  UNLOCK(list)
 #endif
 }

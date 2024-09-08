@@ -9,8 +9,7 @@ queue_t *queue_create() {
   queue->tail = queue->nil;
 
 #ifdef QUEUE_THREAD_SAFE
-  queue->is_thread_safe = true;
-  pthread_mutex_init(&queue->lock, NULL);
+  LOCK_INIT(queue)
 #endif
 
   return queue;
@@ -18,7 +17,7 @@ queue_t *queue_create() {
 
 void queue_enqueue(queue_t *queue, queue_node_t *node) {
 #ifdef QUEUE_THREAD_SAFE
- LOCK(queue)
+  LOCK(queue)
 #endif
 
   node->next = queue->nil;
@@ -31,18 +30,18 @@ void queue_enqueue(queue_t *queue, queue_node_t *node) {
   }
 
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+  UNLOCK(queue)
 #endif
 }
 
 queue_node_t *queue_dequeue(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
- LOCK(queue)
+  LOCK(queue)
 #endif
 
   if (queue->head == queue->nil) {
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+    UNLOCK(queue)
 #endif
     return NULL;
   }
@@ -53,7 +52,7 @@ queue_node_t *queue_dequeue(queue_t *queue) {
   }
 
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+  UNLOCK(queue)
 
 #endif
 
@@ -62,18 +61,18 @@ queue_node_t *queue_dequeue(queue_t *queue) {
 
 queue_node_t *queue_peek(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
- LOCK(queue)
+  LOCK(queue)
 #endif
 
   if (queue->head == queue->nil) {
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+    UNLOCK(queue)
 #endif
     return NULL;
   }
 
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+  UNLOCK(queue)
 #endif
 
   return queue->head;
@@ -81,18 +80,18 @@ queue_node_t *queue_peek(queue_t *queue) {
 
 queue_node_t *queue_peek_tail(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
- LOCK(queue)
+  LOCK(queue)
 #endif
 
   if (queue->tail == queue->nil) {
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+    UNLOCK(queue)
 #endif
     return NULL;
   }
 
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+  UNLOCK(queue)
 #endif
 
   return queue->tail;
@@ -100,13 +99,13 @@ queue_node_t *queue_peek_tail(queue_t *queue) {
 
 int queue_is_empty(queue_t *queue) {
 #ifdef QUEUE_THREAD_SAFE
- LOCK(queue)
+  LOCK(queue)
 #endif
 
   int empty = queue->head == queue->nil;
 
 #ifdef QUEUE_THREAD_SAFE
- UNLOCK(queue)
+  UNLOCK(queue)
 #endif
 
   return empty;
@@ -122,7 +121,7 @@ void queue_destroy(queue_t *queue, void (*destroy_node)(queue_node_t *)) {
   free(queue->nil);
 
 #ifdef QUEUE_THREAD_SAFE
-  pthread_mutex_destroy(&queue->lock);
+  LOCK_DESTROY(queue)
 #endif
 
   free(queue);

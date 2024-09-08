@@ -3,6 +3,11 @@
 
 #include "common.h"
 
+#ifdef RBT_THREAD_SAFE
+#include <pthread.h>
+#include <stdbool.h>
+#endif
+
 typedef struct rbt_node {
   unsigned long parent_color;
   struct rbt_node *right;
@@ -40,6 +45,10 @@ typedef struct rbt_node {
 typedef struct rbt {
   rbt_node_t *root;
   rbt_node_t *nil;
+#ifdef RBT_THREAD_SAFE
+  pthread_mutex_t lock;
+  bool is_thread_safe;
+#endif
 } __attribute__((aligned(sizeof(long)))) rbt_t;
 
 void rbt_set_parent(rbt_node_t *node, rbt_node_t *parent);
