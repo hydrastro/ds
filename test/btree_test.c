@@ -4,12 +4,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-int compare_int(void *a, void *b) { return (*(int *)a - *(int *)b); }
+typedef struct my_node {
+  btree_node_t node;
+  int data;
+} my_node_t;
 
-void destroy_int(void *data) {}
+int compare_int(btree_node_t *a, btree_node_t *b) {
+  return CAST(a, my_node_t)->data - CAST(b, my_node_t)->data;
+}
 
-void print_btree_node(btree_node_t *node, int level,
-                      void (*print_data)(void *)) {
+void destroy_int(btree_node_t *data) { free(data); }
+
+void print_btree_node(btree_internal_node_t *node, int level,
+                      void (*print_data)(btree_node_t *)) {
   if (node == NULL)
     return;
 
@@ -27,36 +34,39 @@ void print_btree_node(btree_node_t *node, int level,
   }
 }
 
-void print_int(void *data) { printf("%d", *(int *)data); }
+void print_int(btree_node_t *data) {
+  printf("%d", CAST(data, my_node_t)->data);
+}
 
 void test_btree_operations() {
   btree_t *tree = btree_create(2);
   int values[] = {10, 20, 5, 6, 15, 30, 25, 35};
   for (int i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
-    int *data = (int *)malloc(sizeof(int));
-    *data = values[i];
-    btree_insert(tree, data, compare_int);
+    my_node_t *data = (my_node_t *)malloc(sizeof(my_node_t));
+    data->data = values[i];
+    btree_insert(tree, &data->node, compare_int);
   }
 
   printf("after inserts:\n");
   print_btree_node(tree->root, 0, print_int);
 
   for (int i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
-    int key = values[i];
-    void *result = btree_search(tree, &key, compare_int);
+    my_node_t *wkey = (my_node_t *)malloc(sizeof(my_node_t));
+    wkey->data = values[i];
+    btree_node_t *result = btree_search(tree, &wkey->node, compare_int);
     if (result != tree->nil) {
-      int *value = result;
-      printf("found: %d\n", *value);
+      printf("found: %d check: %d\n", CAST(result, my_node_t)->data, values[i]);
     } else {
-      printf("%d not found\n", key);
+      printf("%d not found\n", values[i]);
     }
   }
 
   int delete_values[] = {10, 20, 5};
   for (int i = 0; i < sizeof(delete_values) / sizeof(delete_values[0]); i++) {
-    int key = delete_values[i];
-    btree_delete(tree, &key, destroy_int, compare_int);
-    printf("deleted %d\n", key);
+    my_node_t *wkey = (my_node_t *)malloc(sizeof(my_node_t));
+    wkey->data = delete_values[i];
+    btree_delete(tree, &wkey->node, destroy_int, compare_int);
+    printf("deleted %d\n", delete_values[i]);
     print_btree_node(tree->root, 0, print_int);
   }
 
@@ -69,10 +79,10 @@ void *thread_function(void *arg) {
   btree_t *tree = (btree_t *)arg;
 
   for (int i = 0; i < 100; i++) {
-    int *data = (int *)malloc(sizeof(int));
-    *data = rand() % 1000;
+    my_node_t *data = (my_node_t *)malloc(sizeof(my_node_t));
+    data->data = rand() % 1000;
     printf("thread insert..\n");
-    btree_insert(tree, data, compare_int);
+    btree_insert(tree, &data->node, compare_int);
     printf("thread inserted\n");
   }
 

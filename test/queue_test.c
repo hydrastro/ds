@@ -22,8 +22,7 @@ int main(void) {
   int i;
   queue_t *queue;
   my_queue_node_t *node;
-  unsigned long seed = 0ul;
-  srand(time(seed));
+  srand(time((long int *)NULL));
 
   queue = queue_create();
 

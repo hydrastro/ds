@@ -3,14 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-static btree_node_t *btree_create_node(btree_t *tree, bool is_leaf) {
-  btree_node_t *node = (btree_node_t *)malloc(sizeof(btree_node_t));
+static btree_internal_node_t *btree_create_node(btree_t *tree, bool is_leaf) {
+  btree_internal_node_t *node =
+      (btree_internal_node_t *)malloc(sizeof(btree_internal_node_t));
   node->num_keys = 0;
   node->is_leaf = is_leaf;
-  node->data = (void **)malloc((2 * tree->degree - 1) * sizeof(void *));
-  node->children =
-      (btree_node_t **)malloc(2 * tree->degree * sizeof(btree_node_t *));
-  memset(node->children, 0, 2 * tree->degree * sizeof(btree_node_t *));
+  node->data =
+      (btree_node_t **)malloc((2 * tree->degree - 1) * sizeof(btree_node_t *));
+  node->children = (btree_internal_node_t **)malloc(
+      2 * tree->degree * sizeof(btree_internal_node_t *));
+  memset(node->children, 0, 2 * tree->degree * sizeof(btree_internal_node_t *));
   return node;
 }
 
@@ -27,9 +29,9 @@ btree_t *btree_create(int degree) {
   return tree;
 }
 
-static void btree_split_child(btree_t *tree, btree_node_t *parent, int index,
-                              btree_node_t *child) {
-  btree_node_t *new_node = btree_create_node(tree, child->is_leaf);
+static void btree_split_child(btree_t *tree, btree_internal_node_t *parent,
+                              int index, btree_internal_node_t *child) {
+  btree_internal_node_t *new_node = btree_create_node(tree, child->is_leaf);
   new_node->num_keys = tree->degree - 1;
 
   for (int i = 0; i < tree->degree - 1; i++) {
@@ -56,8 +58,10 @@ static void btree_split_child(btree_t *tree, btree_node_t *parent, int index,
   parent->num_keys++;
 }
 
-static void btree_insert_non_full(btree_t *tree, btree_node_t *node, void *data,
-                                  int (*compare)(void *, void *)) {
+static void btree_insert_non_full(btree_t *tree, btree_internal_node_t *node,
+                                  btree_node_t *data,
+                                  int (*compare)(btree_node_t *,
+                                                 btree_node_t *)) {
   int i = node->num_keys - 1;
 
   if (node->is_leaf) {
@@ -82,14 +86,15 @@ static void btree_insert_non_full(btree_t *tree, btree_node_t *node, void *data,
   }
 }
 
-void btree_insert(btree_t *tree, void *data, int (*compare)(void *, void *)) {
+void btree_insert(btree_t *tree, btree_node_t *data,
+                  int (*compare)(btree_node_t *, btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
 
-  btree_node_t *root = tree->root;
+  btree_internal_node_t *root = tree->root;
   if (root->num_keys == 2 * tree->degree - 1) {
-    btree_node_t *new_root = btree_create_node(tree, false);
+    btree_internal_node_t *new_root = btree_create_node(tree, false);
     new_root->children[0] = root;
     btree_split_child(tree, new_root, 0, root);
     tree->root = new_root;
@@ -103,8 +108,9 @@ void btree_insert(btree_t *tree, void *data, int (*compare)(void *, void *)) {
 #endif
 }
 
-static void *btree_search_node(btree_t *tree, btree_node_t *node, void *key,
-                               int (*compare)(void *, void *)) {
+static btree_node_t *
+btree_search_node(btree_t *tree, btree_internal_node_t *node, btree_node_t *key,
+                  int (*compare)(btree_node_t *, btree_node_t *)) {
   int i = 0;
   while (i < node->num_keys && compare(key, node->data[i]) > 0) {
     i++;
@@ -121,12 +127,13 @@ static void *btree_search_node(btree_t *tree, btree_node_t *node, void *key,
   return btree_search_node(tree, node->children[i], key, compare);
 }
 
-void *btree_search(btree_t *tree, void *key, int (*compare)(void *, void *)) {
+btree_node_t *btree_search(btree_t *tree, btree_node_t *key,
+                           int (*compare)(btree_node_t *, btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
 
-  void *result = btree_search_node(tree, tree->root, key, compare);
+  btree_node_t *result = btree_search_node(tree, tree->root, key, compare);
 
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
@@ -135,10 +142,11 @@ void *btree_search(btree_t *tree, void *key, int (*compare)(void *, void *)) {
   return result ? result : tree->nil;
 }
 
-static void btree_merge_nodes(btree_t *tree, btree_node_t *parent, int index,
-                              int (*compare)(void *, void *)) {
-  btree_node_t *child = parent->children[index];
-  btree_node_t *sibling = parent->children[index + 1];
+static void btree_merge_nodes(btree_t *tree, btree_internal_node_t *parent,
+                              int index,
+                              int (*compare)(btree_node_t *, btree_node_t *)) {
+  btree_internal_node_t *child = parent->children[index];
+  btree_internal_node_t *sibling = parent->children[index + 1];
   int t = tree->degree;
 
   child->data[t - 1] = parent->data[index];
@@ -166,21 +174,22 @@ static void btree_merge_nodes(btree_t *tree, btree_node_t *parent, int index,
   free(sibling);
 }
 
-static void btree_delete_non_leaf(btree_t *tree, btree_node_t *node, int index,
-                                  int (*compare)(void *, void *)) {
-  btree_node_t *child = node->children[index];
-  btree_node_t *sibling = node->children[index + 1];
+static void
+btree_delete_non_leaf(btree_t *tree, btree_internal_node_t *node, int index,
+                      int (*compare)(btree_node_t *, btree_node_t *)) {
+  btree_internal_node_t *child = node->children[index];
+  btree_internal_node_t *sibling = node->children[index + 1];
   int t = tree->degree;
 
   if (child->num_keys >= t) {
-    btree_node_t *pred = child;
+    btree_internal_node_t *pred = child;
     while (!pred->is_leaf) {
       pred = pred->children[pred->num_keys];
     }
     node->data[index] = pred->data[pred->num_keys - 1];
     btree_delete_node(tree, child, node->data[index], compare);
   } else if (sibling->num_keys >= t) {
-    btree_node_t *succ = sibling;
+    btree_internal_node_t *succ = sibling;
     while (!succ->is_leaf) {
       succ = succ->children[0];
     }
@@ -192,8 +201,9 @@ static void btree_delete_non_leaf(btree_t *tree, btree_node_t *node, int index,
   }
 }
 
-static void btree_delete_node(btree_t *tree, btree_node_t *node, void *key,
-                              int (*compare)(void *, void *)) {
+static void btree_delete_node(btree_t *tree, btree_internal_node_t *node,
+                              btree_node_t *key,
+                              int (*compare)(btree_node_t *, btree_node_t *)) {
   int index = 0;
   while (index < node->num_keys && compare(key, node->data[index]) > 0) {
     index++;
@@ -227,15 +237,16 @@ static void btree_delete_node(btree_t *tree, btree_node_t *node, void *key,
   }
 }
 
-void btree_delete(btree_t *tree, void *key, void (*destroy_data)(void *),
-                  int (*compare)(void *, void *)) {
+void btree_delete(btree_t *tree, btree_node_t *key,
+                  void (*destroy_data)(btree_node_t *),
+                  int (*compare)(btree_node_t *, btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
   btree_delete_node(tree, tree->root, key, compare);
 
   if (tree->root->num_keys == 0 && !tree->root->is_leaf) {
-    btree_node_t *old_root = tree->root;
+    btree_internal_node_t *old_root = tree->root;
     tree->root = tree->root->children[0];
     free(old_root->data);
     free(old_root->children);
@@ -247,11 +258,8 @@ void btree_delete(btree_t *tree, void *key, void (*destroy_data)(void *),
 #endif
 }
 
-void btree_destroy_node(btree_t *tree, btree_node_t *node,
-                        void (*destroy_data)(void *)) {
-  if (node == tree->nil) {
-    return;
-  }
+void btree_destroy_node(btree_t *tree, btree_internal_node_t *node,
+                        void (*destroy_data)(btree_node_t *)) {
   if (!node->is_leaf) {
     for (int i = 0; i <= node->num_keys; i++) {
       btree_destroy_node(tree, node->children[i], destroy_data);
@@ -265,7 +273,7 @@ void btree_destroy_node(btree_t *tree, btree_node_t *node,
   free(node);
 }
 
-void btree_destroy(btree_t *tree, void (*destroy_data)(void *)) {
+void btree_destroy(btree_t *tree, void (*destroy_data)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -282,7 +290,7 @@ void *btree_minimum(btree_t *tree) {
   LOCK(tree)
 #endif
 
-  btree_node_t *node = tree->root;
+  btree_internal_node_t *node = tree->root;
   while (!node->is_leaf) {
     node = node->children[0];
   }
@@ -299,7 +307,7 @@ void *btree_maximum(btree_t *tree) {
   LOCK(tree)
 #endif
 
-  btree_node_t *node = tree->root;
+  btree_internal_node_t *node = tree->root;
   while (!node->is_leaf) {
     node = node->children[node->num_keys];
   }

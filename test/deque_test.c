@@ -22,8 +22,7 @@ int main(void) {
   int i;
   deque_t *deque;
   my_deque_node_t *node;
-  unsigned long seed = 0ul;
-  srand(time(seed));
+  srand(time((long int *)NULL));
 
   deque = deque_create();
 

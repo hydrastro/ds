@@ -2,11 +2,11 @@
 #define DS_HASH_TABLE_H
 
 #include "common.h"
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef HASH_TABLE_THREAD_SAFE
 #include <pthread.h>
-#include <stdbool.h>
 #endif
 
 #ifndef HASH_TABLE_RESIZE_FACTOR
@@ -68,9 +68,8 @@ void *hash_table_lookup(hash_table_t *table, void *key,
 void hash_table_remove(hash_table_t *table, void *key,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *),
-                       void (*destroy_node)(hash_node_t *));
-int hash_table_is_empty(hash_table_t *table);
-void hash_table_destroy(hash_table_t *table,
-                        void (*destroy_node)(hash_node_t *));
+                       void (*destroy)(hash_node_t *));
+bool hash_table_is_empty(hash_table_t *table);
+void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *));
 
 #endif // DS_HASH_TABLE_H

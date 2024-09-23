@@ -2,13 +2,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void swap(void **a, void **b) {
-  void *temp = *a;
+void swap(heap_node_t **a, heap_node_t **b) {
+  heap_node_t *temp;
+  int index;
+  index = (*a)->index;
+  (*a)->index = (*b)->index;
+  (*b)->index = index;
+  temp = *a;
   *a = *b;
   *b = temp;
 }
 
-void heapify_up(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
+void heapify_up(heap_t *heap, size_t index,
+                int (*compare)(heap_node_t *, heap_node_t *)) {
 #ifdef HEAP_THREAD_SAFE
   LOCK(heap)
 #endif
@@ -23,7 +29,8 @@ void heapify_up(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
 #endif
 }
 
-void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
+void heapify_down(heap_t *heap, size_t index,
+                  int (*compare)(heap_node_t *, heap_node_t *)) {
 #ifdef HEAP_THREAD_SAFE
   LOCK(heap)
 #endif
@@ -55,24 +62,28 @@ void heapify_down(heap_t *heap, size_t index, int (*compare)(void *, void *)) {
 
 heap_t *heap_create(size_t capacity) {
   heap_t *heap = (heap_t *)malloc(sizeof(heap_t));
-  heap->data = (void **)malloc(capacity * sizeof(void *));
+  heap->data = (heap_node_t **)malloc(capacity * sizeof(heap_node_t *));
   heap->size = 0;
   heap->capacity = capacity;
-  heap->nil = (void *)malloc(sizeof(void *));
+  heap->nil = (heap_node_t *)malloc(sizeof(heap_node_t));
+  heap->nil->index = -1;
 #ifdef HEAP_THREAD_SAFE
   LOCK_INIT_RECURSIVE(heap)
 #endif
   return heap;
 }
 
-void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *)) {
+void heap_insert(heap_t *heap, heap_node_t *node,
+                 int (*compare)(heap_node_t *, heap_node_t *)) {
 #ifdef HEAP_THREAD_SAFE
   LOCK(heap)
 #endif
   if (heap->size >= heap->capacity) {
     heap->capacity *= 2;
-    heap->data = (void **)realloc(heap->data, heap->capacity * sizeof(void *));
+    heap->data = (heap_node_t **)realloc(heap->data, heap->capacity *
+                                                         sizeof(heap_node_t *));
   }
+  node->index = heap->size;
   heap->data[heap->size] = node;
   heapify_up(heap, heap->size, compare);
   heap->size++;
@@ -81,7 +92,8 @@ void heap_insert(heap_t *heap, void *node, int (*compare)(void *, void *)) {
 #endif
 }
 
-void *heap_extract_root(heap_t *heap, int (*compare)(void *, void *)) {
+void *heap_extract_root(heap_t *heap,
+                        int (*compare)(heap_node_t *, heap_node_t *)) {
 #ifdef HEAP_THREAD_SAFE
   LOCK(heap)
 #endif
@@ -117,12 +129,14 @@ void *heap_peek_root(heap_t *heap) {
   return heap->data[0];
 }
 
-int heap_is_empty(heap_t *heap) { return heap->size == 0; }
+bool heap_is_empty(heap_t *heap) { return heap->size == 0; }
 
-void heap_destroy(heap_t *heap, void (*destroy_node)(void *)) {
+void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
   if (destroy_node) {
     for (size_t i = 0; i < heap->size; ++i) {
-      destroy_node(heap->data[i]);
+      if (destroy != NULL) {
+        destroy(heap->data[i]);
+      }
     }
   }
 #ifdef HEAP_THREAD_SAFE

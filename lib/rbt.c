@@ -19,6 +19,7 @@ rbt_t *rbt_create() {
   rbt_set_parent_color(tree->root, tree->nil, RBT_BLACK);
   tree->root->left = tree->nil;
   tree->root->right = tree->nil;
+  tree->size = 0;
 #ifdef RBT_THREAD_SAFE
   LOCK_INIT_RECURSIVE(tree);
 #endif
@@ -96,20 +97,20 @@ rbt_node_t *rbt_predecessor(rbt_t *tree, rbt_node_t *node_x) {
   return node_y;
 }
 
-rbt_node_t *rbt_search(rbt_t *tree, rbt_node_t *node_x, void *data,
-                       int (*compare)(void *, void *)) {
+rbt_node_t *rbt_search(rbt_t *tree, rbt_node_t *node_x, rbt_node_t *data,
+                       int (*compare)(rbt_node_t *, rbt_node_t *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
   int cmp;
   while (node_x != tree->nil) {
-    cmp = compare(CAST(node_x, void), data);
+    cmp = compare(data, node_x);
     if (cmp == 0) {
 #ifdef RBT_THREAD_SAFE
       UNLOCK(tree)
 #endif
       return node_x;
-    } else if (cmp > 0) {
+    } else if (cmp < 0) {
       node_x = node_x->left;
     } else {
       node_x = node_x->right;
@@ -121,16 +122,16 @@ rbt_node_t *rbt_search(rbt_t *tree, rbt_node_t *node_x, void *data,
   return tree->nil;
 }
 
-rbt_node_t *rbt_bigger_than(rbt_t *tree, rbt_node_t *node_x, void *key,
-                            int (*compare)(void *, void *)) {
+rbt_node_t *rbt_bigger_than(rbt_t *tree, rbt_node_t *node_x, rbt_node_t *key,
+                            int (*compare)(rbt_node_t *, rbt_node_t *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
   rbt_node_t *node_y = tree->nil;
   int cmp;
   while (node_x != tree->nil) {
-    cmp = compare(CAST(node_x, void), key);
-    if (cmp >= 0) {
+    cmp = compare(key, node_x);
+    if (cmp < 0) {
       node_y = node_x;
       node_x = node_x->left;
     } else {
@@ -143,16 +144,16 @@ rbt_node_t *rbt_bigger_than(rbt_t *tree, rbt_node_t *node_x, void *key,
   return node_y;
 }
 
-rbt_node_t *rbt_smaller_than(rbt_t *tree, rbt_node_t *node_x, void *key,
-                             int (*compare)(void *, void *)) {
+rbt_node_t *rbt_smaller_than(rbt_t *tree, rbt_node_t *node_x, rbt_node_t *key,
+                             int (*compare)(rbt_node_t *, rbt_node_t *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
   rbt_node_t *node_y = tree->nil;
   int cmp;
   while (node_x != tree->nil) {
-    cmp = compare(CAST(node_x, void), key);
-    if (cmp <= 0) {
+    cmp = compare(key, node_x);
+    if (cmp > 0) {
       node_y = node_x;
       node_x = node_x->right;
     } else {
@@ -274,7 +275,7 @@ void rbt_insert_fixup(rbt_t *tree, rbt_node_t *node_z) {
 }
 
 void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
-                int (*compare)(void *, void *)) {
+                int (*compare)(rbt_node_t *, rbt_node_t *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -284,7 +285,7 @@ void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
   node_x = tree->root;
   while (node_x != tree->nil) {
     node_y = node_x;
-    if (compare(CAST(node_z, void), CAST(node_x, void)) < 0) {
+    if (compare(node_z, node_x) < 0) {
       node_x = node_x->left;
     } else {
       node_x = node_x->right;
@@ -293,7 +294,7 @@ void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
   rbt_set_parent(node_z, node_y);
   if (node_y == tree->nil) {
     tree->root = node_z;
-  } else if (compare(CAST(node_z, void), CAST(node_y, void)) < 0) {
+  } else if (compare(node_z, node_y) < 0) {
     node_y->left = node_z;
   } else {
     node_y->right = node_z;
@@ -302,6 +303,7 @@ void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
   node_z->right = tree->nil;
   RBT_SET_RED_FROM_NODE(node_z);
   rbt_insert_fixup(tree, node_z);
+  tree->size += 1;
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
@@ -316,16 +318,6 @@ void rbt_inorder_walk(rbt_t *tree, rbt_node_t *node, void (*callback)(void *)) {
     callback(node);
     rbt_inorder_walk(tree, node->right, callback);
   }
-#ifdef RBT_THREAD_SAFE
-  UNLOCK(tree)
-#endif
-}
-
-void rbt_inorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
-#ifdef RBT_THREAD_SAFE
-  LOCK(tree)
-#endif
-  rbt_inorder_walk(tree, tree->root, callback);
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
@@ -346,16 +338,6 @@ void rbt_preorder_walk(rbt_t *tree, rbt_node_t *node,
 #endif
 }
 
-void rbt_preorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
-#ifdef RBT_THREAD_SAFE
-  LOCK(tree)
-#endif
-  rbt_preorder_walk(tree, tree->root, callback);
-#ifdef RBT_THREAD_SAFE
-  UNLOCK(tree)
-#endif
-}
-
 void rbt_postorder_walk(rbt_t *tree, rbt_node_t *node,
                         void (*callback)(void *)) {
   if (node != tree->nil) {
@@ -366,16 +348,6 @@ void rbt_postorder_walk(rbt_t *tree, rbt_node_t *node,
     rbt_postorder_walk(tree, node->right, callback);
     callback(node);
   }
-#ifdef RBT_THREAD_SAFE
-  UNLOCK(tree)
-#endif
-}
-
-void rbt_postorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
-#ifdef RBT_THREAD_SAFE
-  LOCK(tree)
-#endif
-  rbt_postorder_walk(tree, tree->root, callback);
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
@@ -499,33 +471,37 @@ void rbt_delete_node(rbt_t *tree, rbt_node_t *node_z) {
   if (color == RBT_BLACK) {
     rbt_delete_fixup(tree, node_x);
   }
+  tree->size -= 1;
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
-void rbt_delete(rbt_t *tree) {
+void rbt_delete(rbt_t *tree, rbt_node_t *root) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
-  tree->root = tree->nil;
+  root = tree->nil;
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
-void rbt_destroy_node(rbt_t *tree, rbt_node_t *node, void (*destroy)(void *)) {
+void rbt_destroy_node(rbt_t *tree, rbt_node_t *node,
+                      void (*destroy)(rbt_node_t *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
   rbt_delete_node(tree, node);
-  destroy(CAST(node, void));
+  if (destroy != NULL) {
+    destroy(node);
+  }
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
-void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(void *)) {
+void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(rbt_node_t *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -538,13 +514,15 @@ void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(void *)) {
   rbt_destroy(tree, node->left, destroy);
   rbt_destroy(tree, node->right, destroy);
   rbt_delete_node(tree, node);
-  destroy(CAST(node, void));
+  if (destroy != NULL) {
+    destroy(node);
+  }
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
-void rbt_destroy_tree(rbt_t *tree, void (*destroy)(void *)) {
+void rbt_destroy_tree(rbt_t *tree, void (*destroy)(rbt_node_t *)) {
   rbt_destroy(tree, tree->root, destroy);
 #ifdef RBT_THREAD_SAFE
   LOCK_DESTROY(tree)

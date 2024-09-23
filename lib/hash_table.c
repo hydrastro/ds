@@ -308,7 +308,7 @@ void *hash_table_lookup(hash_table_t *table, void *key,
 void hash_table_remove(hash_table_t *table, void *key,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *),
-                       void (*destroy_node)(hash_node_t *)) {
+                       void (*destroy)(hash_node_t *)) {
 #ifdef HASH_TABLE_THREAD_SAFE
   LOCK(table)
 #endif
@@ -327,10 +327,8 @@ void hash_table_remove(hash_table_t *table, void *key,
           prev->next = current->next;
         }
         table->size--;
-        if (destroy_node) {
-          destroy_node(current);
-        } else {
-          free(current);
+        if (destroy != NULL) {
+          destroy(current);
         }
 #ifdef HASH_TABLE_THREAD_SAFE
         UNLOCK(table)
@@ -359,19 +357,16 @@ void hash_table_remove(hash_table_t *table, void *key,
 #endif
 }
 
-int hash_table_is_empty(hash_table_t *table) { return table->size == 0; }
+bool hash_table_is_empty(hash_table_t *table) { return table->size == 0; }
 
-void hash_table_destroy(hash_table_t *table,
-                        void (*destroy_node)(hash_node_t *)) {
+void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *)) {
   if (table->mode == HASH_CHAINING) {
     for (size_t i = 0; i < table->capacity; i++) {
       hash_node_t *current = table->buckets[i];
       while (current != NULL) {
         hash_node_t *next = current->next;
-        if (destroy_node) {
-          destroy_node(current);
-        } else {
-          free(current);
+        if (destroy) {
+          destroy(current);
         }
         current = next;
       }

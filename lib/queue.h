@@ -2,10 +2,11 @@
 #define DS_QUEUE_H
 
 #include "common.h"
+#include <stdbool.h>
+#include <stddef.h>
 
 #ifdef QUEUE_THREAD_SAFE
 #include <pthread.h>
-#include <stdbool.h>
 #endif
 
 typedef struct queue_node {
@@ -16,6 +17,7 @@ typedef struct queue {
   queue_node_t *head;
   queue_node_t *tail;
   queue_node_t *nil;
+  size_t size;
 #ifdef QUEUE_THREAD_SAFE
   pthread_mutex_t lock;
   bool is_thread_safe;
@@ -27,7 +29,19 @@ void queue_enqueue(queue_t *queue, queue_node_t *node);
 queue_node_t *queue_dequeue(queue_t *queue);
 queue_node_t *queue_peek(queue_t *queue);
 queue_node_t *queue_peek_tail(queue_t *queue);
-int queue_is_empty(queue_t *queue);
-void queue_destroy(queue_t *queue, void (*destroy_node)(queue_node_t *));
+bool queue_is_empty(queue_t *queue);
+void queue_destroy(queue_t *queue, void (*destroy)(queue_node_t *));
+
+void queue_delete(queue_t *queue);
+void queue_delete_node(queue_t *queue, queue_node_t *node);
+void queue_destroy_node(queue_t *queue, queue_node_t *node,
+                        void (*destroy)(queue_node_t *));
+void queue_pop_destroy(queue_t *queue, void (*destroy_node)(queue_node_t *));
+queue_node_t *queue_search(queue_t *queue, queue_node_t *node,
+                           int (*compare)(queue_node_t *, queue_node_t *));
+void queue_walk_forward(queue_t *queue, queue_node_t *node,
+                        void (*callback)(queue_node_t *));
+void queue_walk_backwards(queue_t *queue, queue_node_t *node,
+                          void (*callback)(queue_node_t *));
 
 #endif // DS_QUEUE_H
