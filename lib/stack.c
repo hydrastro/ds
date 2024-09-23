@@ -8,7 +8,7 @@ stack_t *stack_create() {
   stack->top = stack->nil;
   stack->size = 0;
 #ifdef STACK_THREAD_SAFE
-  LOCK_INIT(stack)
+  LOCK_INIT_RECURSIVE(stack)
 #endif
   return stack;
 }
@@ -62,6 +62,7 @@ bool stack_is_empty(stack_t *stack) {
   bool result = stack->top == stack->nil;
 #ifdef STACK_THREAD_SAFE
   UNLOCK(stack)
+  return result;
 #endif
 }
 
@@ -119,7 +120,7 @@ void stack_delete_node(stack_t *stack, stack_node_t *node) {
 }
 
 void stack_destroy_node(stack_t *stack, stack_node_t *node,
-                        void (*destroy_node)(stack_node_t *)) {
+                        void (*destroy)(stack_node_t *)) {
 #ifdef STACK_THREAD_SAFE
   LOCK(stack)
 #endif
@@ -198,7 +199,7 @@ void stack_walk_backwards(stack_t *stack, stack_node_t *current,
   LOCK(stack)
 #endif
 
-  if (current == stack->nil || current == stack->nil) {
+  if (current == stack->nil) {
     return;
   }
 

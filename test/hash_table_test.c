@@ -6,11 +6,11 @@
 size_t string_hash(void *key) {
   char *str = (char *)key;
   size_t hash = 5381;
-  int c;
-  while ((c = *str++)) {
+  size_t c;
+  while ((c = (size_t)*str++)) {
     hash = ((hash << 5) + hash) + c;
   }
-  printf("%d\n", hash);
+  printf("%lu\n", hash);
   return hash;
 }
 
@@ -19,7 +19,7 @@ int string_compare(void *key1, void *key2) {
 }
 
 int main(void) {
-  hash_table_t *table = hash_table_create(4000, HASH_CHAINING, NULL);
+  hash_table_t *table = hash_table_create((size_t)4000, HASH_CHAINING, NULL);
 
   hash_table_insert(table, "key1", "hmmm", string_hash, string_compare);
   hash_table_insert(table, "key2", "hmmm", string_hash, string_compare);

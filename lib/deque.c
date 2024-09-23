@@ -309,7 +309,6 @@ void deque_walk_backwards(deque_t *deque, deque_node_t *current,
 #ifdef DEQUE_THREAD_SAFE
   LOCK(deque)
 #endif
-  deque_node_t *current = (start_node != NULL) ? start_node : deque->tail;
 
   while (current != deque->nil) {
     callback(current);

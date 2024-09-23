@@ -4,9 +4,9 @@
 
 void swap(heap_node_t **a, heap_node_t **b) {
   heap_node_t *temp;
-  int index;
-  index = (*a)->index;
-  (*a)->index = (*b)->index;
+  size_t index;
+  index = (size_t)(*a)->index;
+  (*a)->index = (size_t)(*b)->index;
   (*b)->index = index;
   temp = *a;
   *a = *b;
@@ -66,7 +66,7 @@ heap_t *heap_create(size_t capacity) {
   heap->size = 0;
   heap->capacity = capacity;
   heap->nil = (heap_node_t *)malloc(sizeof(heap_node_t));
-  heap->nil->index = -1;
+  heap->nil->index = (size_t)-1;
 #ifdef HEAP_THREAD_SAFE
   LOCK_INIT_RECURSIVE(heap)
 #endif
@@ -132,11 +132,9 @@ void *heap_peek_root(heap_t *heap) {
 bool heap_is_empty(heap_t *heap) { return heap->size == 0; }
 
 void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
-  if (destroy_node) {
+  if (destroy != NULL) {
     for (size_t i = 0; i < heap->size; ++i) {
-      if (destroy != NULL) {
-        destroy(heap->data[i]);
-      }
+      destroy(heap->data[i]);
     }
   }
 #ifdef HEAP_THREAD_SAFE

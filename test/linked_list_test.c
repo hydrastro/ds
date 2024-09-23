@@ -28,7 +28,7 @@ int main(void) {
   int i;
   my_node_t *node, *found_node, *search_value;
   linked_list_t *list;
-  srand(time((long int *)NULL));
+  srand((unsigned int)time((long int *)NULL));
   list = linked_list_create();
   search_value = (my_node_t *)malloc(sizeof(my_node_t));
   search_value->data = 5;
@@ -49,7 +49,7 @@ int main(void) {
     print_node(&found_node->node);
     printf("found\n");
   } else {
-    printf("not found\n", search_value);
+    printf("not found\n");
   }
 
   my_node_t *new_node = (my_node_t *)malloc(sizeof(my_node_t));

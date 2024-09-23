@@ -17,7 +17,7 @@ void draw_heap_tree_recursive(heap_t *heap, size_t index, int depth,
   printf("%s", prefix);
 
   int_node_t *int_nodex = (int_node_t *)node;
-  printf("├────── %d %d\n", int_nodex->value, (&int_nodex->node)->index);
+  printf("├────── %d %lu\n", int_nodex->value, (&int_nodex->node)->index);
   fflush(stdout);
 
   char new_prefix[256];
@@ -40,9 +40,9 @@ int_node_t *create_int_node(int value) {
 void destroy_int_node(void *node) { free(node); }
 
 int main(void) {
-  srand(time((long int *)NULL));
+  srand((unsigned int)time((long int *)NULL));
   int i;
-  heap_t *heap = heap_create(10);
+  heap_t *heap = heap_create((size_t)10);
 
   for (i = 0; i < 20; i++) {
     heap_insert(heap, (void *)create_int_node(rand() % 100), compare_int_nodes);
@@ -50,9 +50,9 @@ int main(void) {
 
   int_node_t *root = (int_node_t *)heap_peek_root(heap);
   printf("root: %d\n", root->value);
-  draw_heap_tree_recursive(heap, 0, 0, "");
-  for (i = 0; i < heap->size; i++) {
-    printf("%d %d\n", CAST(heap->data[i], int_node_t)->value,
+  draw_heap_tree_recursive(heap, (size_t)0, 0, "");
+  for (i = 0; i < (int)heap->size; i++) {
+    printf("%d %lu\n", CAST(heap->data[i], int_node_t)->value,
            (heap->data[i])->index);
   }
 

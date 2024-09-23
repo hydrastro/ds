@@ -29,7 +29,7 @@ int main(void) {
   int i;
   my_node_t *node, *found_node, *search_value;
   doubly_linked_list_t *list;
-  srand(time((long int *)NULL));
+  srand((unsigned int)time((long int *)NULL));
   list = doubly_linked_list_create();
   search_value = (my_node_t *)malloc(sizeof(my_node_t));
   search_value->data = 5;
@@ -49,7 +49,7 @@ int main(void) {
   if ((doubly_linked_list_node_t *)found_node != list->nil) {
     printf("found %d\n", found_node->data);
   } else {
-    printf("not found\n", search_value);
+    printf("not found\n");
   }
 
   my_node_t *new_node = (my_node_t *)malloc(sizeof(my_node_t));
