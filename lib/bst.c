@@ -69,7 +69,7 @@ bst_node_t *bst_search(bst_t *tree, bst_node_t *data,
   UNLOCK(tree)
 #endif
 
-  return current == tree->nil ? tree->nil : current;
+  return current;
 }
 
 bst_node_t *bst_minimum(bst_t *tree, bst_node_t *node) {

@@ -20,17 +20,20 @@ avl_t *avl_create() {
 }
 void avl_inorder_walk(avl_t *tree, avl_node_t *node,
                       void (*callback)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
   if (node != tree->nil) {
     avl_inorder_walk(tree, node->left, callback);
     callback(node);
     avl_inorder_walk(tree, node->right, callback);
   }
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
 }
 
 void avl_inorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
-  LOCK(tree)
-#endif
   avl_inorder_walk(tree, tree->root, callback);
 #ifdef AVL_THREAD_SAFE
   UNLOCK(tree)
@@ -61,13 +64,19 @@ avl_node_t *avl_search(avl_t *tree, avl_node_t *data,
   return tree->nil;
 }
 
-static void avl_destroy_node(avl_t *tree, avl_node_t *node,
-                             void (*destroy)(avl_node_t *)) {
+void avl_destroy_node(avl_t *tree, avl_node_t *node,
+                      void (*destroy)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
   if (node != tree->nil) {
     avl_destroy_node(tree, node->left, destroy);
     avl_destroy_node(tree, node->right, destroy);
     destroy(node);
   }
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
 }
 
 void avl_destroy_tree(avl_t *tree, void (*destroy)(avl_node_t *)) {
@@ -83,22 +92,43 @@ void avl_destroy_tree(avl_t *tree, void (*destroy)(avl_node_t *)) {
   free(tree);
 }
 
-static int avl_get_height(avl_node_t *node) { return node ? node->height : 0; }
-
-static int avl_get_balance(avl_node_t *node) {
-  return node ? avl_get_height(node->left) - avl_get_height(node->right) : 0;
+int avl_get_height(avl_t *tree, avl_node_t *node) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  int result = node ? node->height : 0;
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+  return result;
 }
 
-static void avl_update_height(avl_node_t *node) {
-  if (node) {
-    int left_height = avl_get_height(node->left);
-    int right_height = avl_get_height(node->right);
-    node->height =
-        1 + (left_height > right_height ? left_height : right_height);
-  }
+int avl_get_balance(avl_t *tree, avl_node_t *node) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  int result = node ? avl_get_height(tree, node->left) -
+                          avl_get_height(tree, node->right)
+                    : 0;
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+  return result;
 }
 
-static avl_node_t *avl_left_rotate(avl_node_t *node) {
+void avl_update_height(avl_t *tree, avl_node_t *node) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  int left_height = avl_get_height(tree, node->left);
+  int right_height = avl_get_height(tree, node->right);
+  node->height = 1 + (left_height > right_height ? left_height : right_height);
+}
+
+avl_node_t *avl_left_rotate(avl_t *tree, avl_node_t *node) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
   avl_node_t *right = node->right;
   node->right = right->left;
   if (right->left) {
@@ -107,12 +137,18 @@ static avl_node_t *avl_left_rotate(avl_node_t *node) {
   right->parent = node->parent;
   right->left = node;
   node->parent = right;
-  avl_update_height(node);
-  avl_update_height(right);
+  avl_update_height(tree, node);
+  avl_update_height(tree, right);
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
   return right;
 }
 
-static avl_node_t *avl_right_rotate(avl_node_t *node) {
+avl_node_t *avl_right_rotate(avl_t *tree, avl_node_t *node) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
   avl_node_t *left = node->left;
   node->left = left->right;
   if (left->right) {
@@ -121,26 +157,41 @@ static avl_node_t *avl_right_rotate(avl_node_t *node) {
   left->parent = node->parent;
   left->right = node;
   node->parent = left;
-  avl_update_height(node);
-  avl_update_height(left);
+  avl_update_height(tree, node);
+  avl_update_height(tree, left);
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
   return left;
 }
 
-static avl_node_t *avl_balance(avl_node_t *node) {
-  avl_update_height(node);
-  int balance = avl_get_balance(node);
+avl_node_t *avl_balance(avl_t *tree, avl_node_t *node) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  avl_update_height(tree, node);
+  int balance = avl_get_balance(tree, node);
 
   if (balance > 1) {
-    if (avl_get_balance(node->left) < 0) {
-      node->left = avl_left_rotate(node->left);
+    if (avl_get_balance(tree, node->left) < 0) {
+      node->left = avl_left_rotate(tree, node->left);
     }
-    return avl_right_rotate(node);
+#ifdef AVL_THREAD_SAFE
+    UNLOCK(tree)
+#endif
+    return avl_right_rotate(tree, node);
   } else if (balance < -1) {
-    if (avl_get_balance(node->right) > 0) {
-      node->right = avl_right_rotate(node->right);
+    if (avl_get_balance(tree, node->right) > 0) {
+      node->right = avl_right_rotate(tree, node->right);
     }
-    return avl_left_rotate(node);
+#ifdef AVL_THREAD_SAFE
+    UNLOCK(tree)
+#endif
+    return avl_left_rotate(tree, node);
   }
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
   return node;
 }
 
@@ -183,7 +234,7 @@ void avl_insert(avl_t *tree, avl_node_t *data,
   }
 
   for (avl_node_t *n = parent; n != tree->nil; n = n->parent) {
-    n = avl_balance(n);
+    n = avl_balance(tree, n);
     if (n->parent == tree->nil) {
       tree->root = n;
     } else if (n == n->parent->left) {
@@ -198,14 +249,23 @@ void avl_insert(avl_t *tree, avl_node_t *data,
 #endif
 }
 
-static avl_node_t *avl_min_node(avl_t *tree, avl_node_t *node) {
+avl_node_t *avl_min_node(avl_t *tree, avl_node_t *node) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
   while (node->left != tree->nil) {
     node = node->left;
   }
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
   return node;
 }
 
-static void avl_transplant(avl_t *tree, avl_node_t *u, avl_node_t *v) {
+void avl_transplant(avl_t *tree, avl_node_t *u, avl_node_t *v) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
   if (u->parent == tree->nil) {
     tree->root = v;
   } else if (u == u->parent->left) {
@@ -216,6 +276,9 @@ static void avl_transplant(avl_t *tree, avl_node_t *u, avl_node_t *v) {
   if (v != tree->nil) {
     v->parent = u->parent;
   }
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
 }
 
 void avl_delete_node(avl_t *tree, avl_node_t *root, avl_node_t *data) {
@@ -244,7 +307,7 @@ void avl_delete_node(avl_t *tree, avl_node_t *root, avl_node_t *data) {
   }
 
   while (x != tree->nil) {
-    x = avl_balance(x);
+    x = avl_balance(tree, x);
     x = x->parent;
   }
 
