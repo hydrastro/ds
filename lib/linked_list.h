@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef LINKED_LIST_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct linked_list_node {
   struct linked_list_node *next;
 } linked_list_node_t;
@@ -19,7 +15,7 @@ typedef struct linked_list {
   linked_list_node_t *nil;
   size_t size;
 #ifdef LINKED_LIST_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } linked_list_t;

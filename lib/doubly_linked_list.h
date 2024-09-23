@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct doubly_linked_list_node {
   struct doubly_linked_list_node *next;
   struct doubly_linked_list_node *prev;
@@ -20,7 +16,7 @@ typedef struct doubly_linked_list {
   doubly_linked_list_node_t *tail;
   doubly_linked_list_node_t *nil;
 #ifdef DOUBLY_LINKED_LIST_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } doubly_linked_list_t;

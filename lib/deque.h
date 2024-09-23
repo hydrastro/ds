@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef DEQUE_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct deque_node {
   struct deque_node *next;
   struct deque_node *prev;
@@ -20,7 +16,7 @@ typedef struct deque {
   deque_node_t *nil;
   size_t size;
 #ifdef DEQUE_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } deque_t;

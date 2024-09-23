@@ -5,7 +5,6 @@
 #include <stddef.h>
 
 #ifdef RBT_THREAD_SAFE
-#include <pthread.h>
 #include <stdbool.h>
 #endif
 
@@ -49,7 +48,7 @@ typedef struct rbt {
   rbt_node_t *nil;
   size_t size;
 #ifdef RBT_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } __attribute__((aligned(sizeof(long)))) rbt_t;

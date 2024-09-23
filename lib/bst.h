@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef BST_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct bst_node {
   struct bst_node *left;
   struct bst_node *right;
@@ -20,7 +16,7 @@ typedef struct bst {
   bst_node_t *nil;
   size_t size;
 #ifdef BST_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } bst_t;

@@ -4,10 +4,6 @@
 #include "common.h"
 #include <stdbool.h>
 
-#ifdef BTREE_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct btree_node {
   struct btree_internal_node *ref;
 } btree_node_t;
@@ -24,7 +20,7 @@ typedef struct btree {
   btree_internal_node_t *root;
   btree_node_t *nil;
 #ifdef BTREE_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } btree_t;

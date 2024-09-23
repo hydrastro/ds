@@ -4,7 +4,6 @@
 #include "common.h"
 
 #ifdef AVL_THREAD_SAFE
-#include <pthread.h>
 #include <stdbool.h>
 #endif
 
@@ -19,7 +18,7 @@ typedef struct avl {
   avl_node_t *root;
   avl_node_t *nil;
 #ifdef AVL_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } avl_t;

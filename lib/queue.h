@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef QUEUE_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct queue_node {
   struct queue_node *next;
 } queue_node_t;
@@ -19,7 +15,7 @@ typedef struct queue {
   queue_node_t *nil;
   size_t size;
 #ifdef QUEUE_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } queue_t;

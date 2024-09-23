@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef HASH_TABLE_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 #ifndef HASH_TABLE_RESIZE_FACTOR
 #define HASH_TABLE_RESIZE_FACTOR 0.75
 #endif
@@ -41,7 +37,7 @@ typedef struct hash_table {
   hash_table_mode_t mode;
   hash_probing_func_t probing_func;
 #ifdef HASH_TABLE_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } hash_table_t;

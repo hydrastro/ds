@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef HEAP_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct heap_node {
   size_t index;
 } heap_node_t;
@@ -19,7 +15,7 @@ typedef struct heap {
   size_t capacity;
   heap_node_t *nil;
 #ifdef HEAP_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } heap_t;

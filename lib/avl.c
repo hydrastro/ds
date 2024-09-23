@@ -77,10 +77,7 @@ void avl_destroy_tree(avl_t *tree, void (*destroy)(avl_node_t *)) {
   avl_destroy_node(tree, tree->root, destroy);
   tree->root = tree->nil;
 #ifdef AVL_THREAD_SAFE
-  if (tree->is_thread_safe) {
-    pthread_mutex_unlock(&tree->lock);
-    pthread_mutex_destroy(&tree->lock);
-  }
+  LOCK_DESTROY(tree);
 #endif
   free(tree->nil);
   free(tree);

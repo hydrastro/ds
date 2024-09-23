@@ -5,10 +5,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#ifdef STACK_THREAD_SAFE
-#include <pthread.h>
-#endif
-
 typedef struct stack_node {
   struct stack_node *next;
 } stack_node_t;
@@ -18,7 +14,7 @@ typedef struct stack {
   stack_node_t *nil;
   size_t size;
 #ifdef STACK_THREAD_SAFE
-  pthread_mutex_t lock;
+  mutex_t lock;
   bool is_thread_safe;
 #endif
 } stack_t;
