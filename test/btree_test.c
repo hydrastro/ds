@@ -50,15 +50,15 @@ void test_btree_operations() {
   printf("after inserts:\n");
   print_btree_node(tree->root, 0, print_int);
   printf("\nIn-order traversal:\n");
-  btree_inorder_walk(tree->root, print_int);
+  btree_inorder_walk(tree, tree->root, print_int);
   printf("\n");
 
   printf("Pre-order traversal:\n");
-  btree_preorder_walk(tree->root, print_int);
+  btree_preorder_walk(tree, tree->root, print_int);
   printf("\n");
 
   printf("Post-order traversal:\n");
-  btree_postorder_walk(tree->root, print_int);
+  btree_postorder_walk(tree, tree->root, print_int);
   printf("\n");
 
   my_node_t *wkey = (my_node_t *)malloc(sizeof(my_node_t));

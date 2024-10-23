@@ -380,7 +380,7 @@ void btree_destroy_tree(btree_t *tree, void (*destroy)(btree_node_t *)) {
   free(tree);
 }
 
-void btree_inorder_walk(btree_internal_node_t *node,
+void btree_inorder_walk(btree_t *tree, btree_internal_node_t *node,
                         void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
@@ -394,12 +394,12 @@ void btree_inorder_walk(btree_internal_node_t *node,
   int i;
   for (i = 0; i < node->num_keys; i++) {
     if (!node->is_leaf) {
-      btree_inorder_walk(node->children[i], callback);
+      btree_inorder_walk(tree, node->children[i], callback);
     }
     callback(node->data[i]);
   }
   if (!node->is_leaf) {
-    btree_inorder_walk(node->children[i], callback);
+    btree_inorder_walk(tree, node->children[i], callback);
   }
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
@@ -409,12 +409,12 @@ void btree_inorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  btree_inorder_walk(tree->root, callback);
+  btree_inorder_walk(tree, tree->root, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
-void btree_preorder_walk(btree_internal_node_t *node,
+void btree_preorder_walk(btree_t *tree, btree_internal_node_t *node,
                          void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
@@ -430,7 +430,7 @@ void btree_preorder_walk(btree_internal_node_t *node,
   }
   if (!node->is_leaf) {
     for (int i = 0; i <= node->num_keys; i++) {
-      btree_preorder_walk(node->children[i], callback);
+      btree_preorder_walk(tree, node->children[i], callback);
     }
   }
 #ifdef BTREE_THREAD_SAFE
@@ -441,12 +441,12 @@ void btree_preorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  btree_preorder_walk(tree->root, callback);
+  btree_preorder_walk(tree, tree->root, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
-void btree_postorder_walk(btree_internal_node_t *node,
+void btree_postorder_walk(btree_t *tree, btree_internal_node_t *node,
                           void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
@@ -459,7 +459,7 @@ void btree_postorder_walk(btree_internal_node_t *node,
   }
   if (!node->is_leaf) {
     for (int i = 0; i <= node->num_keys; i++) {
-      btree_postorder_walk(node->children[i], callback);
+      btree_postorder_walk(tree, node->children[i], callback);
     }
   }
   for (int i = 0; i < node->num_keys; i++) {
@@ -475,7 +475,7 @@ void btree_postorder_walk_tree(btree_t *tree,
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  btree_postorder_walk(tree->root, callback);
+  btree_postorder_walk(tree, tree->root, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif

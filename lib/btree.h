@@ -51,13 +51,13 @@ void btree_destroy_node(btree_t *tree, btree_node_t *node,
 void btree_destroy_recursive(btree_t *tree, btree_internal_node_t *node,
                              void (*destroy)(btree_node_t *));
 void btree_destroy_tree(btree_t *tree, void (*destroy)(btree_node_t *));
-void btree_inorder_walk(btree_internal_node_t *node,
+void btree_inorder_walk(btree_t *tree, btree_internal_node_t *node,
                         void (*callback)(btree_node_t *));
 void btree_inorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *));
-void btree_preorder_walk(btree_internal_node_t *node,
+void btree_preorder_walk(btree_t *tree, btree_internal_node_t *node,
                          void (*callback)(btree_node_t *));
 void btree_preorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *));
-void btree_postorder_walk(btree_internal_node_t *node,
+void btree_postorder_walk(btree_t *tree, btree_internal_node_t *node,
                           void (*callback)(btree_node_t *));
 void btree_postorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *));
 
