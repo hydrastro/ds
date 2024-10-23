@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? import <nixpkgs> { } }:
 
 pkgs.stdenv.mkDerivation rec {
   pname = "ds";
@@ -41,8 +41,8 @@ pkgs.stdenv.mkDerivation rec {
   '';
 
   meta = with pkgs.lib; {
-  #  description
-  #  license
-     platforms = platforms.unix;
+    #  description
+    #  license
+    platforms = platforms.unix;
   };
 }
