@@ -1,46 +1,61 @@
 {
   description = "ds";
 
-  outputs = { self, nixpkgs }: {
-    packages = {
-      # Define a package for the "default" system architecture (x86_64-linux in this case)
-      default = self.packages.${builtins.currentSystem};
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  };
 
-      # Package for different system architectures
-      x86_64-linux = let
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
-      in
-        pkgs.stdenv.mkDerivation {
+  outputs = { self, nixpkgs }: {
+    packages = nixpkgs.lib.genAttrs [ "x86_64-linux" ] (system:
+    let
+      pkgs = import nixpkgs { inherit system; };
+    in
+    rec {
+      ds = pkgs.stdenv.mkDerivation {
           pname = "ds";
-          version = "1.0.0";
+          version = "0.0.0";
 
           src = ./.;
 
-          # List of the source files to compile
-          sources = [ "avl.c" "bst.c" "btree.c" "deque.c" "doubly_linked_list.c" "hash_table.c" "heap.c" "linked_list.c" "queue.c" "rbt.c" "stack.c" "trie.o" ];
 
-          # Compiler and linker flags
-          buildPhase = ''
-            gcc -c avl.c bst.c btree.c deque.c doubly_linked_list.c hash_table.c heap.c linked_list.c queue.c rbt.c stack.c trie.o
-            ar rcs libds.a *.o
-          '';
+          buildInputs = [ pkgs.stdenv.cc ];
 
-          installPhase = ''
-            mkdir -p $out/lib
-            mkdir -p $out/include
-            mkdir -p $out/include/lib/
-            cp ds.h $out/include
-            cp lib/*.h $out/include/lib
-            cp libds.a $out/lib
-          '';
+   buildPhase = ''
+     mkdir -p $out/lib
+     mkdir -p $out/include
+     mkdir -p $out/include/lib
 
-          meta = with pkgs.lib; {
-            description = "ds";
-            #license = licenses.mit;
-            #maintainers = [ maintainers.yourself ];  # Replace 'yourself' with your nixpkgs username
-          };
-        };
+     gcc -c lib/avl.c -o avl.o
+     gcc -c lib/bst.c -o bst.o
+     gcc -c lib/btree.c -o btree.o
+     gcc -c lib/deque.c -o deque.o
+     gcc -c lib/doubly_linked_list.c -o doubly_linked_list.o
+     gcc -c lib/hash_table.c -o hash_table.o
+     gcc -c lib/heap.c -o heap.o
+     gcc -c lib/linked_list.c -o linked_list.o
+     gcc -c lib/queue.c -o queue.o
+     gcc -c lib/rbt.c -o rbt.o
+     gcc -c lib/stack.c -o stack.o
+     gcc -c lib/trie.c -o trie.o
+
+     ar rcs $out/lib/libds.a avl.o bst.o btree.o deque.o doubly_linked_list.o hash_table.o heap.o linked_list.o queue.o rbt.o stack.o trie.o
+
+     gcc -shared -o $out/lib/libds.so avl.o bst.o btree.o deque.o doubly_linked_list.o hash_table.o heap.o linked_list.o queue.o rbt.o stack.o trie.o
+   '';
+
+   installPhase = ''
+     cp lib/*.h $out/include/lib/
+     cp ds.h $out/include/
+   '';
+     meta = with pkgs.lib; {
+        description = "ds";
+     };
+   
     };
-  };
-}
+  });
 
+defaultPackage = {
+  x86_64-linux = self.packages.x86_64-linux.ds;
+};
+};
+}
