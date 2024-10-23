@@ -477,11 +477,12 @@ void rbt_delete_node(rbt_t *tree, rbt_node_t *node_z) {
 #endif
 }
 
-void rbt_delete(rbt_t *tree, rbt_node_t *root) {
+void rbt_delete_tree(rbt_t *tree) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
-  root = tree->nil;
+  tree->root = tree->nil;
+  tree->size = 0;
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
@@ -501,7 +502,8 @@ void rbt_destroy_node(rbt_t *tree, rbt_node_t *node,
 #endif
 }
 
-void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(rbt_node_t *)) {
+void rbt_destroy_recursive(rbt_t *tree, rbt_node_t *node,
+                           void (*destroy)(rbt_node_t *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -511,8 +513,8 @@ void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(rbt_node_t *)) {
 #endif
     return;
   }
-  rbt_destroy(tree, node->left, destroy);
-  rbt_destroy(tree, node->right, destroy);
+  rbt_destroy_recursive(tree, node->left, destroy);
+  rbt_destroy_recursive(tree, node->right, destroy);
   rbt_delete_node(tree, node);
   if (destroy != NULL) {
     destroy(node);
@@ -523,7 +525,7 @@ void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(rbt_node_t *)) {
 }
 
 void rbt_destroy_tree(rbt_t *tree, void (*destroy)(rbt_node_t *)) {
-  rbt_destroy(tree, tree->root, destroy);
+  rbt_destroy_recursive(tree, tree->root, destroy);
 #ifdef RBT_THREAD_SAFE
   LOCK_DESTROY(tree)
 #endif

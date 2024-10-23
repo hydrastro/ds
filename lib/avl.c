@@ -13,6 +13,7 @@ avl_t *avl_create() {
   tree->root->left = tree->nil;
   tree->root->right = tree->nil;
   tree->root->parent = tree->nil;
+  tree->size = 0;
 #ifdef AVL_THREAD_SAFE
   LOCK_INIT_RECURSIVE(tree);
 #endif
@@ -69,9 +70,22 @@ void avl_destroy_node(avl_t *tree, avl_node_t *node,
 #ifdef AVL_THREAD_SAFE
   LOCK(tree)
 #endif
+  avl_delete_node(tree, node);
+  destroy(node);
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
+void avl_destroy_recursive(avl_t *tree, avl_node_t *node,
+                           void (*destroy)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
   if (node != tree->nil) {
-    avl_destroy_node(tree, node->left, destroy);
-    avl_destroy_node(tree, node->right, destroy);
+    avl_destroy_recursive(tree, node->left, destroy);
+    avl_destroy_recursive(tree, node->right, destroy);
+    tree->size -= 1;
     destroy(node);
   }
 #ifdef AVL_THREAD_SAFE
@@ -83,12 +97,12 @@ void avl_destroy_tree(avl_t *tree, void (*destroy)(avl_node_t *)) {
 #ifdef AVL_THREAD_SAFE
   LOCK(tree)
 #endif
-  avl_destroy_node(tree, tree->root, destroy);
+  avl_destroy_recursive(tree, tree->root, destroy);
   tree->root = tree->nil;
+  free(tree->nil);
 #ifdef AVL_THREAD_SAFE
   LOCK_DESTROY(tree);
 #endif
-  free(tree->nil);
   free(tree);
 }
 
@@ -243,6 +257,7 @@ void avl_insert(avl_t *tree, avl_node_t *data,
       n->parent->right = n;
     }
   }
+  tree->size += 1;
 
 #ifdef AVL_THREAD_SAFE
   UNLOCK(tree);
@@ -281,7 +296,7 @@ void avl_transplant(avl_t *tree, avl_node_t *u, avl_node_t *v) {
 #endif
 }
 
-void avl_delete_node(avl_t *tree, avl_node_t *root, avl_node_t *data) {
+void avl_delete_node(avl_t *tree, avl_node_t *data) {
 #ifdef AVL_THREAD_SAFE
   LOCK(tree);
 #endif
@@ -310,7 +325,19 @@ void avl_delete_node(avl_t *tree, avl_node_t *root, avl_node_t *data) {
     x = avl_balance(tree, x);
     x = x->parent;
   }
+  tree->size -= 1;
 
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree);
+#endif
+}
+
+void avl_delete_tree(avl_t *tree) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree);
+#endif
+  tree->root = tree->nil;
+  tree->size = 0;
 #ifdef AVL_THREAD_SAFE
   UNLOCK(tree);
 #endif

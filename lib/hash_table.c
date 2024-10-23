@@ -111,6 +111,8 @@ static hash_node_t *hash_node_create(void *key, void *value) {
   node->key = key;
   node->value = value;
   node->next = NULL;
+  node->list_next = NULL;
+  node->list_prev = NULL;
   return node;
 }
 
@@ -132,6 +134,7 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
   table->nil = (void *)malloc(sizeof(void *));
   table->tombstone = (void *)malloc(sizeof(void *));
   table->mode = mode;
+  table->last_node = NULL;
 
   if (mode == HASH_CHAINING) {
     table->buckets =
@@ -230,6 +233,13 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
       current = current->next;
     }
     hash_node_t *new_node = hash_node_create(key, value);
+
+    if (table->last_node != NULL) {
+      table->last_node->list_next = new_node;
+    }
+    new_node->list_prev = table->last_node;
+    table->last_node = new_node;
+
     new_node->next = table->buckets[index];
     table->buckets[index] = new_node;
   } else {
@@ -252,6 +262,12 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
     if (tombstone_index != (long unsigned int)-1) {
       index = tombstone_index;
     }
+
+    if (table->last_node != NULL) {
+      table->last_node->list_next = &table->entries[index];
+    }
+    table->entries[index].list_prev = table->last_node;
+    table->last_node = &table->entries[index];
 
     table->entries[index].key = key;
     table->entries[index].value = value;
@@ -326,10 +342,22 @@ void hash_table_remove(hash_table_t *table, void *key,
         } else {
           prev->next = current->next;
         }
+
+        if (table->last_node == current) {
+          table->last_node = current->list_prev;
+        }
+        if (current->list_prev != NULL) {
+          current->list_prev->list_next = current->list_next;
+        }
+        if (current->list_next != NULL) {
+          current->list_next->list_prev = current->list_prev;
+        }
+
         table->size--;
         if (destroy != NULL) {
           destroy(current);
         }
+        free(current);
 #ifdef HASH_TABLE_THREAD_SAFE
         UNLOCK(table)
 #endif
@@ -341,7 +369,20 @@ void hash_table_remove(hash_table_t *table, void *key,
   } else if (table->mode == HASH_LINEAR_PROBING) {
     while (table->entries[index].key != table->nil) {
       if (compare(table->entries[index].key, key) == 0) {
+        if (destroy != NULL) {
+          destroy(&table->entries[index]);
+        }
         table->entries[index].key = table->tombstone;
+
+        if (table->entries[index].list_prev != NULL) {
+          table->entries[index].list_prev->list_next =
+              table->entries[index].list_next;
+        }
+        if (table->entries[index].list_next != NULL) {
+          table->entries[index].list_next->list_prev =
+              table->entries[index].list_prev;
+        }
+
         table->size--;
 #ifdef HASH_TABLE_THREAD_SAFE
         UNLOCK(table)

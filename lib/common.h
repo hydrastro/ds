@@ -1,3 +1,6 @@
+#ifndef DS_COMMON_H
+#define DS_COMMON_H
+
 #ifndef CAST
 #define CAST(node, type) ((type *)(node))
 #endif
@@ -64,3 +67,5 @@ static inline void mutex_destroy(mutex_t *lock) { pthread_mutex_destroy(lock); }
   mutex_init_recursive(&(structure)->lock);
 
 #define LOCK_DESTROY(structure) mutex_destroy(&(structure)->lock);
+
+#endif // DS_COMMON_H

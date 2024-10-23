@@ -83,10 +83,11 @@ void rbt_transplant(rbt_t *tree, rbt_node_t *node_u, rbt_node_t *node_v);
 void rbt_delete_fixup(rbt_t *tree, rbt_node_t *node_x);
 
 void rbt_delete_node(rbt_t *tree, rbt_node_t *node_z);
-void rbt_delete(rbt_t *tree, rbt_node_t *root);
+void rbt_delete_tree(rbt_t *tree);
 void rbt_destroy_node(rbt_t *tree, rbt_node_t *node,
                       void (*destroy)(rbt_node_t *));
-void rbt_destroy(rbt_t *tree, rbt_node_t *node, void (*destroy)(rbt_node_t *));
+void rbt_destroy_recursive(rbt_t *tree, rbt_node_t *node,
+                           void (*destroy)(rbt_node_t *));
 void rbt_destroy_tree(rbt_t *tree, void (*destroy)(rbt_node_t *));
 
 #endif // DS_RBT_H

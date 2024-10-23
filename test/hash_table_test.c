@@ -21,6 +21,12 @@ int string_compare(void *key1, void *key2) {
 int main(void) {
   hash_table_t *table = hash_table_create((size_t)4000, HASH_CHAINING, NULL);
 
+  char *value =
+      CAST(hash_table_lookup(table, "key2", string_hash, string_compare), char);
+  if (value != table->nil) {
+    printf("Found value for key2: %s\n", value);
+  }
+
   hash_table_insert(table, "key1", "hmmm", string_hash, string_compare);
   hash_table_insert(table, "key2", "hmmm", string_hash, string_compare);
   hash_table_insert(table, "key3", "hmmm", string_hash, string_compare);
@@ -28,7 +34,7 @@ int main(void) {
   hash_table_insert(table, "key5", "hmmm", string_hash, string_compare);
   hash_table_insert(table, "key6", "hmmm", string_hash, string_compare);
 
-  char *value =
+  value =
       CAST(hash_table_lookup(table, "key2", string_hash, string_compare), char);
   if (value) {
     printf("Found value for key2: %s\n", value);

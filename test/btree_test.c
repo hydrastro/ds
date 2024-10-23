@@ -35,7 +35,7 @@ void print_btree_node(btree_internal_node_t *node, int level,
 }
 
 void print_int(btree_node_t *data) {
-  printf("%d", CAST(data, my_node_t)->data);
+  printf("%d,", CAST(data, my_node_t)->data);
 }
 
 void test_btree_operations() {
@@ -49,30 +49,54 @@ void test_btree_operations() {
 
   printf("after inserts:\n");
   print_btree_node(tree->root, 0, print_int);
+  printf("\nIn-order traversal:\n");
+  btree_inorder_walk(tree->root, print_int);
+  printf("\n");
 
-  for (int i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
-    my_node_t *wkey = (my_node_t *)malloc(sizeof(my_node_t));
-    wkey->data = values[i];
+  printf("Pre-order traversal:\n");
+  btree_preorder_walk(tree->root, print_int);
+  printf("\n");
+
+  printf("Post-order traversal:\n");
+  btree_postorder_walk(tree->root, print_int);
+  printf("\n");
+
+  my_node_t *wkey = (my_node_t *)malloc(sizeof(my_node_t));
+  for (int i = 0; i < 35; i++) {
+    wkey->data = i;
     btree_node_t *result = btree_search(tree, &wkey->node, compare_int);
     if (result != tree->nil) {
-      printf("found: %d check: %d\n", CAST(result, my_node_t)->data, values[i]);
+      printf("found: %d check: %d\n", CAST(result, my_node_t)->data, i);
     } else {
-      printf("%d not found\n", values[i]);
+      printf("%d not found\n", i);
     }
   }
 
-  int delete_values[] = {10, 20, 5};
+  print_btree_node(tree->root, 0, print_int);
+
+  int delete_values[] = {5, 6, 10, 15, 35, 20};
   for (int i = 0; i < sizeof(delete_values) / sizeof(delete_values[0]); i++) {
-    my_node_t *wkey = (my_node_t *)malloc(sizeof(my_node_t));
+    printf("deleting %d\n", delete_values[i]);
+    fflush(stdout);
     wkey->data = delete_values[i];
-    btree_delete(tree, &wkey->node, destroy_int, compare_int);
-    printf("deleted %d\n", delete_values[i]);
-    print_btree_node(tree->root, 0, print_int);
+    btree_node_t *result = btree_search(tree, &wkey->node, compare_int);
+    if (result == tree->nil) {
+      printf("result is nil\n");
+    } else {
+      printf("result defined:");
+      print_int(result);
+      printf("\n");
+      btree_delete_node(tree, result);
+      printf("deleted %d\n", delete_values[i]);
+      fflush(stdout);
+      print_btree_node(tree->root, 0, print_int);
+      fflush(stdout);
+    }
   }
 
-  printf("deletions::\n");
+  printf("after deletions:\n");
   print_btree_node(tree->root, 0, print_int);
-  btree_destroy(tree, destroy_int);
+  btree_destroy_tree(tree, destroy_int);
 }
 
 void *thread_function(void *arg) {
@@ -104,7 +128,7 @@ void test_thread_safety() {
   printf("after inserts:\n");
   print_btree_node(tree->root, 0, print_int);
 
-  btree_destroy(tree, destroy_int);
+  btree_destroy_tree(tree, destroy_int);
 }
 
 int main() {

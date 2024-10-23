@@ -70,7 +70,7 @@ int main() {
   draw_avl_tree_recursive(tree, tree->root, "");
   printf("\n");
 
-  avl_delete_node(tree, tree->root, found_node);
+  avl_delete_node(tree, found_node);
   printf("Inorder traversal of AVL tree:\n");
   avl_inorder_walk_tree(tree, print_node);
   printf("\n");
@@ -88,7 +88,7 @@ int main() {
   printf("\n");
   search_data.key = 7;
   found_node = avl_search(tree, (avl_node_t *)&search_data, compare_avl_nodes);
-  avl_delete_node(tree, tree->root, found_node);
+  avl_delete_node(tree, found_node);
   printf("Inorder traversal of AVL tree:\n");
   avl_inorder_walk_tree(tree, print_node);
   printf("\n");

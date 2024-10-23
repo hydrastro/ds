@@ -23,6 +23,8 @@ typedef struct hash_node {
   void *key;
   void *value;
   struct hash_node *next;
+  struct hash_node *list_next;
+  struct hash_node *list_prev;
 } hash_node_t;
 
 typedef struct hash_table {
@@ -36,6 +38,7 @@ typedef struct hash_table {
   void *tombstone;
   hash_table_mode_t mode;
   hash_probing_func_t probing_func;
+  hash_node_t *last_node;
 #ifdef HASH_TABLE_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;

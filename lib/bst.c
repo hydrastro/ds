@@ -145,7 +145,7 @@ void bst_delete_node(bst_t *tree, bst_node_t *node) {
 #endif
 }
 
-void bst_delete(bst_t *tree) {
+void bst_delete_tree(bst_t *tree) {
 #ifdef BST_THREAD_SAFE
   LOCK(tree);
 #endif
@@ -168,6 +168,7 @@ void bst_destroy_node(bst_t *tree, bst_node_t *node,
     return;
   }
 
+  bst_delete_node(tree, node);
   if (destroy != NULL) {
     destroy(node);
   }
@@ -176,7 +177,8 @@ void bst_destroy_node(bst_t *tree, bst_node_t *node,
   UNLOCK(tree);
 #endif
 }
-void bst_destroy(bst_t *tree, bst_node_t *node, void (*destroy)(bst_node_t *)) {
+void bst_destroy_recursive(bst_t *tree, bst_node_t *node,
+                           void (*destroy)(bst_node_t *)) {
 #ifdef BST_THREAD_SAFE
   LOCK(tree);
 #endif
@@ -188,8 +190,8 @@ void bst_destroy(bst_t *tree, bst_node_t *node, void (*destroy)(bst_node_t *)) {
     return;
   }
 
-  bst_destroy(tree, node->left, destroy);
-  bst_destroy(tree, node->right, destroy);
+  bst_destroy_recursive(tree, node->left, destroy);
+  bst_destroy_recursive(tree, node->right, destroy);
   bst_delete_node(tree, node);
 
   if (destroy != NULL) {
@@ -204,7 +206,7 @@ void bst_destroy_tree(bst_t *tree, void (*destroy)(bst_node_t *)) {
   LOCK(tree);
 #endif
 
-  bst_destroy(tree, tree->root, destroy);
+  bst_destroy_recursive(tree, tree->root, destroy);
 
   free(tree->nil);
 
