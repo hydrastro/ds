@@ -4,13 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-int xcompare_int(void *a, void *b) {
-  trie_node_t *c, *d;
-  c = (trie_node_t *)a;
-  d = (trie_node_t *)b;
-  return d->data_slice - c->data_slice;
-}
-
 int compare_int(void *a, void *b) { return (int)((size_t)a - (size_t)b); }
 
 size_t get_char_slice(void *data, size_t slice) {
@@ -86,7 +79,7 @@ bool search_word(trie_t *trie, char *word) {
 
 void print_trie_node_hm(trie_t *trie, trie_node_t *node) {
   if (node->is_terminal) {
-    printf("%s\n", node->terminal_data);
+    printf("%s\n", (char *)node->terminal_data);
   }
 }
 
