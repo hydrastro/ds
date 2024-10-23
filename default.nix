@@ -15,6 +15,7 @@ pkgs.stdenv.mkDerivation rec {
   buildPhase = ''
     mkdir -p $out/lib
     mkdir -p $out/include
+    mkdir -p $out/include/lib
 
     gcc -c lib/avl.c -o avl.o
     gcc -c lib/bst.c -o bst.o
@@ -35,7 +36,7 @@ pkgs.stdenv.mkDerivation rec {
   '';
 
   installPhase = ''
-    cp lib/*.h $out/include/
+    cp lib/*.h $out/include/lib/
     cp ds.h $out/include/
   '';
 
