@@ -48,4 +48,4 @@ void avl_destroy_tree(avl_t *tree, void (*destroy)(avl_node_t *));
 void avl_delete_tree(avl_t *tree);
 bool avl_is_empty(avl_t *tree);
 
-#endif // DS_AVL_H
+#endif /* DS_AVL_H */

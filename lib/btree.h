@@ -61,4 +61,4 @@ void btree_postorder_walk(btree_t *tree, btree_internal_node_t *node,
                           void (*callback)(btree_node_t *));
 void btree_postorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *));
 
-#endif // DS_BTREE_H
+#endif /* DS_BTREE_H */

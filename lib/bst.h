@@ -42,4 +42,4 @@ void bst_postorder_walk(bst_t *tree, bst_node_t *node,
                         void (*callback)(void *));
 bst_node_t *bst_successor(bst_t *tree, bst_node_t *node);
 bst_node_t *bst_predecessor(bst_t *tree, bst_node_t *node);
-#endif // DS_BST_H
+#endif /* DS_BST_H */

@@ -50,4 +50,5 @@ void dlist_walk_backwards(dlist_t *list, dlist_node_t *node,
                           void (*callback)(dlist_node_t *));
 
 bool dlist_is_empty(dlist_t *);
-#endif // DS_dlist_H
+
+#endif /* DS_DLIST_H */

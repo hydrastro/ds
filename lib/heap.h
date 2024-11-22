@@ -42,4 +42,4 @@ bool heap_is_empty(heap_t *heap);
 
 void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *));
 
-#endif // DS_HEAP_H
+#endif /* DS_HEAP_H */

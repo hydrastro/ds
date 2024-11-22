@@ -40,4 +40,4 @@ void queue_walk_forward(queue_t *queue, queue_node_t *node,
 void queue_walk_backwards(queue_t *queue, queue_node_t *node,
                           void (*callback)(queue_node_t *));
 
-#endif // DS_QUEUE_H
+#endif /* DS_QUEUE_H */

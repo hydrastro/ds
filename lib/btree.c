@@ -41,22 +41,23 @@ void btree_split_child(btree_t *tree, btree_internal_node_t *parent,
   new_node->num_keys = tree->degree - 1;
   new_node->parent = parent;
 
-  for (int i = 0; i < tree->degree - 1; i++) {
+  int i;
+  for (i = 0; i < tree->degree - 1; i++) {
     new_node->data[i] = child->data[i + tree->degree];
     new_node->data[i]->internal = new_node;
   }
   if (!child->is_leaf) {
-    for (int i = 0; i < tree->degree; i++) {
+    for (i = 0; i < tree->degree; i++) {
       new_node->children[i] = child->children[i + tree->degree];
     }
   }
   child->num_keys = tree->degree - 1;
-  for (int i = parent->num_keys; i >= index + 1; i--) {
+  for (i = parent->num_keys; i >= index + 1; i--) {
     parent->children[i + 1] = parent->children[i];
   }
   parent->children[index + 1] = new_node;
 
-  for (int i = parent->num_keys - 1; i >= index; i--) {
+  for (i = parent->num_keys - 1; i >= index; i--) {
     parent->data[i + 1] = parent->data[i];
     parent->data[i + 1]->internal = parent;
   }
@@ -360,13 +361,13 @@ void btree_destroy_recursive(btree_t *tree, btree_internal_node_t *node,
   if (node == NULL) {
     return;
   }
-
+  int i;
   if (!node->is_leaf) {
-    for (int i = 0; i <= node->num_keys; i++) {
+    for (i = 0; i <= node->num_keys; i++) {
       btree_destroy_recursive(tree, node->children[i], destroy);
     }
   }
-  for (int i = 0; i < node->num_keys; i++) {
+  for (i = 0; i < node->num_keys; i++) {
     destroy(node->data[i]);
   }
   free(node->children);
@@ -435,11 +436,12 @@ void btree_preorder_walk(btree_t *tree, btree_internal_node_t *node,
 #endif
     return;
   }
-  for (int i = 0; i < node->num_keys; i++) {
+  int i;
+  for (i = 0; i < node->num_keys; i++) {
     callback(node->data[i]);
   }
   if (!node->is_leaf) {
-    for (int i = 0; i <= node->num_keys; i++) {
+    for (i = 0; i <= node->num_keys; i++) {
       btree_preorder_walk(tree, node->children[i], callback);
     }
   }
@@ -467,12 +469,13 @@ void btree_postorder_walk(btree_t *tree, btree_internal_node_t *node,
 #endif
     return;
   }
+  int i;
   if (!node->is_leaf) {
-    for (int i = 0; i <= node->num_keys; i++) {
+    for (i = 0; i <= node->num_keys; i++) {
       btree_postorder_walk(tree, node->children[i], callback);
     }
   }
-  for (int i = 0; i < node->num_keys; i++) {
+  for (i = 0; i < node->num_keys; i++) {
     callback(node->data[i]);
   }
 #ifdef BTREE_THREAD_SAFE

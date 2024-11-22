@@ -56,4 +56,4 @@ void trie_destroy_callback(trie_t *trie, trie_node_t *node);
 void trie_delete_trie(trie_t *trie);
 void trie_destroy_trie(trie_t *trie, void (*destroy)(trie_t *, trie_node_t *));
 
-#endif // DS_TRIE_H
+#endif /* DS_TRIE_H */

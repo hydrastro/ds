@@ -132,8 +132,9 @@ void *heap_peek_root(heap_t *heap) {
 bool heap_is_empty(heap_t *heap) { return heap->size == 0; }
 
 void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
+  size_t i;
   if (destroy != NULL) {
-    for (size_t i = 0; i < heap->size; ++i) {
+    for (i = 0; i < heap->size; ++i) {
       destroy(heap->data[i]);
     }
   }

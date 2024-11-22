@@ -98,7 +98,8 @@ size_t hash_func_double(void *key) {
   double num = *(double *)key;
   size_t hash = 0;
   unsigned char *bytes = (unsigned char *)&num;
-  for (size_t i = 0; i < sizeof(double); i++) {
+  size_t i;
+  for (i = 0; i < sizeof(double); i++) {
     hash = (hash * 31) + bytes[i];
   }
   return hash;
@@ -117,7 +118,8 @@ static hash_node_t *hash_node_create(void *key, void *value) {
 }
 
 static size_t next_prime_capacity(size_t current_capacity) {
-  for (size_t i = 0; i < sizeof(prime_capacities) / sizeof(prime_capacities[0]);
+  size_t i;
+  for (i = 0; i < sizeof(prime_capacities) / sizeof(prime_capacities[0]);
        i++) {
     if (prime_capacities[i] > current_capacity) {
       return prime_capacities[i];
@@ -135,14 +137,14 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
   table->tombstone = (void *)malloc(sizeof(void *));
   table->mode = mode;
   table->last_node = NULL;
-
+  size_t i;
   if (mode == HASH_CHAINING) {
     table->buckets =
         (hash_node_t **)calloc(table->capacity, sizeof(hash_node_t *));
   } else if (mode == HASH_LINEAR_PROBING || mode == HASH_QUADRATIC_PROBING) {
     table->entries =
         (hash_node_t *)calloc(table->capacity, sizeof(hash_node_t));
-    for (size_t i = 0; i < table->capacity; i++) {
+    for (i = 0; i < table->capacity; i++) {
       table->entries[i].key = table->nil;
     }
   }
@@ -169,9 +171,9 @@ void hash_table_resize(hash_table_t *table, size_t new_capacity,
                        int (*compare)(void *, void *)) {
   hash_table_t *new_table =
       hash_table_create(new_capacity, table->mode, table->probing_func);
-
+  size_t i;
   if (table->mode == HASH_CHAINING) {
-    for (size_t i = 0; i < table->capacity; i++) {
+    for (i = 0; i < table->capacity; i++) {
       hash_node_t *current = table->buckets[i];
       while (current != NULL) {
         hash_table_insert(new_table, current->key, current->value, hash_func,
@@ -181,7 +183,7 @@ void hash_table_resize(hash_table_t *table, size_t new_capacity,
     }
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    for (size_t i = 0; i < table->capacity; i++) {
+    for (i = 0; i < table->capacity; i++) {
       if (table->entries[i].key != table->nil) {
         hash_table_insert(new_table, table->entries[i].key,
                           table->entries[i].value, hash_func, compare);
@@ -405,8 +407,9 @@ void hash_table_remove(hash_table_t *table, void *key,
 bool hash_table_is_empty(hash_table_t *table) { return table->size == 0; }
 
 void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *)) {
+  size_t i;
   if (table->mode == HASH_CHAINING) {
-    for (size_t i = 0; i < table->capacity; i++) {
+    for (i = 0; i < table->capacity; i++) {
       hash_node_t *current = table->buckets[i];
       while (current != NULL) {
         hash_node_t *next = current->next;

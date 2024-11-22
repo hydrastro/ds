@@ -90,4 +90,4 @@ void rbt_destroy_recursive(rbt_t *tree, rbt_node_t *node,
                            void (*destroy)(rbt_node_t *));
 void rbt_destroy_tree(rbt_t *tree, void (*destroy)(rbt_node_t *));
 
-#endif // DS_RBT_H
+#endif /* DS_RBT_H */

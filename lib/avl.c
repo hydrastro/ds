@@ -246,8 +246,8 @@ void avl_insert(avl_t *tree, avl_node_t *data,
   } else {
     parent->right = data;
   }
-
-  for (avl_node_t *n = parent; n != tree->nil; n = n->parent) {
+  avl_node_t *n;
+  for (n = parent; n != tree->nil; n = n->parent) {
     n = avl_balance(tree, n);
     if (n->parent == tree->nil) {
       tree->root = n;

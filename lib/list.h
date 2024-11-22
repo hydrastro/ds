@@ -47,4 +47,4 @@ void list_walk_backwards(list_t *list, list_node_t *node,
                          void (*callback)(list_node_t *));
 bool list_is_empty(list_t *list);
 
-#endif // DS_LIST_H
+#endif /* DS_LIST_H */
