@@ -8,8 +8,7 @@ typedef struct my_node {
   int data;
 } my_node_t;
 
-int compare_nodes(dlist_node_t *node1,
-                  dlist_node_t *node2) {
+int compare_nodes(dlist_node_t *node1, dlist_node_t *node2) {
   my_node_t *node_a = CAST(node1, my_node_t);
   my_node_t *node_b = CAST(node2, my_node_t);
   return node_b->data - node_a->data;
@@ -44,8 +43,8 @@ int main(void) {
   printf("\n");
   dlist_walk_backwards(list, list->head, print_node);
 
-  found_node = (my_node_t *)dlist_search(list, &search_value->node,
-                                                      compare_nodes);
+  found_node =
+      (my_node_t *)dlist_search(list, &search_value->node, compare_nodes);
   if ((dlist_node_t *)found_node != list->nil) {
     printf("found %d\n", found_node->data);
   } else {

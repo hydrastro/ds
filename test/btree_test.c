@@ -35,8 +35,8 @@ void print_btree_node(btree_internal_node_t *node, int level,
 }
 
 void print_int(btree_node_t *data) {
-my_node_t*node = CAST(data,my_node_t);
-  printf("%d,",node->data);
+  my_node_t *node = CAST(data, my_node_t);
+  printf("%d,", node->data);
 }
 
 void test_btree_operations() {
@@ -80,9 +80,11 @@ void test_btree_operations() {
     printf("deleting %d\n", delete_values[i]);
     fflush(stdout);
     wkey->data = delete_values[i];
-    printf("searching...\n");fflush(stdout);
+    printf("searching...\n");
+    fflush(stdout);
     btree_node_t *result = btree_search(tree, &wkey->node, compare_int);
-    printf("search OK\n");fflush(stdout);
+    printf("search OK\n");
+    fflush(stdout);
     if (result == tree->nil) {
       printf("result is nil\n");
     } else {

@@ -12,9 +12,11 @@ size_t get_char_slice(void *data, size_t slice) {
 }
 
 bool has_char_slice(void *data, size_t slice) {
-int i = 0;
+  int i = 0;
   char *word = (char *)data;
-  while(word[i] != '\0' && i != (int)slice){i++;};
+  while (word[i] != '\0' && i != (int)slice) {
+    i++;
+  };
   return word[i] != '\0';
 }
 
@@ -65,7 +67,9 @@ size_t my_hash_table_get_size(void *store) {
 void my_hash_table_apply(trie_t *trie, void *store,
                          void (*f)(struct trie *, trie_node_t *)) {
   hash_table_t *table = (hash_table_t *)store;
-  if(table == NULL){return;}
+  if (table == NULL) {
+    return;
+  }
   hash_node_t *cur = table->last_node;
   hash_node_t *temp;
   while (cur != NULL) {
@@ -74,7 +78,6 @@ void my_hash_table_apply(trie_t *trie, void *store,
     f(trie, (trie_node_t *)cur->value);
     cur = temp;
   }
-
 }
 
 bool search_word(trie_t *trie, char *word) {
@@ -123,22 +126,21 @@ int main() {
   print_trie(trie);
 
   result = trie_search(trie, "grapefruit", get_char_slice, has_char_slice);
-  if(result != NULL) {
-  printf("\n--- Destroying 'grapefruit' ---\n");
-  fflush(stdout);
-  trie_remove_node(
-      trie, result);
-  print_trie(trie);
+  if (result != NULL) {
+    printf("\n--- Destroying 'grapefruit' ---\n");
+    fflush(stdout);
+    trie_delete_node(trie, result);
+    print_trie(trie);
   }
 
   result = trie_search(trie, "banana", get_char_slice, has_char_slice);
-  if(result != NULL) {
-  printf("\n--- Removing 'banana' ---\n");
-  trie_remove_node(trie, result);
-  print_trie(trie);
+  if (result != NULL) {
+    printf("\n--- Removing 'banana' ---\n");
+    trie_delete_node(trie, result);
+    print_trie(trie);
   }
 
-  trie_destroy_tree(trie);
+  trie_destroy_trie(trie, NULL);
 
   return 0;
 }

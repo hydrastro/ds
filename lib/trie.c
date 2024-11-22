@@ -107,7 +107,7 @@ trie_node_t *trie_search(trie_t *trie, void *data,
   return result;
 }
 
-void trie_remove_node(trie_t *trie, trie_node_t *node) {
+void trie_delete_node(trie_t *trie, trie_node_t *node) {
   trie_node_t *cur = node;
   trie_node_t *temp;
   if (!node->is_terminal) {
@@ -129,15 +129,35 @@ void trie_remove_node(trie_t *trie, trie_node_t *node) {
   }
 }
 
+void trie_destroy_node(trie_t *trie, trie_node_t *node,
+                       void (*destroy)(trie_t *, trie_node_t *)) {
+  if (!node->is_terminal) {
+    return;
+  }
+  destroy(trie, node);
+  trie_delete_node(trie, node);
+}
+
 void trie_destroy_callback(trie_t *trie, trie_node_t *node) {
   trie->store_destroy(node->children);
   free(node);
 }
 
-void trie_destroy_tree(trie_t *trie) {
+void trie_delete_trie(trie_t *trie) {
   trie->store_apply(trie, trie->root->children, trie_destroy_callback);
-
   trie->store_destroy(trie->root->children);
+}
+
+void trie_destroy_trie(trie_t *trie,
+                       void (*destroy)(trie_t *trie, trie_node_t *)) {
+  if (destroy != NULL) {
+    trie->store_apply(trie, trie->root->children, destroy);
+  }
+  trie->store_apply(trie, trie->root->children, trie_destroy_callback);
+  trie->store_destroy(trie->root->children);
+  if (destroy != NULL) {
+    destroy(trie, trie->root);
+  }
   free(trie->root);
   free(trie);
 }

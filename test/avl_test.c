@@ -61,7 +61,7 @@ int main() {
   if (found_node != tree->nil) {
     printf("Node with key %d found in the AVL tree.\n",
            ((my_data_t *)found_node)->key);
-           destroy(found_node);
+    destroy(found_node);
 
   } else {
     printf("Node with key %d not found in the AVL tree.\n", search_data.key);
@@ -80,7 +80,7 @@ int main() {
   if (found_node != tree->nil) {
     printf("Node with key %d found in the AVL tree.\n",
            ((my_data_t *)found_node)->key);
-      destroy(found_node);
+    destroy(found_node);
 
   } else {
     printf("Node with key %d not found in the AVL tree.\n", search_data.key);
@@ -90,7 +90,7 @@ int main() {
   printf("\n");
   search_data.key = 7;
   found_node = avl_search(tree, (avl_node_t *)&search_data, compare_avl_nodes);
-  if( found_node != tree->nil) {
+  if (found_node != tree->nil) {
     destroy(found_node);
   }
   avl_delete_node(tree, found_node);
