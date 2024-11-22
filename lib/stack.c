@@ -73,7 +73,7 @@ void stack_destroy(stack_t *stack, void (*destroy)(stack_node_t *)) {
     destroy(node);
     node = next;
   }
-  stack->size = 0;
+  free(stack->nil);
 #ifdef STACK_THREAD_SAFE
   LOCK_DESTROY(stack)
 #endif

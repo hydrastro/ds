@@ -139,7 +139,7 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
   if (mode == HASH_CHAINING) {
     table->buckets =
         (hash_node_t **)calloc(table->capacity, sizeof(hash_node_t *));
-  } else if (mode == HASH_LINEAR_PROBING) {
+  } else if (mode == HASH_LINEAR_PROBING || mode == HASH_QUADRATIC_PROBING) {
     table->entries =
         (hash_node_t *)calloc(table->capacity, sizeof(hash_node_t));
     for (size_t i = 0; i < table->capacity; i++) {
@@ -179,7 +179,8 @@ void hash_table_resize(hash_table_t *table, size_t new_capacity,
         current = current->next;
       }
     }
-  } else if (table->mode == HASH_LINEAR_PROBING) {
+  } else if (table->mode == HASH_LINEAR_PROBING ||
+             table->mode == HASH_QUADRATIC_PROBING) {
     for (size_t i = 0; i < table->capacity; i++) {
       if (table->entries[i].key != table->nil) {
         hash_table_insert(new_table, table->entries[i].key,
@@ -190,7 +191,8 @@ void hash_table_resize(hash_table_t *table, size_t new_capacity,
 
   if (table->mode == HASH_CHAINING) {
     free(table->buckets);
-  } else if (table->mode == HASH_LINEAR_PROBING) {
+  } else if (table->mode == HASH_LINEAR_PROBING ||
+             table->mode == HASH_QUADRATIC_PROBING) {
     free(table->entries);
   }
 
@@ -198,7 +200,8 @@ void hash_table_resize(hash_table_t *table, size_t new_capacity,
   table->size = new_table->size;
   if (table->mode == HASH_CHAINING) {
     table->buckets = new_table->buckets;
-  } else if (table->mode == HASH_LINEAR_PROBING) {
+  } else if (table->mode == HASH_LINEAR_PROBING ||
+             table->mode == HASH_QUADRATIC_PROBING) {
     table->entries = new_table->entries;
   }
 
@@ -366,7 +369,8 @@ void hash_table_remove(hash_table_t *table, void *key,
       prev = current;
       current = current->next;
     }
-  } else if (table->mode == HASH_LINEAR_PROBING) {
+  } else if (table->mode == HASH_LINEAR_PROBING ||
+             table->mode == HASH_QUADRATIC_PROBING) {
     while (table->entries[index].key != table->nil) {
       if (compare(table->entries[index].key, key) == 0) {
         if (destroy != NULL) {
@@ -409,6 +413,7 @@ void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *)) {
         if (destroy) {
           destroy(current);
         }
+        free(current);
         current = next;
       }
     }

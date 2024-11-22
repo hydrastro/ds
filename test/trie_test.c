@@ -12,8 +12,10 @@ size_t get_char_slice(void *data, size_t slice) {
 }
 
 bool has_char_slice(void *data, size_t slice) {
+int i = 0;
   char *word = (char *)data;
-  return word[slice] != '\0';
+  while(word[i] != '\0' && i != (int)slice){i++;};
+  return word[i] != '\0';
 }
 
 size_t my_hash(void *key) { return hash_func_int(&key); }
@@ -52,7 +54,7 @@ void my_hash_table_destroy_entry(void *store, trie_node_t *node) {
 
 void my_hash_table_destroy(void *store) {
   hash_table_t *table = (hash_table_t *)store;
-  free(table);
+  hash_table_destroy(table, NULL);
 }
 
 size_t my_hash_table_get_size(void *store) {
@@ -63,12 +65,16 @@ size_t my_hash_table_get_size(void *store) {
 void my_hash_table_apply(trie_t *trie, void *store,
                          void (*f)(struct trie *, trie_node_t *)) {
   hash_table_t *table = (hash_table_t *)store;
+  if(table == NULL){return;}
   hash_node_t *cur = table->last_node;
+  hash_node_t *temp;
   while (cur != NULL) {
+    temp = cur->list_prev;
     my_hash_table_apply(trie, ((trie_node_t *)cur->value)->children, f);
     f(trie, (trie_node_t *)cur->value);
-    cur = cur->list_prev;
+    cur = temp;
   }
+
 }
 
 bool search_word(trie_t *trie, char *word) {
@@ -89,11 +95,14 @@ void print_trie(trie_t *trie) {
 }
 
 int main() {
+  trie_node_t *result;
   trie_t *trie =
       trie_create(128, my_hash_table_search, my_hash_table_create_store,
                   my_hash_table_insert_store, my_hash_table_remove_store,
                   my_hash_table_destroy_entry, my_hash_table_destroy,
                   my_hash_table_get_size, my_hash_table_apply);
+
+  print_trie(trie);
 
   trie_insert(trie, (void *)"apple", get_char_slice, has_char_slice);
   trie_insert(trie, (void *)"banana", get_char_slice, has_char_slice);
@@ -113,17 +122,23 @@ int main() {
 
   print_trie(trie);
 
+  result = trie_search(trie, "grapefruit", get_char_slice, has_char_slice);
+  if(result != NULL) {
   printf("\n--- Destroying 'grapefruit' ---\n");
-  trie_destroy_node(
-      trie, trie_search(trie, "grapefruit", get_char_slice, has_char_slice));
+  fflush(stdout);
+  trie_remove_node(
+      trie, result);
   print_trie(trie);
+  }
 
+  result = trie_search(trie, "banana", get_char_slice, has_char_slice);
+  if(result != NULL) {
   printf("\n--- Removing 'banana' ---\n");
-  trie_remove_node(trie,
-                   trie_search(trie, "banana", get_char_slice, has_char_slice));
+  trie_remove_node(trie, result);
   print_trie(trie);
+  }
 
-  trie_destroy(trie, trie->root);
+  trie_destroy_tree(trie);
 
   return 0;
 }

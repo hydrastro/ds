@@ -41,6 +41,7 @@ int main(void) {
   }
 
   hash_table_remove(table, "key2", string_hash, string_compare, NULL);
+  // TODO: test against destroyable objects
 
   value =
       CAST(hash_table_lookup(table, "key2", string_hash, string_compare), char);

@@ -35,7 +35,8 @@ void print_btree_node(btree_internal_node_t *node, int level,
 }
 
 void print_int(btree_node_t *data) {
-  printf("%d,", CAST(data, my_node_t)->data);
+my_node_t*node = CAST(data,my_node_t);
+  printf("%d,",node->data);
 }
 
 void test_btree_operations() {
@@ -74,12 +75,14 @@ void test_btree_operations() {
 
   print_btree_node(tree->root, 0, print_int);
 
-  int delete_values[] = {5, 6, 10, 15, 35, 20};
+  int delete_values[] = {10, 20, 5, 6, 15, 35};
   for (int i = 0; i < sizeof(delete_values) / sizeof(delete_values[0]); i++) {
     printf("deleting %d\n", delete_values[i]);
     fflush(stdout);
     wkey->data = delete_values[i];
+    printf("searching...\n");fflush(stdout);
     btree_node_t *result = btree_search(tree, &wkey->node, compare_int);
+    printf("search OK\n");fflush(stdout);
     if (result == tree->nil) {
       printf("result is nil\n");
     } else {
@@ -90,13 +93,18 @@ void test_btree_operations() {
       printf("deleted %d\n", delete_values[i]);
       fflush(stdout);
       print_btree_node(tree->root, 0, print_int);
+
+      destroy_int(result);
       fflush(stdout);
     }
   }
 
   printf("after deletions:\n");
   print_btree_node(tree->root, 0, print_int);
+  printf("destroying whole tree\n");
   btree_destroy_tree(tree, destroy_int);
+  printf("destroyed whole tree\n");
+  free(wkey);
 }
 
 void *thread_function(void *arg) {

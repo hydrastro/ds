@@ -209,16 +209,20 @@ void *btree_maximum(btree_t *tree) {
 }
 
 void btree_rebalance(btree_t *tree, btree_internal_node_t *node) {
-  int i, j;
+  int i, j, k;
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
   btree_internal_node_t *parent = node->parent;
   i = 0;
+  if (parent == NULL) {
+    return;
+  }
   while (i <= parent->num_keys && parent->children[i] != node) {
     i++;
   }
-  if (parent->num_keys > i &&
+
+  if (parent->num_keys - 1 > i &&
       parent->children[i + 1]->num_keys > tree->degree - 1) {
     node->data[node->num_keys] = parent->data[i];
     node->data[node->num_keys]->internal = node;
@@ -242,24 +246,26 @@ void btree_rebalance(btree_t *tree, btree_internal_node_t *node) {
     parent->children[i - 1]->num_keys--;
   } else {
     btree_internal_node_t *recipient, *next;
+
     if (i != 0) {
       recipient = parent->children[i - 1];
       next = node;
+      j = i - 1;
     } else {
       recipient = node;
       next = parent->children[i + 1];
+      j = i;
     }
-    recipient->data[recipient->num_keys] = parent->data[i];
+    recipient->data[recipient->num_keys] = parent->data[j];
     recipient->data[recipient->num_keys]->internal = recipient;
     recipient->num_keys++;
     for (j = 0; j < next->num_keys; j++) {
       recipient->data[recipient->num_keys] = next->data[j];
       recipient->data[recipient->num_keys]->internal = recipient;
       recipient->num_keys++;
-      next->num_keys--;
     }
-    free(next->data);
     free(next->children);
+    free(next->data);
     free(next);
 
     for (j = i + 1; j < parent->num_keys; j++) {
@@ -272,6 +278,9 @@ void btree_rebalance(btree_t *tree, btree_internal_node_t *node) {
     parent->num_keys--;
     if (parent == tree->root && parent->num_keys == 0) {
       tree->root = recipient;
+      tree->root->parent = NULL;
+      free(parent->children);
+      free(parent->data);
       free(parent);
     } else if (parent->num_keys < tree->degree - 1) {
       btree_rebalance(tree, parent);
@@ -298,13 +307,11 @@ void btree_delete_node(btree_t *tree, btree_node_t *key) {
       node->data[i - 1] = node->data[i];
     }
     node->num_keys--;
-
     if (node->num_keys < tree->degree - 1) {
       btree_rebalance(tree, node);
     }
   } else {
-    if (node->num_keys > i &&
-        node->children[i + 1]->num_keys > tree->degree - 1) {
+    if (node->children[i + 1]->num_keys > tree->degree - 1) {
       borrowed = btree_local_minimum(tree, node->children[i + 1]);
     } else {
       borrowed = btree_local_maximum(tree, node->children[i]);
@@ -324,8 +331,8 @@ void btree_delete_node(btree_t *tree, btree_node_t *key) {
     borrowed_internal->num_keys--;
 
     borrowed->internal = node;
-    if (borrowed->internal->num_keys < tree->degree - 1) {
-      btree_rebalance(tree, borrowed->internal);
+    if (borrowed_internal->num_keys < tree->degree - 1) {
+      btree_rebalance(tree, borrowed_internal);
     }
   }
 #ifdef BTREE_THREAD_SAFE
@@ -362,6 +369,9 @@ void btree_destroy_recursive(btree_t *tree, btree_internal_node_t *node,
   for (int i = 0; i < node->num_keys; i++) {
     destroy(node->data[i]);
   }
+  free(node->children);
+  free(node->data);
+  free(node);
 
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)

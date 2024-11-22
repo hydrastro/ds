@@ -1,5 +1,6 @@
 #include "trie.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 trie_node_t *trie_create_node(trie_t *trie) {
@@ -78,6 +79,9 @@ trie_node_t *trie_search(trie_t *trie, void *data,
 #ifdef TRIE_THREAD_SAFE
   LOCK(trie)
 #endif
+  if (trie->root == NULL) {
+    return NULL;
+  };
   trie_node_t *current_node = trie->root;
   trie_node_t *result;
   size_t current_slice;
@@ -104,114 +108,36 @@ trie_node_t *trie_search(trie_t *trie, void *data,
 }
 
 void trie_remove_node(trie_t *trie, trie_node_t *node) {
-#ifdef TRIE_THREAD_SAFE
-  LOCK(trie)
-#endif
-  trie_node_t *parent;
-  if (trie->store_get_size(node->children) == 0) {
-
-    if (node != trie->root) {
-      parent = node->parent;
-      trie->store_remove(parent->children, node);
-      if (trie->store_get_size(parent->children) == 0) {
-        trie_remove_node(trie, parent);
-      }
-    }
-
-  } else {
-    node->is_terminal = false;
-    node->terminal_data = NULL;
-  }
-#ifdef TRIE_THREAD_SAFE
-  UNLOCK(trie)
-#endif
-}
-
-void trie_remove(trie_t *trie, trie_node_t *node) {
-#ifdef TRIE_THREAD_SAFE
-  LOCK(trie)
-#endif
-  trie_node_t *parent;
-  if (node == trie->root) {
-#ifdef TRIE_THREAD_SAFE
-    UNLOCK(trie)
-#endif
+  trie_node_t *cur = node;
+  trie_node_t *temp;
+  if (!node->is_terminal) {
     return;
   }
-
-  parent = node->parent;
-  trie->store_remove(parent->children, node);
-  if (trie->store_get_size(parent->children) == 0) {
-    trie_remove_node(trie, parent);
-  }
-#ifdef TRIE_THREAD_SAFE
-  UNLOCK(trie)
-#endif
-}
-
-void trie_destroy_node(trie_t *trie, trie_node_t *node) {
-#ifdef TRIE_THREAD_SAFE
-  LOCK(trie)
-#endif
-  trie_node_t *parent;
-  if (trie->store_get_size(node->children) == 0) {
-    if (node != trie->root) {
-      parent = node->parent;
-      trie->store_destroy_entry(parent->children, node);
-      if (trie->store_get_size(parent->children) == 0 && !parent->is_terminal) {
-        trie_destroy_node(trie, parent);
+  node->is_terminal = false;
+  while (cur != NULL && !cur->is_terminal) {
+    if (trie->store_get_size(cur->children) == 0 && cur->parent != NULL) {
+      trie->store_destroy_entry(cur->parent->children, cur);
+      if (cur != trie->root) {
+        temp = cur->parent;
+        trie->store_destroy(cur->children);
+        free(cur);
+        cur = temp;
+        continue;
       }
     }
-    trie->store_destroy(node->children);
-    free(node);
+    cur = cur->parent;
+  }
+}
 
-  } else {
-    node->is_terminal = false;
-    node->terminal_data = NULL;
-  }
-#ifdef TRIE_THREAD_SAFE
-  UNLOCK(trie)
-#endif
+void trie_destroy_callback(trie_t *trie, trie_node_t *node) {
+  trie->store_destroy(node->children);
+  free(node);
 }
-void trie_destroy_node_nonrec(trie_t *trie, trie_node_t *node) {
-#ifdef TRIE_THREAD_SAFE
-  LOCK(trie)
-#endif
-  trie_node_t *parent;
-  if (trie->store_get_size(node->children) == 0) {
-    trie->store_destroy(node->children);
-    free(node);
-  } else {
-    node->is_terminal = false;
-    node->terminal_data = NULL;
-  }
-#ifdef TRIE_THREAD_SAFE
-  UNLOCK(trie)
-#endif
-}
-void trie_destroy(trie_t *trie, trie_node_t *node) {
-#ifdef TRIE_THREAD_SAFE
-  LOCK(trie)
-#endif
-  trie_node_t *parent;
-  parent = node->parent;
-  trie->store_apply(trie, node->children, trie_destroy_node_nonrec);
-  if (node != trie->root) {
-    trie->store_destroy_entry(parent->children, node);
-    if (trie->store_get_size(parent->children) == 0) {
-      trie_destroy_node(trie, parent);
-    }
-  }
-#ifdef TRIE_THREAD_SAFE
-  UNLOCK(trie)
-#endif
-}
+
 void trie_destroy_tree(trie_t *trie) {
-#ifdef TRIE_THREAD_SAFE
-  LOCK(trie)
-#endif
-  trie_destroy(trie, trie->root);
-#ifdef TRIE_THREAD_SAFE
-  UNLOCK(trie)
-#endif
+  trie->store_apply(trie, trie->root->children, trie_destroy_callback);
+
+  trie->store_destroy(trie->root->children);
+  free(trie->root);
+  free(trie);
 }

@@ -3,10 +3,8 @@
 #include <stdlib.h>
 
 dlist_t *dlist_create() {
-  dlist_t *list =
-      (dlist_t *)malloc(sizeof(dlist_t));
-  list->nil =
-      (dlist_node_t *)malloc(sizeof(dlist_node_t));
+  dlist_t *list = (dlist_t *)malloc(sizeof(dlist_t));
+  list->nil = (dlist_node_t *)malloc(sizeof(dlist_node_t));
   list->head = list->nil;
   list->tail = list->nil;
   list->nil->prev = list->nil;
@@ -18,8 +16,7 @@ dlist_t *dlist_create() {
   return list;
 }
 
-void dlist_append(dlist_t *list,
-                               dlist_node_t *node) {
+void dlist_append(dlist_t *list, dlist_node_t *node) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -29,8 +26,7 @@ void dlist_append(dlist_t *list,
 #endif
 }
 
-void dlist_prepend(dlist_t *list,
-                                dlist_node_t *node) {
+void dlist_prepend(dlist_t *list, dlist_node_t *node) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -40,9 +36,8 @@ void dlist_prepend(dlist_t *list,
 #endif
 }
 
-dlist_node_t *dlist_search(
-    dlist_t *list, dlist_node_t *node,
-    int (*compare)(dlist_node_t *, dlist_node_t *)) {
+dlist_node_t *dlist_search(dlist_t *list, dlist_node_t *node,
+                           int (*compare)(dlist_node_t *, dlist_node_t *)) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -63,9 +58,8 @@ dlist_node_t *dlist_search(
   return head;
 }
 
-void dlist_insert_before(dlist_t *list,
-                                      dlist_node_t *node,
-                                      dlist_node_t *next) {
+void dlist_insert_before(dlist_t *list, dlist_node_t *node,
+                         dlist_node_t *next) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -87,9 +81,7 @@ void dlist_insert_before(dlist_t *list,
 #endif
 }
 
-void dlist_insert_after(dlist_t *list,
-                                     dlist_node_t *node,
-                                     dlist_node_t *prev) {
+void dlist_insert_after(dlist_t *list, dlist_node_t *node, dlist_node_t *prev) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -111,8 +103,7 @@ void dlist_insert_after(dlist_t *list,
 #endif
 }
 
-void dlist_delete_node(dlist_t *list,
-                                    dlist_node_t *node) {
+void dlist_delete_node(dlist_t *list, dlist_node_t *node) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -142,9 +133,8 @@ void dlist_delete(dlist_t *list) {
 #endif
 }
 
-void dlist_destroy_node(
-    dlist_t *list, dlist_node_t *node,
-    void (*destroy)(dlist_node_t *)) {
+void dlist_destroy_node(dlist_t *list, dlist_node_t *node,
+                        void (*destroy)(dlist_node_t *)) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -157,8 +147,7 @@ void dlist_destroy_node(
 #endif
 }
 
-void dlist_destroy(dlist_t *list,
-                                void (*destroy)(dlist_node_t *)) {
+void dlist_destroy(dlist_t *list, void (*destroy)(dlist_node_t *)) {
   dlist_node_t *node = list->head;
   while (node != list->nil) {
     dlist_node_t *next = node->next;
@@ -174,9 +163,8 @@ void dlist_destroy(dlist_t *list,
   free(list);
 }
 
-void dlist_walk_forward(
-    dlist_t *list, dlist_node_t *node,
-    void (*callback)(dlist_node_t *)) {
+void dlist_walk_forward(dlist_t *list, dlist_node_t *node,
+                        void (*callback)(dlist_node_t *)) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif
@@ -189,9 +177,8 @@ void dlist_walk_forward(
 #endif
 }
 
-void dlist_walk_backwards(
-    dlist_t *list, dlist_node_t *node,
-    void (*callback)(dlist_node_t *)) {
+void dlist_walk_backwards(dlist_t *list, dlist_node_t *node,
+                          void (*callback)(dlist_node_t *)) {
 #ifdef dlist_THREAD_SAFE
   LOCK(list)
 #endif

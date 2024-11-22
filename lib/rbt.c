@@ -515,7 +515,6 @@ void rbt_destroy_recursive(rbt_t *tree, rbt_node_t *node,
   }
   rbt_destroy_recursive(tree, node->left, destroy);
   rbt_destroy_recursive(tree, node->right, destroy);
-  rbt_delete_node(tree, node);
   if (destroy != NULL) {
     destroy(node);
   }

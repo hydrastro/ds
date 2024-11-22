@@ -19,12 +19,14 @@ typedef struct trie {
 
   trie_node_t *(*store_search)(void *store, size_t slice);
   void *(*store_create)(size_t size);
+
   void (*store_insert)(void *store, trie_node_t *node);
   void (*store_remove)(void *store, trie_node_t *node);
   void (*store_destroy_entry)(void *store, trie_node_t *node);
   void (*store_destroy)(void *store);
   size_t (*store_get_size)(void *store);
   void (*store_apply)(struct trie *, void *store,
+
                       void (*f)(struct trie *, trie_node_t *));
 
 #ifdef TRIE_THREAD_SAFE

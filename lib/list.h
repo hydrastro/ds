@@ -26,29 +26,25 @@ void list_append(list_t *list, list_node_t *node);
 
 void list_prepend(list_t *list, list_node_t *node);
 
-list_node_t *
-list_search(list_t *list, list_node_t *node,
-                   int (*compare)(list_node_t *, list_node_t *));
+list_node_t *list_search(list_t *list, list_node_t *node,
+                         int (*compare)(list_node_t *, list_node_t *));
 
-void list_insert_before(list_t *list, list_node_t *node,
-                               list_node_t *next);
+void list_insert_before(list_t *list, list_node_t *node, list_node_t *next);
 
-void list_insert_after(list_t *list, list_node_t *node,
-                              list_node_t *prev);
+void list_insert_after(list_t *list, list_node_t *node, list_node_t *prev);
 
 void list_delete_node(list_t *list, list_node_t *node);
 void list_delete(list_t *list);
 void list_destroy_node(list_t *list, list_node_t *node,
-                              void (*destroy)(list_node_t *));
+                       void (*destroy)(list_node_t *));
 
-void list_destroy(list_t *list,
-                         void (*destroy)(list_node_t *));
+void list_destroy(list_t *list, void (*destroy)(list_node_t *));
 
 void list_walk_forward(list_t *list, list_node_t *node,
-                              void (*callback)(list_node_t *));
+                       void (*callback)(list_node_t *));
 
 void list_walk_backwards(list_t *list, list_node_t *node,
-                                void (*callback)(list_node_t *));
+                         void (*callback)(list_node_t *));
 bool list_is_empty(list_t *list);
 
 #endif // DS_LIST_H

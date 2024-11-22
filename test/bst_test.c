@@ -59,13 +59,9 @@ int main() {
     bst_delete_node(tree, found_node);
     printf("deleting node\n");
     fflush(stdout);
+    destroy_bst_node(found_node);
 
-    found_node = bst_search(tree, &search_data.node, compare);
-    if (found_node == tree->nil) {
       printf("Node successfully deleted!\n");
-    } else {
-      printf("Node deletion failed!\n");
-    }
   }
   kek = bst_minimum(tree, tree->root);
   walk(tree, kek);

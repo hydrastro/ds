@@ -60,6 +60,7 @@ int main(void) {
     print_node(result_node);
   }
   rbt_destroy_tree(tree, destroy_node);
+  free(search_data);
 
   return 0;
 }

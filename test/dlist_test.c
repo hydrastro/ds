@@ -61,9 +61,11 @@ int main(void) {
 
   if (&found_node->node != list->nil) {
     dlist_delete_node(list, &found_node->node);
+    destroy_node(&found_node->node);
     printf("delete node: ");
     dlist_walk_forward(list, list->head, print_node);
   }
+  free(search_value);
 
   dlist_destroy(list, destroy_node);
 
