@@ -39,5 +39,7 @@ void queue_walk_forward(queue_t *queue, queue_node_t *node,
                         void (*callback)(queue_node_t *));
 void queue_walk_backwards(queue_t *queue, queue_node_t *node,
                           void (*callback)(queue_node_t *));
+queue_t *queue_clone(queue_t *queue,
+                     queue_node_t *(*clone_node)(queue_node_t *));
 
 #endif /* DS_QUEUE_H */

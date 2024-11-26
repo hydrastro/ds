@@ -201,3 +201,22 @@ bool dlist_is_empty(dlist_t *list) {
 #endif
   return result;
 }
+
+dlist_t *dlist_clone(dlist_t *list,
+                     dlist_node_t *(*clone_node)(dlist_node_t *)) {
+#ifdef dlist_THREAD_SAFE
+  LOCK(list)
+#endif
+  dlist_t *new_list = dlist_create();
+  dlist_node_t *current = list->head;
+  while (current != list->nil) {
+    dlist_node_t *cloned_node = clone_node(current);
+    dlist_append(new_list, cloned_node);
+    current = current->next;
+  }
+#ifdef dlist_THREAD_SAFE
+  UNLOCK(list)
+#endif
+
+  return new_list;
+}

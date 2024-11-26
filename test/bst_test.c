@@ -27,10 +27,16 @@ void destroy_bst_node(bst_node_t *node) {
   free(data);
 }
 
+bst_node_t *clone_node(bst_node_t *node) {
+  my_data_t *new_node = (my_data_t *)malloc(sizeof(my_data_t));
+  new_node->value = (CAST(node, my_data_t))->value;
+  return &new_node->node;
+}
+
 int main() {
   bst_t *tree = bst_create();
 
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 10; i++) {
     my_data_t *data = (my_data_t *)malloc(sizeof(my_data_t));
     data->value = i;
     bst_insert(tree, &data->node, compare);
@@ -67,8 +73,17 @@ int main() {
   walk(tree, kek);
   printf("\n");
 
+  bst_t *new_tree = bst_clone(tree, clone_node);
+
   printf("destroying tree...\n");
   bst_destroy_tree(tree, destroy_bst_node);
+
+  kek = bst_minimum(new_tree, new_tree->root);
+  walk(new_tree, kek);
+  printf("\n");
+
+  printf("destroying tree...\n");
+  bst_destroy_tree(new_tree, destroy_bst_node);
 
   return 0;
 }

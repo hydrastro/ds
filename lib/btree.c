@@ -391,93 +391,103 @@ void btree_destroy_tree(btree_t *tree, void (*destroy)(btree_node_t *)) {
   free(tree);
 }
 
-void btree_inorder_walk(btree_t *tree, btree_internal_node_t *node,
-                        void (*callback)(btree_node_t *)) {
-#ifdef BTREE_THREAD_SAFE
-  LOCK(tree)
-#endif
+void btree_inorder_walk_helper(btree_t *tree, btree_internal_node_t *node,
+                               void (*callback)(btree_node_t *)) {
   if (node == NULL) {
-#ifdef BTREE_THREAD_SAFE
-    UNLOCK(tree)
-#endif
     return;
   }
   int i;
   for (i = 0; i < node->num_keys; i++) {
     if (!node->is_leaf) {
-      btree_inorder_walk(tree, node->children[i], callback);
+      btree_inorder_walk_helper(tree, node->children[i], callback);
     }
     callback(node->data[i]);
   }
   if (!node->is_leaf) {
-    btree_inorder_walk(tree, node->children[i], callback);
+    btree_inorder_walk_helper(tree, node->children[i], callback);
   }
+}
+
+void btree_inorder_walk(btree_t *tree, btree_internal_node_t *node,
+                        void (*callback)(btree_node_t *)) {
+#ifdef BTREE_THREAD_SAFE
+  LOCK(tree)
+#endif
+  btree_inorder_walk_helper(tree, node, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
+
 void btree_inorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  btree_inorder_walk(tree, tree->root, callback);
+  btree_inorder_walk_helper(tree, tree->root, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
+
+void btree_preorder_walk_helper(btree_t *tree, btree_internal_node_t *node,
+                                void (*callback)(btree_node_t *)) {
+  if (node == NULL) {
+    return;
+  }
+  int i;
+  for (i = 0; i < node->num_keys; i++) {
+    callback(node->data[i]);
+  }
+  if (!node->is_leaf) {
+    for (i = 0; i <= node->num_keys; i++) {
+      btree_preorder_walk_helper(tree, node->children[i], callback);
+    }
+  }
+}
+
 void btree_preorder_walk(btree_t *tree, btree_internal_node_t *node,
                          void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  if (node == NULL) {
-#ifdef BTREE_THREAD_SAFE
-    UNLOCK(tree)
-#endif
-    return;
-  }
-  int i;
-  for (i = 0; i < node->num_keys; i++) {
-    callback(node->data[i]);
-  }
-  if (!node->is_leaf) {
-    for (i = 0; i <= node->num_keys; i++) {
-      btree_preorder_walk(tree, node->children[i], callback);
-    }
-  }
+  btree_preorder_walk_helper(tree, node, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
+
 void btree_preorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  btree_preorder_walk(tree, tree->root, callback);
+  btree_preorder_walk_helper(tree, tree->root, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
+
+void btree_postorder_walk_helper(btree_t *tree, btree_internal_node_t *node,
+                                 void (*callback)(btree_node_t *)) {
+  if (node == NULL) {
+    return;
+  }
+  int i;
+  if (!node->is_leaf) {
+    for (i = 0; i <= node->num_keys; i++) {
+      btree_postorder_walk_helper(tree, node->children[i], callback);
+    }
+  }
+  for (i = 0; i < node->num_keys; i++) {
+    callback(node->data[i]);
+  }
+}
+
 void btree_postorder_walk(btree_t *tree, btree_internal_node_t *node,
                           void (*callback)(btree_node_t *)) {
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  if (node == NULL) {
-#ifdef BTREE_THREAD_SAFE
-    UNLOCK(tree)
-#endif
-    return;
-  }
-  int i;
-  if (!node->is_leaf) {
-    for (i = 0; i <= node->num_keys; i++) {
-      btree_postorder_walk(tree, node->children[i], callback);
-    }
-  }
-  for (i = 0; i < node->num_keys; i++) {
-    callback(node->data[i]);
-  }
+  btree_postorder_walk_helper(tree, node, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
@@ -488,8 +498,58 @@ void btree_postorder_walk_tree(btree_t *tree,
 #ifdef BTREE_THREAD_SAFE
   LOCK(tree)
 #endif
-  btree_postorder_walk(tree, tree->root, callback);
+  btree_postorder_walk_helper(tree, tree->root, callback);
 #ifdef BTREE_THREAD_SAFE
   UNLOCK(tree)
 #endif
+}
+
+btree_internal_node_t *
+btree_clone_recursive(btree_t *tree, btree_t *new_tree,
+                      btree_internal_node_t *node,
+                      btree_node_t *(*clone_node)(btree_node_t *)) {
+
+  btree_internal_node_t *new_node = btree_create_node(new_tree, node->is_leaf);
+  new_node->num_keys = node->num_keys;
+
+  for (int i = 0; i < node->num_keys; i++) {
+    new_node->data[i] = clone_node(node->data[i]);
+    new_node->data[i]->internal = new_node;
+  }
+
+  if (!node->is_leaf) {
+    for (int i = 0; i <= node->num_keys; i++) {
+      new_node->children[i] =
+          btree_clone_recursive(tree, new_tree, node->children[i], clone_node);
+      if (new_node->children[i]) {
+        new_node->children[i]->parent = new_node;
+      }
+    }
+  }
+
+  return new_node;
+}
+
+btree_t *btree_clone(btree_t *tree,
+                     btree_node_t *(*clone_node)(btree_node_t *)) {
+#ifdef BTREE_THREAD_SAFE
+  LOCK(tree);
+#endif
+  btree_t *new_tree = (btree_t *)malloc(sizeof(btree_t));
+  new_tree->degree = tree->degree;
+  new_tree->nil = (btree_node_t *)malloc(sizeof(btree_node_t));
+
+#ifdef BTREE_THREAD_SAFE
+  LOCK_INIT_RECURSIVE(tree)
+#endif
+
+  new_tree->root =
+      btree_clone_recursive(tree, new_tree, tree->root, clone_node);
+  new_tree->size = tree->size;
+
+#ifdef BTREE_THREAD_SAFE
+  UNLOCK(tree);
+#endif
+
+  return new_tree;
 }

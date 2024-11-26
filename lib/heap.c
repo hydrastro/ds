@@ -145,3 +145,22 @@ void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
   free(heap->data);
   free(heap);
 }
+
+heap_t *heap_clone(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *)) {
+#ifdef HEAP_THREAD_SAFE
+  LOCK(heap)
+#endif
+  heap_t *new_heap = heap_create(heap->capacity);
+  new_heap->size = heap->size;
+  for (size_t i = 0; i < heap->size; ++i) {
+    heap_node_t *original_node = heap->data[i];
+    heap_node_t *cloned_node = clone_node(original_node);
+    new_heap->data[i] = cloned_node;
+    cloned_node->index = i;
+  }
+#ifdef HEAP_THREAD_SAFE
+  UNLOCK(heap)
+#endif
+
+  return new_heap;
+}

@@ -70,5 +70,7 @@ void hash_table_remove(hash_table_t *table, void *key,
                        void (*destroy)(hash_node_t *));
 bool hash_table_is_empty(hash_table_t *table);
 void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *));
+hash_table_t *hash_table_clone(hash_table_t *table, void *(*clone_key)(void *),
+                               void *(*clone_value)(void *));
 
 #endif /* DS_HASH_TABLE_H */

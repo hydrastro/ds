@@ -215,3 +215,21 @@ bool list_is_empty(list_t *list) {
 #endif
   return result;
 }
+
+list_t *list_clone(list_t *list, list_node_t *(*clone_node)(list_node_t *)) {
+#ifdef list_THREAD_SAFE
+  LOCK(list)
+#endif
+  list_t *new_list = list_create();
+  list_node_t *current = list->head;
+  while (current != list->nil) {
+    list_node_t *cloned_node = clone_node(current);
+    list_append(new_list, cloned_node);
+    current = current->next;
+  }
+
+#ifdef list_THREAD_SAFE
+  UNLOCK(list)
+#endif
+  return new_list;
+}

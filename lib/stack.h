@@ -42,5 +42,7 @@ void stack_walk_forward(stack_t *stack, stack_node_t *node,
                         void (*callback)(stack_node_t *));
 void stack_walk_backwards(stack_t *stack, stack_node_t *node,
                           void (*callback)(stack_node_t *));
+stack_t *stack_clone(stack_t *stack,
+                     stack_node_t *(*clone_node)(stack_node_t *));
 
 #endif /* DS_STACK_H */

@@ -34,6 +34,12 @@ void destroy_node(rbt_node_t *node) {
   free(my_node);
 }
 
+rbt_node_t *clone_node(rbt_node_t *node) {
+  my_node_t *new_node = (my_node_t *)malloc(sizeof(my_node_t));
+  new_node->data = (CAST(node, my_node_t))->data;
+  return &new_node->node;
+}
+
 int main(void) {
   int i;
   my_node_t *node, *result_node, *search_data;
@@ -59,8 +65,14 @@ int main(void) {
   } else {
     print_node(result_node);
   }
+  rbt_t *new_tree = rbt_clone(tree, clone_node);
   rbt_destroy_tree(tree, destroy_node);
   free(search_data);
+
+  printf("\n");
+  rbt_inorder_walk(new_tree, new_tree->root, print_node);
+  printf("\n");
+  rbt_destroy_tree(new_tree, destroy_node);
 
   return 0;
 }

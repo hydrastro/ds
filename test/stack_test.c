@@ -15,6 +15,12 @@ int_node_t *create_int_node(int value) {
 
 void destroy_node(stack_node_t *node) { free(node); }
 
+stack_node_t *clone_node(stack_node_t *node) {
+  int_node_t *new_node = (int_node_t *)malloc(sizeof(int_node_t));
+  new_node->value = (CAST(node, int_node_t))->value;
+  return &new_node->node;
+}
+
 int main(void) {
   stack_t *stack = stack_create();
 
@@ -23,6 +29,8 @@ int main(void) {
     printf("push %d\n", new_node->value);
     stack_push(stack, &new_node->node);
   }
+
+  stack_t *new_stack = stack_clone(stack, clone_node);
 
   int_node_t *top = CAST(stack_peek(stack), int_node_t);
   printf("stack top: %d\n", top->value);
@@ -36,6 +44,19 @@ int main(void) {
   printf("empty? %s\n", stack_is_empty(stack) ? "yes" : "no");
 
   stack_destroy(stack, destroy_node);
+
+  top = CAST(stack_peek(new_stack), int_node_t);
+  printf("stack top: %d\n", top->value);
+
+  while (!stack_is_empty(new_stack)) {
+    int_node_t *node = CAST(stack_pop(new_stack), int_node_t);
+    printf("pop %d\n", node->value);
+    destroy_node(&node->node);
+  }
+
+  printf("empty? %s\n", stack_is_empty(new_stack) ? "yes" : "no");
+
+  stack_destroy(new_stack, destroy_node);
 
   return 0;
 }

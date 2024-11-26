@@ -43,5 +43,7 @@ void deque_walk_forward(deque_t *deque, deque_node_t *node,
                         void (*callback)(deque_node_t *));
 void deque_walk_backwards(deque_t *deque, deque_node_t *node,
                           void (*callback)(deque_node_t *));
+deque_t *deque_clone(deque_t *deque,
+                     deque_node_t *(*clone_node)(deque_node_t *));
 
 #endif /* DS_DEQUE_H */

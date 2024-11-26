@@ -309,18 +309,42 @@ void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
 #endif
 }
 
+void rbt_inorder_walk_helper(rbt_t *tree, rbt_node_t *node,
+                             void (*callback)(void *)) {
+  if (node != tree->nil) {
+    rbt_inorder_walk_helper(tree, node->left, callback);
+    callback(node);
+    rbt_inorder_walk_helper(tree, node->right, callback);
+  }
+}
+
 void rbt_inorder_walk(rbt_t *tree, rbt_node_t *node, void (*callback)(void *)) {
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
-  if (node != tree->nil) {
-    rbt_inorder_walk(tree, node->left, callback);
-    callback(node);
-    rbt_inorder_walk(tree, node->right, callback);
-  }
+  rbt_inorder_walk_helper(tree, node, callback);
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
+}
+
+void rbt_inorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
+#ifdef RBT_THREAD_SAFE
+  LOCK(tree)
+#endif
+  rbt_inorder_walk_helper(tree, tree->root, callback);
+#ifdef RBT_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
+void rbt_preorder_walk_helper(rbt_t *tree, rbt_node_t *node,
+                              void (*callback)(void *)) {
+  if (node != tree->nil) {
+    callback(node);
+    rbt_preorder_walk_helper(tree, node->left, callback);
+    rbt_preorder_walk_helper(tree, node->right, callback);
+  }
 }
 
 void rbt_preorder_walk(rbt_t *tree, rbt_node_t *node,
@@ -328,26 +352,47 @@ void rbt_preorder_walk(rbt_t *tree, rbt_node_t *node,
 #ifdef RBT_THREAD_SAFE
   LOCK(tree)
 #endif
-  if (node != tree->nil) {
-    callback(node);
-    rbt_preorder_walk(tree, node->left, callback);
-    rbt_preorder_walk(tree, node->right, callback);
-  }
+  rbt_preorder_walk_helper(tree, node, callback);
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
-void rbt_postorder_walk(rbt_t *tree, rbt_node_t *node,
-                        void (*callback)(void *)) {
-  if (node != tree->nil) {
+void rbt_preorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
 #ifdef RBT_THREAD_SAFE
-    LOCK(tree)
+  LOCK(tree)
 #endif
-    rbt_postorder_walk(tree, node->left, callback);
-    rbt_postorder_walk(tree, node->right, callback);
+  rbt_preorder_walk_helper(tree, tree->root, callback);
+#ifdef RBT_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
+void rbt_postorder_walk_helper(rbt_t *tree, rbt_node_t *node,
+                               void (*callback)(void *)) {
+  if (node != tree->nil) {
+    rbt_postorder_walk_helper(tree, node->left, callback);
+    rbt_postorder_walk_helper(tree, node->right, callback);
     callback(node);
   }
+}
+
+void rbt_postorder_walk(rbt_t *tree, rbt_node_t *node,
+                        void (*callback)(void *)) {
+#ifdef RBT_THREAD_SAFE
+  LOCK(tree)
+#endif
+  rbt_postorder_walk_helper(tree, node, callback);
+#ifdef RBT_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
+void rbt_postorder_walk_tree(rbt_t *tree, void (*callback)(void *)) {
+#ifdef RBT_THREAD_SAFE
+  LOCK(tree)
+#endif
+  rbt_postorder_walk_helper(tree, tree->root, callback);
 #ifdef RBT_THREAD_SAFE
   UNLOCK(tree)
 #endif
@@ -530,4 +575,32 @@ void rbt_destroy_tree(rbt_t *tree, void (*destroy)(rbt_node_t *)) {
 #endif
   free(tree->nil);
   free(tree);
+}
+
+rbt_node_t *rbt_clone_recursive(rbt_t *tree, rbt_t *new_tree, rbt_node_t *node,
+                                rbt_node_t *(*clone_node)(rbt_node_t *)) {
+  if (node == tree->nil) {
+    return new_tree->nil;
+  }
+
+  rbt_node_t *new_node = clone_node(node);
+  new_node->left = rbt_clone_recursive(tree, new_tree, node->left, clone_node);
+  new_node->right =
+      rbt_clone_recursive(tree, new_tree, node->right, clone_node);
+
+  return new_node;
+}
+
+rbt_t *rbt_clone(rbt_t *tree, rbt_node_t *(*clone_node)(rbt_node_t *)) {
+#ifdef RBT_THREAD_SAFE
+  LOCK(tree);
+#endif
+  rbt_t *new_tree = rbt_create();
+  new_tree->root = rbt_clone_recursive(tree, new_tree, tree->root, clone_node);
+  new_tree->size = tree->size;
+#ifdef RBT_THREAD_SAFE
+  UNLOCK(tree);
+#endif
+
+  return new_tree;
 }

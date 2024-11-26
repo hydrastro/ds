@@ -24,6 +24,12 @@ void destroy_node(list_node_t *data) {
   free(node);
 }
 
+list_node_t *clone_node(list_node_t *node) {
+  my_node_t *new_node = (my_node_t *)malloc(sizeof(my_node_t));
+  new_node->data = (CAST(node, my_node_t))->data;
+  return &new_node->node;
+}
+
 int main(void) {
   int i;
   my_node_t *node, *found_node, *search_value;
@@ -69,7 +75,11 @@ int main(void) {
   }
   free(search_value);
 
+  list_t *new_list = list_clone(list, clone_node);
   list_destroy(list, destroy_node);
+  printf("\n");
+  list_walk_forward(new_list, new_list->head, print_node);
+  list_destroy(new_list, destroy_node);
 
   return 0;
 }

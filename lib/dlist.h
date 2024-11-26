@@ -51,4 +51,7 @@ void dlist_walk_backwards(dlist_t *list, dlist_node_t *node,
 
 bool dlist_is_empty(dlist_t *);
 
+dlist_t *dlist_clone(dlist_t *list,
+                     dlist_node_t *(*clone_node)(dlist_node_t *));
+
 #endif /* DS_DLIST_H */

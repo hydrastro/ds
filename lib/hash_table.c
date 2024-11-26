@@ -1,5 +1,4 @@
 #include "hash_table.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -119,8 +118,7 @@ static hash_node_t *hash_node_create(void *key, void *value) {
 
 static size_t next_prime_capacity(size_t current_capacity) {
   size_t i;
-  for (i = 0; i < sizeof(prime_capacities) / sizeof(prime_capacities[0]);
-       i++) {
+  for (i = 0; i < sizeof(prime_capacities) / sizeof(prime_capacities[0]); i++) {
     if (prime_capacities[i] > current_capacity) {
       return prime_capacities[i];
     }
@@ -148,14 +146,15 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
       table->entries[i].key = table->nil;
     }
   }
-
-  if (probing_func) {
+  if (probing_func != NULL) {
     table->probing_func = probing_func;
   } else {
     if (mode == HASH_LINEAR_PROBING) {
       table->probing_func = linear_probing;
     } else if (mode == HASH_QUADRATIC_PROBING) {
       table->probing_func = quadratic_probing;
+    } else {
+      table->probing_func = NULL;
     }
   }
 
@@ -297,11 +296,12 @@ void *hash_table_lookup(hash_table_t *table, void *key,
 
   if (table->mode == HASH_CHAINING) {
     hash_node_t *current = table->buckets[index];
-    while (current != NULL) {
+    while (current) {
       if (compare(current->key, key) == 0) {
 #ifdef HASH_TABLE_THREAD_SAFE
         UNLOCK(table)
 #endif
+
         return current->value;
       }
       current = current->next;
@@ -431,4 +431,55 @@ void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *)) {
   free(table->nil);
   free(table->tombstone);
   free(table);
+}
+
+hash_table_t *hash_table_clone(hash_table_t *table, void *(*clone_key)(void *),
+                               void *(*clone_value)(void *)) {
+#ifdef HASH_TABLE_THREAD_SAFE
+  LOCK(table);
+#endif
+  void *key, *value;
+  hash_table_t *new_table =
+      hash_table_create(table->capacity, table->mode, table->probing_func);
+  new_table->size = table->size;
+  if (table->mode == HASH_CHAINING) {
+    for (size_t i = 0; i < table->capacity; i++) {
+      hash_node_t *current = table->buckets[i];
+      while (current) {
+        key = clone_key(current->key);
+        value = clone_value(current->value);
+        hash_node_t *new_node = hash_node_create(key, value);
+        new_node->next = new_table->buckets[i];
+        new_table->buckets[i] = new_node;
+        if (new_table->last_node) {
+          new_table->last_node->list_next = new_node;
+        }
+        new_node->list_prev = new_table->last_node;
+        new_table->last_node = new_node;
+
+        current = current->next;
+      }
+    }
+  } else if (table->mode == HASH_LINEAR_PROBING ||
+             table->mode == HASH_QUADRATIC_PROBING) {
+    for (size_t i = 0; i < table->capacity; i++) {
+      if (table->entries[i].key != table->nil &&
+          table->entries[i].key != table->tombstone) {
+        new_table->entries[i].key = clone_key(table->entries[i].key);
+        new_table->entries[i].value = clone_value(table->entries[i].value);
+
+        if (new_table->last_node) {
+          new_table->last_node->list_next = &new_table->entries[i];
+        }
+        new_table->entries[i].list_prev = new_table->last_node;
+        new_table->last_node = &new_table->entries[i];
+      }
+    }
+  }
+
+#ifdef HASH_TABLE_THREAD_SAFE
+  UNLOCK(table);
+#endif
+
+  return new_table;
 }

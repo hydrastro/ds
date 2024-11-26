@@ -18,6 +18,13 @@ void destroy_deque_node(deque_node_t *deque_node) {
   free(node);
 }
 
+deque_node_t *clone_node(deque_node_t *node) {
+  my_deque_node_t *new_node =
+      (my_deque_node_t *)malloc(sizeof(my_deque_node_t));
+  new_node->data = (CAST(node, my_deque_node_t))->data;
+  return &new_node->node;
+}
+
 int main(void) {
   int i;
   deque_t *deque;
@@ -81,7 +88,9 @@ int main(void) {
     current_node = current_node->next;
   }
 
+  deque_t *new_deque = deque_clone(deque, clone_node);
   deque_destroy(deque, destroy_deque_node);
+  deque_destroy(new_deque, destroy_deque_node);
 
   return 0;
 }

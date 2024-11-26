@@ -39,6 +39,13 @@ void print_int(btree_node_t *data) {
   printf("%d,", node->data);
 }
 
+btree_node_t *clone_node(btree_node_t *node) {
+  my_node_t *new_node = (my_node_t *)malloc(sizeof(my_node_t));
+  printf(" node %p\n", new_node);
+  new_node->data = (CAST(node, my_node_t))->data;
+  return &new_node->node;
+}
+
 void test_btree_operations() {
   btree_t *tree = btree_create(2);
   int values[] = {10, 20, 5, 6, 15, 30, 25, 35};
@@ -101,12 +108,18 @@ void test_btree_operations() {
     }
   }
 
+  btree_t *new_tree = btree_clone(tree, clone_node);
+
   printf("after deletions:\n");
   print_btree_node(tree->root, 0, print_int);
   printf("destroying whole tree\n");
   btree_destroy_tree(tree, destroy_int);
   printf("destroyed whole tree\n");
   free(wkey);
+
+  printf("clone:\n");
+  print_btree_node(new_tree->root, 0, print_int);
+  btree_destroy_tree(new_tree, destroy_int);
 }
 
 void *thread_function(void *arg) {

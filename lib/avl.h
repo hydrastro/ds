@@ -26,10 +26,20 @@ avl_node_t *avl_search(avl_t *tree, avl_node_t *data,
                        int (*compare)(avl_node_t *, avl_node_t *));
 void avl_insert(avl_t *tree, avl_node_t *data,
                 int (*compare)(avl_node_t *, avl_node_t *));
+void avl_inorder_walk_helper(avl_t *tree, avl_node_t *node,
+                             void (*callback)(avl_node_t *));
 void avl_inorder_walk(avl_t *tree, avl_node_t *node,
                       void (*callback)(avl_node_t *));
 void avl_inorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *));
+void avl_preorder_walk_helper(avl_t *tree, avl_node_t *node,
+                              void (*callback)(avl_node_t *));
+void avl_preorder_walk(avl_t *tree, avl_node_t *node,
+                       void (*callback)(avl_node_t *));
 void avl_preorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *));
+void avl_postorder_walk_helper(avl_t *tree, avl_node_t *node,
+                               void (*callback)(avl_node_t *));
+void avl_postorder_walk(avl_t *tree, avl_node_t *node,
+                        void (*callback)(avl_node_t *));
 void avl_postorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *));
 int avl_get_height(avl_t *tree, avl_node_t *node);
 int avl_get_balance(avl_t *tree, avl_node_t *node);
@@ -47,5 +57,8 @@ void avl_destroy_recursive(avl_t *tree, avl_node_t *node,
 void avl_destroy_tree(avl_t *tree, void (*destroy)(avl_node_t *));
 void avl_delete_tree(avl_t *tree);
 bool avl_is_empty(avl_t *tree);
+avl_node_t *avl_clone_recursive(avl_t *tree, avl_t *new_tree, avl_node_t *node,
+                                avl_node_t *(*clone_node)(avl_node_t *));
+avl_t *avl_clone(avl_t *tree, avl_node_t *(*clone_node)(avl_node_t *));
 
 #endif /* DS_AVL_H */

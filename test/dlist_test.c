@@ -24,6 +24,15 @@ void destroy_node(dlist_node_t *node) {
   free(my_node);
 }
 
+dlist_node_t *node_clone(dlist_node_t *node) {
+  if (node == NULL) {
+    return NULL;
+  }
+  my_node_t *my_node = (my_node_t *)malloc(sizeof(my_node_t));
+  my_node->data = (CAST(node, my_node_t))->data;
+  return &my_node->node;
+}
+
 int main(void) {
   int i;
   my_node_t *node, *found_node, *search_value;
@@ -66,7 +75,11 @@ int main(void) {
   }
   free(search_value);
 
+  dlist_t *new_list = dlist_clone(list, node_clone);
   dlist_destroy(list, destroy_node);
+  printf("\n");
+  dlist_walk_forward(new_list, new_list->head, print_node);
+  dlist_destroy(new_list, destroy_node);
 
   return 0;
 }

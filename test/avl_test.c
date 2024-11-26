@@ -42,6 +42,12 @@ void draw_avl_tree_recursive(avl_t *tree, avl_node_t *node, char *prefix) {
   draw_avl_tree_recursive(tree, node->right, new_prefix);
 }
 
+avl_node_t *clone_node(avl_node_t *node) {
+  my_data_t *new_node = (my_data_t *)malloc(sizeof(my_data_t));
+  new_node->key = (CAST(node, my_data_t))->key;
+  return &new_node->node;
+}
+
 int main() {
   avl_t *tree = avl_create();
 
@@ -54,6 +60,7 @@ int main() {
   printf("\n");
 
   my_data_t search_data;
+
   search_data.key = 4;
   avl_node_t *found_node =
       avl_search(tree, (avl_node_t *)&search_data, compare_avl_nodes);
@@ -61,8 +68,8 @@ int main() {
   if (found_node != tree->nil) {
     printf("Node with key %d found in the AVL tree.\n",
            ((my_data_t *)found_node)->key);
-    destroy(found_node);
-
+    avl_destroy_node(tree, found_node, destroy);
+    printf("Deleted entry\n");
   } else {
     printf("Node with key %d not found in the AVL tree.\n", search_data.key);
   }
@@ -71,38 +78,32 @@ int main() {
   draw_avl_tree_recursive(tree, tree->root, "");
   printf("\n");
 
-  avl_delete_node(tree, found_node);
-  printf("Inorder traversal of AVL tree:\n");
-  avl_inorder_walk_tree(tree, print_node);
-  printf("\n");
-  found_node = avl_search(tree, (avl_node_t *)&search_data, compare_avl_nodes);
-
-  if (found_node != tree->nil) {
-    printf("Node with key %d found in the AVL tree.\n",
-           ((my_data_t *)found_node)->key);
-    destroy(found_node);
-
-  } else {
-    printf("Node with key %d not found in the AVL tree.\n", search_data.key);
-  }
-  printf("\n");
-  draw_avl_tree_recursive(tree, tree->root, "");
-  printf("\n");
   search_data.key = 7;
   found_node = avl_search(tree, (avl_node_t *)&search_data, compare_avl_nodes);
   if (found_node != tree->nil) {
-    destroy(found_node);
+    avl_destroy_node(tree, found_node, destroy);
+    printf("Deleted entry 7\n");
   }
-  avl_delete_node(tree, found_node);
+
   printf("Inorder traversal of AVL tree:\n");
   avl_inorder_walk_tree(tree, print_node);
   printf("\n");
 
-  printf("\n");
-  draw_avl_tree_recursive(tree, tree->root, "");
+  printf("Cloning tree\n");
+  avl_t *new_tree = avl_clone(tree, clone_node);
+  printf("Cloned tree\n");
+
+  printf("Destroying tree\n");
+  avl_destroy_tree(tree, destroy);
+  printf("Destroyed\n");
+
+  printf("\nTransversing tree:\n");
+  draw_avl_tree_recursive(new_tree, new_tree->root, "");
   printf("\n");
 
-  avl_destroy_tree(tree, destroy);
+  printf("Destroying tree\n");
+  avl_destroy_tree(new_tree, destroy);
+  printf("Destroyed\n");
 
   return 0;
 }

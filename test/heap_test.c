@@ -39,6 +39,12 @@ int_node_t *create_int_node(int value) {
 
 void destroy_int_node(void *node) { free(node); }
 
+heap_node_t *clone_node(heap_node_t *node) {
+  int_node_t *new_node = (int_node_t *)malloc(sizeof(int_node_t));
+  new_node->value = (CAST(node, int_node_t))->value;
+  return &new_node->node;
+}
+
 int main(void) {
   srand((unsigned int)time((long int *)NULL));
   int i;
@@ -56,6 +62,8 @@ int main(void) {
            (heap->data[i])->index);
   }
 
+  heap_t *new_heap = heap_clone(heap, clone_node);
+
   while (!heap_is_empty(heap)) {
     int_node_t *min_node =
         (int_node_t *)heap_extract_root(heap, compare_int_nodes);
@@ -64,6 +72,15 @@ int main(void) {
   }
 
   heap_destroy(heap, NULL);
+
+  while (!heap_is_empty(new_heap)) {
+    int_node_t *min_node =
+        (int_node_t *)heap_extract_root(new_heap, compare_int_nodes);
+    printf("extract: %d\n", min_node->value);
+    destroy_int_node((void *)min_node);
+  }
+
+  heap_destroy(new_heap, NULL);
 
   return 0;
 }

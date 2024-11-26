@@ -10,7 +10,7 @@ size_t string_hash(void *key) {
   while ((c = (size_t)*str++)) {
     hash = ((hash << 5) + hash) + c;
   }
-  printf("%lu\n", hash);
+  printf("hash of '%s': %lu\n", (char *)key, hash);
   return hash;
 }
 
@@ -18,12 +18,26 @@ int string_compare(void *key1, void *key2) {
   return strcmp((char *)key1, (char *)key2);
 }
 
+void *clone_key(void *key) { return (void *)strdup(key); }
+
+void *clone_value(void *value) { return (void *)strdup(value); }
+
+void destroy_node(hash_node_t *node) {
+  free(node->key);
+  free(node->value);
+}
+
 int main(void) {
   hash_table_t *table = hash_table_create((size_t)4000, HASH_CHAINING, NULL);
+  hash_node_t *node;
 
-  char *value =
-      CAST(hash_table_lookup(table, "key2", string_hash, string_compare), char);
-  if (value != table->nil) {
+  char *value;
+  node = hash_table_lookup(table, "key2", string_hash, string_compare);
+  value = CAST(node, char);
+
+  if (value == table->nil) {
+    printf("Key 'key2' not found\n");
+  } else {
     printf("Found value for key2: %s\n", value);
   }
 
@@ -34,22 +48,50 @@ int main(void) {
   hash_table_insert(table, "key5", "hmmm", string_hash, string_compare);
   hash_table_insert(table, "key6", "hmmm", string_hash, string_compare);
 
-  value =
-      CAST(hash_table_lookup(table, "key2", string_hash, string_compare), char);
-  if (value) {
+  node = hash_table_lookup(table, "key2", string_hash, string_compare);
+  value = CAST(node, char);
+  if (value == table->nil) {
+    printf("Key 'key2' not found\n");
+  } else {
     printf("Found value for key2: %s\n", value);
   }
 
-  hash_table_remove(table, "key2", string_hash, string_compare, NULL);
-  // TODO: test against destroyable objects
+  printf("Cloning hash table\n");
+  hash_table_t *new_table = hash_table_clone(table, clone_key, clone_value);
+  printf("Cloned hash table\n");
 
-  value =
-      CAST(hash_table_lookup(table, "key2", string_hash, string_compare), char);
+  hash_table_remove(table, "key2", string_hash, string_compare, NULL);
+
+  node = hash_table_lookup(table, "key2", string_hash, string_compare);
+  value = CAST(node, char);
   if (value == table->nil) {
     printf("Key 'key2' not found\n");
+  } else {
+    printf("Found value for key2: %s\n", value);
+  }
+  hash_table_destroy(table, NULL);
+
+  printf("Destroyed first hash table\n\n");
+
+  node = hash_table_lookup(new_table, "key", string_hash, string_compare);
+  value = CAST(node, char);
+  if (value == new_table->nil) {
+    printf("Key 'key2' not found\n");
+  } else {
+    printf("Found value for key2: %s\n", value);
   }
 
-  hash_table_destroy(table, NULL);
+  hash_table_remove(new_table, "key2", string_hash, string_compare, NULL);
+
+  node = hash_table_lookup(new_table, "key2", string_hash, string_compare);
+  value = CAST(node, char);
+  if (value == new_table->nil) {
+    printf("Key 'key2' not found\n");
+  } else {
+    printf("Found value for key2: %s\n", value);
+  }
+  hash_table_destroy(new_table, destroy_node);
+  printf("Second hash table destroyed\n");
 
   return 0;
 }

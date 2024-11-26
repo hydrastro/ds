@@ -18,6 +18,13 @@ void destroy_queue_node(queue_node_t *queue_node) {
   free(node);
 }
 
+queue_node_t *clone_node(queue_node_t *node) {
+  my_queue_node_t *new_node =
+      (my_queue_node_t *)malloc(sizeof(my_queue_node_t));
+  new_node->data = (CAST(node, my_queue_node_t))->data;
+  return &new_node->node;
+}
+
 int main(void) {
   int i;
   queue_t *queue;
@@ -64,7 +71,16 @@ int main(void) {
   }
   printf("\n");
 
+  queue_t *new_queue = queue_clone(queue, clone_node);
+  current_node = new_queue->head;
+  while (current_node != new_queue->nil) {
+    print_queue_node(current_node);
+    current_node = current_node->next;
+  }
+  printf("\n");
+
   queue_destroy(queue, destroy_queue_node);
+  queue_destroy(new_queue, destroy_queue_node);
 
   return 0;
 }

@@ -318,3 +318,22 @@ void deque_walk_backwards(deque_t *deque, deque_node_t *current,
   UNLOCK(deque)
 #endif
 }
+
+deque_t *deque_clone(deque_t *deque,
+                     deque_node_t *(*clone_node)(deque_node_t *)) {
+#ifdef DEQUE_THREAD_SAFE
+  LOCK(deque)
+#endif
+  deque_t *new_deque = deque_create();
+  deque_node_t *current = deque->head;
+  while (current != deque->nil) {
+    deque_node_t *cloned_node = clone_node(current);
+    deque_push_back(new_deque, cloned_node);
+    current = current->next;
+  }
+#ifdef DEQUE_THREAD_SAFE
+  UNLOCK(deque)
+#endif
+
+  return new_deque;
+}

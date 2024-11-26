@@ -3,7 +3,7 @@
 
 stack_t *stack_create() {
   stack_t *stack = (stack_t *)malloc(sizeof(stack_t));
-  stack->nil = (stack_node_t *)malloc(sizeof(stack_t));
+  stack->nil = (stack_node_t *)malloc(sizeof(stack_node_t));
   stack->nil->next = stack->nil;
   stack->top = stack->nil;
   stack->size = 0;
@@ -50,7 +50,7 @@ stack_node_t *stack_peek(stack_t *stack) {
 #endif
   stack_node_t *result = stack->top;
 #ifdef STACK_THREAD_SAFE
-  LOCK(stack)
+  UNLOCK(stack)
 #endif
   return result;
 }
@@ -62,8 +62,8 @@ bool stack_is_empty(stack_t *stack) {
   bool result = stack->top == stack->nil;
 #ifdef STACK_THREAD_SAFE
   UNLOCK(stack)
-  return result;
 #endif
+  return result;
 }
 
 void stack_destroy(stack_t *stack, void (*destroy)(stack_node_t *)) {
@@ -209,4 +209,29 @@ void stack_walk_backwards(stack_t *stack, stack_node_t *current,
 #ifdef STACK_THREAD_SAFE
   UNLOCK(stack)
 #endif
+}
+
+stack_t *stack_clone(stack_t *stack,
+                     stack_node_t *(*clone_node)(stack_node_t *)) {
+#ifdef STACK_THREAD_SAFE
+  LOCK(stack)
+#endif
+  stack_t *temp_stack = stack_create();
+  stack_t *new_stack = stack_create();
+  stack_node_t *current = stack->top;
+  while (current != stack->nil) {
+    stack_node_t *cloned_node = clone_node(current);
+    stack_push(temp_stack, cloned_node);
+    current = current->next;
+  }
+  while (!stack_is_empty(temp_stack)) {
+    stack_node_t *node = stack_pop(temp_stack);
+    stack_push(new_stack, node);
+  }
+  stack_destroy(temp_stack, NULL);
+#ifdef STACK_THREAD_SAFE
+  UNLOCK(stack)
+#endif
+
+  return new_stack;
 }

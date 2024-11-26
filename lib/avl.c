@@ -19,27 +19,95 @@ avl_t *avl_create() {
 #endif
   return tree;
 }
-void avl_inorder_walk(avl_t *tree, avl_node_t *node,
-                      void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
-  LOCK(tree)
-#endif
+
+void avl_inorder_walk_helper(avl_t *tree, avl_node_t *node,
+                             void (*callback)(avl_node_t *)) {
   if (node != tree->nil) {
     avl_inorder_walk(tree, node->left, callback);
     callback(node);
     avl_inorder_walk(tree, node->right, callback);
   }
+}
+
+void avl_inorder_walk(avl_t *tree, avl_node_t *node,
+                      void (*callback)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  avl_inorder_walk_helper(tree, node, callback);
 #ifdef AVL_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 void avl_inorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *)) {
-  avl_inorder_walk(tree, tree->root, callback);
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  avl_inorder_walk_helper(tree, tree->root, callback);
 #ifdef AVL_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
+void avl_preorder_walk_helper(avl_t *tree, avl_node_t *node,
+                              void (*callback)(avl_node_t *)) {
+  if (node != tree->nil) {
+    callback(node);
+    avl_preorder_walk(tree, node->left, callback);
+    avl_preorder_walk(tree, node->right, callback);
+  }
+}
+void avl_preorder_walk(avl_t *tree, avl_node_t *node,
+                       void (*callback)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  avl_preorder_walk_helper(tree, node, callback);
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
+void avl_preorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  avl_preorder_walk_helper(tree, tree->root, callback);
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
+void avl_postorder_walk_helper(avl_t *tree, avl_node_t *node,
+                               void (*callback)(avl_node_t *)) {
+  if (node != tree->nil) {
+    avl_postorder_walk(tree, node->left, callback);
+    avl_postorder_walk(tree, node->right, callback);
+    callback(node);
+  }
+}
+
+void avl_postorder_walk(avl_t *tree, avl_node_t *node,
+                        void (*callback)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  avl_postorder_walk_helper(tree, node, callback);
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
+void avl_postorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree)
+#endif
+  avl_inorder_walk_helper(tree, tree->root, callback);
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree)
+#endif
+}
+
 avl_node_t *avl_search(avl_t *tree, avl_node_t *data,
                        int (*compare)(avl_node_t *, avl_node_t *)) {
 #ifdef AVL_THREAD_SAFE
@@ -341,4 +409,39 @@ void avl_delete_tree(avl_t *tree) {
 #ifdef AVL_THREAD_SAFE
   UNLOCK(tree);
 #endif
+}
+
+avl_node_t *avl_clone_recursive(avl_t *tree, avl_t *new_tree, avl_node_t *node,
+                                avl_node_t *(*clone_node)(avl_node_t *)) {
+  if (node == tree->nil) {
+    return new_tree->nil;
+  }
+
+  avl_node_t *new_node = clone_node(node);
+  new_node->left = avl_clone_recursive(tree, new_tree, node->left, clone_node);
+  new_node->right =
+      avl_clone_recursive(tree, new_tree, node->right, clone_node);
+  new_node->height = node->height;
+  if (new_node->left != new_tree->nil) {
+    new_node->left->parent = new_node;
+  }
+  if (new_node->left != new_tree->nil) {
+    new_node->right->parent = new_node;
+  }
+
+  return new_node;
+}
+
+avl_t *avl_clone(avl_t *tree, avl_node_t *(*clone_node)(avl_node_t *)) {
+#ifdef AVL_THREAD_SAFE
+  LOCK(tree);
+#endif
+  avl_t *new_tree = avl_create();
+  new_tree->root = avl_clone_recursive(tree, new_tree, tree->root, clone_node);
+  new_tree->size = tree->size;
+#ifdef AVL_THREAD_SAFE
+  UNLOCK(tree);
+#endif
+
+  return new_tree;
 }

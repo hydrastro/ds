@@ -251,3 +251,22 @@ void queue_walk_backwards(queue_t *queue, queue_node_t *current,
   UNLOCK(queue)
 #endif
 }
+
+queue_t *queue_clone(queue_t *queue,
+                     queue_node_t *(*clone_node)(queue_node_t *)) {
+#ifdef QUEUE_THREAD_SAFE
+  LOCK(queue)
+#endif
+  queue_t *new_queue = queue_create();
+  queue_node_t *current = queue->head;
+  while (current != queue->nil) {
+    queue_node_t *cloned_node = clone_node(current);
+    queue_enqueue(new_queue, cloned_node);
+    current = current->next;
+  }
+#ifdef QUEUE_THREAD_SAFE
+  UNLOCK(queue)
+#endif
+
+  return new_queue;
+}

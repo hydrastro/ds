@@ -75,10 +75,19 @@ void rbt_right_rotate(rbt_t *tree, rbt_node_t *node_x);
 void rbt_insert_fixup(rbt_t *tree, rbt_node_t *node_z);
 void rbt_insert(rbt_t *tree, rbt_node_t *node_z,
                 int (*compare)(rbt_node_t *, rbt_node_t *));
+void rbt_inorder_walk_helper(rbt_t *tree, rbt_node_t *node,
+                             void (*callback)(void *));
 void rbt_inorder_walk(rbt_t *tree, rbt_node_t *node, void (*callback)(void *));
+void rbt_inorder_walk_tree(rbt_t *tree, void (*callback)(void *));
+void rbt_preorder_walk_helper(rbt_t *tree, rbt_node_t *node,
+                              void (*callback)(void *));
 void rbt_preorder_walk(rbt_t *tree, rbt_node_t *node, void (*callback)(void *));
+void rbt_preorder_walk_tree(rbt_t *tree, void (*callback)(void *));
+void rbt_postorder_walk_helper(rbt_t *tree, rbt_node_t *node,
+                               void (*callback)(void *));
 void rbt_postorder_walk(rbt_t *tree, rbt_node_t *node,
                         void (*callback)(void *));
+void rbt_postorder_walk_tree(rbt_t *tree, void (*callback)(void *));
 void rbt_transplant(rbt_t *tree, rbt_node_t *node_u, rbt_node_t *node_v);
 void rbt_delete_fixup(rbt_t *tree, rbt_node_t *node_x);
 
@@ -89,5 +98,11 @@ void rbt_destroy_node(rbt_t *tree, rbt_node_t *node,
 void rbt_destroy_recursive(rbt_t *tree, rbt_node_t *node,
                            void (*destroy)(rbt_node_t *));
 void rbt_destroy_tree(rbt_t *tree, void (*destroy)(rbt_node_t *));
+rbt_node_t *rbt_clone_recursive(rbt_t *tree, rbt_t *new_tree, rbt_node_t *node,
+                                rbt_node_t *(*clone_node)(rbt_node_t *));
+rbt_t *rbt_clone(rbt_t *tree, rbt_node_t *(*clone_node)(rbt_node_t *));
+rbt_node_t *rbt_clone_recursive(rbt_t *tree, rbt_t *new_tree, rbt_node_t *node,
+                                rbt_node_t *(*clone_node)(rbt_node_t *));
+rbt_t *rbt_clone(rbt_t *tree, rbt_node_t *(*clone_node)(rbt_node_t *));
 
 #endif /* DS_RBT_H */
