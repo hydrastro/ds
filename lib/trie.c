@@ -15,14 +15,15 @@ trie_node_t *trie_create_node(trie_t *trie) {
 }
 
 trie_t *trie_create(
-    size_t num_splits, trie_node_t *(*store_search)(void *store, size_t slice),
-    void *(*store_create)(size_t size),
-    void (*store_insert)(void *store, trie_node_t *node),
-    void (*store_remove)(void *store, trie_node_t *node),
-    void (*store_destroy_entry)(void *store, trie_node_t *node),
-    void (*store_destroy)(void *store), size_t (*store_get_size)(void *store),
-    void (*store_apply)(struct trie *, void *store,
-                        void (*f)(struct trie *, trie_node_t *))) {
+    size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
+    void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
+    void (*store_remove)(void *, trie_node_t *),
+    void (*store_destroy_entry)(void *, trie_node_t *),
+    void (*store_destroy)(void *), size_t (*store_get_size)(void *),
+    void (*store_apply)(struct trie *, void *,
+                        void (*)(struct trie *, trie_node_t *, va_list *),
+                        va_list *),
+    void *(*store_clone)(struct trie *, void *, trie_node_t *)) {
   trie_t *trie = (trie_t *)malloc(sizeof(trie_t));
   trie->num_splits = num_splits;
   trie->store_search = store_search;
@@ -33,6 +34,7 @@ trie_t *trie_create(
   trie->store_destroy = store_destroy;
   trie->store_get_size = store_get_size;
   trie->store_apply = store_apply;
+  trie->store_clone = store_clone;
   trie->root = trie_create_node(trie);
 #ifdef TRIE_THREAD_SAFE
   LOCK_INIT_RECURSIVE(trie)
@@ -40,9 +42,8 @@ trie_t *trie_create(
   return trie;
 }
 
-void trie_insert(trie_t *trie, void *data,
-                 size_t (*get_slice)(void *data, size_t slice),
-                 bool (*has_slice)(void *data, size_t slice)) {
+void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
+                 bool (*has_slice)(void *, size_t)) {
 #ifdef TRIE_THREAD_SAFE
   LOCK(trie)
 #endif
@@ -74,8 +75,8 @@ void trie_insert(trie_t *trie, void *data,
 }
 
 trie_node_t *trie_search(trie_t *trie, void *data,
-                         size_t (*get_slice)(void *data, size_t slice),
-                         bool (*has_slice)(void *data, size_t slice)) {
+                         size_t (*get_slice)(void *, size_t),
+                         bool (*has_slice)(void *, size_t)) {
 #ifdef TRIE_THREAD_SAFE
   LOCK(trie)
 #endif
@@ -130,34 +131,81 @@ void trie_delete_node(trie_t *trie, trie_node_t *node) {
 }
 
 void trie_destroy_node(trie_t *trie, trie_node_t *node,
-                       void (*destroy)(trie_t *, trie_node_t *)) {
+                       void (*destroy)(trie_t *, trie_node_t *, va_list *)) {
   if (!node->is_terminal) {
     return;
   }
-  destroy(trie, node);
+  destroy(trie, node, NULL);
   trie_delete_node(trie, node);
 }
 
-void trie_destroy_callback(trie_t *trie, trie_node_t *node) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void trie_destroy_callback(trie_t *trie, trie_node_t *node, va_list *args) {
   trie->store_destroy(node->children);
   free(node);
 }
 
 void trie_delete_trie(trie_t *trie) {
-  trie->store_apply(trie, trie->root->children, trie_destroy_callback);
+  trie->store_apply(trie, trie->root->children, trie_destroy_callback, NULL);
   trie->store_destroy(trie->root->children);
 }
 
 void trie_destroy_trie(trie_t *trie,
-                       void (*destroy)(trie_t *trie, trie_node_t *)) {
+                       void (*destroy)(trie_t *, trie_node_t *, va_list *)) {
   if (destroy != NULL) {
-    trie->store_apply(trie, trie->root->children, destroy);
+    trie->store_apply(trie, trie->root->children, destroy, NULL);
   }
-  trie->store_apply(trie, trie->root->children, trie_destroy_callback);
+  trie->store_apply(trie, trie->root->children, trie_destroy_callback, NULL);
   trie->store_destroy(trie->root->children);
   if (destroy != NULL) {
-    destroy(trie, trie->root);
+    destroy(trie, trie->root, NULL);
   }
   free(trie->root);
   free(trie);
+}
+
+void trie_apply(trie_t *trie, trie_node_t *node,
+                void (*f)(trie_t *, trie_node_t *, va_list *), ...) {
+  va_list args;
+  va_start(args, f);
+
+  trie->store_apply(trie, node->children, f, &args);
+  va_end(args);
+}
+
+trie_node_t *trie_clone_node(trie_t *trie, trie_node_t *node,
+                             trie_node_t *parent_node,
+                             void *(*clone_data)(void *)) {
+
+  trie_node_t *new_node = (trie_node_t *)malloc(sizeof(trie_node_t));
+  new_node->data_slice = node->data_slice;
+  new_node->is_terminal = node->is_terminal;
+  new_node->terminal_data = clone_data(node->terminal_data);
+  new_node->parent = parent_node;
+
+  new_node->children = trie->store_clone(trie, node->children, new_node);
+
+  return new_node;
+}
+
+trie_t *trie_clone(trie_t *trie,
+                   void (*store_destroy_entry)(void *, trie_node_t *),
+
+                   void *(*clone_data)(void *)) {
+  trie_t *new_trie = (trie_t *)malloc(sizeof(trie_t));
+  new_trie->num_splits = trie->num_splits;
+  new_trie->store_search = trie->store_search;
+  new_trie->store_create = trie->store_create;
+  new_trie->store_insert = trie->store_insert;
+  new_trie->store_remove = trie->store_remove;
+  new_trie->store_destroy_entry = store_destroy_entry;
+  new_trie->store_destroy = trie->store_destroy;
+  new_trie->store_get_size = trie->store_get_size;
+  new_trie->store_apply = trie->store_apply;
+  new_trie->store_clone = trie->store_clone;
+
+  new_trie->root = trie_clone_node(trie, trie->root, NULL, clone_data);
+
+  return new_trie;
 }

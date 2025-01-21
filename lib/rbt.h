@@ -19,7 +19,7 @@ typedef struct rbt_node {
 
 #define RBT_GET_PARENT_FROM_COLOR(color)                                       \
   ((rbt_node_t *)((color) & (long unsigned int)~3))
-#define RBT_GET_COLOR_FROM_COLOR(color) ((color)&1)
+#define RBT_GET_COLOR_FROM_COLOR(color) ((color) & 1)
 #define RBT_IS_RED_FROM_COLOR(color)                                           \
   (RBT_GET_COLOR_FROM_COLOR(color) == RBT_RED)
 #define RBT_IS_BLACK_FROM_COLOR(color)                                         \

@@ -2,6 +2,7 @@
 #define DS_TRIE_H
 
 #include "common.h"
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -16,15 +17,17 @@ typedef struct trie_node {
 typedef struct trie {
   trie_node_t *root;
   size_t num_splits;
-  trie_node_t *(*store_search)(void *store, size_t slice);
-  void *(*store_create)(size_t size);
-  void (*store_insert)(void *store, trie_node_t *node);
-  void (*store_remove)(void *store, trie_node_t *node);
-  void (*store_destroy_entry)(void *store, trie_node_t *node);
-  void (*store_destroy)(void *store);
-  size_t (*store_get_size)(void *store);
-  void (*store_apply)(struct trie *, void *store,
-                      void (*f)(struct trie *, trie_node_t *));
+  trie_node_t *(*store_search)(void *, size_t);
+  void *(*store_create)(size_t);
+  void (*store_insert)(void *, trie_node_t *);
+  void (*store_remove)(void *, trie_node_t *);
+  void (*store_destroy_entry)(void *, trie_node_t *);
+  void (*store_destroy)(void *);
+  size_t (*store_get_size)(void *);
+  void (*store_apply)(struct trie *, void *,
+                      void (*)(struct trie *, trie_node_t *, va_list *),
+                      va_list *);
+  void *(*store_clone)(struct trie *, void *, trie_node_t *);
 
 #ifdef TRIE_THREAD_SAFE
   mutex_t lock;
@@ -34,26 +37,35 @@ typedef struct trie {
 
 trie_node_t *trie_create_node(trie_t *trie);
 trie_t *trie_create(
-    size_t num_splits, trie_node_t *(*store_search)(void *store, size_t slice),
-    void *(*store_create)(size_t size),
-    void (*store_insert)(void *store, trie_node_t *node),
-    void (*store_remove)(void *store, trie_node_t *node),
-    void (*store_destroy_entry)(void *store, trie_node_t *node),
-    void (*store_destroy)(void *store), size_t (*store_get_size)(void *store),
-    void (*store_apply)(struct trie *, void *store,
-                        void (*f)(struct trie *, trie_node_t *)));
+    size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
+    void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
+    void (*store_remove)(void *, trie_node_t *),
+    void (*store_destroy_entry)(void *, trie_node_t *),
+    void (*store_destroy)(void *), size_t (*store_get_size)(void *),
+    void (*store_apply)(struct trie *, void *,
+                        void (*)(struct trie *, trie_node_t *, va_list *),
+                        va_list *),
+    void *(*store_clone)(struct trie *, void *, trie_node_t *));
 
-void trie_insert(trie_t *trie, void *data,
-                 size_t (*get_slice)(void *data, size_t slice),
-                 bool (*has_slice)(void *data, size_t slice));
+void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
+                 bool (*has_slice)(void *, size_t));
 trie_node_t *trie_search(trie_t *trie, void *data,
-                         size_t (*get_slice)(void *data, size_t slice),
-                         bool (*has_slice)(void *data, size_t slice));
+                         size_t (*get_slice)(void *, size_t),
+                         bool (*has_slice)(void *, size_t));
 void trie_delete_node(trie_t *trie, trie_node_t *node);
 void trie_destroy_node(trie_t *trie, trie_node_t *node,
-                       void (*destroy)(trie_t *, trie_node_t *));
-void trie_destroy_callback(trie_t *trie, trie_node_t *node);
+                       void (*destroy)(trie_t *, trie_node_t *, va_list *));
+void trie_destroy_callback(trie_t *trie, trie_node_t *node, va_list *args);
 void trie_delete_trie(trie_t *trie);
-void trie_destroy_trie(trie_t *trie, void (*destroy)(trie_t *, trie_node_t *));
+void trie_destroy_trie(trie_t *trie,
+                       void (*destroy)(trie_t *, trie_node_t *, va_list *));
+void trie_apply(trie_t *trie, trie_node_t *node,
+                void (*f)(trie_t *, trie_node_t *, va_list *), ...);
+trie_node_t *trie_clone_node(trie_t *trie, trie_node_t *node,
+                             trie_node_t *parent_node,
+                             void *(*clone_data)(void *));
+trie_t *trie_clone(trie_t *trie,
+                   void (*store_destroy_entry)(void *, trie_node_t *),
+                   void *(*clone_data)(void *));
 
 #endif /* DS_TRIE_H */
