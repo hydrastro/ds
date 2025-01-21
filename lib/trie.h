@@ -64,8 +64,6 @@ void trie_apply(trie_t *trie, trie_node_t *node,
 trie_node_t *trie_clone_node(trie_t *trie, trie_node_t *node,
                              trie_node_t *parent_node,
                              void *(*clone_data)(void *));
-trie_t *trie_clone(trie_t *trie,
-                   void (*store_destroy_entry)(void *, trie_node_t *),
-                   void *(*clone_data)(void *));
+trie_t *trie_clone(trie_t *trie, void *(*clone_data)(void *));
 
 #endif /* DS_TRIE_H */

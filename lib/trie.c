@@ -189,17 +189,14 @@ trie_node_t *trie_clone_node(trie_t *trie, trie_node_t *node,
   return new_node;
 }
 
-trie_t *trie_clone(trie_t *trie,
-                   void (*store_destroy_entry)(void *, trie_node_t *),
-
-                   void *(*clone_data)(void *)) {
+trie_t *trie_clone(trie_t *trie, void *(*clone_data)(void *)) {
   trie_t *new_trie = (trie_t *)malloc(sizeof(trie_t));
   new_trie->num_splits = trie->num_splits;
   new_trie->store_search = trie->store_search;
   new_trie->store_create = trie->store_create;
   new_trie->store_insert = trie->store_insert;
   new_trie->store_remove = trie->store_remove;
-  new_trie->store_destroy_entry = store_destroy_entry;
+  new_trie->store_destroy_entry = trie->store_destroy_entry;
   new_trie->store_destroy = trie->store_destroy;
   new_trie->store_get_size = trie->store_get_size;
   new_trie->store_apply = trie->store_apply;

@@ -188,8 +188,7 @@ int main() {
   trie_apply(trie, trie->root, print_trie_node, " test ", NULL);
 
   printf("\n--- Cloning Trie ---\n");
-  trie_t *new_trie =
-      trie_clone(trie, my_hash_table_destroy_entry, clone_trie_data);
+  trie_t *new_trie = trie_clone(trie, clone_trie_data);
   print_trie(new_trie);
   printf("\n--- End Cloning Trie ---\n");
 
