@@ -1,6 +1,15 @@
 #ifndef DS_COMMON_H
 #define DS_COMMON_H
 
+#ifdef _WIN32
+#include <windows.h>
+typedef CRITICAL_SECTION mutex_t;
+#else
+#define _XOPEN_SOURCE 700
+#include <pthread.h>
+typedef pthread_mutex_t mutex_t;
+#endif
+
 #ifdef FUNC
 #undef FUNC
 #endif
@@ -13,14 +22,6 @@
 
 #ifndef CAST
 #define CAST(node, type) ((type *)(node))
-#endif
-
-#ifdef _WIN32
-#include <windows.h>
-typedef CRITICAL_SECTION mutex_t;
-#else
-#include <pthread.h>
-typedef pthread_mutex_t mutex_t;
 #endif
 
 #ifndef LOCK

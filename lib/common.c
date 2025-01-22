@@ -20,6 +20,7 @@ void mutex_init(mutex_t *lock) { pthread_mutex_init(lock, NULL); }
 void mutex_init_recursive(mutex_t *lock) {
   pthread_mutexattr_t attr;
   pthread_mutexattr_init(&attr);
+
 #ifdef PTHREAD_MUTEX_RECURSIVE
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
 #else

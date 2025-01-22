@@ -1,7 +1,7 @@
 #include "list.h"
 #include <stdlib.h>
 
-list_t *FUNC(list_create)() {
+list_t *FUNC(list_create)(void) {
   list_t *list = (list_t *)malloc(sizeof(list_t));
   list->nil = (list_node_t *)malloc(sizeof(list_node_t));
   list->head = list->nil;
@@ -46,11 +46,11 @@ void FUNC(list_prepend)(list_t *list, list_node_t *node) {
 }
 
 list_node_t *FUNC(list_search)(list_t *list, list_node_t *node,
-                         int (*compare)(list_node_t *, list_node_t *)) {
+                               int (*compare)(list_node_t *, list_node_t *)) {
+  list_node_t *head;
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  list_node_t *head;
   head = list->head;
   while (head != list->nil && compare(head, node) != 0) {
     head = head->next;
@@ -67,11 +67,12 @@ list_node_t *FUNC(list_search)(list_t *list, list_node_t *node,
   return head;
 }
 
-void FUNC(list_insert_before)(list_t *list, list_node_t *node, list_node_t *next) {
+void FUNC(list_insert_before)(list_t *list, list_node_t *node,
+                              list_node_t *next) {
+  list_node_t *prev;
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  list_node_t *prev;
   prev = list->head;
   while (prev->next != next) {
     prev = prev->next;
@@ -90,7 +91,8 @@ void FUNC(list_insert_before)(list_t *list, list_node_t *node, list_node_t *next
 #endif
 }
 
-void FUNC(list_insert_after)(list_t *list, list_node_t *node, list_node_t *prev) {
+void FUNC(list_insert_after)(list_t *list, list_node_t *node,
+                             list_node_t *prev) {
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
@@ -111,10 +113,10 @@ void FUNC(list_insert_after)(list_t *list, list_node_t *node, list_node_t *prev)
 }
 
 void FUNC(list_delete_node)(list_t *list, list_node_t *node) {
+  list_node_t *prev;
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  list_node_t *prev;
   prev = list->nil;
   while (prev->next != node) {
     prev = prev->next;
@@ -144,7 +146,7 @@ void FUNC(list_delete)(list_t *list) {
 }
 
 void FUNC(list_destroy_node)(list_t *list, list_node_t *node,
-                       void (*destroy)(list_node_t *)) {
+                             void (*destroy)(list_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
@@ -175,11 +177,11 @@ void FUNC(list_destroy)(list_t *list, void (*destroy)(list_node_t *)) {
 }
 
 void FUNC(list_walk_forward)(list_t *list, list_node_t *node,
-                       void (*callback)(list_node_t *)) {
+                             void (*callback)(list_node_t *)) {
+  list_node_t *cur;
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  list_node_t *cur;
   cur = node;
   while (cur != list->nil) {
     callback(CAST(cur, void));
@@ -191,7 +193,7 @@ void FUNC(list_walk_forward)(list_t *list, list_node_t *node,
 }
 
 void FUNC(list_walk_backwards)(list_t *list, list_node_t *node,
-                         void (*callback)(list_node_t *)) {
+                               void (*callback)(list_node_t *)) {
 
 #ifdef DS_THREAD_SAFE
   LOCK(list)
@@ -206,22 +208,26 @@ void FUNC(list_walk_backwards)(list_t *list, list_node_t *node,
 }
 
 bool FUNC(list_is_empty)(list_t *list) {
+  bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  bool result = list->size == 0;
+  result = list->size == 0;
 #ifdef DS_THREAD_SAFE
   UNLOCK(list)
 #endif
   return result;
 }
 
-list_t *FUNC(list_clone)(list_t *list, list_node_t *(*clone_node)(list_node_t *)) {
+list_t *FUNC(list_clone)(list_t *list,
+                         list_node_t *(*clone_node)(list_node_t *)) {
+  list_t *new_list;
+  list_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  list_t *new_list = FUNC(list_create)();
-  list_node_t *current = list->head;
+  new_list = FUNC(list_create)();
+  current = list->head;
   while (current != list->nil) {
     list_node_t *cloned_node = clone_node(current);
     FUNC(list_append)(new_list, cloned_node);

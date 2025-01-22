@@ -15,10 +15,11 @@ void swap(heap_node_t **a, heap_node_t **b) {
 
 void heapify_up(heap_t *heap, size_t index,
                 int (*compare)(heap_node_t *, heap_node_t *)) {
+  size_t parent;
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
-  size_t parent = (index - 1) / 2;
+  parent = (index - 1) / 2;
   while (index > 0 && compare(heap->data[index], heap->data[parent]) < 0) {
     swap(&heap->data[index], &heap->data[parent]);
     index = parent;
@@ -31,10 +32,10 @@ void heapify_up(heap_t *heap, size_t index,
 
 void heapify_down(heap_t *heap, size_t index,
                   int (*compare)(heap_node_t *, heap_node_t *)) {
+  size_t left, right, smallest;
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
-  size_t left, right, smallest;
   while (1) {
     left = 2 * index + 1;
     right = 2 * index + 2;
@@ -74,7 +75,7 @@ heap_t *FUNC(heap_create)(size_t capacity) {
 }
 
 void FUNC(heap_insert)(heap_t *heap, heap_node_t *node,
-                 int (*compare)(heap_node_t *, heap_node_t *)) {
+                       int (*compare)(heap_node_t *, heap_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
@@ -93,7 +94,8 @@ void FUNC(heap_insert)(heap_t *heap, heap_node_t *node,
 }
 
 void *FUNC(heap_extract_root)(heap_t *heap,
-                        int (*compare)(heap_node_t *, heap_node_t *)) {
+                              int (*compare)(heap_node_t *, heap_node_t *)) {
+  void *root;
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
@@ -103,7 +105,7 @@ void *FUNC(heap_extract_root)(heap_t *heap,
 #endif
     return heap->nil;
   }
-  void *root = heap->data[0];
+  root = heap->data[0];
   heap->data[0] = heap->data[heap->size - 1];
   heap->size--;
   heapify_down(heap, (size_t)0, compare);
@@ -146,12 +148,14 @@ void FUNC(heap_destroy)(heap_t *heap, void (*destroy)(heap_node_t *)) {
   free(heap);
 }
 
-heap_t *FUNC(heap_clone)(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *)) {
+heap_t *FUNC(heap_clone)(heap_t *heap,
+                         heap_node_t *(*clone_node)(heap_node_t *)) {
+  size_t i;
+  heap_t *new_heap;
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
-  size_t i;
-  heap_t *new_heap = FUNC(heap_create)(heap->capacity);
+  new_heap = FUNC(heap_create)(heap->capacity);
   new_heap->size = heap->size;
   for (i = 0; i < heap->size; ++i) {
     heap_node_t *original_node = heap->data[i];

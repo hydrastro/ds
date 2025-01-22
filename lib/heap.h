@@ -31,10 +31,10 @@ void heapify_down(heap_t *heap, size_t index,
 heap_t *FUNC(heap_create)(size_t capacity);
 
 void FUNC(heap_insert)(heap_t *heap, heap_node_t *node,
-                 int (*compare)(heap_node_t *, heap_node_t *));
+                       int (*compare)(heap_node_t *, heap_node_t *));
 
 void *FUNC(heap_extract_root)(heap_t *heap,
-                        int (*compare)(heap_node_t *, heap_node_t *));
+                              int (*compare)(heap_node_t *, heap_node_t *));
 
 void *FUNC(heap_peek_root)(heap_t *heap);
 
@@ -42,6 +42,7 @@ bool FUNC(heap_is_empty)(heap_t *heap);
 
 void FUNC(heap_destroy)(heap_t *heap, void (*destroy)(heap_node_t *));
 
-heap_t *FUNC(heap_clone)(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *));
+heap_t *FUNC(heap_clone)(heap_t *heap,
+                         heap_node_t *(*clone_node)(heap_node_t *));
 
 #endif /* DS_HEAP_H */

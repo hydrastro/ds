@@ -31,7 +31,7 @@ typedef struct hash_table {
   union {
     hash_node_t **buckets;
     hash_node_t *entries;
-  };
+  } store;
   size_t size;
   size_t capacity;
   void *nil;
@@ -54,23 +54,25 @@ size_t hash_func_default(void *key);
 size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity);
 size_t linear_probing(size_t base_index, size_t iteration, size_t capacity);
 hash_table_t *FUNC(hash_table_create)(size_t capacity, hash_table_mode_t mode,
-                                hash_probing_func_t probing_func);
+                                      hash_probing_func_t probing_func);
 void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *));
+                             size_t (*hash_func)(void *),
+                             int (*compare)(void *, void *));
 void FUNC(hash_table_resize)(hash_table_t *table, size_t new_capacity,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *));
+                             size_t (*hash_func)(void *),
+                             int (*compare)(void *, void *));
 void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
-                        size_t (*hash_func)(void *),
-                        int (*compare)(void *, void *));
+                              size_t (*hash_func)(void *),
+                              int (*compare)(void *, void *));
 void FUNC(hash_table_remove)(hash_table_t *table, void *key,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *),
-                       void (*destroy)(hash_node_t *));
+                             size_t (*hash_func)(void *),
+                             int (*compare)(void *, void *),
+                             void (*destroy)(hash_node_t *));
 bool FUNC(hash_table_is_empty)(hash_table_t *table);
-void FUNC(hash_table_destroy)(hash_table_t *table, void (*destroy)(hash_node_t *));
-hash_table_t *FUNC(hash_table_clone)(hash_table_t *table, void *(*clone_key)(void *),
-                               void *(*clone_value)(void *));
+void FUNC(hash_table_destroy)(hash_table_t *table,
+                              void (*destroy)(hash_node_t *));
+hash_table_t *FUNC(hash_table_clone)(hash_table_t *table,
+                                     void *(*clone_key)(void *),
+                                     void *(*clone_value)(void *));
 
 #endif /* DS_HASH_TABLE_H */

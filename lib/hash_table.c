@@ -127,7 +127,8 @@ static size_t next_prime_capacity(size_t current_capacity) {
 }
 
 hash_table_t *FUNC(hash_table_create)(size_t capacity, hash_table_mode_t mode,
-                                hash_probing_func_t probing_func) {
+                                      hash_probing_func_t probing_func) {
+  size_t i;
   hash_table_t *table = (hash_table_t *)malloc(sizeof(hash_table_t));
   table->capacity = next_prime_capacity(capacity);
   table->size = 0;
@@ -135,15 +136,14 @@ hash_table_t *FUNC(hash_table_create)(size_t capacity, hash_table_mode_t mode,
   table->tombstone = (void *)malloc(sizeof(void *));
   table->mode = mode;
   table->last_node = NULL;
-  size_t i;
   if (mode == HASH_CHAINING) {
-    table->buckets =
+    table->store.buckets =
         (hash_node_t **)calloc(table->capacity, sizeof(hash_node_t *));
   } else if (mode == HASH_LINEAR_PROBING || mode == HASH_QUADRATIC_PROBING) {
-    table->entries =
+    table->store.entries =
         (hash_node_t *)calloc(table->capacity, sizeof(hash_node_t));
     for (i = 0; i < table->capacity; i++) {
-      table->entries[i].key = table->nil;
+      table->store.entries[i].key = table->nil;
     }
   }
   if (probing_func != NULL) {
@@ -166,66 +166,72 @@ hash_table_t *FUNC(hash_table_create)(size_t capacity, hash_table_mode_t mode,
 }
 
 void FUNC(hash_table_resize)(hash_table_t *table, size_t new_capacity,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *)) {
+                             size_t (*hash_func)(void *),
+                             int (*compare)(void *, void *)) {
   hash_table_t *new_table =
       FUNC(hash_table_create)(new_capacity, table->mode, table->probing_func);
   size_t i;
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
-      hash_node_t *current = table->buckets[i];
+      hash_node_t *current = table->store.buckets[i];
       while (current != NULL) {
-        FUNC(hash_table_insert)(new_table, current->key, current->value, hash_func,
-                          compare);
+        FUNC(hash_table_insert)
+        (new_table, current->key, current->value, hash_func, compare);
         current = current->next;
       }
     }
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
     for (i = 0; i < table->capacity; i++) {
-      if (table->entries[i].key != table->nil) {
-        FUNC(hash_table_insert)(new_table, table->entries[i].key,
-                          table->entries[i].value, hash_func, compare);
+      if (table->store.entries[i].key != table->nil) {
+        FUNC(hash_table_insert)
+        (new_table, table->store.entries[i].key, table->store.entries[i].value,
+         hash_func, compare);
       }
     }
   }
 
   if (table->mode == HASH_CHAINING) {
-    free(table->buckets);
+    free(table->store.buckets);
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    free(table->entries);
+    free(table->store.entries);
   }
 
   table->capacity = new_table->capacity;
   table->size = new_table->size;
   if (table->mode == HASH_CHAINING) {
-    table->buckets = new_table->buckets;
+    table->store.buckets = new_table->store.buckets;
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    table->entries = new_table->entries;
+    table->store.entries = new_table->store.entries;
   }
 
   free(new_table);
 }
 
 void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *)) {
+                             size_t (*hash_func)(void *),
+                             int (*compare)(void *, void *)) {
+  size_t base_index;
+  size_t index;
+  size_t iteration;
+  size_t tombstone_index;
+  hash_node_t *new_node;
 #ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
   if ((double)table->size / (double)table->capacity >
       HASH_TABLE_RESIZE_FACTOR) {
-    FUNC(hash_table_resize)(table, next_prime_capacity(table->capacity), hash_func,
-                      compare);
+    FUNC(hash_table_resize)
+    (table, next_prime_capacity(table->capacity), hash_func, compare);
   }
-  size_t base_index = hash_func(key) % table->capacity;
-  size_t index = base_index;
-  size_t iteration = 0;
-  size_t tombstone_index = (long unsigned int)-1;
+  base_index = hash_func(key) % table->capacity;
+  index = base_index;
+  iteration = 0;
+  tombstone_index = (long unsigned int)-1;
   if (table->mode == HASH_CHAINING) {
-    hash_node_t *current = table->buckets[index];
+    hash_node_t *current = table->store.buckets[index];
     while (current != NULL) {
       if (compare(current->key, key) == 0) {
         current->value = value;
@@ -236,7 +242,7 @@ void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
       }
       current = current->next;
     }
-    hash_node_t *new_node = hash_node_create(key, value);
+    new_node = hash_node_create(key, value);
 
     if (table->last_node != NULL) {
       table->last_node->list_next = new_node;
@@ -244,16 +250,16 @@ void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
     new_node->list_prev = table->last_node;
     table->last_node = new_node;
 
-    new_node->next = table->buckets[index];
-    table->buckets[index] = new_node;
+    new_node->next = table->store.buckets[index];
+    table->store.buckets[index] = new_node;
   } else {
-    while (table->entries[index].key != table->nil) {
-      if (table->entries[index].key == table->tombstone) {
+    while (table->store.entries[index].key != table->nil) {
+      if (table->store.entries[index].key == table->tombstone) {
         if (tombstone_index == (long unsigned int)-1) {
           tombstone_index = index;
         }
-      } else if (compare(table->entries[index].key, key) == 0) {
-        table->entries[index].value = value;
+      } else if (compare(table->store.entries[index].key, key) == 0) {
+        table->store.entries[index].value = value;
 #ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
@@ -268,13 +274,13 @@ void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
     }
 
     if (table->last_node != NULL) {
-      table->last_node->list_next = &table->entries[index];
+      table->last_node->list_next = &table->store.entries[index];
     }
-    table->entries[index].list_prev = table->last_node;
-    table->last_node = &table->entries[index];
+    table->store.entries[index].list_prev = table->last_node;
+    table->last_node = &table->store.entries[index];
 
-    table->entries[index].key = key;
-    table->entries[index].value = value;
+    table->store.entries[index].key = key;
+    table->store.entries[index].value = value;
   }
 
   table->size++;
@@ -285,8 +291,8 @@ void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
 }
 
 void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
-                        size_t (*hash_func)(void *),
-                        int (*compare)(void *, void *)) {
+                              size_t (*hash_func)(void *),
+                              int (*compare)(void *, void *)) {
 #ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
@@ -295,7 +301,7 @@ void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
   size_t iteration = 0;
 
   if (table->mode == HASH_CHAINING) {
-    hash_node_t *current = table->buckets[index];
+    hash_node_t *current = table->store.buckets[index];
     while (current) {
       if (compare(current->key, key) == 0) {
 #ifdef HASH_DS_THREAD_SAFE
@@ -307,13 +313,13 @@ void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
       current = current->next;
     }
   } else {
-    while (table->entries[index].key != table->nil) {
-      if (table->entries[index].key != table->tombstone &&
-          compare(table->entries[index].key, key) == 0) {
+    while (table->store.entries[index].key != table->nil) {
+      if (table->store.entries[index].key != table->tombstone &&
+          compare(table->store.entries[index].key, key) == 0) {
 #ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
-        return table->entries[index].value;
+        return table->store.entries[index].value;
       }
       iteration++;
       index = table->probing_func(base_index, iteration, table->capacity);
@@ -327,9 +333,9 @@ void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
 }
 
 void FUNC(hash_table_remove)(hash_table_t *table, void *key,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *),
-                       void (*destroy)(hash_node_t *)) {
+                             size_t (*hash_func)(void *),
+                             int (*compare)(void *, void *),
+                             void (*destroy)(hash_node_t *)) {
 #ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
@@ -338,12 +344,12 @@ void FUNC(hash_table_remove)(hash_table_t *table, void *key,
   size_t iteration = 0;
 
   if (table->mode == HASH_CHAINING) {
-    hash_node_t *current = table->buckets[index];
+    hash_node_t *current = table->store.buckets[index];
     hash_node_t *prev = NULL;
     while (current != NULL) {
       if (compare(current->key, key) == 0) {
         if (prev == NULL) {
-          table->buckets[index] = current->next;
+          table->store.buckets[index] = current->next;
         } else {
           prev->next = current->next;
         }
@@ -373,20 +379,20 @@ void FUNC(hash_table_remove)(hash_table_t *table, void *key,
     }
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    while (table->entries[index].key != table->nil) {
-      if (compare(table->entries[index].key, key) == 0) {
+    while (table->store.entries[index].key != table->nil) {
+      if (compare(table->store.entries[index].key, key) == 0) {
         if (destroy != NULL) {
-          destroy(&table->entries[index]);
+          destroy(&table->store.entries[index]);
         }
-        table->entries[index].key = table->tombstone;
+        table->store.entries[index].key = table->tombstone;
 
-        if (table->entries[index].list_prev != NULL) {
-          table->entries[index].list_prev->list_next =
-              table->entries[index].list_next;
+        if (table->store.entries[index].list_prev != NULL) {
+          table->store.entries[index].list_prev->list_next =
+              table->store.entries[index].list_next;
         }
-        if (table->entries[index].list_next != NULL) {
-          table->entries[index].list_next->list_prev =
-              table->entries[index].list_prev;
+        if (table->store.entries[index].list_next != NULL) {
+          table->store.entries[index].list_next->list_prev =
+              table->store.entries[index].list_prev;
         }
 
         table->size--;
@@ -406,11 +412,12 @@ void FUNC(hash_table_remove)(hash_table_t *table, void *key,
 
 bool FUNC(hash_table_is_empty)(hash_table_t *table) { return table->size == 0; }
 
-void FUNC(hash_table_destroy)(hash_table_t *table, void (*destroy)(hash_node_t *)) {
+void FUNC(hash_table_destroy)(hash_table_t *table,
+                              void (*destroy)(hash_node_t *)) {
   size_t i;
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
-      hash_node_t *current = table->buckets[i];
+      hash_node_t *current = table->store.buckets[i];
       while (current != NULL) {
         hash_node_t *next = current->next;
         if (destroy) {
@@ -420,10 +427,10 @@ void FUNC(hash_table_destroy)(hash_table_t *table, void (*destroy)(hash_node_t *
         current = next;
       }
     }
-    free(table->buckets);
+    free(table->store.buckets);
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    free(table->entries);
+    free(table->store.entries);
   }
 #ifdef HASH_DS_THREAD_SAFE
   LOCK_DESTROY(table)
@@ -433,25 +440,28 @@ void FUNC(hash_table_destroy)(hash_table_t *table, void (*destroy)(hash_node_t *
   free(table);
 }
 
-hash_table_t *FUNC(hash_table_clone)(hash_table_t *table, void *(*clone_key)(void *),
-                               void *(*clone_value)(void *)) {
+hash_table_t *FUNC(hash_table_clone)(hash_table_t *table,
+                                     void *(*clone_key)(void *),
+                                     void *(*clone_value)(void *)) {
 #ifdef HASH_DS_THREAD_SAFE
   LOCK(table);
 #endif
   void *key, *value;
   size_t i;
-  hash_table_t *new_table =
-      FUNC(hash_table_create)(table->capacity, table->mode, table->probing_func);
+  hash_node_t *current;
+  hash_node_t *new_node;
+  hash_table_t *new_table = FUNC(hash_table_create)(
+      table->capacity, table->mode, table->probing_func);
   new_table->size = table->size;
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
-      hash_node_t *current = table->buckets[i];
+      current = table->store.buckets[i];
       while (current) {
         key = clone_key(current->key);
         value = clone_value(current->value);
-        hash_node_t *new_node = hash_node_create(key, value);
-        new_node->next = new_table->buckets[i];
-        new_table->buckets[i] = new_node;
+        new_node = hash_node_create(key, value);
+        new_node->next = new_table->store.buckets[i];
+        new_table->store.buckets[i] = new_node;
         if (new_table->last_node) {
           new_table->last_node->list_next = new_node;
         }
@@ -464,16 +474,18 @@ hash_table_t *FUNC(hash_table_clone)(hash_table_t *table, void *(*clone_key)(voi
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
     for (i = 0; i < table->capacity; i++) {
-      if (table->entries[i].key != table->nil &&
-          table->entries[i].key != table->tombstone) {
-        new_table->entries[i].key = clone_key(table->entries[i].key);
-        new_table->entries[i].value = clone_value(table->entries[i].value);
+      if (table->store.entries[i].key != table->nil &&
+          table->store.entries[i].key != table->tombstone) {
+        new_table->store.entries[i].key =
+            clone_key(table->store.entries[i].key);
+        new_table->store.entries[i].value =
+            clone_value(table->store.entries[i].value);
 
         if (new_table->last_node) {
-          new_table->last_node->list_next = &new_table->entries[i];
+          new_table->last_node->list_next = &new_table->store.entries[i];
         }
-        new_table->entries[i].list_prev = new_table->last_node;
-        new_table->last_node = &new_table->entries[i];
+        new_table->store.entries[i].list_prev = new_table->last_node;
+        new_table->last_node = &new_table->store.entries[i];
       }
     }
   }

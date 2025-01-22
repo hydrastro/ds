@@ -1,7 +1,7 @@
 #include "stack.h"
 #include <stdlib.h>
 
-stack_t *FUNC(stack_create)() {
+stack_t *FUNC(stack_create)(void) {
   stack_t *stack = (stack_t *)malloc(sizeof(stack_t));
   stack->nil = (stack_node_t *)malloc(sizeof(stack_node_t));
   stack->nil->next = stack->nil;
@@ -29,13 +29,14 @@ void FUNC(stack_push)(stack_t *stack, stack_node_t *node) {
 }
 
 stack_node_t *FUNC(stack_pop)(stack_t *stack) {
+  stack_node_t *node;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
   if (FUNC(stack_is_empty)(stack)) {
     return stack->nil;
   }
-  stack_node_t *node = stack->top;
+  node = stack->top;
   stack->top = node->next;
   stack->size -= 1;
 #ifdef DS_THREAD_SAFE
@@ -45,10 +46,11 @@ stack_node_t *FUNC(stack_pop)(stack_t *stack) {
 }
 
 stack_node_t *FUNC(stack_peek)(stack_t *stack) {
+  stack_node_t *result;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
-  stack_node_t *result = stack->top;
+  result = stack->top;
 #ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
@@ -56,10 +58,11 @@ stack_node_t *FUNC(stack_peek)(stack_t *stack) {
 }
 
 bool FUNC(stack_is_empty)(stack_t *stack) {
+  bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
-  bool result = stack->top == stack->nil;
+  result = stack->top == stack->nil;
 #ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
@@ -94,12 +97,14 @@ void FUNC(stack_delete)(stack_t *stack) {
 }
 
 void FUNC(stack_delete_node)(stack_t *stack, stack_node_t *node) {
+  stack_node_t *current;
+  stack_node_t *previous;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
-  stack_node_t *current = stack->top;
-  stack_node_t *previous = stack->nil;
+  current = stack->top;
+  previous = stack->nil;
 
   while (current != stack->nil && current != node) {
     previous = current;
@@ -120,7 +125,7 @@ void FUNC(stack_delete_node)(stack_t *stack, stack_node_t *node) {
 }
 
 void FUNC(stack_destroy_node)(stack_t *stack, stack_node_t *node,
-                        void (*destroy)(stack_node_t *)) {
+                              void (*destroy)(stack_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
@@ -135,7 +140,8 @@ void FUNC(stack_destroy_node)(stack_t *stack, stack_node_t *node,
 #endif
 }
 
-void FUNC(stack_pop_destroy)(stack_t *stack, void (*destroy_node)(stack_node_t *)) {
+void FUNC(stack_pop_destroy)(stack_t *stack,
+                             void (*destroy_node)(stack_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
@@ -151,12 +157,14 @@ void FUNC(stack_pop_destroy)(stack_t *stack, void (*destroy_node)(stack_node_t *
 }
 
 stack_node_t *FUNC(stack_search)(stack_t *stack, stack_node_t *node,
-                           int (*compare)(stack_node_t *, stack_node_t *)) {
+                                 int (*compare)(stack_node_t *,
+                                                stack_node_t *)) {
+  stack_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
-  stack_node_t *current = stack->top;
+  current = stack->top;
 
   while (current != stack->nil) {
     if (compare(current, node) == 0) {
@@ -176,12 +184,13 @@ stack_node_t *FUNC(stack_search)(stack_t *stack, stack_node_t *node,
 }
 
 void FUNC(stack_walk_forward)(stack_t *stack, stack_node_t *start_node,
-                        void (*callback)(stack_node_t *)) {
+                              void (*callback)(stack_node_t *)) {
+  stack_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
-  stack_node_t *current = start_node != stack->nil ? start_node : stack->top;
+  current = start_node != stack->nil ? start_node : stack->top;
 
   while (current != stack->nil) {
     callback(current);
@@ -194,7 +203,7 @@ void FUNC(stack_walk_forward)(stack_t *stack, stack_node_t *start_node,
 }
 
 void FUNC(stack_walk_backwards)(stack_t *stack, stack_node_t *current,
-                          void (*callback)(stack_node_t *)) {
+                                void (*callback)(stack_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
@@ -212,13 +221,16 @@ void FUNC(stack_walk_backwards)(stack_t *stack, stack_node_t *current,
 }
 
 stack_t *FUNC(stack_clone)(stack_t *stack,
-                     stack_node_t *(*clone_node)(stack_node_t *)) {
+                           stack_node_t *(*clone_node)(stack_node_t *)) {
+  stack_t *temp_stack;
+  stack_t *new_stack;
+  stack_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
-  stack_t *temp_stack = FUNC(stack_create)();
-  stack_t *new_stack = FUNC(stack_create)();
-  stack_node_t *current = stack->top;
+  temp_stack = FUNC(stack_create)();
+  new_stack = FUNC(stack_create)();
+  current = stack->top;
   while (current != stack->nil) {
     stack_node_t *cloned_node = clone_node(current);
     FUNC(stack_push)(temp_stack, cloned_node);

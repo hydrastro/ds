@@ -34,16 +34,19 @@ void FUNC(deque_destroy)(deque_t *deque, void (*destroy)(deque_node_t *));
 void FUNC(deque_delete)(deque_t *deque);
 void FUNC(deque_delete_node)(deque_t *deque, deque_node_t *node);
 void FUNC(deque_destroy_node)(deque_t *deque, deque_node_t *node,
-                        void (*destroy)(deque_node_t *));
-void FUNC(deque_pop_front_destroy)(deque_t *deque, void (*destroy)(deque_node_t *));
-void FUNC(deque_pop_back_destroy)(deque_t *deque, void (*destroy)(deque_node_t *));
+                              void (*destroy)(deque_node_t *));
+void FUNC(deque_pop_front_destroy)(deque_t *deque,
+                                   void (*destroy)(deque_node_t *));
+void FUNC(deque_pop_back_destroy)(deque_t *deque,
+                                  void (*destroy)(deque_node_t *));
 deque_node_t *FUNC(deque_search)(deque_t *deque, deque_node_t *node,
-                           int (*compare)(deque_node_t *, deque_node_t *));
+                                 int (*compare)(deque_node_t *,
+                                                deque_node_t *));
 void FUNC(deque_walk_forward)(deque_t *deque, deque_node_t *node,
-                        void (*callback)(deque_node_t *));
+                              void (*callback)(deque_node_t *));
 void FUNC(deque_walk_backwards)(deque_t *deque, deque_node_t *node,
-                          void (*callback)(deque_node_t *));
+                                void (*callback)(deque_node_t *));
 deque_t *FUNC(deque_clone)(deque_t *deque,
-                     deque_node_t *(*clone_node)(deque_node_t *));
+                           deque_node_t *(*clone_node)(deque_node_t *));
 
 #endif /* DS_DEQUE_H */
