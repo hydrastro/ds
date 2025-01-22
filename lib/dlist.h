@@ -1,5 +1,5 @@
-#ifndef DS_dlist_H
-#define DS_dlist_H
+#ifndef DS_DLIST_H
+#define DS_DLIST_H
 
 #include "common.h"
 #include <stdbool.h>
@@ -15,7 +15,7 @@ typedef struct dlist {
   dlist_node_t *head;
   dlist_node_t *tail;
   dlist_node_t *nil;
-#ifdef dlist_THREAD_SAFE
+#ifdef DLIST_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

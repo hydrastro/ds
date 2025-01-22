@@ -8,14 +8,14 @@ list_t *list_create() {
   list->tail = list->nil;
   list->nil->next = list->nil;
   list->size = 0;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK_INIT_RECURSIVE(list)
 #endif
   return list;
 }
 
 void list_append(list_t *list, list_node_t *node) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   node->next = list->nil;
@@ -25,13 +25,13 @@ void list_append(list_t *list, list_node_t *node) {
     list->head = node;
   }
   list->size += 1;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
 
 void list_prepend(list_t *list, list_node_t *node) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   node->next = list->head;
@@ -40,14 +40,14 @@ void list_prepend(list_t *list, list_node_t *node) {
     list->tail = node;
   }
   list->size += 1;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
 
 list_node_t *list_search(list_t *list, list_node_t *node,
                          int (*compare)(list_node_t *, list_node_t *)) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   list_node_t *head;
@@ -56,19 +56,19 @@ list_node_t *list_search(list_t *list, list_node_t *node,
     head = head->next;
   }
   if (head == list->nil) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
     UNLOCK(list)
 #endif
     return list->nil;
   }
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
   return head;
 }
 
 void list_insert_before(list_t *list, list_node_t *node, list_node_t *next) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   list_node_t *prev;
@@ -85,13 +85,13 @@ void list_insert_before(list_t *list, list_node_t *node, list_node_t *next) {
     list->tail = node;
   }
   list->size += 1;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
 
 void list_insert_after(list_t *list, list_node_t *node, list_node_t *prev) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   node->next = prev->next;
@@ -105,13 +105,13 @@ void list_insert_after(list_t *list, list_node_t *node, list_node_t *prev) {
     list->head = node;
   }
   list->size += 1;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
 
 void list_delete_node(list_t *list, list_node_t *node) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   list_node_t *prev;
@@ -127,32 +127,32 @@ void list_delete_node(list_t *list, list_node_t *node) {
     list->tail = prev;
   }
   list->size -= 1;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
 
 void list_delete(list_t *list) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   list->head = list->tail = list->nil;
   ;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
 
 void list_destroy_node(list_t *list, list_node_t *node,
                        void (*destroy)(list_node_t *)) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   list_delete_node(list, node);
   if (destroy != NULL) {
     destroy(node);
   }
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
@@ -167,7 +167,7 @@ void list_destroy(list_t *list, void (*destroy)(list_node_t *)) {
     }
     node = next;
   }
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK_DESTROY(list)
 #endif
   free(list->nil);
@@ -176,7 +176,7 @@ void list_destroy(list_t *list, void (*destroy)(list_node_t *)) {
 
 void list_walk_forward(list_t *list, list_node_t *node,
                        void (*callback)(list_node_t *)) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   list_node_t *cur;
@@ -185,7 +185,7 @@ void list_walk_forward(list_t *list, list_node_t *node,
     callback(CAST(cur, void));
     cur = cur->next;
   }
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
@@ -193,31 +193,31 @@ void list_walk_forward(list_t *list, list_node_t *node,
 void list_walk_backwards(list_t *list, list_node_t *node,
                          void (*callback)(list_node_t *)) {
 
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   if (node != list->nil) {
     list_walk_backwards(list, node->next, callback);
     callback(CAST(node, void));
   }
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
 }
 
 bool list_is_empty(list_t *list) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   bool result = list->size == 0;
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
   return result;
 }
 
 list_t *list_clone(list_t *list, list_node_t *(*clone_node)(list_node_t *)) {
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   LOCK(list)
 #endif
   list_t *new_list = list_create();
@@ -228,7 +228,7 @@ list_t *list_clone(list_t *list, list_node_t *(*clone_node)(list_node_t *)) {
     current = current->next;
   }
 
-#ifdef list_THREAD_SAFE
+#ifdef LIST_THREAD_SAFE
   UNLOCK(list)
 #endif
   return new_list;
