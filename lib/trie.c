@@ -36,7 +36,7 @@ trie_t *trie_create(
   trie->store_apply = store_apply;
   trie->store_clone = store_clone;
   trie->root = trie_create_node(trie);
-#ifdef TRIE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(trie)
 #endif
   return trie;
@@ -44,7 +44,7 @@ trie_t *trie_create(
 
 void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
                  bool (*has_slice)(void *, size_t)) {
-#ifdef TRIE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(trie)
 #endif
   trie_node_t *current_node = trie->root;
@@ -69,7 +69,7 @@ void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
 
   current_node->is_terminal = true;
   current_node->terminal_data = data;
-#ifdef TRIE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(trie)
 #endif
 }
@@ -77,7 +77,7 @@ void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
 trie_node_t *trie_search(trie_t *trie, void *data,
                          size_t (*get_slice)(void *, size_t),
                          bool (*has_slice)(void *, size_t)) {
-#ifdef TRIE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(trie)
 #endif
   if (trie->root == NULL) {
@@ -93,7 +93,7 @@ trie_node_t *trie_search(trie_t *trie, void *data,
     result = trie->store_search(current_node->children, current_slice);
 
     if (result == NULL) {
-#ifdef TRIE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
       UNLOCK(trie)
 #endif
       return NULL;
@@ -102,7 +102,7 @@ trie_node_t *trie_search(trie_t *trie, void *data,
   }
   result = current_node->is_terminal ? current_node : NULL;
 
-#ifdef TRIE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(trie)
 #endif
   return result;

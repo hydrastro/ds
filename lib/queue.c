@@ -9,7 +9,7 @@ queue_t *queue_create() {
   queue->tail = queue->nil;
   queue->size = 0;
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_INIT(queue)
 #endif
 
@@ -17,7 +17,7 @@ queue_t *queue_create() {
 }
 
 void queue_enqueue(queue_t *queue, queue_node_t *node) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
@@ -31,18 +31,18 @@ void queue_enqueue(queue_t *queue, queue_node_t *node) {
   }
   queue->size += 1;
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
 queue_node_t *queue_dequeue(queue_t *queue) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
   if (queue->head == queue->nil) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
     UNLOCK(queue)
 #endif
     return queue->nil;
@@ -54,7 +54,7 @@ queue_node_t *queue_dequeue(queue_t *queue) {
   }
   queue->size -= 1;
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 
 #endif
@@ -63,36 +63,36 @@ queue_node_t *queue_dequeue(queue_t *queue) {
 }
 
 queue_node_t *queue_peek(queue_t *queue) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
   queue_node_t *result = queue->head;
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
   return result;
 }
 
 queue_node_t *queue_peek_tail(queue_t *queue) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
   queue_node_t *result = queue->tail;
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
   return result;
 }
 
 bool queue_is_empty(queue_t *queue) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
   bool empty = queue->head == queue->nil;
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 
@@ -110,7 +110,7 @@ void queue_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
   }
   free(queue->nil);
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_DESTROY(queue)
 #endif
 
@@ -118,18 +118,18 @@ void queue_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
 }
 
 void queue_delete(queue_t *queue) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
   queue->head = queue->tail = queue->nil;
   queue->size = 0;
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
 void queue_delete_node(queue_t *queue, queue_node_t *node) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
@@ -156,14 +156,14 @@ void queue_delete_node(queue_t *queue, queue_node_t *node) {
 
   queue->size--;
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
 void queue_destroy_node(queue_t *queue, queue_node_t *node,
                         void (*destroy)(queue_node_t *)) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
@@ -172,13 +172,13 @@ void queue_destroy_node(queue_t *queue, queue_node_t *node,
     destroy(node);
   }
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
 void queue_pop_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
@@ -189,14 +189,14 @@ void queue_pop_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
     }
   }
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
 queue_node_t *queue_search(queue_t *queue, queue_node_t *node,
                            int (*compare)(queue_node_t *, queue_node_t *)) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
@@ -204,7 +204,7 @@ queue_node_t *queue_search(queue_t *queue, queue_node_t *node,
 
   while (current != queue->nil) {
     if (compare(current, node) == 0) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
       UNLOCK(queue)
 #endif
       return current;
@@ -212,7 +212,7 @@ queue_node_t *queue_search(queue_t *queue, queue_node_t *node,
     current = current->next;
   }
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 
@@ -221,7 +221,7 @@ queue_node_t *queue_search(queue_t *queue, queue_node_t *node,
 
 void queue_walk_forward(queue_t *queue, queue_node_t *start_node,
                         void (*callback)(queue_node_t *)) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
@@ -232,14 +232,14 @@ void queue_walk_forward(queue_t *queue, queue_node_t *start_node,
     current = current->next;
   }
 
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
 void queue_walk_backwards(queue_t *queue, queue_node_t *current,
                           void (*callback)(queue_node_t *)) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
   if (current == queue->nil) {
@@ -247,14 +247,14 @@ void queue_walk_backwards(queue_t *queue, queue_node_t *current,
   }
   queue_walk_backwards(queue, current->next, callback);
   callback(current);
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
 queue_t *queue_clone(queue_t *queue,
                      queue_node_t *(*clone_node)(queue_node_t *)) {
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
   queue_t *new_queue = queue_create();
@@ -264,7 +264,7 @@ queue_t *queue_clone(queue_t *queue,
     queue_enqueue(new_queue, cloned_node);
     current = current->next;
   }
-#ifdef QUEUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 

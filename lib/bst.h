@@ -15,7 +15,7 @@ typedef struct bst {
   bst_node_t *root;
   bst_node_t *nil;
   size_t size;
-#ifdef BST_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

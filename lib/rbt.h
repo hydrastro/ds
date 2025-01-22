@@ -4,7 +4,7 @@
 #include "common.h"
 #include <stddef.h>
 
-#ifdef RBT_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
 #include <stdbool.h>
 #endif
 
@@ -47,7 +47,7 @@ typedef struct rbt {
   rbt_node_t *root;
   rbt_node_t *nil;
   size_t size;
-#ifdef RBT_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

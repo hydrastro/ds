@@ -13,7 +13,7 @@ typedef struct stack {
   stack_node_t *top;
   stack_node_t *nil;
   size_t size;
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

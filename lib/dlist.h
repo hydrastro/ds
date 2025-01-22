@@ -15,7 +15,7 @@ typedef struct dlist {
   dlist_node_t *head;
   dlist_node_t *tail;
   dlist_node_t *nil;
-#ifdef DLIST_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

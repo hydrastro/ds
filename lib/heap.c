@@ -15,7 +15,7 @@ void swap(heap_node_t **a, heap_node_t **b) {
 
 void heapify_up(heap_t *heap, size_t index,
                 int (*compare)(heap_node_t *, heap_node_t *)) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
   size_t parent = (index - 1) / 2;
@@ -24,14 +24,14 @@ void heapify_up(heap_t *heap, size_t index,
     index = parent;
     parent = (index - 1) / 2;
   }
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(heap)
 #endif
 }
 
 void heapify_down(heap_t *heap, size_t index,
                   int (*compare)(heap_node_t *, heap_node_t *)) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
   size_t left, right, smallest;
@@ -55,7 +55,7 @@ void heapify_down(heap_t *heap, size_t index,
       break;
     }
   }
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(heap)
 #endif
 }
@@ -67,7 +67,7 @@ heap_t *heap_create(size_t capacity) {
   heap->capacity = capacity;
   heap->nil = (heap_node_t *)malloc(sizeof(heap_node_t));
   heap->nil->index = (size_t)-1;
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(heap)
 #endif
   return heap;
@@ -75,7 +75,7 @@ heap_t *heap_create(size_t capacity) {
 
 void heap_insert(heap_t *heap, heap_node_t *node,
                  int (*compare)(heap_node_t *, heap_node_t *)) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
   if (heap->size >= heap->capacity) {
@@ -87,18 +87,18 @@ void heap_insert(heap_t *heap, heap_node_t *node,
   heap->data[heap->size] = node;
   heapify_up(heap, heap->size, compare);
   heap->size++;
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(heap)
 #endif
 }
 
 void *heap_extract_root(heap_t *heap,
                         int (*compare)(heap_node_t *, heap_node_t *)) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
   if (heap_is_empty(heap)) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
     UNLOCK(heap)
 #endif
     return heap->nil;
@@ -107,23 +107,23 @@ void *heap_extract_root(heap_t *heap,
   heap->data[0] = heap->data[heap->size - 1];
   heap->size--;
   heapify_down(heap, (size_t)0, compare);
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(heap)
 #endif
   return root;
 }
 
 void *heap_peek_root(heap_t *heap) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
   if (heap_is_empty(heap)) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
     UNLOCK(heap)
 #endif
     return heap->nil;
   }
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(heap)
 #endif
   return heap->data[0];
@@ -138,7 +138,7 @@ void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
       destroy(heap->data[i]);
     }
   }
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_DESTROY(heap)
 #endif
   free(heap->nil);
@@ -147,7 +147,7 @@ void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
 }
 
 heap_t *heap_clone(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *)) {
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
   heap_t *new_heap = heap_create(heap->capacity);
@@ -158,7 +158,7 @@ heap_t *heap_clone(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *)) {
     new_heap->data[i] = cloned_node;
     cloned_node->index = i;
   }
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(heap)
 #endif
 

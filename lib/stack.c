@@ -7,14 +7,14 @@ stack_t *stack_create() {
   stack->nil->next = stack->nil;
   stack->top = stack->nil;
   stack->size = 0;
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(stack)
 #endif
   return stack;
 }
 
 void stack_push(stack_t *stack, stack_node_t *node) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
   if (node == stack->nil) {
@@ -23,13 +23,13 @@ void stack_push(stack_t *stack, stack_node_t *node) {
   node->next = stack->top;
   stack->top = node;
   stack->size += 1;
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 }
 
 stack_node_t *stack_pop(stack_t *stack) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
   if (stack_is_empty(stack)) {
@@ -38,29 +38,29 @@ stack_node_t *stack_pop(stack_t *stack) {
   stack_node_t *node = stack->top;
   stack->top = node->next;
   stack->size -= 1;
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
   return node;
 }
 
 stack_node_t *stack_peek(stack_t *stack) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
   stack_node_t *result = stack->top;
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
   return result;
 }
 
 bool stack_is_empty(stack_t *stack) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
   bool result = stack->top == stack->nil;
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
   return result;
@@ -74,27 +74,27 @@ void stack_destroy(stack_t *stack, void (*destroy)(stack_node_t *)) {
     node = next;
   }
   free(stack->nil);
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_DESTROY(stack)
 #endif
   free(stack);
 }
 
 void stack_delete(stack_t *stack) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
   stack->top = stack->nil;
   stack->size = 0;
 
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 }
 
 void stack_delete_node(stack_t *stack, stack_node_t *node) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
@@ -114,14 +114,14 @@ void stack_delete_node(stack_t *stack, stack_node_t *node) {
     }
   }
 
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 }
 
 void stack_destroy_node(stack_t *stack, stack_node_t *node,
                         void (*destroy)(stack_node_t *)) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
@@ -130,13 +130,13 @@ void stack_destroy_node(stack_t *stack, stack_node_t *node,
     destroy(node);
   }
 
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 }
 
 void stack_pop_destroy(stack_t *stack, void (*destroy_node)(stack_node_t *)) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
@@ -145,14 +145,14 @@ void stack_pop_destroy(stack_t *stack, void (*destroy_node)(stack_node_t *)) {
     destroy_node(node);
   }
 
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 }
 
 stack_node_t *stack_search(stack_t *stack, stack_node_t *node,
                            int (*compare)(stack_node_t *, stack_node_t *)) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
@@ -160,7 +160,7 @@ stack_node_t *stack_search(stack_t *stack, stack_node_t *node,
 
   while (current != stack->nil) {
     if (compare(current, node) == 0) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
       UNLOCK(stack)
 #endif
       return current;
@@ -168,7 +168,7 @@ stack_node_t *stack_search(stack_t *stack, stack_node_t *node,
     current = current->next;
   }
 
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 
@@ -177,7 +177,7 @@ stack_node_t *stack_search(stack_t *stack, stack_node_t *node,
 
 void stack_walk_forward(stack_t *stack, stack_node_t *start_node,
                         void (*callback)(stack_node_t *)) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
@@ -188,14 +188,14 @@ void stack_walk_forward(stack_t *stack, stack_node_t *start_node,
     current = current->next;
   }
 
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 }
 
 void stack_walk_backwards(stack_t *stack, stack_node_t *current,
                           void (*callback)(stack_node_t *)) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
 
@@ -206,14 +206,14 @@ void stack_walk_backwards(stack_t *stack, stack_node_t *current,
   stack_walk_backwards(stack, current->next, callback);
   callback(current);
 
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 }
 
 stack_t *stack_clone(stack_t *stack,
                      stack_node_t *(*clone_node)(stack_node_t *)) {
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
   stack_t *temp_stack = stack_create();
@@ -229,7 +229,7 @@ stack_t *stack_clone(stack_t *stack,
     stack_push(new_stack, node);
   }
   stack_destroy(temp_stack, NULL);
-#ifdef STACK_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(stack)
 #endif
 

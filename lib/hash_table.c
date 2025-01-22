@@ -158,7 +158,7 @@ hash_table_t *hash_table_create(size_t capacity, hash_table_mode_t mode,
     }
   }
 
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   LOCK_INIT(table)
 #endif
 
@@ -212,7 +212,7 @@ void hash_table_resize(hash_table_t *table, size_t new_capacity,
 void hash_table_insert(hash_table_t *table, void *key, void *value,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *)) {
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
   if ((double)table->size / (double)table->capacity >
@@ -229,7 +229,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
     while (current != NULL) {
       if (compare(current->key, key) == 0) {
         current->value = value;
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
         return;
@@ -254,7 +254,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
         }
       } else if (compare(table->entries[index].key, key) == 0) {
         table->entries[index].value = value;
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
         return;
@@ -279,7 +279,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
 
   table->size++;
 
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   UNLOCK(table)
 #endif
 }
@@ -287,7 +287,7 @@ void hash_table_insert(hash_table_t *table, void *key, void *value,
 void *hash_table_lookup(hash_table_t *table, void *key,
                         size_t (*hash_func)(void *),
                         int (*compare)(void *, void *)) {
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
   size_t base_index = hash_func(key) % table->capacity;
@@ -298,7 +298,7 @@ void *hash_table_lookup(hash_table_t *table, void *key,
     hash_node_t *current = table->buckets[index];
     while (current) {
       if (compare(current->key, key) == 0) {
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
 
@@ -310,7 +310,7 @@ void *hash_table_lookup(hash_table_t *table, void *key,
     while (table->entries[index].key != table->nil) {
       if (table->entries[index].key != table->tombstone &&
           compare(table->entries[index].key, key) == 0) {
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
         return table->entries[index].value;
@@ -319,7 +319,7 @@ void *hash_table_lookup(hash_table_t *table, void *key,
       index = table->probing_func(base_index, iteration, table->capacity);
     }
   }
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   UNLOCK(table)
 #endif
 
@@ -330,7 +330,7 @@ void hash_table_remove(hash_table_t *table, void *key,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *),
                        void (*destroy)(hash_node_t *)) {
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
   size_t base_index = hash_func(key) % table->capacity;
@@ -363,7 +363,7 @@ void hash_table_remove(hash_table_t *table, void *key,
           destroy(current);
         }
         free(current);
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
         return;
@@ -390,7 +390,7 @@ void hash_table_remove(hash_table_t *table, void *key,
         }
 
         table->size--;
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
         return;
@@ -399,7 +399,7 @@ void hash_table_remove(hash_table_t *table, void *key,
       index = table->probing_func(base_index, iteration, table->capacity);
     }
   }
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   UNLOCK(table)
 #endif
 }
@@ -425,7 +425,7 @@ void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *)) {
              table->mode == HASH_QUADRATIC_PROBING) {
     free(table->entries);
   }
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   LOCK_DESTROY(table)
 #endif
   free(table->nil);
@@ -435,7 +435,7 @@ void hash_table_destroy(hash_table_t *table, void (*destroy)(hash_node_t *)) {
 
 hash_table_t *hash_table_clone(hash_table_t *table, void *(*clone_key)(void *),
                                void *(*clone_value)(void *)) {
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   LOCK(table);
 #endif
   void *key, *value;
@@ -477,7 +477,7 @@ hash_table_t *hash_table_clone(hash_table_t *table, void *(*clone_key)(void *),
     }
   }
 
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   UNLOCK(table);
 #endif
 

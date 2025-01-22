@@ -15,7 +15,7 @@ typedef struct deque {
   deque_node_t *tail;
   deque_node_t *nil;
   size_t size;
-#ifdef DEQUE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

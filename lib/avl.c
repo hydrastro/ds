@@ -14,7 +14,7 @@ avl_t *avl_create() {
   tree->root->right = tree->nil;
   tree->root->parent = tree->nil;
   tree->size = 0;
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(tree);
 #endif
   return tree;
@@ -31,21 +31,21 @@ void avl_inorder_walk_helper(avl_t *tree, avl_node_t *node,
 
 void avl_inorder_walk(avl_t *tree, avl_node_t *node,
                       void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_inorder_walk_helper(tree, node, callback);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 void avl_inorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_inorder_walk_helper(tree, tree->root, callback);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
@@ -59,21 +59,21 @@ void avl_preorder_walk_helper(avl_t *tree, avl_node_t *node,
 }
 void avl_preorder_walk(avl_t *tree, avl_node_t *node,
                        void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_preorder_walk_helper(tree, node, callback);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 void avl_preorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_preorder_walk_helper(tree, tree->root, callback);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
@@ -89,35 +89,35 @@ void avl_postorder_walk_helper(avl_t *tree, avl_node_t *node,
 
 void avl_postorder_walk(avl_t *tree, avl_node_t *node,
                         void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_postorder_walk_helper(tree, node, callback);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 void avl_postorder_walk_tree(avl_t *tree, void (*callback)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_inorder_walk_helper(tree, tree->root, callback);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 avl_node_t *avl_search(avl_t *tree, avl_node_t *data,
                        int (*compare)(avl_node_t *, avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_node_t *node = tree->root;
   while (node != tree->nil) {
     int cmp = compare(data, node);
     if (cmp == 0) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
       UNLOCK(tree)
 #endif
       return node;
@@ -127,7 +127,7 @@ avl_node_t *avl_search(avl_t *tree, avl_node_t *data,
       node = node->right;
     }
   }
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
   return tree->nil;
@@ -135,19 +135,19 @@ avl_node_t *avl_search(avl_t *tree, avl_node_t *data,
 
 void avl_destroy_node(avl_t *tree, avl_node_t *node,
                       void (*destroy)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_delete_node(tree, node);
   destroy(node);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 void avl_destroy_recursive(avl_t *tree, avl_node_t *node,
                            void (*destroy)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   if (node != tree->nil) {
@@ -156,50 +156,50 @@ void avl_destroy_recursive(avl_t *tree, avl_node_t *node,
     tree->size -= 1;
     destroy(node);
   }
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 void avl_destroy_tree(avl_t *tree, void (*destroy)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_destroy_recursive(tree, tree->root, destroy);
   tree->root = tree->nil;
   free(tree->nil);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK_DESTROY(tree);
 #endif
   free(tree);
 }
 
 int avl_get_height(avl_t *tree, avl_node_t *node) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   int result = node ? node->height : 0;
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
   return result;
 }
 
 int avl_get_balance(avl_t *tree, avl_node_t *node) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   int result = node ? avl_get_height(tree, node->left) -
                           avl_get_height(tree, node->right)
                     : 0;
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
   return result;
 }
 
 void avl_update_height(avl_t *tree, avl_node_t *node) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   int left_height = avl_get_height(tree, node->left);
@@ -208,7 +208,7 @@ void avl_update_height(avl_t *tree, avl_node_t *node) {
 }
 
 avl_node_t *avl_left_rotate(avl_t *tree, avl_node_t *node) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_node_t *right = node->right;
@@ -221,14 +221,14 @@ avl_node_t *avl_left_rotate(avl_t *tree, avl_node_t *node) {
   node->parent = right;
   avl_update_height(tree, node);
   avl_update_height(tree, right);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
   return right;
 }
 
 avl_node_t *avl_right_rotate(avl_t *tree, avl_node_t *node) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_node_t *left = node->left;
@@ -241,14 +241,14 @@ avl_node_t *avl_right_rotate(avl_t *tree, avl_node_t *node) {
   node->parent = left;
   avl_update_height(tree, node);
   avl_update_height(tree, left);
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
   return left;
 }
 
 avl_node_t *avl_balance(avl_t *tree, avl_node_t *node) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   avl_update_height(tree, node);
@@ -258,7 +258,7 @@ avl_node_t *avl_balance(avl_t *tree, avl_node_t *node) {
     if (avl_get_balance(tree, node->left) < 0) {
       node->left = avl_left_rotate(tree, node->left);
     }
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
     UNLOCK(tree)
 #endif
     return avl_right_rotate(tree, node);
@@ -266,12 +266,12 @@ avl_node_t *avl_balance(avl_t *tree, avl_node_t *node) {
     if (avl_get_balance(tree, node->right) > 0) {
       node->right = avl_right_rotate(tree, node->right);
     }
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
     UNLOCK(tree)
 #endif
     return avl_left_rotate(tree, node);
   }
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
   return node;
@@ -279,7 +279,7 @@ avl_node_t *avl_balance(avl_t *tree, avl_node_t *node) {
 
 void avl_insert(avl_t *tree, avl_node_t *data,
                 int (*compare)(avl_node_t *, avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
 
@@ -295,7 +295,7 @@ void avl_insert(avl_t *tree, avl_node_t *data,
     } else if (cmp > 0) {
       current = current->right;
     } else {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
       UNLOCK(tree);
 #endif
       return;
@@ -327,26 +327,26 @@ void avl_insert(avl_t *tree, avl_node_t *data,
   }
   tree->size += 1;
 
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree);
 #endif
 }
 
 avl_node_t *avl_min_node(avl_t *tree, avl_node_t *node) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   while (node->left != tree->nil) {
     node = node->left;
   }
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
   return node;
 }
 
 void avl_transplant(avl_t *tree, avl_node_t *u, avl_node_t *v) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
   if (u->parent == tree->nil) {
@@ -359,13 +359,13 @@ void avl_transplant(avl_t *tree, avl_node_t *u, avl_node_t *v) {
   if (v != tree->nil) {
     v->parent = u->parent;
   }
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree)
 #endif
 }
 
 void avl_delete_node(avl_t *tree, avl_node_t *data) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
   avl_node_t *y = data;
@@ -395,18 +395,18 @@ void avl_delete_node(avl_t *tree, avl_node_t *data) {
   }
   tree->size -= 1;
 
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree);
 #endif
 }
 
 void avl_delete_tree(avl_t *tree) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
   tree->root = tree->nil;
   tree->size = 0;
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree);
 #endif
 }
@@ -433,13 +433,13 @@ avl_node_t *avl_clone_recursive(avl_t *tree, avl_t *new_tree, avl_node_t *node,
 }
 
 avl_t *avl_clone(avl_t *tree, avl_node_t *(*clone_node)(avl_node_t *)) {
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
   avl_t *new_tree = avl_create();
   new_tree->root = avl_clone_recursive(tree, new_tree, tree->root, clone_node);
   new_tree->size = tree->size;
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   UNLOCK(tree);
 #endif
 

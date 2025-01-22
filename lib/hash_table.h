@@ -39,7 +39,7 @@ typedef struct hash_table {
   hash_table_mode_t mode;
   hash_probing_func_t probing_func;
   hash_node_t *last_node;
-#ifdef HASH_TABLE_THREAD_SAFE
+#ifdef HASH_DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

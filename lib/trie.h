@@ -29,7 +29,7 @@ typedef struct trie {
                       va_list *);
   void *(*store_clone)(struct trie *, void *, trie_node_t *);
 
-#ifdef TRIE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

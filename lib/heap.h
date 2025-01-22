@@ -14,7 +14,7 @@ typedef struct heap {
   size_t size;
   size_t capacity;
   heap_node_t *nil;
-#ifdef HEAP_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

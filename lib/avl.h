@@ -15,7 +15,7 @@ typedef struct avl {
   avl_node_t *root;
   avl_node_t *nil;
   size_t size;
-#ifdef AVL_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

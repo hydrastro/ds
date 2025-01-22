@@ -1,6 +1,6 @@
 # Data Structures
 
-A comprehensive collection of intrusive data structures implemented in C.  
+A comprehensive collection of intrusive, thread-safe data structures implemented in C.  
 
 ## Features
 
@@ -33,7 +33,8 @@ make install
 ## Usage
 Include the central header ds.h in your C code:
 ```C
-#include <ds.h>
+#include <ds.h> // thread unsafe
+#include <ds_safe.h> // thread safe
 ```
 
 To compile your project with the library:
@@ -41,7 +42,7 @@ To compile your project with the library:
 gcc -o example.c -lds
 ```
 
-For specific data structure usage, check out `test/*`.
+For specific data structure usage, check out the tests and the headers.
 
 ## Contributing
 

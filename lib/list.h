@@ -14,7 +14,7 @@ typedef struct linked_list {
   list_node_t *tail;
   list_node_t *nil;
   size_t size;
-#ifdef LIST_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif

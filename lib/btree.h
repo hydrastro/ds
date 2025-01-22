@@ -21,7 +21,7 @@ typedef struct btree {
   btree_internal_node_t *root;
   btree_node_t *nil;
   size_t size;
-#ifdef BTREE_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif
