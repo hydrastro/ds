@@ -18,20 +18,16 @@ Available data structures:
 - Stack
 - Trie
 
-## Compilation
-
+## Installation
+### With Nix
 ```shell
-gcc -c lib/*.c
+nix build
 ```
 
-## Installation
-Building the Static Library
-
-Archive the object files into a static library:
-
+### With Make
 ```shell
-ar rcs build/lib/libds.a *.o
-gcc -shared -o build/lib/libds.so *.o
+make
+make install
 ```
 
 ## Usage
@@ -42,11 +38,14 @@ Include the central header ds.h in your C code:
 
 To compile your project with the library:
 ```shell
-gcc -o my_program my_program.c -lds
+gcc -o example.c -lds
 ```
 
-For specific data structure usage, check out `test/*`
+For specific data structure usage, check out `test/*`.
 
-##Contributing
+## Contributing
 
-Contributions are welcome!
+Contributions are welcome!  
+Before submitting a pull request please:
+- format your code with `clang-format`
+- test your code with `valgrind`
