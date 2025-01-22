@@ -439,11 +439,12 @@ hash_table_t *FUNC(hash_table_clone)(hash_table_t *table, void *(*clone_key)(voi
   LOCK(table);
 #endif
   void *key, *value;
+  size_t i;
   hash_table_t *new_table =
       FUNC(hash_table_create)(table->capacity, table->mode, table->probing_func);
   new_table->size = table->size;
   if (table->mode == HASH_CHAINING) {
-    for (size_t i = 0; i < table->capacity; i++) {
+    for (i = 0; i < table->capacity; i++) {
       hash_node_t *current = table->buckets[i];
       while (current) {
         key = clone_key(current->key);
@@ -462,7 +463,7 @@ hash_table_t *FUNC(hash_table_clone)(hash_table_t *table, void *(*clone_key)(voi
     }
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    for (size_t i = 0; i < table->capacity; i++) {
+    for (i = 0; i < table->capacity; i++) {
       if (table->entries[i].key != table->nil &&
           table->entries[i].key != table->tombstone) {
         new_table->entries[i].key = clone_key(table->entries[i].key);

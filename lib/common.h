@@ -7,10 +7,8 @@
 
 #ifdef DS_THREAD_SAFE
 #define FUNC(name) name##_safe
-// #define TYPE(name) name_safe_t
 #else
 #define FUNC(name) name
-// #define TYPE(name) name_t
 #endif
 
 #ifndef CAST

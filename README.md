@@ -1,6 +1,6 @@
 # Data Structures
 
-A comprehensive collection of intrusive, thread-safe data structures implemented in C.  
+A comprehensive collection of intrusive, thread-safe data structures implemented in C89.  
 
 ## Features
 

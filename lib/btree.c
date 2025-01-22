@@ -512,13 +512,14 @@ FUNC(btree_clone_recursive)(btree_t *tree, btree_t *new_tree,
   btree_internal_node_t *new_node = FUNC(btree_create_node)(new_tree, node->is_leaf);
   new_node->num_keys = node->num_keys;
 
-  for (int i = 0; i < node->num_keys; i++) {
+  int i;
+  for (i = 0; i < node->num_keys; i++) {
     new_node->data[i] = clone_node(node->data[i]);
     new_node->data[i]->internal = new_node;
   }
 
   if (!node->is_leaf) {
-    for (int i = 0; i <= node->num_keys; i++) {
+    for (i = 0; i <= node->num_keys; i++) {
       new_node->children[i] =
           FUNC(btree_clone_recursive)(tree, new_tree, node->children[i], clone_node);
       if (new_node->children[i]) {

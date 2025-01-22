@@ -150,9 +150,10 @@ heap_t *FUNC(heap_clone)(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *)
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
+  size_t i;
   heap_t *new_heap = FUNC(heap_create)(heap->capacity);
   new_heap->size = heap->size;
-  for (size_t i = 0; i < heap->size; ++i) {
+  for (i = 0; i < heap->size; ++i) {
     heap_node_t *original_node = heap->data[i];
     heap_node_t *cloned_node = clone_node(original_node);
     new_heap->data[i] = cloned_node;

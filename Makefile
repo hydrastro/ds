@@ -1,6 +1,6 @@
 CC = gcc
 AR = ar
-CFLAGS = -c -fPIC
+CFLAGS = -c -fPIC -std=c89
 CFLAGS_SAFE = -D DS_THREAD_SAFE
 LDFLAGS = -shared
 
