@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-trie_node_t *trie_create_node(trie_t *trie) {
+trie_node_t *FUNC(trie_create_node)(trie_t *trie) {
   trie_node_t *node = (trie_node_t *)malloc(sizeof(trie_node_t));
   node->children = trie->store_create(trie->num_splits);
 
@@ -14,7 +14,7 @@ trie_node_t *trie_create_node(trie_t *trie) {
   return node;
 }
 
-trie_t *trie_create(
+trie_t *FUNC(trie_create)(
     size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
     void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
     void (*store_remove)(void *, trie_node_t *),
@@ -35,14 +35,14 @@ trie_t *trie_create(
   trie->store_get_size = store_get_size;
   trie->store_apply = store_apply;
   trie->store_clone = store_clone;
-  trie->root = trie_create_node(trie);
+  trie->root = FUNC(trie_create_node)(trie);
 #ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(trie)
 #endif
   return trie;
 }
 
-void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
+void FUNC(trie_insert)(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
                  bool (*has_slice)(void *, size_t)) {
 #ifdef DS_THREAD_SAFE
   LOCK(trie)
@@ -59,7 +59,7 @@ void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
     if (result != NULL) {
       current_node = result;
     } else {
-      trie_node_t *new_node = trie_create_node(trie);
+      trie_node_t *new_node = FUNC(trie_create_node)(trie);
       new_node->data_slice = current_slice;
       new_node->parent = current_node;
       trie->store_insert(current_node->children, new_node);
@@ -74,7 +74,7 @@ void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
 #endif
 }
 
-trie_node_t *trie_search(trie_t *trie, void *data,
+trie_node_t *FUNC(trie_search)(trie_t *trie, void *data,
                          size_t (*get_slice)(void *, size_t),
                          bool (*has_slice)(void *, size_t)) {
 #ifdef DS_THREAD_SAFE
@@ -108,7 +108,7 @@ trie_node_t *trie_search(trie_t *trie, void *data,
   return result;
 }
 
-void trie_delete_node(trie_t *trie, trie_node_t *node) {
+void FUNC(trie_delete_node)(trie_t *trie, trie_node_t *node) {
   trie_node_t *cur = node;
   trie_node_t *temp;
   if (!node->is_terminal) {
@@ -130,28 +130,28 @@ void trie_delete_node(trie_t *trie, trie_node_t *node) {
   }
 }
 
-void trie_destroy_node(trie_t *trie, trie_node_t *node,
+void FUNC(trie_destroy_node)(trie_t *trie, trie_node_t *node,
                        void (*destroy)(trie_t *, trie_node_t *, va_list *)) {
   if (!node->is_terminal) {
     return;
   }
   destroy(trie, node, NULL);
-  trie_delete_node(trie, node);
+  FUNC(trie_delete_node)(trie, node);
 }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-void trie_destroy_callback(trie_t *trie, trie_node_t *node, va_list *args) {
+void FUNC(trie_destroy_callback)(trie_t *trie, trie_node_t *node, va_list *args) {
   trie->store_destroy(node->children);
   free(node);
 }
 
-void trie_delete_trie(trie_t *trie) {
+void FUNC(trie_delete_trie)(trie_t *trie) {
   trie->store_apply(trie, trie->root->children, trie_destroy_callback, NULL);
   trie->store_destroy(trie->root->children);
 }
 
-void trie_destroy_trie(trie_t *trie,
+void FUNC(trie_destroy_trie)(trie_t *trie,
                        void (*destroy)(trie_t *, trie_node_t *, va_list *)) {
   if (destroy != NULL) {
     trie->store_apply(trie, trie->root->children, destroy, NULL);
@@ -165,7 +165,7 @@ void trie_destroy_trie(trie_t *trie,
   free(trie);
 }
 
-void trie_apply(trie_t *trie, trie_node_t *node,
+void FUNC(trie_apply)(trie_t *trie, trie_node_t *node,
                 void (*f)(trie_t *, trie_node_t *, va_list *), ...) {
   va_list args;
   va_start(args, f);
@@ -174,7 +174,7 @@ void trie_apply(trie_t *trie, trie_node_t *node,
   va_end(args);
 }
 
-trie_node_t *trie_clone_node(trie_t *trie, trie_node_t *node,
+trie_node_t *FUNC(trie_clone_node)(trie_t *trie, trie_node_t *node,
                              trie_node_t *parent_node,
                              void *(*clone_data)(void *)) {
 
@@ -189,7 +189,7 @@ trie_node_t *trie_clone_node(trie_t *trie, trie_node_t *node,
   return new_node;
 }
 
-trie_t *trie_clone(trie_t *trie, void *(*clone_data)(void *)) {
+trie_t *FUNC(trie_clone)(trie_t *trie, void *(*clone_data)(void *)) {
   trie_t *new_trie = (trie_t *)malloc(sizeof(trie_t));
   new_trie->num_splits = trie->num_splits;
   new_trie->store_search = trie->store_search;
@@ -202,7 +202,7 @@ trie_t *trie_clone(trie_t *trie, void *(*clone_data)(void *)) {
   new_trie->store_apply = trie->store_apply;
   new_trie->store_clone = trie->store_clone;
 
-  new_trie->root = trie_clone_node(trie, trie->root, NULL, clone_data);
+  new_trie->root = FUNC(trie_clone_node)(trie, trie->root, NULL, clone_data);
 
   return new_trie;
 }

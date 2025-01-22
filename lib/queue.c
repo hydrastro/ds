@@ -1,7 +1,7 @@
 #include "queue.h"
 #include <stdlib.h>
 
-queue_t *queue_create() {
+queue_t *FUNC(queue_create)() {
   queue_t *queue = (queue_t *)malloc(sizeof(queue_t));
   queue->nil = (queue_node_t *)malloc(sizeof(queue_node_t));
   queue->nil->next = queue->nil;
@@ -16,7 +16,7 @@ queue_t *queue_create() {
   return queue;
 }
 
-void queue_enqueue(queue_t *queue, queue_node_t *node) {
+void FUNC(queue_enqueue)(queue_t *queue, queue_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -36,7 +36,7 @@ void queue_enqueue(queue_t *queue, queue_node_t *node) {
 #endif
 }
 
-queue_node_t *queue_dequeue(queue_t *queue) {
+queue_node_t *FUNC(queue_dequeue)(queue_t *queue) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -62,7 +62,7 @@ queue_node_t *queue_dequeue(queue_t *queue) {
   return node;
 }
 
-queue_node_t *queue_peek(queue_t *queue) {
+queue_node_t *FUNC(queue_peek)(queue_t *queue) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -74,7 +74,7 @@ queue_node_t *queue_peek(queue_t *queue) {
   return result;
 }
 
-queue_node_t *queue_peek_tail(queue_t *queue) {
+queue_node_t *FUNC(queue_peek_tail)(queue_t *queue) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -85,7 +85,7 @@ queue_node_t *queue_peek_tail(queue_t *queue) {
   return result;
 }
 
-bool queue_is_empty(queue_t *queue) {
+bool FUNC(queue_is_empty)(queue_t *queue) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -99,7 +99,7 @@ bool queue_is_empty(queue_t *queue) {
   return empty;
 }
 
-void queue_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
+void FUNC(queue_destroy)(queue_t *queue, void (*destroy)(queue_node_t *)) {
   queue_node_t *node = queue->head;
   while (node != queue->nil) {
     queue_node_t *next = node->next;
@@ -117,7 +117,7 @@ void queue_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
   free(queue);
 }
 
-void queue_delete(queue_t *queue) {
+void FUNC(queue_delete)(queue_t *queue) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -128,7 +128,7 @@ void queue_delete(queue_t *queue) {
 #endif
 }
 
-void queue_delete_node(queue_t *queue, queue_node_t *node) {
+void FUNC(queue_delete_node)(queue_t *queue, queue_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -161,13 +161,13 @@ void queue_delete_node(queue_t *queue, queue_node_t *node) {
 #endif
 }
 
-void queue_destroy_node(queue_t *queue, queue_node_t *node,
+void FUNC(queue_destroy_node)(queue_t *queue, queue_node_t *node,
                         void (*destroy)(queue_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
-  queue_delete_node(queue, node);
+  FUNC(queue_delete_node)(queue, node);
   if (destroy != NULL) {
     destroy(node);
   }
@@ -177,13 +177,13 @@ void queue_destroy_node(queue_t *queue, queue_node_t *node,
 #endif
 }
 
-void queue_pop_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
+void FUNC(queue_pop_destroy)(queue_t *queue, void (*destroy)(queue_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
 
   if (queue->head != queue->nil) {
-    queue_node_t *node = queue_dequeue(queue);
+    queue_node_t *node = FUNC(queue_dequeue)(queue);
     if (destroy != NULL) {
       destroy(node);
     }
@@ -194,7 +194,7 @@ void queue_pop_destroy(queue_t *queue, void (*destroy)(queue_node_t *)) {
 #endif
 }
 
-queue_node_t *queue_search(queue_t *queue, queue_node_t *node,
+queue_node_t *FUNC(queue_search)(queue_t *queue, queue_node_t *node,
                            int (*compare)(queue_node_t *, queue_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
@@ -219,7 +219,7 @@ queue_node_t *queue_search(queue_t *queue, queue_node_t *node,
   return queue->nil;
 }
 
-void queue_walk_forward(queue_t *queue, queue_node_t *start_node,
+void FUNC(queue_walk_forward)(queue_t *queue, queue_node_t *start_node,
                         void (*callback)(queue_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
@@ -237,7 +237,7 @@ void queue_walk_forward(queue_t *queue, queue_node_t *start_node,
 #endif
 }
 
-void queue_walk_backwards(queue_t *queue, queue_node_t *current,
+void FUNC(queue_walk_backwards)(queue_t *queue, queue_node_t *current,
                           void (*callback)(queue_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
@@ -245,23 +245,23 @@ void queue_walk_backwards(queue_t *queue, queue_node_t *current,
   if (current == queue->nil) {
     return;
   }
-  queue_walk_backwards(queue, current->next, callback);
+  FUNC(queue_walk_backwards)(queue, current->next, callback);
   callback(current);
 #ifdef DS_THREAD_SAFE
   UNLOCK(queue)
 #endif
 }
 
-queue_t *queue_clone(queue_t *queue,
+queue_t *FUNC(queue_clone)(queue_t *queue,
                      queue_node_t *(*clone_node)(queue_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
-  queue_t *new_queue = queue_create();
+  queue_t *new_queue = FUNC(queue_create)();
   queue_node_t *current = queue->head;
   while (current != queue->nil) {
     queue_node_t *cloned_node = clone_node(current);
-    queue_enqueue(new_queue, cloned_node);
+    FUNC(queue_enqueue)(new_queue, cloned_node);
     current = current->next;
   }
 #ifdef DS_THREAD_SAFE

@@ -60,7 +60,7 @@ void heapify_down(heap_t *heap, size_t index,
 #endif
 }
 
-heap_t *heap_create(size_t capacity) {
+heap_t *FUNC(heap_create)(size_t capacity) {
   heap_t *heap = (heap_t *)malloc(sizeof(heap_t));
   heap->data = (heap_node_t **)malloc(capacity * sizeof(heap_node_t *));
   heap->size = 0;
@@ -73,7 +73,7 @@ heap_t *heap_create(size_t capacity) {
   return heap;
 }
 
-void heap_insert(heap_t *heap, heap_node_t *node,
+void FUNC(heap_insert)(heap_t *heap, heap_node_t *node,
                  int (*compare)(heap_node_t *, heap_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
@@ -92,12 +92,12 @@ void heap_insert(heap_t *heap, heap_node_t *node,
 #endif
 }
 
-void *heap_extract_root(heap_t *heap,
+void *FUNC(heap_extract_root)(heap_t *heap,
                         int (*compare)(heap_node_t *, heap_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
-  if (heap_is_empty(heap)) {
+  if (FUNC(heap_is_empty)(heap)) {
 #ifdef DS_THREAD_SAFE
     UNLOCK(heap)
 #endif
@@ -113,11 +113,11 @@ void *heap_extract_root(heap_t *heap,
   return root;
 }
 
-void *heap_peek_root(heap_t *heap) {
+void *FUNC(heap_peek_root)(heap_t *heap) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
-  if (heap_is_empty(heap)) {
+  if (FUNC(heap_is_empty)(heap)) {
 #ifdef DS_THREAD_SAFE
     UNLOCK(heap)
 #endif
@@ -129,9 +129,9 @@ void *heap_peek_root(heap_t *heap) {
   return heap->data[0];
 }
 
-bool heap_is_empty(heap_t *heap) { return heap->size == 0; }
+bool FUNC(heap_is_empty)(heap_t *heap) { return heap->size == 0; }
 
-void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
+void FUNC(heap_destroy)(heap_t *heap, void (*destroy)(heap_node_t *)) {
   size_t i;
   if (destroy != NULL) {
     for (i = 0; i < heap->size; ++i) {
@@ -146,11 +146,11 @@ void heap_destroy(heap_t *heap, void (*destroy)(heap_node_t *)) {
   free(heap);
 }
 
-heap_t *heap_clone(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *)) {
+heap_t *FUNC(heap_clone)(heap_t *heap, heap_node_t *(*clone_node)(heap_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
-  heap_t *new_heap = heap_create(heap->capacity);
+  heap_t *new_heap = FUNC(heap_create)(heap->capacity);
   new_heap->size = heap->size;
   for (size_t i = 0; i < heap->size; ++i) {
     heap_node_t *original_node = heap->data[i];

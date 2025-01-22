@@ -35,8 +35,8 @@ typedef struct trie {
 #endif
 } trie_t;
 
-trie_node_t *trie_create_node(trie_t *trie);
-trie_t *trie_create(
+trie_node_t *FUNC(trie_create_node)(trie_t *trie);
+trie_t *FUNC(trie_create)(
     size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
     void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
     void (*store_remove)(void *, trie_node_t *),
@@ -47,23 +47,23 @@ trie_t *trie_create(
                         va_list *),
     void *(*store_clone)(struct trie *, void *, trie_node_t *));
 
-void trie_insert(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
+void FUNC(trie_insert)(trie_t *trie, void *data, size_t (*get_slice)(void *, size_t),
                  bool (*has_slice)(void *, size_t));
-trie_node_t *trie_search(trie_t *trie, void *data,
+trie_node_t *FUNC(trie_search)(trie_t *trie, void *data,
                          size_t (*get_slice)(void *, size_t),
                          bool (*has_slice)(void *, size_t));
-void trie_delete_node(trie_t *trie, trie_node_t *node);
-void trie_destroy_node(trie_t *trie, trie_node_t *node,
+void FUNC(trie_delete_node)(trie_t *trie, trie_node_t *node);
+void FUNC(trie_destroy_node)(trie_t *trie, trie_node_t *node,
                        void (*destroy)(trie_t *, trie_node_t *, va_list *));
-void trie_destroy_callback(trie_t *trie, trie_node_t *node, va_list *args);
-void trie_delete_trie(trie_t *trie);
-void trie_destroy_trie(trie_t *trie,
+void FUNC(trie_destroy_callback)(trie_t *trie, trie_node_t *node, va_list *args);
+void FUNC(trie_delete_trie)(trie_t *trie);
+void FUNC(trie_destroy_trie)(trie_t *trie,
                        void (*destroy)(trie_t *, trie_node_t *, va_list *));
-void trie_apply(trie_t *trie, trie_node_t *node,
+void FUNC(trie_apply)(trie_t *trie, trie_node_t *node,
                 void (*f)(trie_t *, trie_node_t *, va_list *), ...);
-trie_node_t *trie_clone_node(trie_t *trie, trie_node_t *node,
+trie_node_t *FUNC(trie_clone_node)(trie_t *trie, trie_node_t *node,
                              trie_node_t *parent_node,
                              void *(*clone_data)(void *));
-trie_t *trie_clone(trie_t *trie, void *(*clone_data)(void *));
+trie_t *FUNC(trie_clone)(trie_t *trie, void *(*clone_data)(void *));
 
 #endif /* DS_TRIE_H */

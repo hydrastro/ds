@@ -27,50 +27,50 @@ typedef struct btree {
 #endif
 } btree_t;
 
-btree_internal_node_t *btree_create_node(btree_t *tree, bool is_leaf);
-btree_t *btree_create(int degree);
-void btree_split_child(btree_t *tree, btree_internal_node_t *parent, int index);
-void btree_insert_non_full(btree_t *tree, btree_internal_node_t *node,
+btree_internal_node_t *FUNC(btree_create_node)(btree_t *tree, bool is_leaf);
+btree_t *FUNC(btree_create)(int degree);
+void FUNC(btree_split_child)(btree_t *tree, btree_internal_node_t *parent, int index);
+void FUNC(btree_insert_non_full)(btree_t *tree, btree_internal_node_t *node,
                            btree_node_t *data,
                            int (*compare)(btree_node_t *, btree_node_t *));
-void btree_insert(btree_t *tree, btree_node_t *data,
+void FUNC(btree_insert)(btree_t *tree, btree_node_t *data,
                   int (*compare)(btree_node_t *, btree_node_t *));
-btree_node_t *btree_search_node(btree_t *tree, btree_internal_node_t *node,
+btree_node_t *FUNC(btree_search_node)(btree_t *tree, btree_internal_node_t *node,
                                 btree_node_t *key,
                                 int (*compare)(btree_node_t *, btree_node_t *));
-btree_node_t *btree_search(btree_t *tree, btree_node_t *key,
+btree_node_t *FUNC(btree_search)(btree_t *tree, btree_node_t *key,
                            int (*compare)(btree_node_t *, btree_node_t *));
-void *btree_local_minimum(btree_t *tree, btree_internal_node_t *node);
-void *btree_local_maximum(btree_t *tree, btree_internal_node_t *node);
-void *btree_minimum(btree_t *tree);
-void *btree_maximum(btree_t *tree);
-void btree_rebalance(btree_t *tree, btree_internal_node_t *node);
-void btree_delete_node(btree_t *tree, btree_node_t *key);
-void btree_destroy_node(btree_t *tree, btree_node_t *node,
+void *FUNC(btree_local_minimum)(btree_t *tree, btree_internal_node_t *node);
+void *FUNC(btree_local_maximum)(btree_t *tree, btree_internal_node_t *node);
+void *FUNC(btree_minimum)(btree_t *tree);
+void *FUNC(btree_maximum)(btree_t *tree);
+void FUNC(btree_rebalance)(btree_t *tree, btree_internal_node_t *node);
+void FUNC(btree_delete_node)(btree_t *tree, btree_node_t *key);
+void FUNC(btree_destroy_node)(btree_t *tree, btree_node_t *node,
                         void (*destroy)(btree_node_t *));
-void btree_destroy_recursive(btree_t *tree, btree_internal_node_t *node,
+void FUNC(btree_destroy_recursive)(btree_t *tree, btree_internal_node_t *node,
                              void (*destroy)(btree_node_t *));
-void btree_destroy_tree(btree_t *tree, void (*destroy)(btree_node_t *));
-void btree_inorder_walk_helper(btree_t *tree, btree_internal_node_t *node,
+void FUNC(btree_destroy_tree)(btree_t *tree, void (*destroy)(btree_node_t *));
+void FUNC(btree_inorder_walk_helper)(btree_t *tree, btree_internal_node_t *node,
                                void (*callback)(btree_node_t *));
-void btree_inorder_walk(btree_t *tree, btree_internal_node_t *node,
+void FUNC(btree_inorder_walk)(btree_t *tree, btree_internal_node_t *node,
                         void (*callback)(btree_node_t *));
-void btree_inorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *));
-void btree_preorder_walk_helper(btree_t *tree, btree_internal_node_t *node,
+void FUNC(btree_inorder_walk_tree)(btree_t *tree, void (*callback)(btree_node_t *));
+void FUNC(btree_preorder_walk_helper)(btree_t *tree, btree_internal_node_t *node,
                                 void (*callback)(btree_node_t *));
-void btree_preorder_walk(btree_t *tree, btree_internal_node_t *node,
+void FUNC(btree_preorder_walk)(btree_t *tree, btree_internal_node_t *node,
                          void (*callback)(btree_node_t *));
-void btree_preorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *));
-void btree_postorder_walk_helper(btree_t *tree, btree_internal_node_t *node,
+void FUNC(btree_preorder_walk_tree)(btree_t *tree, void (*callback)(btree_node_t *));
+void FUNC(btree_postorder_walk_helper)(btree_t *tree, btree_internal_node_t *node,
                                  void (*callback)(btree_node_t *));
-void btree_postorder_walk(btree_t *tree, btree_internal_node_t *node,
+void FUNC(btree_postorder_walk)(btree_t *tree, btree_internal_node_t *node,
                           void (*callback)(btree_node_t *));
-void btree_postorder_walk_tree(btree_t *tree, void (*callback)(btree_node_t *));
+void FUNC(btree_postorder_walk_tree)(btree_t *tree, void (*callback)(btree_node_t *));
 btree_internal_node_t *
-btree_clone_recursive(btree_t *tree, btree_t *new_tree,
+FUNC(btree_clone_recursive)(btree_t *tree, btree_t *new_tree,
                       btree_internal_node_t *node,
                       btree_node_t *(*clone_node)(btree_node_t *));
-btree_t *btree_clone(btree_t *tree,
+btree_t *FUNC(btree_clone)(btree_t *tree,
                      btree_node_t *(*clone_node)(btree_node_t *));
 
 #endif /* DS_BTREE_H */

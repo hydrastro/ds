@@ -21,37 +21,37 @@ typedef struct dlist {
 #endif
 } dlist_t;
 
-dlist_t *dlist_create(void);
+dlist_t *FUNC(dlist_create)(void);
 
-void dlist_append(dlist_t *list, dlist_node_t *node);
+void FUNC(dlist_append)(dlist_t *list, dlist_node_t *node);
 
-void dlist_prepend(dlist_t *list, dlist_node_t *node);
+void FUNC(dlist_prepend)(dlist_t *list, dlist_node_t *node);
 
-dlist_node_t *dlist_search(dlist_t *list, dlist_node_t *node,
+dlist_node_t *FUNC(dlist_search)(dlist_t *list, dlist_node_t *node,
                            int (*compare)(dlist_node_t *, dlist_node_t *));
 
-void dlist_insert_before(dlist_t *list, dlist_node_t *node, dlist_node_t *next);
+void FUNC(dlist_insert_before)(dlist_t *list, dlist_node_t *node, dlist_node_t *next);
 
-void dlist_insert_after(dlist_t *list, dlist_node_t *node, dlist_node_t *prev);
+void FUNC(dlist_insert_after)(dlist_t *list, dlist_node_t *node, dlist_node_t *prev);
 
-void dlist_delete_node(dlist_t *list, dlist_node_t *node);
+void FUNC(dlist_delete_node)(dlist_t *list, dlist_node_t *node);
 
-void dlist_delete(dlist_t *list);
+void FUNC(dlist_delete)(dlist_t *list);
 
-void dlist_destroy_node(dlist_t *list, dlist_node_t *node,
+void FUNC(dlist_destroy_node)(dlist_t *list, dlist_node_t *node,
                         void (*destroy)(dlist_node_t *));
 
-void dlist_destroy(dlist_t *list, void (*destroy)(dlist_node_t *));
+void FUNC(dlist_destroy)(dlist_t *list, void (*destroy)(dlist_node_t *));
 
-void dlist_walk_forward(dlist_t *list, dlist_node_t *node,
+void FUNC(dlist_walk_forward)(dlist_t *list, dlist_node_t *node,
                         void (*callback)(dlist_node_t *));
 
-void dlist_walk_backwards(dlist_t *list, dlist_node_t *node,
+void FUNC(dlist_walk_backwards)(dlist_t *list, dlist_node_t *node,
                           void (*callback)(dlist_node_t *));
 
-bool dlist_is_empty(dlist_t *);
+bool FUNC(dlist_is_empty)(dlist_t *);
 
-dlist_t *dlist_clone(dlist_t *list,
+dlist_t *FUNC(dlist_clone)(dlist_t *list,
                      dlist_node_t *(*clone_node)(dlist_node_t *));
 
 #endif /* DS_DLIST_H */
