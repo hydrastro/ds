@@ -147,7 +147,7 @@ void FUNC(trie_destroy_callback)(trie_t *trie, trie_node_t *node, va_list *args)
 }
 
 void FUNC(trie_delete_trie)(trie_t *trie) {
-  trie->store_apply(trie, trie->root->children, trie_destroy_callback, NULL);
+  trie->store_apply(trie, trie->root->children, FUNC(trie_destroy_callback), NULL);
   trie->store_destroy(trie->root->children);
 }
 
@@ -156,7 +156,7 @@ void FUNC(trie_destroy_trie)(trie_t *trie,
   if (destroy != NULL) {
     trie->store_apply(trie, trie->root->children, destroy, NULL);
   }
-  trie->store_apply(trie, trie->root->children, trie_destroy_callback, NULL);
+  trie->store_apply(trie, trie->root->children, FUNC(trie_destroy_callback), NULL);
   trie->store_destroy(trie->root->children);
   if (destroy != NULL) {
     destroy(trie, trie->root, NULL);
