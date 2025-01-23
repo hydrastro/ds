@@ -189,6 +189,7 @@ int FUNC(avl_get_height)(avl_t *tree, avl_node_t *node) {
 #endif
   return result;
 }
+#pragma GCC diagnostic pop
 
 int FUNC(avl_get_balance)(avl_t *tree, avl_node_t *node) {
   int result;

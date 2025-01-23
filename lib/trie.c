@@ -150,6 +150,7 @@ void FUNC(trie_destroy_callback)(trie_t *trie, trie_node_t *node,
   trie->store_destroy(node->children);
   free(node);
 }
+#pragma GCC diagnostic pop
 
 void FUNC(trie_delete_trie)(trie_t *trie) {
   trie->store_apply(trie, trie->root->children, FUNC(trie_destroy_callback),

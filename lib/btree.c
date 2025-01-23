@@ -197,6 +197,7 @@ void *FUNC(btree_local_minimum)(btree_t *tree, btree_internal_node_t *node) {
 
   return node->data[0];
 }
+#pragma GCC diagnostic pop
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -215,6 +216,7 @@ void *FUNC(btree_local_maximum)(btree_t *tree, btree_internal_node_t *node) {
 
   return node->data[node->num_keys - 1];
 }
+#pragma GCC diagnostic pop
 
 void *FUNC(btree_minimum)(btree_t *tree) {
   return FUNC(btree_local_minimum)(tree, tree->root);

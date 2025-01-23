@@ -120,6 +120,7 @@ void print_trie_node(trie_t *trie, trie_node_t *node, va_list *args) {
     fflush(stdout);
   }
 }
+#pragma GCC diagnostic pop
 
 void print_trie(trie_t *trie) {
   printf("Printing Trie Structure:\n");
