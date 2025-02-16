@@ -47,6 +47,8 @@ typedef struct rbt {
   rbt_node_t *root;
   rbt_node_t *nil;
   size_t size;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -57,12 +59,12 @@ void FUNC(rbt_set_parent)(rbt_node_t *node, rbt_node_t *parent);
 void FUNC(rbt_set_parent_color)(rbt_node_t *node, rbt_node_t *parent,
                                 int color);
 rbt_t *FUNC(rbt_create)(void);
-
+rbt_t *FUNC(rbt_create_alloc)(void *(*allocator)(size_t),
+                              void (*deallocator)(void *));
 rbt_node_t *FUNC(rbt_minimum)(rbt_t *tree, rbt_node_t *node_x);
 rbt_node_t *FUNC(rbt_maximum)(rbt_t *tree, rbt_node_t *node_x);
 rbt_node_t *FUNC(rbt_successor)(rbt_t *tree, rbt_node_t *node_x);
 rbt_node_t *FUNC(rbt_predecessor)(rbt_t *tree, rbt_node_t *node_x);
-
 rbt_node_t *FUNC(rbt_search)(rbt_t *tree, rbt_node_t *node_x, rbt_node_t *data,
                              int (*compare)(rbt_node_t *, rbt_node_t *));
 
@@ -72,7 +74,6 @@ rbt_node_t *FUNC(rbt_bigger_than)(rbt_t *tree, rbt_node_t *node_x,
 rbt_node_t *FUNC(rbt_smaller_than)(rbt_t *tree, rbt_node_t *node_x,
                                    rbt_node_t *key,
                                    int (*compare)(rbt_node_t *, rbt_node_t *));
-
 void FUNC(rbt_left_rotate)(rbt_t *tree, rbt_node_t *node_x);
 void FUNC(rbt_right_rotate)(rbt_t *tree, rbt_node_t *node_x);
 void FUNC(rbt_insert_fixup)(rbt_t *tree, rbt_node_t *node_z);
@@ -95,7 +96,6 @@ void FUNC(rbt_postorder_walk)(rbt_t *tree, rbt_node_t *node,
 void FUNC(rbt_postorder_walk_tree)(rbt_t *tree, void (*callback)(void *));
 void FUNC(rbt_transplant)(rbt_t *tree, rbt_node_t *node_u, rbt_node_t *node_v);
 void FUNC(rbt_delete_fixup)(rbt_t *tree, rbt_node_t *node_x);
-
 void FUNC(rbt_delete_node)(rbt_t *tree, rbt_node_t *node_z);
 void FUNC(rbt_delete_tree)(rbt_t *tree);
 void FUNC(rbt_destroy_node)(rbt_t *tree, rbt_node_t *node,

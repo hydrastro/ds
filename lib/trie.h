@@ -28,7 +28,8 @@ typedef struct trie {
                       void (*)(struct trie *, trie_node_t *, va_list *),
                       va_list *);
   void *(*store_clone)(struct trie *, void *, trie_node_t *);
-
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -46,7 +47,17 @@ trie_t *FUNC(trie_create)(
                         void (*)(struct trie *, trie_node_t *, va_list *),
                         va_list *),
     void *(*store_clone)(struct trie *, void *, trie_node_t *));
-
+trie_t *FUNC(trie_create_alloc)(
+    size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
+    void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
+    void (*store_remove)(void *, trie_node_t *),
+    void (*store_destroy_entry)(void *, trie_node_t *),
+    void (*store_destroy)(void *), size_t (*store_get_size)(void *),
+    void (*store_apply)(struct trie *, void *,
+                        void (*)(struct trie *, trie_node_t *, va_list *),
+                        va_list *),
+    void *(*store_clone)(struct trie *, void *, trie_node_t *),
+    void *(*allocator)(size_t), void (*deallocator)(void *));
 void FUNC(trie_insert)(trie_t *trie, void *data,
                        size_t (*get_slice)(void *, size_t),
                        bool (*has_slice)(void *, size_t));

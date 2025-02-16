@@ -5,12 +5,12 @@
 
 btree_internal_node_t *FUNC(btree_create_node)(btree_t *tree, bool is_leaf) {
   btree_internal_node_t *node =
-      (btree_internal_node_t *)malloc(sizeof(btree_internal_node_t));
+      (btree_internal_node_t *)tree->allocator(sizeof(btree_internal_node_t));
   node->num_keys = 0;
   node->is_leaf = is_leaf;
-  node->data = (btree_node_t **)malloc((2 * (unsigned int)tree->degree - 1) *
-                                       sizeof(btree_node_t *));
-  node->children = (btree_internal_node_t **)malloc(
+  node->data = (btree_node_t **)tree->allocator(
+      (2 * (unsigned int)tree->degree - 1) * sizeof(btree_node_t *));
+  node->children = (btree_internal_node_t **)tree->allocator(
       2 * (unsigned int)tree->degree * sizeof(btree_internal_node_t *));
   memset(node->children, 0,
          2 * (unsigned int)tree->degree * sizeof(btree_internal_node_t *));
@@ -18,11 +18,18 @@ btree_internal_node_t *FUNC(btree_create_node)(btree_t *tree, bool is_leaf) {
 }
 
 btree_t *FUNC(btree_create)(int degree) {
-  btree_t *tree = (btree_t *)malloc(sizeof(btree_t));
+  return btree_create_alloc(degree, malloc, free);
+}
+
+btree_t *FUNC(btree_create_alloc)(int degree, void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
+  btree_t *tree = (btree_t *)allocator(sizeof(btree_t));
+  tree->allocator = allocator;
+  tree->deallocator = deallocator;
   tree->degree = degree;
   tree->root = FUNC(btree_create_node)(tree, true);
   tree->root->parent = NULL;
-  tree->nil = (btree_node_t *)malloc(sizeof(btree_node_t));
+  tree->nil = (btree_node_t *)allocator(sizeof(btree_node_t));
   tree->size = 0;
 
 #ifdef DS_THREAD_SAFE
@@ -283,9 +290,9 @@ void FUNC(btree_rebalance)(btree_t *tree, btree_internal_node_t *node) {
       recipient->data[recipient->num_keys]->internal = recipient;
       recipient->num_keys++;
     }
-    free(next->children);
-    free(next->data);
-    free(next);
+    tree->deallocator(next->children);
+    tree->deallocator(next->data);
+    tree->deallocator(next);
 
     for (j = i + 1; j < parent->num_keys; j++) {
       parent->data[j - 1] = parent->data[j];
@@ -298,9 +305,9 @@ void FUNC(btree_rebalance)(btree_t *tree, btree_internal_node_t *node) {
     if (parent == tree->root && parent->num_keys == 0) {
       tree->root = recipient;
       tree->root->parent = NULL;
-      free(parent->children);
-      free(parent->data);
-      free(parent);
+      tree->deallocator(parent->children);
+      tree->deallocator(parent->data);
+      tree->deallocator(parent);
     } else if (parent->num_keys < tree->degree - 1) {
       FUNC(btree_rebalance)(tree, parent);
     }
@@ -390,9 +397,9 @@ void FUNC(btree_destroy_recursive)(btree_t *tree, btree_internal_node_t *node,
   for (i = 0; i < node->num_keys; i++) {
     destroy(node->data[i]);
   }
-  free(node->children);
-  free(node->data);
-  free(node);
+  tree->deallocator(node->children);
+  tree->deallocator(node->data);
+  tree->deallocator(node);
 
 #ifdef DS_THREAD_SAFE
   UNLOCK(tree)
@@ -404,11 +411,11 @@ void FUNC(btree_destroy_tree)(btree_t *tree, void (*destroy)(btree_node_t *)) {
   LOCK(tree)
 #endif
   FUNC(btree_destroy_recursive)(tree, tree->root, destroy);
-  free(tree->nil);
+  tree->deallocator(tree->nil);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(tree)
 #endif
-  free(tree);
+  tree->deallocator(tree);
 }
 
 void FUNC(btree_inorder_walk_helper)(btree_t *tree, btree_internal_node_t *node,
@@ -562,9 +569,11 @@ btree_t *FUNC(btree_clone)(btree_t *tree,
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  new_tree = (btree_t *)malloc(sizeof(btree_t));
+  new_tree = (btree_t *)tree->allocator(sizeof(btree_t));
+  new_tree->allocator = tree->allocator;
+  new_tree->deallocator = tree->deallocator;
   new_tree->degree = tree->degree;
-  new_tree->nil = (btree_node_t *)malloc(sizeof(btree_node_t));
+  new_tree->nil = (btree_node_t *)tree->allocator(sizeof(btree_node_t));
 
 #ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(tree)

@@ -11,10 +11,15 @@ void FUNC(rbt_set_parent_color)(rbt_node_t *node, rbt_node_t *parent,
   node->parent_color = (unsigned long)parent + (long unsigned int)color;
 }
 
-rbt_t *FUNC(rbt_create)(void) {
+rbt_t *FUNC(rbt_create)(void) { return FUNC(rbt_create_alloc(malloc, free)); }
+
+rbt_t *FUNC(rbt_create_alloc)(void *(*allocator)(size_t),
+                              void (*deallocator)(void *)) {
   rbt_t *tree;
-  tree = (rbt_t *)malloc(sizeof(rbt_t));
-  tree->nil = (rbt_node_t *)malloc(sizeof(rbt_node_t));
+  tree = (rbt_t *)allocator(sizeof(rbt_t));
+  tree->allocator = allocator;
+  tree->deallocator = deallocator;
+  tree->nil = (rbt_node_t *)allocator(sizeof(rbt_node_t));
   tree->nil->parent_color = RBT_BLACK;
   tree->root = tree->nil;
   FUNC(rbt_set_parent_color)(tree->root, tree->nil, RBT_BLACK);
@@ -579,8 +584,8 @@ void FUNC(rbt_destroy_tree)(rbt_t *tree, void (*destroy)(rbt_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(tree)
 #endif
-  free(tree->nil);
-  free(tree);
+  tree->deallocator(tree->nil);
+  tree->deallocator(tree);
 }
 
 rbt_node_t *FUNC(rbt_clone_recursive)(rbt_t *tree, rbt_t *new_tree,
@@ -605,7 +610,7 @@ rbt_t *FUNC(rbt_clone)(rbt_t *tree, rbt_node_t *(*clone_node)(rbt_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  new_tree = FUNC(rbt_create)();
+  new_tree = FUNC(rbt_create_alloc)(tree->allocator, tree->deallocator);
   new_tree->root =
       FUNC(rbt_clone_recursive)(tree, new_tree, tree->root, clone_node);
   new_tree->size = tree->size;

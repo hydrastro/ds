@@ -2,9 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-avl_t *FUNC(avl_create)(void) {
-  avl_t *tree = (avl_t *)malloc(sizeof(avl_t));
-  tree->nil = (avl_node_t *)malloc(sizeof(avl_node_t));
+avl_t *FUNC(avl_create)(void) { return FUNC(avl_create_alloc)(malloc, free); }
+
+avl_t *FUNC(avl_create_alloc)(void *(*allocator)(size_t),
+                              void (*deallocator)(void *)) {
+  avl_t *tree = (avl_t *)allocator(sizeof(avl_t));
+  tree->allocator = allocator;
+  tree->deallocator = deallocator;
+  tree->nil = (avl_node_t *)allocator(sizeof(avl_node_t));
   tree->nil->height = 0;
   tree->nil->left = tree->nil;
   tree->nil->right = tree->nil;
@@ -169,11 +174,11 @@ void FUNC(avl_destroy_tree)(avl_t *tree, void (*destroy)(avl_node_t *)) {
 #endif
   FUNC(avl_destroy_recursive)(tree, tree->root, destroy);
   tree->root = tree->nil;
-  free(tree->nil);
+  tree->deallocator(tree->nil);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(tree);
 #endif
-  free(tree);
+  tree->deallocator(tree);
 }
 
 #pragma GCC diagnostic push
@@ -451,7 +456,7 @@ avl_t *FUNC(avl_clone)(avl_t *tree, avl_node_t *(*clone_node)(avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  new_tree = FUNC(avl_create)();
+  new_tree = FUNC(avl_create_alloc)(tree->allocator, tree->deallocator);
   new_tree->root =
       FUNC(avl_clone_recursive)(tree, new_tree, tree->root, clone_node);
   new_tree->size = tree->size;

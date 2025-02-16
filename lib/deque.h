@@ -15,6 +15,8 @@ typedef struct deque {
   deque_node_t *tail;
   deque_node_t *nil;
   size_t size;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -22,6 +24,8 @@ typedef struct deque {
 } deque_t;
 
 deque_t *FUNC(deque_create)(void);
+deque_t *FUNC(deque_create_alloc)(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *));
 void FUNC(deque_push_front)(deque_t *deque, deque_node_t *node);
 void FUNC(deque_push_back)(deque_t *deque, deque_node_t *node);
 deque_node_t *FUNC(deque_pop_front)(deque_t *deque);

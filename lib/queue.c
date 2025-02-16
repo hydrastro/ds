@@ -2,8 +2,15 @@
 #include <stdlib.h>
 
 queue_t *FUNC(queue_create)(void) {
-  queue_t *queue = (queue_t *)malloc(sizeof(queue_t));
-  queue->nil = (queue_node_t *)malloc(sizeof(queue_node_t));
+  return FUNC(queue_create_alloc)(malloc, free);
+}
+
+queue_t *FUNC(queue_create_alloc)(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
+  queue_t *queue = (queue_t *)allocator(sizeof(queue_t));
+  queue->allocator = allocator;
+  queue->deallocator = deallocator;
+  queue->nil = (queue_node_t *)allocator(sizeof(queue_node_t));
   queue->nil->next = queue->nil;
   queue->head = queue->nil;
   queue->tail = queue->nil;
@@ -112,13 +119,13 @@ void FUNC(queue_destroy)(queue_t *queue, void (*destroy)(queue_node_t *)) {
     }
     node = next;
   }
-  free(queue->nil);
+  queue->deallocator(queue->nil);
 
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(queue)
 #endif
 
-  free(queue);
+  queue->deallocator(queue);
 }
 
 void FUNC(queue_delete)(queue_t *queue) {
@@ -266,7 +273,7 @@ queue_t *FUNC(queue_clone)(queue_t *queue,
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
-  new_queue = FUNC(queue_create)();
+  new_queue = FUNC(queue_create_alloc)(queue->allocator, queue->deallocator);
   current = queue->head;
   while (current != queue->nil) {
     queue_node_t *cloned_node = clone_node(current);

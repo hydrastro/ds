@@ -15,6 +15,8 @@ typedef struct avl {
   avl_node_t *root;
   avl_node_t *nil;
   size_t size;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -22,6 +24,7 @@ typedef struct avl {
 } avl_t;
 
 avl_t *FUNC(avl_create)(void);
+avl_t *FUNC(avl_create_alloc)(void *(*alloc)(size_t), void (*free)(void *));
 avl_node_t *FUNC(avl_search)(avl_t *tree, avl_node_t *data,
                              int (*compare)(avl_node_t *, avl_node_t *));
 void FUNC(avl_insert)(avl_t *tree, avl_node_t *data,

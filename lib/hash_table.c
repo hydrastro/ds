@@ -106,8 +106,9 @@ size_t hash_func_double(void *key) {
 
 size_t hash_func_default(void *key) { return (size_t)key; }
 
-static hash_node_t *hash_node_create(void *key, void *value) {
-  hash_node_t *node = (hash_node_t *)malloc(sizeof(hash_node_t));
+static hash_node_t *hash_node_create(hash_table_t *table, void *key,
+                                     void *value) {
+  hash_node_t *node = (hash_node_t *)table->allocator(sizeof(hash_node_t));
   node->key = key;
   node->value = value;
   node->next = NULL;
@@ -128,20 +129,34 @@ static size_t next_prime_capacity(size_t current_capacity) {
 
 hash_table_t *FUNC(hash_table_create)(size_t capacity, hash_table_mode_t mode,
                                       hash_probing_func_t probing_func) {
+  return FUNC(hash_table_create_alloc)(capacity, mode, probing_func, malloc,
+                                       free);
+}
+
+hash_table_t *FUNC(hash_table_create_alloc)(size_t capacity,
+                                            hash_table_mode_t mode,
+                                            hash_probing_func_t probing_func,
+                                            void *(*allocator)(size_t),
+                                            void (*deallocator)(void *)) {
+
   size_t i;
-  hash_table_t *table = (hash_table_t *)malloc(sizeof(hash_table_t));
+  hash_table_t *table = (hash_table_t *)allocator(sizeof(hash_table_t));
+  table->allocator = allocator;
+  table->deallocator = deallocator;
   table->capacity = next_prime_capacity(capacity);
   table->size = 0;
-  table->nil = (void *)malloc(sizeof(void *));
-  table->tombstone = (void *)malloc(sizeof(void *));
+  table->nil = (void *)allocator(sizeof(void *));
+  table->tombstone = (void *)allocator(sizeof(void *));
   table->mode = mode;
   table->last_node = NULL;
   if (mode == HASH_CHAINING) {
     table->store.buckets =
-        (hash_node_t **)calloc(table->capacity, sizeof(hash_node_t *));
+        (hash_node_t **)allocator(table->capacity * sizeof(hash_node_t *));
+    memset(table->store.buckets, 0, table->capacity * sizeof(hash_node_t *));
   } else if (mode == HASH_LINEAR_PROBING || mode == HASH_QUADRATIC_PROBING) {
     table->store.entries =
-        (hash_node_t *)calloc(table->capacity, sizeof(hash_node_t));
+        (hash_node_t *)table->allocator(table->capacity * sizeof(hash_node_t));
+    memset(table->store.entries, 0, table->capacity * sizeof(hash_node_t));
     for (i = 0; i < table->capacity; i++) {
       table->store.entries[i].key = table->nil;
     }
@@ -192,10 +207,10 @@ void FUNC(hash_table_resize)(hash_table_t *table, size_t new_capacity,
   }
 
   if (table->mode == HASH_CHAINING) {
-    free(table->store.buckets);
+    table->deallocator(table->store.buckets);
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    free(table->store.entries);
+    table->deallocator(table->store.entries);
   }
 
   table->capacity = new_table->capacity;
@@ -207,7 +222,7 @@ void FUNC(hash_table_resize)(hash_table_t *table, size_t new_capacity,
     table->store.entries = new_table->store.entries;
   }
 
-  free(new_table);
+  table->deallocator(new_table);
 }
 
 void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
@@ -242,7 +257,7 @@ void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
       }
       current = current->next;
     }
-    new_node = hash_node_create(key, value);
+    new_node = hash_node_create(table, key, value);
 
     if (table->last_node != NULL) {
       table->last_node->list_next = new_node;
@@ -368,7 +383,7 @@ void FUNC(hash_table_remove)(hash_table_t *table, void *key,
         if (destroy != NULL) {
           destroy(current);
         }
-        free(current);
+        table->deallocator(current);
 #ifdef HASH_DS_THREAD_SAFE
         UNLOCK(table)
 #endif
@@ -423,21 +438,21 @@ void FUNC(hash_table_destroy)(hash_table_t *table,
         if (destroy) {
           destroy(current);
         }
-        free(current);
+        table->deallocator(current);
         current = next;
       }
     }
-    free(table->store.buckets);
+    table->deallocator(table->store.buckets);
   } else if (table->mode == HASH_LINEAR_PROBING ||
              table->mode == HASH_QUADRATIC_PROBING) {
-    free(table->store.entries);
+    table->deallocator(table->store.entries);
   }
 #ifdef HASH_DS_THREAD_SAFE
   LOCK_DESTROY(table)
 #endif
-  free(table->nil);
-  free(table->tombstone);
-  free(table);
+  table->deallocator(table->nil);
+  table->deallocator(table->tombstone);
+  table->deallocator(table);
 }
 
 hash_table_t *FUNC(hash_table_clone)(hash_table_t *table,
@@ -450,8 +465,9 @@ hash_table_t *FUNC(hash_table_clone)(hash_table_t *table,
   size_t i;
   hash_node_t *current;
   hash_node_t *new_node;
-  hash_table_t *new_table = FUNC(hash_table_create)(
-      table->capacity, table->mode, table->probing_func);
+  hash_table_t *new_table = FUNC(hash_table_create_alloc)(
+      table->capacity, table->mode, table->probing_func, table->allocator,
+      table->deallocator);
   new_table->size = table->size;
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
@@ -459,7 +475,7 @@ hash_table_t *FUNC(hash_table_clone)(hash_table_t *table,
       while (current) {
         key = clone_key(current->key);
         value = clone_value(current->value);
-        new_node = hash_node_create(key, value);
+        new_node = hash_node_create(table, key, value);
         new_node->next = new_table->store.buckets[i];
         new_table->store.buckets[i] = new_node;
         if (new_table->last_node) {

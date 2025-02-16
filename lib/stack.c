@@ -2,8 +2,15 @@
 #include <stdlib.h>
 
 stack_t *FUNC(stack_create)(void) {
-  stack_t *stack = (stack_t *)malloc(sizeof(stack_t));
-  stack->nil = (stack_node_t *)malloc(sizeof(stack_node_t));
+  return FUNC(stack_create_alloc(malloc, free));
+}
+
+stack_t *FUNC(stack_create_alloc)(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
+  stack_t *stack = (stack_t *)allocator(sizeof(stack_t));
+  stack->allocator = allocator;
+  stack->deallocator = deallocator;
+  stack->nil = (stack_node_t *)allocator(sizeof(stack_node_t));
   stack->nil->next = stack->nil;
   stack->top = stack->nil;
   stack->size = 0;
@@ -76,11 +83,11 @@ void FUNC(stack_destroy)(stack_t *stack, void (*destroy)(stack_node_t *)) {
     destroy(node);
     node = next;
   }
-  free(stack->nil);
+  stack->deallocator(stack->nil);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(stack)
 #endif
-  free(stack);
+  stack->deallocator(stack);
 }
 
 void FUNC(stack_delete)(stack_t *stack) {
@@ -228,8 +235,8 @@ stack_t *FUNC(stack_clone)(stack_t *stack,
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
 #endif
-  temp_stack = FUNC(stack_create)();
-  new_stack = FUNC(stack_create)();
+  temp_stack = FUNC(stack_create_alloc)(stack->allocator, stack->deallocator);
+  new_stack = FUNC(stack_create_alloc)(stack->allocator, stack->deallocator);
   current = stack->top;
   while (current != stack->nil) {
     stack_node_t *cloned_node = clone_node(current);

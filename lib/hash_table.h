@@ -39,6 +39,8 @@ typedef struct hash_table {
   hash_table_mode_t mode;
   hash_probing_func_t probing_func;
   hash_node_t *last_node;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef HASH_DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -55,6 +57,11 @@ size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity);
 size_t linear_probing(size_t base_index, size_t iteration, size_t capacity);
 hash_table_t *FUNC(hash_table_create)(size_t capacity, hash_table_mode_t mode,
                                       hash_probing_func_t probing_func);
+hash_table_t *FUNC(hash_table_create_alloc)(size_t capacity,
+                                            hash_table_mode_t mode,
+                                            hash_probing_func_t probing_func,
+                                            void *(*allocator)(size_t),
+                                            void (*deallocator)(void *));
 void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *));

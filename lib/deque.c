@@ -2,8 +2,15 @@
 #include <stdlib.h>
 
 deque_t *FUNC(deque_create)(void) {
-  deque_t *deque = (deque_t *)malloc(sizeof(deque_t));
-  deque->nil = (deque_node_t *)malloc(sizeof(deque_node_t));
+  return FUNC(deque_create_alloc)(malloc, free);
+}
+
+deque_t *FUNC(deque_create_alloc)(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
+  deque_t *deque = (deque_t *)allocator(sizeof(deque_t));
+  deque->allocator = allocator;
+  deque->deallocator = deallocator;
+  deque->nil = (deque_node_t *)allocator(sizeof(deque_node_t));
   deque->nil->next = deque->nil;
   deque->nil->prev = deque->nil;
   deque->head = deque->nil;
@@ -163,13 +170,13 @@ void FUNC(deque_destroy)(deque_t *deque, void (*destroy)(deque_node_t *)) {
     }
     node = next;
   }
-  free(deque->nil);
+  deque->deallocator(deque->nil);
 
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(deque)
 #endif
 
-  free(deque);
+  deque->deallocator(deque);
 }
 
 void FUNC(deque_delete)(deque_t *deque) {
@@ -336,7 +343,7 @@ deque_t *FUNC(deque_clone)(deque_t *deque,
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
-  new_deque = FUNC(deque_create)();
+  new_deque = FUNC(deque_create_alloc)(deque->allocator, deque->deallocator);
   current = deque->head;
   while (current != deque->nil) {
     deque_node_t *cloned_node = clone_node(current);

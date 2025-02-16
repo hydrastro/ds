@@ -15,6 +15,8 @@ typedef struct bst {
   bst_node_t *root;
   bst_node_t *nil;
   size_t size;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -22,6 +24,8 @@ typedef struct bst {
 } bst_t;
 
 bst_t *FUNC(bst_create)(void);
+bst_t *FUNC(bst_create_alloc)(void *(*allocator)(size_t),
+                              void (*deallocator)(void *));
 void FUNC(bst_insert)(bst_t *tree, bst_node_t *node,
                       int (*compare)(bst_node_t *, bst_node_t *));
 bst_node_t *FUNC(bst_search)(bst_t *tree, bst_node_t *data,

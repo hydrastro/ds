@@ -62,11 +62,18 @@ void heapify_down(heap_t *heap, size_t index,
 }
 
 heap_t *FUNC(heap_create)(size_t capacity) {
-  heap_t *heap = (heap_t *)malloc(sizeof(heap_t));
-  heap->data = (heap_node_t **)malloc(capacity * sizeof(heap_node_t *));
+  return FUNC(heap_create_alloc)(capacity, malloc, free);
+}
+
+heap_t *FUNC(heap_create_alloc)(size_t capacity, void *(*allocator)(size_t),
+                                void (*deallocator)(void *)) {
+  heap_t *heap = (heap_t *)allocator(sizeof(heap_t));
+  heap->allocator = allocator;
+  heap->deallocator = deallocator;
+  heap->data = (heap_node_t **)allocator(capacity * sizeof(heap_node_t *));
   heap->size = 0;
   heap->capacity = capacity;
-  heap->nil = (heap_node_t *)malloc(sizeof(heap_node_t));
+  heap->nil = (heap_node_t *)allocator(sizeof(heap_node_t));
   heap->nil->index = (size_t)-1;
 #ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(heap)
@@ -143,9 +150,9 @@ void FUNC(heap_destroy)(heap_t *heap, void (*destroy)(heap_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(heap)
 #endif
-  free(heap->nil);
-  free(heap->data);
-  free(heap);
+  heap->deallocator(heap->nil);
+  heap->deallocator(heap->data);
+  heap->deallocator(heap);
 }
 
 heap_t *FUNC(heap_clone)(heap_t *heap,
@@ -155,7 +162,8 @@ heap_t *FUNC(heap_clone)(heap_t *heap,
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
 #endif
-  new_heap = FUNC(heap_create)(heap->capacity);
+  new_heap = FUNC(heap_create_alloc)(heap->capacity, heap->allocator,
+                                     heap->deallocator);
   new_heap->size = heap->size;
   for (i = 0; i < heap->size; ++i) {
     heap_node_t *original_node = heap->data[i];

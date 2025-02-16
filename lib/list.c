@@ -2,8 +2,15 @@
 #include <stdlib.h>
 
 list_t *FUNC(list_create)(void) {
-  list_t *list = (list_t *)malloc(sizeof(list_t));
-  list->nil = (list_node_t *)malloc(sizeof(list_node_t));
+  return FUNC(list_create_alloc)(malloc, free);
+}
+
+list_t *FUNC(list_create_alloc)(void *(*allocator)(size_t),
+                                void (*deallocator)(void *)) {
+  list_t *list = (list_t *)allocator(sizeof(list_t));
+  list->allocator = allocator;
+  list->deallocator = deallocator;
+  list->nil = (list_node_t *)allocator(sizeof(list_node_t));
   list->head = list->nil;
   list->tail = list->nil;
   list->nil->next = list->nil;
@@ -172,8 +179,8 @@ void FUNC(list_destroy)(list_t *list, void (*destroy)(list_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(list)
 #endif
-  free(list->nil);
-  free(list);
+  list->deallocator(list->nil);
+  list->deallocator(list);
 }
 
 void FUNC(list_walk_forward)(list_t *list, list_node_t *node,
@@ -226,7 +233,7 @@ list_t *FUNC(list_clone)(list_t *list,
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  new_list = FUNC(list_create)();
+  new_list = FUNC(list_create_alloc)(list->allocator, list->deallocator);
   current = list->head;
   while (current != list->nil) {
     list_node_t *cloned_node = clone_node(current);

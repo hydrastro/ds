@@ -13,6 +13,8 @@ typedef struct stack {
   stack_node_t *top;
   stack_node_t *nil;
   size_t size;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -20,17 +22,13 @@ typedef struct stack {
 } stack_t;
 
 stack_t *FUNC(stack_create)(void);
-
+stack_t *FUNC(stack_create_alloc)(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *));
 void FUNC(stack_push)(stack_t *stack, stack_node_t *node);
-
 stack_node_t *FUNC(stack_pop)(stack_t *stack);
-
 stack_node_t *FUNC(stack_peek)(stack_t *stack);
-
 bool FUNC(stack_is_empty)(stack_t *stack);
-
 void FUNC(stack_destroy)(stack_t *stack, void (*destroy)(stack_node_t *));
-
 void FUNC(stack_delete)(stack_t *stack);
 void FUNC(stack_delete_node)(stack_t *stack, stack_node_t *node);
 void FUNC(stack_destroy_node)(stack_t *stack, stack_node_t *node,

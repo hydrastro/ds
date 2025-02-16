@@ -21,6 +21,8 @@ typedef struct btree {
   btree_internal_node_t *root;
   btree_node_t *nil;
   size_t size;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -29,6 +31,8 @@ typedef struct btree {
 
 btree_internal_node_t *FUNC(btree_create_node)(btree_t *tree, bool is_leaf);
 btree_t *FUNC(btree_create)(int degree);
+btree_t *FUNC(btree_create_alloc)(int degree, void *(*allocator)(size_t),
+                                  void (*deallocator)(void *));
 void FUNC(btree_split_child)(btree_t *tree, btree_internal_node_t *parent,
                              int index);
 void FUNC(btree_insert_non_full)(btree_t *tree, btree_internal_node_t *node,

@@ -1,12 +1,16 @@
 #include "bst.h"
 #include <stdlib.h>
 
-bst_t *FUNC(bst_create)(void) {
-  bst_t *tree = (bst_t *)malloc(sizeof(bst_t));
-  tree->nil = (bst_node_t *)malloc(sizeof(bst_node_t));
+bst_t *FUNC(bst_create)(void) { return bst_create_alloc(malloc, free); }
+
+bst_t *FUNC(bst_create_alloc)(void *(*allocator)(size_t),
+                              void (*deallocator)(void *)) {
+  bst_t *tree = (bst_t *)allocator(sizeof(bst_t));
+  tree->allocator = allocator;
+  tree->deallocator = deallocator;
+  tree->nil = (bst_node_t *)allocator(sizeof(bst_node_t));
   tree->root = tree->nil;
   tree->size = 0;
-
 #ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(tree)
 #endif
@@ -206,13 +210,13 @@ void FUNC(bst_destroy_tree)(bst_t *tree, void (*destroy)(bst_node_t *)) {
 
   FUNC(bst_destroy_recursive)(tree, tree->root, destroy);
 
-  free(tree->nil);
+  tree->deallocator(tree->nil);
 
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(tree);
 #endif
 
-  free(tree);
+  tree->deallocator(tree);
 }
 
 void FUNC(bst_inorder_walk_helper)(bst_t *tree, bst_node_t *node,
@@ -375,7 +379,7 @@ bst_t *FUNC(bst_clone)(bst_t *tree, bst_node_t *(*clone_node)(bst_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
-  new_tree = FUNC(bst_create)();
+  new_tree = FUNC(bst_create_alloc)(tree->allocator, tree->deallocator);
   new_tree->root =
       FUNC(bst_clone_recursive)(tree, new_tree, tree->root, clone_node);
   new_tree->size = tree->size;

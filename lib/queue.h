@@ -14,6 +14,8 @@ typedef struct queue {
   queue_node_t *tail;
   queue_node_t *nil;
   size_t size;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
@@ -21,6 +23,8 @@ typedef struct queue {
 } queue_t;
 
 queue_t *FUNC(queue_create)(void);
+queue_t *FUNC(queue_create_alloc)(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *));
 void FUNC(queue_enqueue)(queue_t *queue, queue_node_t *node);
 queue_node_t *FUNC(queue_dequeue)(queue_t *queue);
 queue_node_t *FUNC(queue_peek)(queue_t *queue);

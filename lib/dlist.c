@@ -3,8 +3,15 @@
 #include <stdlib.h>
 
 dlist_t *FUNC(dlist_create)(void) {
-  dlist_t *list = (dlist_t *)malloc(sizeof(dlist_t));
-  list->nil = (dlist_node_t *)malloc(sizeof(dlist_node_t));
+  return FUNC(dlist_create_alloc(malloc, free));
+}
+
+dlist_t *FUNC(dlist_create_alloc)(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
+  dlist_t *list = (dlist_t *)allocator(sizeof(dlist_t));
+  list->allocator = allocator;
+  list->deallocator = deallocator;
+  list->nil = (dlist_node_t *)allocator(sizeof(dlist_node_t));
   list->head = list->nil;
   list->tail = list->nil;
   list->nil->prev = list->nil;
@@ -162,8 +169,8 @@ void FUNC(dlist_destroy)(dlist_t *list, void (*destroy)(dlist_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(list)
 #endif
-  free(list->nil);
-  free(list);
+  list->deallocator(list->nil);
+  list->deallocator(list);
 }
 
 void FUNC(dlist_walk_forward)(dlist_t *list, dlist_node_t *node,
@@ -213,7 +220,7 @@ dlist_t *FUNC(dlist_clone)(dlist_t *list,
 #ifdef DS_THREAD_SAFE
   LOCK(list)
 #endif
-  new_list = FUNC(dlist_create)();
+  new_list = FUNC(dlist_create_alloc)(list->allocator, list->deallocator);
   current = list->head;
   while (current != list->nil) {
     dlist_node_t *cloned_node = clone_node(current);

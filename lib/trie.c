@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 trie_node_t *FUNC(trie_create_node)(trie_t *trie) {
-  trie_node_t *node = (trie_node_t *)malloc(sizeof(trie_node_t));
+  trie_node_t *node = (trie_node_t *)trie->allocator(sizeof(trie_node_t));
   node->children = trie->store_create(trie->num_splits);
 
   node->data_slice = 0;
@@ -24,7 +24,26 @@ trie_t *FUNC(trie_create)(
                         void (*)(struct trie *, trie_node_t *, va_list *),
                         va_list *),
     void *(*store_clone)(struct trie *, void *, trie_node_t *)) {
-  trie_t *trie = (trie_t *)malloc(sizeof(trie_t));
+  return FUNC(trie_create_alloc)(
+      num_splits, store_search, store_create, store_insert, store_remove,
+      store_destroy_entry, store_destroy, store_get_size, store_apply,
+      store_clone, malloc, free);
+}
+
+trie_t *FUNC(trie_create_alloc)(
+    size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
+    void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
+    void (*store_remove)(void *, trie_node_t *),
+    void (*store_destroy_entry)(void *, trie_node_t *),
+    void (*store_destroy)(void *), size_t (*store_get_size)(void *),
+    void (*store_apply)(struct trie *, void *,
+                        void (*)(struct trie *, trie_node_t *, va_list *),
+                        va_list *),
+    void *(*store_clone)(struct trie *, void *, trie_node_t *),
+    void *(*allocator)(size_t), void (*deallocator)(void *)) {
+  trie_t *trie = (trie_t *)allocator(sizeof(trie_t));
+  trie->allocator = allocator;
+  trie->deallocator = deallocator;
   trie->num_splits = num_splits;
   trie->store_search = store_search;
   trie->store_create = store_create;
@@ -124,7 +143,7 @@ void FUNC(trie_delete_node)(trie_t *trie, trie_node_t *node) {
       if (cur != trie->root) {
         temp = cur->parent;
         trie->store_destroy(cur->children);
-        free(cur);
+        trie->deallocator(cur);
         cur = temp;
         continue;
       }
@@ -148,7 +167,7 @@ void FUNC(trie_destroy_node)(trie_t *trie, trie_node_t *node,
 void FUNC(trie_destroy_callback)(trie_t *trie, trie_node_t *node,
                                  va_list *args) {
   trie->store_destroy(node->children);
-  free(node);
+  trie->deallocator(node);
 }
 #pragma GCC diagnostic pop
 
@@ -170,8 +189,8 @@ void FUNC(trie_destroy_trie)(trie_t *trie,
   if (destroy != NULL) {
     destroy(trie, trie->root, NULL);
   }
-  free(trie->root);
-  free(trie);
+  trie->deallocator(trie->root);
+  trie->deallocator(trie);
 }
 
 void FUNC(trie_apply)(trie_t *trie, trie_node_t *node,
@@ -187,7 +206,7 @@ trie_node_t *FUNC(trie_clone_node)(trie_t *trie, trie_node_t *node,
                                    trie_node_t *parent_node,
                                    void *(*clone_data)(void *)) {
 
-  trie_node_t *new_node = (trie_node_t *)malloc(sizeof(trie_node_t));
+  trie_node_t *new_node = (trie_node_t *)trie->allocator(sizeof(trie_node_t));
   new_node->data_slice = node->data_slice;
   new_node->is_terminal = node->is_terminal;
   new_node->terminal_data = clone_data(node->terminal_data);
@@ -199,7 +218,7 @@ trie_node_t *FUNC(trie_clone_node)(trie_t *trie, trie_node_t *node,
 }
 
 trie_t *FUNC(trie_clone)(trie_t *trie, void *(*clone_data)(void *)) {
-  trie_t *new_trie = (trie_t *)malloc(sizeof(trie_t));
+  trie_t *new_trie = (trie_t *)trie->allocator(sizeof(trie_t));
   new_trie->num_splits = trie->num_splits;
   new_trie->store_search = trie->store_search;
   new_trie->store_create = trie->store_create;
@@ -210,6 +229,8 @@ trie_t *FUNC(trie_clone)(trie_t *trie, void *(*clone_data)(void *)) {
   new_trie->store_get_size = trie->store_get_size;
   new_trie->store_apply = trie->store_apply;
   new_trie->store_clone = trie->store_clone;
+  new_trie->allocator = trie->allocator;
+  new_trie->deallocator = trie->deallocator;
 
   new_trie->root = FUNC(trie_clone_node)(trie, trie->root, NULL, clone_data);
 
