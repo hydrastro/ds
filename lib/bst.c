@@ -1,7 +1,7 @@
 #include "bst.h"
 #include <stdlib.h>
 
-bst_t *FUNC(bst_create)(void) { return bst_create_alloc(malloc, free); }
+bst_t *FUNC(bst_create)(void) { return FUNC(bst_create_alloc)(malloc, free); }
 
 bst_t *FUNC(bst_create_alloc)(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 stack_t *FUNC(stack_create)(void) {
-  return FUNC(stack_create_alloc(malloc, free));
+  return FUNC(stack_create_alloc)(malloc, free);
 }
 
 stack_t *FUNC(stack_create_alloc)(void *(*allocator)(size_t),

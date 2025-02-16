@@ -11,7 +11,7 @@ void FUNC(rbt_set_parent_color)(rbt_node_t *node, rbt_node_t *parent,
   node->parent_color = (unsigned long)parent + (long unsigned int)color;
 }
 
-rbt_t *FUNC(rbt_create)(void) { return FUNC(rbt_create_alloc(malloc, free)); }
+rbt_t *FUNC(rbt_create)(void) { return FUNC(rbt_create_alloc)(malloc, free); }
 
 rbt_t *FUNC(rbt_create_alloc)(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {

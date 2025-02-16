@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 dlist_t *FUNC(dlist_create)(void) {
-  return FUNC(dlist_create_alloc(malloc, free));
+  return FUNC(dlist_create_alloc)(malloc, free);
 }
 
 dlist_t *FUNC(dlist_create_alloc)(void *(*allocator)(size_t),

@@ -18,7 +18,7 @@ btree_internal_node_t *FUNC(btree_create_node)(btree_t *tree, bool is_leaf) {
 }
 
 btree_t *FUNC(btree_create)(int degree) {
-  return btree_create_alloc(degree, malloc, free);
+  return FUNC(btree_create_alloc)(degree, malloc, free);
 }
 
 btree_t *FUNC(btree_create_alloc)(int degree, void *(*allocator)(size_t),
