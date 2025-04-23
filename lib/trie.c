@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-trie_node_t *FUNC(trie_create_node)(trie_t *trie) {
-  trie_node_t *node = (trie_node_t *)trie->allocator(sizeof(trie_node_t));
+ds_trie_node_t *FUNC(trie_create_node)(ds_trie_t *trie) {
+  ds_trie_node_t *node = (ds_trie_node_t *)trie->allocator(sizeof(ds_trie_node_t));
   node->children = trie->store_create(trie->num_splits);
 
   node->data_slice = 0;
@@ -14,34 +14,34 @@ trie_node_t *FUNC(trie_create_node)(trie_t *trie) {
   return node;
 }
 
-trie_t *FUNC(trie_create)(
-    size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
-    void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
-    void (*store_remove)(void *, trie_node_t *),
-    void (*store_destroy_entry)(void *, trie_node_t *),
+ds_trie_t *FUNC(trie_create)(
+    size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
+    void *(*store_create)(size_t), void (*store_insert)(void *, ds_trie_node_t *),
+    void (*store_remove)(void *, ds_trie_node_t *),
+    void (*store_destroy_entry)(void *, ds_trie_node_t *),
     void (*store_destroy)(void *), size_t (*store_get_size)(void *),
     void (*store_apply)(struct trie *, void *,
-                        void (*)(struct trie *, trie_node_t *, va_list *),
+                        void (*)(struct trie *, ds_trie_node_t *, va_list *),
                         va_list *),
-    void *(*store_clone)(struct trie *, void *, trie_node_t *)) {
+    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *)) {
   return FUNC(trie_create_alloc)(
       num_splits, store_search, store_create, store_insert, store_remove,
       store_destroy_entry, store_destroy, store_get_size, store_apply,
       store_clone, malloc, free);
 }
 
-trie_t *FUNC(trie_create_alloc)(
-    size_t num_splits, trie_node_t *(*store_search)(void *, size_t),
-    void *(*store_create)(size_t), void (*store_insert)(void *, trie_node_t *),
-    void (*store_remove)(void *, trie_node_t *),
-    void (*store_destroy_entry)(void *, trie_node_t *),
+ds_trie_t *FUNC(trie_create_alloc)(
+    size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
+    void *(*store_create)(size_t), void (*store_insert)(void *, ds_trie_node_t *),
+    void (*store_remove)(void *, ds_trie_node_t *),
+    void (*store_destroy_entry)(void *, ds_trie_node_t *),
     void (*store_destroy)(void *), size_t (*store_get_size)(void *),
     void (*store_apply)(struct trie *, void *,
-                        void (*)(struct trie *, trie_node_t *, va_list *),
+                        void (*)(struct trie *, ds_trie_node_t *, va_list *),
                         va_list *),
-    void *(*store_clone)(struct trie *, void *, trie_node_t *),
+    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  trie_t *trie = (trie_t *)allocator(sizeof(trie_t));
+  ds_trie_t *trie = (ds_trie_t *)allocator(sizeof(ds_trie_t));
   trie->allocator = allocator;
   trie->deallocator = deallocator;
   trie->num_splits = num_splits;
@@ -61,11 +61,11 @@ trie_t *FUNC(trie_create_alloc)(
   return trie;
 }
 
-void FUNC(trie_insert)(trie_t *trie, void *data,
+void FUNC(trie_insert)(ds_trie_t *trie, void *data,
                        size_t (*get_slice)(void *, size_t),
                        bool (*has_slice)(void *, size_t)) {
-  trie_node_t *current_node;
-  trie_node_t *result;
+  ds_trie_node_t *current_node;
+  ds_trie_node_t *result;
   size_t current_slice;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -80,7 +80,7 @@ void FUNC(trie_insert)(trie_t *trie, void *data,
     if (result != NULL) {
       current_node = result;
     } else {
-      trie_node_t *new_node = FUNC(trie_create_node)(trie);
+      ds_trie_node_t *new_node = FUNC(trie_create_node)(trie);
       new_node->data_slice = current_slice;
       new_node->parent = current_node;
       trie->store_insert(current_node->children, new_node);
@@ -95,11 +95,11 @@ void FUNC(trie_insert)(trie_t *trie, void *data,
 #endif
 }
 
-trie_node_t *FUNC(trie_search)(trie_t *trie, void *data,
+ds_trie_node_t *FUNC(trie_search)(ds_trie_t *trie, void *data,
                                size_t (*get_slice)(void *, size_t),
                                bool (*has_slice)(void *, size_t)) {
-  trie_node_t *current_node;
-  trie_node_t *result;
+  ds_trie_node_t *current_node;
+  ds_trie_node_t *result;
   size_t current_slice;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -130,9 +130,9 @@ trie_node_t *FUNC(trie_search)(trie_t *trie, void *data,
   return result;
 }
 
-void FUNC(trie_delete_node)(trie_t *trie, trie_node_t *node) {
-  trie_node_t *cur = node;
-  trie_node_t *temp;
+void FUNC(trie_delete_node)(ds_trie_t *trie, ds_trie_node_t *node) {
+  ds_trie_node_t *cur = node;
+  ds_trie_node_t *temp;
   if (!node->is_terminal) {
     return;
   }
@@ -152,8 +152,8 @@ void FUNC(trie_delete_node)(trie_t *trie, trie_node_t *node) {
   }
 }
 
-void FUNC(trie_destroy_node)(trie_t *trie, trie_node_t *node,
-                             void (*destroy)(trie_t *, trie_node_t *,
+void FUNC(trie_destroy_node)(ds_trie_t *trie, ds_trie_node_t *node,
+                             void (*destroy)(ds_trie_t *, ds_trie_node_t *,
                                              va_list *)) {
   if (!node->is_terminal) {
     return;
@@ -164,21 +164,21 @@ void FUNC(trie_destroy_node)(trie_t *trie, trie_node_t *node,
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-void FUNC(trie_destroy_callback)(trie_t *trie, trie_node_t *node,
+void FUNC(trie_destroy_callback)(ds_trie_t *trie, ds_trie_node_t *node,
                                  va_list *args) {
   trie->store_destroy(node->children);
   trie->deallocator(node);
 }
 #pragma GCC diagnostic pop
 
-void FUNC(trie_delete_trie)(trie_t *trie) {
+void FUNC(trie_delete_trie)(ds_trie_t *trie) {
   trie->store_apply(trie, trie->root->children, FUNC(trie_destroy_callback),
                     NULL);
   trie->store_destroy(trie->root->children);
 }
 
-void FUNC(trie_destroy_trie)(trie_t *trie,
-                             void (*destroy)(trie_t *, trie_node_t *,
+void FUNC(trie_destroy_trie)(ds_trie_t *trie,
+                             void (*destroy)(ds_trie_t *, ds_trie_node_t *,
                                              va_list *)) {
   if (destroy != NULL) {
     trie->store_apply(trie, trie->root->children, destroy, NULL);
@@ -193,8 +193,8 @@ void FUNC(trie_destroy_trie)(trie_t *trie,
   trie->deallocator(trie);
 }
 
-void FUNC(trie_apply)(trie_t *trie, trie_node_t *node,
-                      void (*f)(trie_t *, trie_node_t *, va_list *), ...) {
+void FUNC(trie_apply)(ds_trie_t *trie, ds_trie_node_t *node,
+                      void (*f)(ds_trie_t *, ds_trie_node_t *, va_list *), ...) {
   va_list args;
   va_start(args, f);
 
@@ -202,11 +202,11 @@ void FUNC(trie_apply)(trie_t *trie, trie_node_t *node,
   va_end(args);
 }
 
-trie_node_t *FUNC(trie_clone_node)(trie_t *trie, trie_node_t *node,
-                                   trie_node_t *parent_node,
+ds_trie_node_t *FUNC(trie_clone_node)(ds_trie_t *trie, ds_trie_node_t *node,
+                                   ds_trie_node_t *parent_node,
                                    void *(*clone_data)(void *)) {
 
-  trie_node_t *new_node = (trie_node_t *)trie->allocator(sizeof(trie_node_t));
+  ds_trie_node_t *new_node = (ds_trie_node_t *)trie->allocator(sizeof(ds_trie_node_t));
   new_node->data_slice = node->data_slice;
   new_node->is_terminal = node->is_terminal;
   new_node->terminal_data = clone_data(node->terminal_data);
@@ -217,8 +217,8 @@ trie_node_t *FUNC(trie_clone_node)(trie_t *trie, trie_node_t *node,
   return new_node;
 }
 
-trie_t *FUNC(trie_clone)(trie_t *trie, void *(*clone_data)(void *)) {
-  trie_t *new_trie = (trie_t *)trie->allocator(sizeof(trie_t));
+ds_trie_t *FUNC(trie_clone)(ds_trie_t *trie, void *(*clone_data)(void *)) {
+  ds_trie_t *new_trie = (ds_trie_t *)trie->allocator(sizeof(ds_trie_t));
   new_trie->num_splits = trie->num_splits;
   new_trie->store_search = trie->store_search;
   new_trie->store_create = trie->store_create;

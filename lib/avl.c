@@ -2,14 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-avl_t *FUNC(avl_create)(void) { return FUNC(avl_create_alloc)(malloc, free); }
+ds_avl_t *FUNC(avl_create)(void) { return FUNC(avl_create_alloc)(malloc, free); }
 
-avl_t *FUNC(avl_create_alloc)(void *(*allocator)(size_t),
+ds_avl_t *FUNC(avl_create_alloc)(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {
-  avl_t *tree = (avl_t *)allocator(sizeof(avl_t));
+  ds_avl_t *tree = (ds_avl_t *)allocator(sizeof(ds_avl_t));
   tree->allocator = allocator;
   tree->deallocator = deallocator;
-  tree->nil = (avl_node_t *)allocator(sizeof(avl_node_t));
+  tree->nil = (ds_avl_node_t *)allocator(sizeof(ds_avl_node_t));
   tree->nil->height = 0;
   tree->nil->left = tree->nil;
   tree->nil->right = tree->nil;
@@ -25,8 +25,8 @@ avl_t *FUNC(avl_create_alloc)(void *(*allocator)(size_t),
   return tree;
 }
 
-void FUNC(avl_inorder_walk_helper)(avl_t *tree, avl_node_t *node,
-                                   void (*callback)(avl_node_t *)) {
+void FUNC(avl_inorder_walk_helper)(ds_avl_t *tree, ds_avl_node_t *node,
+                                   void (*callback)(ds_avl_node_t *)) {
   if (node != tree->nil) {
     FUNC(avl_inorder_walk)(tree, node->left, callback);
     callback(node);
@@ -34,8 +34,8 @@ void FUNC(avl_inorder_walk_helper)(avl_t *tree, avl_node_t *node,
   }
 }
 
-void FUNC(avl_inorder_walk)(avl_t *tree, avl_node_t *node,
-                            void (*callback)(avl_node_t *)) {
+void FUNC(avl_inorder_walk)(ds_avl_t *tree, ds_avl_node_t *node,
+                            void (*callback)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -45,7 +45,7 @@ void FUNC(avl_inorder_walk)(avl_t *tree, avl_node_t *node,
 #endif
 }
 
-void FUNC(avl_inorder_walk_tree)(avl_t *tree, void (*callback)(avl_node_t *)) {
+void FUNC(avl_inorder_walk_tree)(ds_avl_t *tree, void (*callback)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -54,16 +54,16 @@ void FUNC(avl_inorder_walk_tree)(avl_t *tree, void (*callback)(avl_node_t *)) {
   UNLOCK(tree)
 #endif
 }
-void FUNC(avl_preorder_walk_helper)(avl_t *tree, avl_node_t *node,
-                                    void (*callback)(avl_node_t *)) {
+void FUNC(avl_preorder_walk_helper)(ds_avl_t *tree, ds_avl_node_t *node,
+                                    void (*callback)(ds_avl_node_t *)) {
   if (node != tree->nil) {
     callback(node);
     FUNC(avl_preorder_walk)(tree, node->left, callback);
     FUNC(avl_preorder_walk)(tree, node->right, callback);
   }
 }
-void FUNC(avl_preorder_walk)(avl_t *tree, avl_node_t *node,
-                             void (*callback)(avl_node_t *)) {
+void FUNC(avl_preorder_walk)(ds_avl_t *tree, ds_avl_node_t *node,
+                             void (*callback)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -73,7 +73,7 @@ void FUNC(avl_preorder_walk)(avl_t *tree, avl_node_t *node,
 #endif
 }
 
-void FUNC(avl_preorder_walk_tree)(avl_t *tree, void (*callback)(avl_node_t *)) {
+void FUNC(avl_preorder_walk_tree)(ds_avl_t *tree, void (*callback)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -83,8 +83,8 @@ void FUNC(avl_preorder_walk_tree)(avl_t *tree, void (*callback)(avl_node_t *)) {
 #endif
 }
 
-void FUNC(avl_postorder_walk_helper)(avl_t *tree, avl_node_t *node,
-                                     void (*callback)(avl_node_t *)) {
+void FUNC(avl_postorder_walk_helper)(ds_avl_t *tree, ds_avl_node_t *node,
+                                     void (*callback)(ds_avl_node_t *)) {
   if (node != tree->nil) {
     FUNC(avl_postorder_walk)(tree, node->left, callback);
     FUNC(avl_postorder_walk)(tree, node->right, callback);
@@ -92,8 +92,8 @@ void FUNC(avl_postorder_walk_helper)(avl_t *tree, avl_node_t *node,
   }
 }
 
-void FUNC(avl_postorder_walk)(avl_t *tree, avl_node_t *node,
-                              void (*callback)(avl_node_t *)) {
+void FUNC(avl_postorder_walk)(ds_avl_t *tree, ds_avl_node_t *node,
+                              void (*callback)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -103,8 +103,8 @@ void FUNC(avl_postorder_walk)(avl_t *tree, avl_node_t *node,
 #endif
 }
 
-void FUNC(avl_postorder_walk_tree)(avl_t *tree,
-                                   void (*callback)(avl_node_t *)) {
+void FUNC(avl_postorder_walk_tree)(ds_avl_t *tree,
+                                   void (*callback)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -114,9 +114,9 @@ void FUNC(avl_postorder_walk_tree)(avl_t *tree,
 #endif
 }
 
-avl_node_t *FUNC(avl_search)(avl_t *tree, avl_node_t *data,
-                             int (*compare)(avl_node_t *, avl_node_t *)) {
-  avl_node_t *node;
+ds_avl_node_t *FUNC(avl_search)(ds_avl_t *tree, ds_avl_node_t *data,
+                             int (*compare)(ds_avl_node_t *, ds_avl_node_t *)) {
+  ds_avl_node_t *node;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -140,8 +140,8 @@ avl_node_t *FUNC(avl_search)(avl_t *tree, avl_node_t *data,
   return tree->nil;
 }
 
-void FUNC(avl_destroy_node)(avl_t *tree, avl_node_t *node,
-                            void (*destroy)(avl_node_t *)) {
+void FUNC(avl_destroy_node)(ds_avl_t *tree, ds_avl_node_t *node,
+                            void (*destroy)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -152,8 +152,8 @@ void FUNC(avl_destroy_node)(avl_t *tree, avl_node_t *node,
 #endif
 }
 
-void FUNC(avl_destroy_recursive)(avl_t *tree, avl_node_t *node,
-                                 void (*destroy)(avl_node_t *)) {
+void FUNC(avl_destroy_recursive)(ds_avl_t *tree, ds_avl_node_t *node,
+                                 void (*destroy)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -168,7 +168,7 @@ void FUNC(avl_destroy_recursive)(avl_t *tree, avl_node_t *node,
 #endif
 }
 
-void FUNC(avl_destroy_tree)(avl_t *tree, void (*destroy)(avl_node_t *)) {
+void FUNC(avl_destroy_tree)(ds_avl_t *tree, void (*destroy)(ds_avl_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -183,7 +183,7 @@ void FUNC(avl_destroy_tree)(avl_t *tree, void (*destroy)(avl_node_t *)) {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-int FUNC(avl_get_height)(avl_t *tree, avl_node_t *node) {
+int FUNC(avl_get_height)(ds_avl_t *tree, ds_avl_node_t *node) {
   int result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -196,7 +196,7 @@ int FUNC(avl_get_height)(avl_t *tree, avl_node_t *node) {
 }
 #pragma GCC diagnostic pop
 
-int FUNC(avl_get_balance)(avl_t *tree, avl_node_t *node) {
+int FUNC(avl_get_balance)(ds_avl_t *tree, ds_avl_node_t *node) {
   int result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -210,7 +210,7 @@ int FUNC(avl_get_balance)(avl_t *tree, avl_node_t *node) {
   return result;
 }
 
-void FUNC(avl_update_height)(avl_t *tree, avl_node_t *node) {
+void FUNC(avl_update_height)(ds_avl_t *tree, ds_avl_node_t *node) {
   int left_height, right_height;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -220,8 +220,8 @@ void FUNC(avl_update_height)(avl_t *tree, avl_node_t *node) {
   node->height = 1 + (left_height > right_height ? left_height : right_height);
 }
 
-avl_node_t *FUNC(avl_left_rotate)(avl_t *tree, avl_node_t *node) {
-  avl_node_t *right;
+ds_avl_node_t *FUNC(avl_left_rotate)(ds_avl_t *tree, ds_avl_node_t *node) {
+  ds_avl_node_t *right;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -241,8 +241,8 @@ avl_node_t *FUNC(avl_left_rotate)(avl_t *tree, avl_node_t *node) {
   return right;
 }
 
-avl_node_t *FUNC(avl_right_rotate)(avl_t *tree, avl_node_t *node) {
-  avl_node_t *left;
+ds_avl_node_t *FUNC(avl_right_rotate)(ds_avl_t *tree, ds_avl_node_t *node) {
+  ds_avl_node_t *left;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -262,7 +262,7 @@ avl_node_t *FUNC(avl_right_rotate)(avl_t *tree, avl_node_t *node) {
   return left;
 }
 
-avl_node_t *FUNC(avl_balance)(avl_t *tree, avl_node_t *node) {
+ds_avl_node_t *FUNC(avl_balance)(ds_avl_t *tree, ds_avl_node_t *node) {
   int balance;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -293,10 +293,10 @@ avl_node_t *FUNC(avl_balance)(avl_t *tree, avl_node_t *node) {
   return node;
 }
 
-void FUNC(avl_insert)(avl_t *tree, avl_node_t *data,
-                      int (*compare)(avl_node_t *, avl_node_t *)) {
+void FUNC(avl_insert)(ds_avl_t *tree, ds_avl_node_t *data,
+                      int (*compare)(ds_avl_node_t *, ds_avl_node_t *)) {
   int cmp;
-  avl_node_t *n, *current, *parent;
+  ds_avl_node_t *n, *current, *parent;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
@@ -348,7 +348,7 @@ void FUNC(avl_insert)(avl_t *tree, avl_node_t *data,
 #endif
 }
 
-avl_node_t *FUNC(avl_min_node)(avl_t *tree, avl_node_t *node) {
+ds_avl_node_t *FUNC(avl_min_node)(ds_avl_t *tree, ds_avl_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -361,7 +361,7 @@ avl_node_t *FUNC(avl_min_node)(avl_t *tree, avl_node_t *node) {
   return node;
 }
 
-void FUNC(avl_transplant)(avl_t *tree, avl_node_t *u, avl_node_t *v) {
+void FUNC(avl_transplant)(ds_avl_t *tree, ds_avl_node_t *u, ds_avl_node_t *v) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -380,8 +380,8 @@ void FUNC(avl_transplant)(avl_t *tree, avl_node_t *u, avl_node_t *v) {
 #endif
 }
 
-void FUNC(avl_delete_node)(avl_t *tree, avl_node_t *data) {
-  avl_node_t *x, *y;
+void FUNC(avl_delete_node)(ds_avl_t *tree, ds_avl_node_t *data) {
+  ds_avl_node_t *x, *y;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
@@ -416,7 +416,7 @@ void FUNC(avl_delete_node)(avl_t *tree, avl_node_t *data) {
 #endif
 }
 
-void FUNC(avl_delete_tree)(avl_t *tree) {
+void FUNC(avl_delete_tree)(ds_avl_t *tree) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
@@ -427,10 +427,10 @@ void FUNC(avl_delete_tree)(avl_t *tree) {
 #endif
 }
 
-avl_node_t *FUNC(avl_clone_recursive)(avl_t *tree, avl_t *new_tree,
-                                      avl_node_t *node,
-                                      avl_node_t *(*clone_node)(avl_node_t *)) {
-  avl_node_t *new_node;
+ds_avl_node_t *FUNC(avl_clone_recursive)(ds_avl_t *tree, ds_avl_t *new_tree,
+                                      ds_avl_node_t *node,
+                                      ds_avl_node_t *(*clone_node)(ds_avl_node_t *)) {
+  ds_avl_node_t *new_node;
   if (node == tree->nil) {
     return new_tree->nil;
   }
@@ -451,8 +451,8 @@ avl_node_t *FUNC(avl_clone_recursive)(avl_t *tree, avl_t *new_tree,
   return new_node;
 }
 
-avl_t *FUNC(avl_clone)(avl_t *tree, avl_node_t *(*clone_node)(avl_node_t *)) {
-  avl_t *new_tree;
+ds_avl_t *FUNC(avl_clone)(ds_avl_t *tree, ds_avl_node_t *(*clone_node)(ds_avl_node_t *)) {
+  ds_avl_t *new_tree;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif

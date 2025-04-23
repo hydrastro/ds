@@ -7,11 +7,11 @@
 
 typedef struct stack_node {
   struct stack_node *next;
-} stack_node_t;
+} ds_stack_node_t;
 
 typedef struct stack {
-  stack_node_t *top;
-  stack_node_t *nil;
+  ds_stack_node_t *top;
+  ds_stack_node_t *nil;
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
@@ -19,30 +19,30 @@ typedef struct stack {
   mutex_t lock;
   bool is_thread_safe;
 #endif
-} stack_t;
+} ds_stack_t;
 
-stack_t *FUNC(stack_create)(void);
-stack_t *FUNC(stack_create_alloc)(void *(*allocator)(size_t),
+ds_stack_t *FUNC(stack_create)(void);
+ds_stack_t *FUNC(stack_create_alloc)(void *(*allocator)(size_t),
                                   void (*deallocator)(void *));
-void FUNC(stack_push)(stack_t *stack, stack_node_t *node);
-stack_node_t *FUNC(stack_pop)(stack_t *stack);
-stack_node_t *FUNC(stack_peek)(stack_t *stack);
-bool FUNC(stack_is_empty)(stack_t *stack);
-void FUNC(stack_destroy)(stack_t *stack, void (*destroy)(stack_node_t *));
-void FUNC(stack_delete)(stack_t *stack);
-void FUNC(stack_delete_node)(stack_t *stack, stack_node_t *node);
-void FUNC(stack_destroy_node)(stack_t *stack, stack_node_t *node,
-                              void (*destroy)(stack_node_t *));
-void FUNC(stack_pop_destroy)(stack_t *stack,
-                             void (*destroy_node)(stack_node_t *));
-stack_node_t *FUNC(stack_search)(stack_t *stack, stack_node_t *node,
-                                 int (*compare)(stack_node_t *,
-                                                stack_node_t *));
-void FUNC(stack_walk_forward)(stack_t *stack, stack_node_t *node,
-                              void (*callback)(stack_node_t *));
-void FUNC(stack_walk_backwards)(stack_t *stack, stack_node_t *node,
-                                void (*callback)(stack_node_t *));
-stack_t *FUNC(stack_clone)(stack_t *stack,
-                           stack_node_t *(*clone_node)(stack_node_t *));
+void FUNC(stack_push)(ds_stack_t *stack, ds_stack_node_t *node);
+ds_stack_node_t *FUNC(stack_pop)(ds_stack_t *stack);
+ds_stack_node_t *FUNC(stack_peek)(ds_stack_t *stack);
+bool FUNC(stack_is_empty)(ds_stack_t *stack);
+void FUNC(stack_destroy)(ds_stack_t *stack, void (*destroy)(ds_stack_node_t *));
+void FUNC(stack_delete)(ds_stack_t *stack);
+void FUNC(stack_delete_node)(ds_stack_t *stack, ds_stack_node_t *node);
+void FUNC(stack_destroy_node)(ds_stack_t *stack, ds_stack_node_t *node,
+                              void (*destroy)(ds_stack_node_t *));
+void FUNC(stack_pop_destroy)(ds_stack_t *stack,
+                             void (*destroy_node)(ds_stack_node_t *));
+ds_stack_node_t *FUNC(stack_search)(ds_stack_t *stack, ds_stack_node_t *node,
+                                 int (*compare)(ds_stack_node_t *,
+                                                ds_stack_node_t *));
+void FUNC(stack_walk_forward)(ds_stack_t *stack, ds_stack_node_t *node,
+                              void (*callback)(ds_stack_node_t *));
+void FUNC(stack_walk_backwards)(ds_stack_t *stack, ds_stack_node_t *node,
+                                void (*callback)(ds_stack_node_t *));
+ds_stack_t *FUNC(stack_clone)(ds_stack_t *stack,
+                           ds_stack_node_t *(*clone_node)(ds_stack_node_t *));
 
 #endif /* DS_STACK_H */

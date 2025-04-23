@@ -106,9 +106,9 @@ size_t hash_func_double(void *key) {
 
 size_t hash_func_default(void *key) { return (size_t)key; }
 
-static hash_node_t *hash_node_create(hash_table_t *table, void *key,
+static ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                      void *value) {
-  hash_node_t *node = (hash_node_t *)table->allocator(sizeof(hash_node_t));
+  ds_hash_node_t *node = (ds_hash_node_t *)table->allocator(sizeof(ds_hash_node_t));
   node->key = key;
   node->value = value;
   node->next = NULL;
@@ -127,20 +127,20 @@ static size_t next_prime_capacity(size_t current_capacity) {
   return current_capacity * 2;
 }
 
-hash_table_t *FUNC(hash_table_create)(size_t capacity, hash_table_mode_t mode,
-                                      hash_probing_func_t probing_func) {
+ds_hash_table_t *FUNC(hash_table_create)(size_t capacity, ds_hash_table_mode_t mode,
+                                      ds_hash_probing_func_t probing_func) {
   return FUNC(hash_table_create_alloc)(capacity, mode, probing_func, malloc,
                                        free);
 }
 
-hash_table_t *FUNC(hash_table_create_alloc)(size_t capacity,
-                                            hash_table_mode_t mode,
-                                            hash_probing_func_t probing_func,
+ds_hash_table_t *FUNC(hash_table_create_alloc)(size_t capacity,
+                                            ds_hash_table_mode_t mode,
+                                            ds_hash_probing_func_t probing_func,
                                             void *(*allocator)(size_t),
                                             void (*deallocator)(void *)) {
 
   size_t i;
-  hash_table_t *table = (hash_table_t *)allocator(sizeof(hash_table_t));
+  ds_hash_table_t *table = (ds_hash_table_t *)allocator(sizeof(ds_hash_table_t));
   table->allocator = allocator;
   table->deallocator = deallocator;
   table->capacity = next_prime_capacity(capacity);
@@ -151,12 +151,12 @@ hash_table_t *FUNC(hash_table_create_alloc)(size_t capacity,
   table->last_node = NULL;
   if (mode == HASH_CHAINING) {
     table->store.buckets =
-        (hash_node_t **)allocator(table->capacity * sizeof(hash_node_t *));
-    memset(table->store.buckets, 0, table->capacity * sizeof(hash_node_t *));
+        (ds_hash_node_t **)allocator(table->capacity * sizeof(ds_hash_node_t *));
+    memset(table->store.buckets, 0, table->capacity * sizeof(ds_hash_node_t *));
   } else if (mode == HASH_LINEAR_PROBING || mode == HASH_QUADRATIC_PROBING) {
     table->store.entries =
-        (hash_node_t *)table->allocator(table->capacity * sizeof(hash_node_t));
-    memset(table->store.entries, 0, table->capacity * sizeof(hash_node_t));
+        (ds_hash_node_t *)table->allocator(table->capacity * sizeof(ds_hash_node_t));
+    memset(table->store.entries, 0, table->capacity * sizeof(ds_hash_node_t));
     for (i = 0; i < table->capacity; i++) {
       table->store.entries[i].key = table->nil;
     }
@@ -180,15 +180,15 @@ hash_table_t *FUNC(hash_table_create_alloc)(size_t capacity,
   return table;
 }
 
-void FUNC(hash_table_resize)(hash_table_t *table, size_t new_capacity,
+void FUNC(hash_table_resize)(ds_hash_table_t *table, size_t new_capacity,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *)) {
-  hash_table_t *new_table =
+  ds_hash_table_t *new_table =
       FUNC(hash_table_create)(new_capacity, table->mode, table->probing_func);
   size_t i;
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
-      hash_node_t *current = table->store.buckets[i];
+      ds_hash_node_t *current = table->store.buckets[i];
       while (current != NULL) {
         FUNC(hash_table_insert)
         (new_table, current->key, current->value, hash_func, compare);
@@ -225,14 +225,14 @@ void FUNC(hash_table_resize)(hash_table_t *table, size_t new_capacity,
   table->deallocator(new_table);
 }
 
-void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
+void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *)) {
   size_t base_index;
   size_t index;
   size_t iteration;
   size_t tombstone_index;
-  hash_node_t *new_node;
+  ds_hash_node_t *new_node;
 #ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
@@ -246,7 +246,7 @@ void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
   iteration = 0;
   tombstone_index = (long unsigned int)-1;
   if (table->mode == HASH_CHAINING) {
-    hash_node_t *current = table->store.buckets[index];
+    ds_hash_node_t *current = table->store.buckets[index];
     while (current != NULL) {
       if (compare(current->key, key) == 0) {
         current->value = value;
@@ -305,7 +305,7 @@ void FUNC(hash_table_insert)(hash_table_t *table, void *key, void *value,
 #endif
 }
 
-void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
+void *FUNC(hash_table_lookup)(ds_hash_table_t *table, void *key,
                               size_t (*hash_func)(void *),
                               int (*compare)(void *, void *)) {
 #ifdef HASH_DS_THREAD_SAFE
@@ -316,7 +316,7 @@ void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
   size_t iteration = 0;
 
   if (table->mode == HASH_CHAINING) {
-    hash_node_t *current = table->store.buckets[index];
+    ds_hash_node_t *current = table->store.buckets[index];
     while (current) {
       if (compare(current->key, key) == 0) {
 #ifdef HASH_DS_THREAD_SAFE
@@ -347,10 +347,10 @@ void *FUNC(hash_table_lookup)(hash_table_t *table, void *key,
   return table->nil;
 }
 
-void FUNC(hash_table_remove)(hash_table_t *table, void *key,
+void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *),
-                             void (*destroy)(hash_node_t *)) {
+                             void (*destroy)(ds_hash_node_t *)) {
 #ifdef HASH_DS_THREAD_SAFE
   LOCK(table)
 #endif
@@ -359,8 +359,8 @@ void FUNC(hash_table_remove)(hash_table_t *table, void *key,
   size_t iteration = 0;
 
   if (table->mode == HASH_CHAINING) {
-    hash_node_t *current = table->store.buckets[index];
-    hash_node_t *prev = NULL;
+    ds_hash_node_t *current = table->store.buckets[index];
+    ds_hash_node_t *prev = NULL;
     while (current != NULL) {
       if (compare(current->key, key) == 0) {
         if (prev == NULL) {
@@ -425,16 +425,16 @@ void FUNC(hash_table_remove)(hash_table_t *table, void *key,
 #endif
 }
 
-bool FUNC(hash_table_is_empty)(hash_table_t *table) { return table->size == 0; }
+bool FUNC(hash_table_is_empty)(ds_hash_table_t *table) { return table->size == 0; }
 
-void FUNC(hash_table_destroy)(hash_table_t *table,
-                              void (*destroy)(hash_node_t *)) {
+void FUNC(hash_table_destroy)(ds_hash_table_t *table,
+                              void (*destroy)(ds_hash_node_t *)) {
   size_t i;
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
-      hash_node_t *current = table->store.buckets[i];
+      ds_hash_node_t *current = table->store.buckets[i];
       while (current != NULL) {
-        hash_node_t *next = current->next;
+        ds_hash_node_t *next = current->next;
         if (destroy) {
           destroy(current);
         }
@@ -455,7 +455,7 @@ void FUNC(hash_table_destroy)(hash_table_t *table,
   table->deallocator(table);
 }
 
-hash_table_t *FUNC(hash_table_clone)(hash_table_t *table,
+ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
                                      void *(*clone_key)(void *),
                                      void *(*clone_value)(void *)) {
 #ifdef HASH_DS_THREAD_SAFE
@@ -463,9 +463,9 @@ hash_table_t *FUNC(hash_table_clone)(hash_table_t *table,
 #endif
   void *key, *value;
   size_t i;
-  hash_node_t *current;
-  hash_node_t *new_node;
-  hash_table_t *new_table = FUNC(hash_table_create_alloc)(
+  ds_hash_node_t *current;
+  ds_hash_node_t *new_node;
+  ds_hash_table_t *new_table = FUNC(hash_table_create_alloc)(
       table->capacity, table->mode, table->probing_func, table->allocator,
       table->deallocator);
   new_table->size = table->size;

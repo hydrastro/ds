@@ -1,16 +1,16 @@
 #include "deque.h"
 #include <stdlib.h>
 
-deque_t *FUNC(deque_create)(void) {
+ds_deque_t *FUNC(deque_create)(void) {
   return FUNC(deque_create_alloc)(malloc, free);
 }
 
-deque_t *FUNC(deque_create_alloc)(void *(*allocator)(size_t),
+ds_deque_t *FUNC(deque_create_alloc)(void *(*allocator)(size_t),
                                   void (*deallocator)(void *)) {
-  deque_t *deque = (deque_t *)allocator(sizeof(deque_t));
+  ds_deque_t *deque = (ds_deque_t *)allocator(sizeof(ds_deque_t));
   deque->allocator = allocator;
   deque->deallocator = deallocator;
-  deque->nil = (deque_node_t *)allocator(sizeof(deque_node_t));
+  deque->nil = (ds_deque_node_t *)allocator(sizeof(ds_deque_node_t));
   deque->nil->next = deque->nil;
   deque->nil->prev = deque->nil;
   deque->head = deque->nil;
@@ -24,7 +24,7 @@ deque_t *FUNC(deque_create_alloc)(void *(*allocator)(size_t),
   return deque;
 }
 
-void FUNC(deque_push_front)(deque_t *deque, deque_node_t *node) {
+void FUNC(deque_push_front)(ds_deque_t *deque, ds_deque_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -45,7 +45,7 @@ void FUNC(deque_push_front)(deque_t *deque, deque_node_t *node) {
 #endif
 }
 
-void FUNC(deque_push_back)(deque_t *deque, deque_node_t *node) {
+void FUNC(deque_push_back)(ds_deque_t *deque, ds_deque_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -66,8 +66,8 @@ void FUNC(deque_push_back)(deque_t *deque, deque_node_t *node) {
 #endif
 }
 
-deque_node_t *FUNC(deque_pop_front)(deque_t *deque) {
-  deque_node_t *node;
+ds_deque_node_t *FUNC(deque_pop_front)(ds_deque_t *deque) {
+  ds_deque_node_t *node;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -94,8 +94,8 @@ deque_node_t *FUNC(deque_pop_front)(deque_t *deque) {
   return node;
 }
 
-deque_node_t *FUNC(deque_pop_back)(deque_t *deque) {
-  deque_node_t *node;
+ds_deque_node_t *FUNC(deque_pop_back)(ds_deque_t *deque) {
+  ds_deque_node_t *node;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -122,8 +122,8 @@ deque_node_t *FUNC(deque_pop_back)(deque_t *deque) {
   return node;
 }
 
-deque_node_t *FUNC(deque_peek_front)(deque_t *deque) {
-  deque_node_t *result;
+ds_deque_node_t *FUNC(deque_peek_front)(ds_deque_t *deque) {
+  ds_deque_node_t *result;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -134,8 +134,8 @@ deque_node_t *FUNC(deque_peek_front)(deque_t *deque) {
   return result;
 }
 
-deque_node_t *FUNC(deque_peek_back)(deque_t *deque) {
-  deque_node_t *result;
+ds_deque_node_t *FUNC(deque_peek_back)(ds_deque_t *deque) {
+  ds_deque_node_t *result;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -146,7 +146,7 @@ deque_node_t *FUNC(deque_peek_back)(deque_t *deque) {
   return result;
 }
 
-bool FUNC(deque_is_empty)(deque_t *deque) {
+bool FUNC(deque_is_empty)(ds_deque_t *deque) {
   bool empty;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
@@ -161,10 +161,10 @@ bool FUNC(deque_is_empty)(deque_t *deque) {
   return empty;
 }
 
-void FUNC(deque_destroy)(deque_t *deque, void (*destroy)(deque_node_t *)) {
-  deque_node_t *node = deque->head;
+void FUNC(deque_destroy)(ds_deque_t *deque, void (*destroy)(ds_deque_node_t *)) {
+  ds_deque_node_t *node = deque->head;
   while (node != deque->nil) {
-    deque_node_t *next = node->next;
+    ds_deque_node_t *next = node->next;
     if (destroy != NULL) {
       destroy(node);
     }
@@ -179,7 +179,7 @@ void FUNC(deque_destroy)(deque_t *deque, void (*destroy)(deque_node_t *)) {
   deque->deallocator(deque);
 }
 
-void FUNC(deque_delete)(deque_t *deque) {
+void FUNC(deque_delete)(ds_deque_t *deque) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -192,7 +192,7 @@ void FUNC(deque_delete)(deque_t *deque) {
 #endif
 }
 
-void FUNC(deque_delete_node)(deque_t *deque, deque_node_t *node) {
+void FUNC(deque_delete_node)(ds_deque_t *deque, ds_deque_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -223,8 +223,8 @@ void FUNC(deque_delete_node)(deque_t *deque, deque_node_t *node) {
 #endif
 }
 
-void FUNC(deque_destroy_node)(deque_t *deque, deque_node_t *node,
-                              void (*destroy)(deque_node_t *)) {
+void FUNC(deque_destroy_node)(ds_deque_t *deque, ds_deque_node_t *node,
+                              void (*destroy)(ds_deque_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -239,14 +239,14 @@ void FUNC(deque_destroy_node)(deque_t *deque, deque_node_t *node,
 #endif
 }
 
-void FUNC(deque_pop_front_destroy)(deque_t *deque,
-                                   void (*destroy)(deque_node_t *)) {
+void FUNC(deque_pop_front_destroy)(ds_deque_t *deque,
+                                   void (*destroy)(ds_deque_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
 
   if (deque->head != deque->nil) {
-    deque_node_t *node = FUNC(deque_pop_front)(deque);
+    ds_deque_node_t *node = FUNC(deque_pop_front)(deque);
     if (destroy != NULL) {
       destroy(node);
     }
@@ -257,14 +257,14 @@ void FUNC(deque_pop_front_destroy)(deque_t *deque,
 #endif
 }
 
-void FUNC(deque_pop_back_destroy)(deque_t *deque,
-                                  void (*destroy)(deque_node_t *)) {
+void FUNC(deque_pop_back_destroy)(ds_deque_t *deque,
+                                  void (*destroy)(ds_deque_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
 
   if (deque->tail != deque->nil) {
-    deque_node_t *node = FUNC(deque_pop_back)(deque);
+    ds_deque_node_t *node = FUNC(deque_pop_back)(deque);
     if (destroy != NULL) {
       destroy(node);
     }
@@ -275,10 +275,10 @@ void FUNC(deque_pop_back_destroy)(deque_t *deque,
 #endif
 }
 
-deque_node_t *FUNC(deque_search)(deque_t *deque, deque_node_t *node,
-                                 int (*compare)(deque_node_t *,
-                                                deque_node_t *)) {
-  deque_node_t *current;
+ds_deque_node_t *FUNC(deque_search)(ds_deque_t *deque, ds_deque_node_t *node,
+                                 int (*compare)(ds_deque_node_t *,
+                                                ds_deque_node_t *)) {
+  ds_deque_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -302,9 +302,9 @@ deque_node_t *FUNC(deque_search)(deque_t *deque, deque_node_t *node,
   return deque->nil;
 }
 
-void FUNC(deque_walk_forward)(deque_t *deque, deque_node_t *start_node,
-                              void (*callback)(deque_node_t *)) {
-  deque_node_t *current;
+void FUNC(deque_walk_forward)(ds_deque_t *deque, ds_deque_node_t *start_node,
+                              void (*callback)(ds_deque_node_t *)) {
+  ds_deque_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -321,8 +321,8 @@ void FUNC(deque_walk_forward)(deque_t *deque, deque_node_t *start_node,
 #endif
 }
 
-void FUNC(deque_walk_backwards)(deque_t *deque, deque_node_t *current,
-                                void (*callback)(deque_node_t *)) {
+void FUNC(deque_walk_backwards)(ds_deque_t *deque, ds_deque_node_t *current,
+                                void (*callback)(ds_deque_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
@@ -336,17 +336,17 @@ void FUNC(deque_walk_backwards)(deque_t *deque, deque_node_t *current,
 #endif
 }
 
-deque_t *FUNC(deque_clone)(deque_t *deque,
-                           deque_node_t *(*clone_node)(deque_node_t *)) {
-  deque_t *new_deque;
-  deque_node_t *current;
+ds_deque_t *FUNC(deque_clone)(ds_deque_t *deque,
+                           ds_deque_node_t *(*clone_node)(ds_deque_node_t *)) {
+  ds_deque_t *new_deque;
+  ds_deque_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(deque)
 #endif
   new_deque = FUNC(deque_create_alloc)(deque->allocator, deque->deallocator);
   current = deque->head;
   while (current != deque->nil) {
-    deque_node_t *cloned_node = clone_node(current);
+    ds_deque_node_t *cloned_node = clone_node(current);
     FUNC(deque_push_back)(new_deque, cloned_node);
     current = current->next;
   }

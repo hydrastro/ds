@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 typedef struct int_node {
-  stack_node_t node;
+  ds_stack_node_t node;
   int value;
 } int_node_t;
 
@@ -13,16 +13,16 @@ int_node_t *create_int_node(int value) {
   return new_node;
 }
 
-void destroy_node(stack_node_t *node) { free(node); }
+void destroy_node(ds_stack_node_t *node) { free(node); }
 
-stack_node_t *clone_node(stack_node_t *node) {
+ds_stack_node_t *clone_node(ds_stack_node_t *node) {
   int_node_t *new_node = (int_node_t *)malloc(sizeof(int_node_t));
   new_node->value = (CAST(node, int_node_t))->value;
   return &new_node->node;
 }
 
 int main(void) {
-  stack_t *stack = stack_create();
+  ds_stack_t *stack = stack_create();
 
   for (int i = 1; i <= 5; ++i) {
     int_node_t *new_node = create_int_node(i);
@@ -30,7 +30,7 @@ int main(void) {
     stack_push(stack, &new_node->node);
   }
 
-  stack_t *new_stack = stack_clone(stack, clone_node);
+  ds_stack_t *new_stack = stack_clone(stack, clone_node);
 
   int_node_t *top = CAST(stack_peek(stack), int_node_t);
   printf("stack top: %d\n", top->value);

@@ -4,21 +4,21 @@
 #include <time.h>
 
 typedef struct my_deque_node {
-  deque_node_t node;
+  ds_deque_node_t node;
   int data;
 } my_deque_node_t;
 
-void print_deque_node(deque_node_t *deque_node) {
+void print_deque_node(ds_deque_node_t *deque_node) {
   my_deque_node_t *node = CAST(deque_node, my_deque_node_t);
   printf("%d ", node->data);
 }
 
-void destroy_deque_node(deque_node_t *deque_node) {
+void destroy_deque_node(ds_deque_node_t *deque_node) {
   my_deque_node_t *node = CAST(deque_node, my_deque_node_t);
   free(node);
 }
 
-deque_node_t *clone_node(deque_node_t *node) {
+ds_deque_node_t *clone_node(ds_deque_node_t *node) {
   my_deque_node_t *new_node =
       (my_deque_node_t *)malloc(sizeof(my_deque_node_t));
   new_node->data = (CAST(node, my_deque_node_t))->data;
@@ -27,7 +27,7 @@ deque_node_t *clone_node(deque_node_t *node) {
 
 int main(void) {
   int i;
-  deque_t *deque;
+  ds_deque_t *deque;
   my_deque_node_t *node;
   srand((unsigned int)time((long int *)NULL));
 
@@ -39,7 +39,7 @@ int main(void) {
     deque_push_back(deque, &node->node);
   }
 
-  deque_node_t *current_node;
+  ds_deque_node_t *current_node;
   current_node = deque->head;
   while (current_node != deque->nil) {
     print_deque_node(current_node);
@@ -88,7 +88,7 @@ int main(void) {
     current_node = current_node->next;
   }
 
-  deque_t *new_deque = deque_clone(deque, clone_node);
+  ds_deque_t *new_deque = deque_clone(deque, clone_node);
   deque_destroy(deque, destroy_deque_node);
   deque_destroy(new_deque, destroy_deque_node);
 

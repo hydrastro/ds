@@ -4,21 +4,21 @@
 #include <time.h>
 
 typedef struct my_queue_node {
-  queue_node_t node;
+  ds_queue_node_t node;
   int data;
 } my_queue_node_t;
 
-void print_queue_node(queue_node_t *queue_node) {
+void print_queue_node(ds_queue_node_t *queue_node) {
   my_queue_node_t *node = CAST(queue_node, my_queue_node_t);
   printf("%d ", node->data);
 }
 
-void destroy_queue_node(queue_node_t *queue_node) {
+void destroy_queue_node(ds_queue_node_t *queue_node) {
   my_queue_node_t *node = CAST(queue_node, my_queue_node_t);
   free(node);
 }
 
-queue_node_t *clone_node(queue_node_t *node) {
+ds_queue_node_t *clone_node(ds_queue_node_t *node) {
   my_queue_node_t *new_node =
       (my_queue_node_t *)malloc(sizeof(my_queue_node_t));
   new_node->data = (CAST(node, my_queue_node_t))->data;
@@ -27,7 +27,7 @@ queue_node_t *clone_node(queue_node_t *node) {
 
 int main(void) {
   int i;
-  queue_t *queue;
+  ds_queue_t *queue;
   my_queue_node_t *node;
   srand((unsigned int)time((long int *)NULL));
 
@@ -64,14 +64,14 @@ int main(void) {
   }
 
   printf("enqueue:\n");
-  queue_node_t *current_node = queue->head;
+  ds_queue_node_t *current_node = queue->head;
   while (current_node != queue->nil) {
     print_queue_node(current_node);
     current_node = current_node->next;
   }
   printf("\n");
 
-  queue_t *new_queue = queue_clone(queue, clone_node);
+  ds_queue_t *new_queue = queue_clone(queue, clone_node);
   current_node = new_queue->head;
   while (current_node != new_queue->nil) {
     print_queue_node(current_node);

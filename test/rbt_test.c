@@ -19,22 +19,22 @@
 #define TLAST(tree, nd) (CAST(rbt_maximum(tree,&nd->node))
 
 typedef struct my_node {
-  rbt_node_t node;
+  ds_rbt_node_t node;
   int data;
 } my_node_t;
 
-int compare_nodes(rbt_node_t *node1, rbt_node_t *node2) {
+int compare_nodes(ds_rbt_node_t *node1, ds_rbt_node_t *node2) {
   return CAST(node1, my_node_t)->data - CAST(node2, my_node_t)->data;
 }
 
 void print_node(void *node) { printf("%d ", (CAST(node, my_node_t))->data); }
 
-void destroy_node(rbt_node_t *node) {
+void destroy_node(ds_rbt_node_t *node) {
   my_node_t *my_node = CAST(node, my_node_t);
   free(my_node);
 }
 
-rbt_node_t *clone_node(rbt_node_t *node) {
+ds_rbt_node_t *clone_node(ds_rbt_node_t *node) {
   my_node_t *new_node = (my_node_t *)malloc(sizeof(my_node_t));
   new_node->data = (CAST(node, my_node_t))->data;
   return &new_node->node;
@@ -43,7 +43,7 @@ rbt_node_t *clone_node(rbt_node_t *node) {
 int main(void) {
   int i;
   my_node_t *node, *result_node, *search_data;
-  rbt_t *tree;
+  ds_rbt_t *tree;
   srand((unsigned int)time((long int *)NULL));
 
   tree = rbt_create();
@@ -65,7 +65,7 @@ int main(void) {
   } else {
     print_node(result_node);
   }
-  rbt_t *new_tree = rbt_clone(tree, clone_node);
+  ds_rbt_t *new_tree = rbt_clone(tree, clone_node);
   rbt_destroy_tree(tree, destroy_node);
   free(search_data);
 

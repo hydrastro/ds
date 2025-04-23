@@ -3,33 +3,33 @@
 #include <stdlib.h>
 #include <string.h>
 
-btree_internal_node_t *FUNC(btree_create_node)(btree_t *tree, bool is_leaf) {
-  btree_internal_node_t *node =
-      (btree_internal_node_t *)tree->allocator(sizeof(btree_internal_node_t));
+ds_btree_internal_node_t *FUNC(btree_create_node)(ds_btree_t *tree, bool is_leaf) {
+  ds_btree_internal_node_t *node =
+      (ds_btree_internal_node_t *)tree->allocator(sizeof(ds_btree_internal_node_t));
   node->num_keys = 0;
   node->is_leaf = is_leaf;
-  node->data = (btree_node_t **)tree->allocator(
-      (2 * (unsigned int)tree->degree - 1) * sizeof(btree_node_t *));
-  node->children = (btree_internal_node_t **)tree->allocator(
-      2 * (unsigned int)tree->degree * sizeof(btree_internal_node_t *));
+  node->data = (ds_btree_node_t **)tree->allocator(
+      (2 * (unsigned int)tree->degree - 1) * sizeof(ds_btree_node_t *));
+  node->children = (ds_btree_internal_node_t **)tree->allocator(
+      2 * (unsigned int)tree->degree * sizeof(ds_btree_internal_node_t *));
   memset(node->children, 0,
-         2 * (unsigned int)tree->degree * sizeof(btree_internal_node_t *));
+         2 * (unsigned int)tree->degree * sizeof(ds_btree_internal_node_t *));
   return node;
 }
 
-btree_t *FUNC(btree_create)(int degree) {
+ds_btree_t *FUNC(btree_create)(int degree) {
   return FUNC(btree_create_alloc)(degree, malloc, free);
 }
 
-btree_t *FUNC(btree_create_alloc)(int degree, void *(*allocator)(size_t),
+ds_btree_t *FUNC(btree_create_alloc)(int degree, void *(*allocator)(size_t),
                                   void (*deallocator)(void *)) {
-  btree_t *tree = (btree_t *)allocator(sizeof(btree_t));
+  ds_btree_t *tree = (ds_btree_t *)allocator(sizeof(ds_btree_t));
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->degree = degree;
   tree->root = FUNC(btree_create_node)(tree, true);
   tree->root->parent = NULL;
-  tree->nil = (btree_node_t *)allocator(sizeof(btree_node_t));
+  tree->nil = (ds_btree_node_t *)allocator(sizeof(ds_btree_node_t));
   tree->size = 0;
 
 #ifdef DS_THREAD_SAFE
@@ -39,11 +39,11 @@ btree_t *FUNC(btree_create_alloc)(int degree, void *(*allocator)(size_t),
   return tree;
 }
 
-void FUNC(btree_split_child)(btree_t *tree, btree_internal_node_t *parent,
+void FUNC(btree_split_child)(ds_btree_t *tree, ds_btree_internal_node_t *parent,
                              int index) {
   int i;
-  btree_internal_node_t *child;
-  btree_internal_node_t *new_node;
+  ds_btree_internal_node_t *child;
+  ds_btree_internal_node_t *new_node;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -79,10 +79,10 @@ void FUNC(btree_split_child)(btree_t *tree, btree_internal_node_t *parent,
 #endif
 }
 
-void FUNC(btree_insert_non_full)(btree_t *tree, btree_internal_node_t *node,
-                                 btree_node_t *data,
-                                 int (*compare)(btree_node_t *,
-                                                btree_node_t *)) {
+void FUNC(btree_insert_non_full)(ds_btree_t *tree, ds_btree_internal_node_t *node,
+                                 ds_btree_node_t *data,
+                                 int (*compare)(ds_btree_node_t *,
+                                                ds_btree_node_t *)) {
   int i;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -115,10 +115,10 @@ void FUNC(btree_insert_non_full)(btree_t *tree, btree_internal_node_t *node,
 #endif
 }
 
-void FUNC(btree_insert)(btree_t *tree, btree_node_t *data,
-                        int (*compare)(btree_node_t *, btree_node_t *)) {
-  btree_internal_node_t *new_root;
-  btree_internal_node_t *root;
+void FUNC(btree_insert)(ds_btree_t *tree, ds_btree_node_t *data,
+                        int (*compare)(ds_btree_node_t *, ds_btree_node_t *)) {
+  ds_btree_internal_node_t *new_root;
+  ds_btree_internal_node_t *root;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -142,12 +142,12 @@ void FUNC(btree_insert)(btree_t *tree, btree_node_t *data,
 #endif
 }
 
-btree_node_t *
-FUNC(btree_search_node)(btree_t *tree, btree_internal_node_t *node,
-                        btree_node_t *key,
-                        int (*compare)(btree_node_t *, btree_node_t *)) {
+ds_btree_node_t *
+FUNC(btree_search_node)(ds_btree_t *tree, ds_btree_internal_node_t *node,
+                        ds_btree_node_t *key,
+                        int (*compare)(ds_btree_node_t *, ds_btree_node_t *)) {
   int i;
-  btree_node_t *result;
+  ds_btree_node_t *result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -170,10 +170,10 @@ FUNC(btree_search_node)(btree_t *tree, btree_internal_node_t *node,
   return result;
 }
 
-btree_node_t *FUNC(btree_search)(btree_t *tree, btree_node_t *key,
-                                 int (*compare)(btree_node_t *,
-                                                btree_node_t *)) {
-  btree_node_t *result;
+ds_btree_node_t *FUNC(btree_search)(ds_btree_t *tree, ds_btree_node_t *key,
+                                 int (*compare)(ds_btree_node_t *,
+                                                ds_btree_node_t *)) {
+  ds_btree_node_t *result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -189,7 +189,7 @@ btree_node_t *FUNC(btree_search)(btree_t *tree, btree_node_t *key,
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-void *FUNC(btree_local_minimum)(btree_t *tree, btree_internal_node_t *node) {
+void *FUNC(btree_local_minimum)(ds_btree_t *tree, ds_btree_internal_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -208,7 +208,7 @@ void *FUNC(btree_local_minimum)(btree_t *tree, btree_internal_node_t *node) {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-void *FUNC(btree_local_maximum)(btree_t *tree, btree_internal_node_t *node) {
+void *FUNC(btree_local_maximum)(ds_btree_t *tree, ds_btree_internal_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -225,17 +225,17 @@ void *FUNC(btree_local_maximum)(btree_t *tree, btree_internal_node_t *node) {
 }
 #pragma GCC diagnostic pop
 
-void *FUNC(btree_minimum)(btree_t *tree) {
+void *FUNC(btree_minimum)(ds_btree_t *tree) {
   return FUNC(btree_local_minimum)(tree, tree->root);
 }
 
-void *FUNC(btree_maximum)(btree_t *tree) {
+void *FUNC(btree_maximum)(ds_btree_t *tree) {
   return FUNC(btree_local_maximum)(tree, tree->root);
 }
 
-void FUNC(btree_rebalance)(btree_t *tree, btree_internal_node_t *node) {
+void FUNC(btree_rebalance)(ds_btree_t *tree, ds_btree_internal_node_t *node) {
   int i, j;
-  btree_internal_node_t *parent;
+  ds_btree_internal_node_t *parent;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -271,7 +271,7 @@ void FUNC(btree_rebalance)(btree_t *tree, btree_internal_node_t *node) {
     parent->data[i]->internal = parent;
     parent->children[i - 1]->num_keys--;
   } else {
-    btree_internal_node_t *recipient, *next;
+    ds_btree_internal_node_t *recipient, *next;
 
     if (i != 0) {
       recipient = parent->children[i - 1];
@@ -317,11 +317,11 @@ void FUNC(btree_rebalance)(btree_t *tree, btree_internal_node_t *node) {
 #endif
 }
 
-void FUNC(btree_delete_node)(btree_t *tree, btree_node_t *key) {
+void FUNC(btree_delete_node)(ds_btree_t *tree, ds_btree_node_t *key) {
   int i;
-  btree_internal_node_t *node;
-  btree_internal_node_t *borrowed_internal;
-  btree_node_t *borrowed;
+  ds_btree_internal_node_t *node;
+  ds_btree_internal_node_t *borrowed_internal;
+  ds_btree_node_t *borrowed;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -368,8 +368,8 @@ void FUNC(btree_delete_node)(btree_t *tree, btree_node_t *key) {
 #endif
 }
 
-void FUNC(btree_destroy_node)(btree_t *tree, btree_node_t *node,
-                              void (*destroy)(btree_node_t *)) {
+void FUNC(btree_destroy_node)(ds_btree_t *tree, ds_btree_node_t *node,
+                              void (*destroy)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -380,8 +380,8 @@ void FUNC(btree_destroy_node)(btree_t *tree, btree_node_t *node,
 #endif
 }
 
-void FUNC(btree_destroy_recursive)(btree_t *tree, btree_internal_node_t *node,
-                                   void (*destroy)(btree_node_t *)) {
+void FUNC(btree_destroy_recursive)(ds_btree_t *tree, ds_btree_internal_node_t *node,
+                                   void (*destroy)(ds_btree_node_t *)) {
   int i;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -406,7 +406,7 @@ void FUNC(btree_destroy_recursive)(btree_t *tree, btree_internal_node_t *node,
 #endif
 }
 
-void FUNC(btree_destroy_tree)(btree_t *tree, void (*destroy)(btree_node_t *)) {
+void FUNC(btree_destroy_tree)(ds_btree_t *tree, void (*destroy)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -418,8 +418,8 @@ void FUNC(btree_destroy_tree)(btree_t *tree, void (*destroy)(btree_node_t *)) {
   tree->deallocator(tree);
 }
 
-void FUNC(btree_inorder_walk_helper)(btree_t *tree, btree_internal_node_t *node,
-                                     void (*callback)(btree_node_t *)) {
+void FUNC(btree_inorder_walk_helper)(ds_btree_t *tree, ds_btree_internal_node_t *node,
+                                     void (*callback)(ds_btree_node_t *)) {
   int i;
   if (node == NULL) {
     return;
@@ -435,8 +435,8 @@ void FUNC(btree_inorder_walk_helper)(btree_t *tree, btree_internal_node_t *node,
   }
 }
 
-void FUNC(btree_inorder_walk)(btree_t *tree, btree_internal_node_t *node,
-                              void (*callback)(btree_node_t *)) {
+void FUNC(btree_inorder_walk)(ds_btree_t *tree, ds_btree_internal_node_t *node,
+                              void (*callback)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -446,8 +446,8 @@ void FUNC(btree_inorder_walk)(btree_t *tree, btree_internal_node_t *node,
 #endif
 }
 
-void FUNC(btree_inorder_walk_tree)(btree_t *tree,
-                                   void (*callback)(btree_node_t *)) {
+void FUNC(btree_inorder_walk_tree)(ds_btree_t *tree,
+                                   void (*callback)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -457,9 +457,9 @@ void FUNC(btree_inorder_walk_tree)(btree_t *tree,
 #endif
 }
 
-void FUNC(btree_preorder_walk_helper)(btree_t *tree,
-                                      btree_internal_node_t *node,
-                                      void (*callback)(btree_node_t *)) {
+void FUNC(btree_preorder_walk_helper)(ds_btree_t *tree,
+                                      ds_btree_internal_node_t *node,
+                                      void (*callback)(ds_btree_node_t *)) {
   int i;
   if (node == NULL) {
     return;
@@ -474,8 +474,8 @@ void FUNC(btree_preorder_walk_helper)(btree_t *tree,
   }
 }
 
-void FUNC(btree_preorder_walk)(btree_t *tree, btree_internal_node_t *node,
-                               void (*callback)(btree_node_t *)) {
+void FUNC(btree_preorder_walk)(ds_btree_t *tree, ds_btree_internal_node_t *node,
+                               void (*callback)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -485,8 +485,8 @@ void FUNC(btree_preorder_walk)(btree_t *tree, btree_internal_node_t *node,
 #endif
 }
 
-void FUNC(btree_preorder_walk_tree)(btree_t *tree,
-                                    void (*callback)(btree_node_t *)) {
+void FUNC(btree_preorder_walk_tree)(ds_btree_t *tree,
+                                    void (*callback)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -496,9 +496,9 @@ void FUNC(btree_preorder_walk_tree)(btree_t *tree,
 #endif
 }
 
-void FUNC(btree_postorder_walk_helper)(btree_t *tree,
-                                       btree_internal_node_t *node,
-                                       void (*callback)(btree_node_t *)) {
+void FUNC(btree_postorder_walk_helper)(ds_btree_t *tree,
+                                       ds_btree_internal_node_t *node,
+                                       void (*callback)(ds_btree_node_t *)) {
   int i;
   if (node == NULL) {
     return;
@@ -513,8 +513,8 @@ void FUNC(btree_postorder_walk_helper)(btree_t *tree,
   }
 }
 
-void FUNC(btree_postorder_walk)(btree_t *tree, btree_internal_node_t *node,
-                                void (*callback)(btree_node_t *)) {
+void FUNC(btree_postorder_walk)(ds_btree_t *tree, ds_btree_internal_node_t *node,
+                                void (*callback)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -524,8 +524,8 @@ void FUNC(btree_postorder_walk)(btree_t *tree, btree_internal_node_t *node,
 #endif
 }
 
-void FUNC(btree_postorder_walk_tree)(btree_t *tree,
-                                     void (*callback)(btree_node_t *)) {
+void FUNC(btree_postorder_walk_tree)(ds_btree_t *tree,
+                                     void (*callback)(ds_btree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -535,13 +535,13 @@ void FUNC(btree_postorder_walk_tree)(btree_t *tree,
 #endif
 }
 
-btree_internal_node_t *
-FUNC(btree_clone_recursive)(btree_t *tree, btree_t *new_tree,
-                            btree_internal_node_t *node,
-                            btree_node_t *(*clone_node)(btree_node_t *)) {
+ds_btree_internal_node_t *
+FUNC(btree_clone_recursive)(ds_btree_t *tree, ds_btree_t *new_tree,
+                            ds_btree_internal_node_t *node,
+                            ds_btree_node_t *(*clone_node)(ds_btree_node_t *)) {
 
   int i;
-  btree_internal_node_t *new_node =
+  ds_btree_internal_node_t *new_node =
       FUNC(btree_create_node)(new_tree, node->is_leaf);
   new_node->num_keys = node->num_keys;
 
@@ -563,17 +563,17 @@ FUNC(btree_clone_recursive)(btree_t *tree, btree_t *new_tree,
   return new_node;
 }
 
-btree_t *FUNC(btree_clone)(btree_t *tree,
-                           btree_node_t *(*clone_node)(btree_node_t *)) {
-  btree_t *new_tree;
+ds_btree_t *FUNC(btree_clone)(ds_btree_t *tree,
+                           ds_btree_node_t *(*clone_node)(ds_btree_node_t *)) {
+  ds_btree_t *new_tree;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  new_tree = (btree_t *)tree->allocator(sizeof(btree_t));
+  new_tree = (ds_btree_t *)tree->allocator(sizeof(ds_btree_t));
   new_tree->allocator = tree->allocator;
   new_tree->deallocator = tree->deallocator;
   new_tree->degree = tree->degree;
-  new_tree->nil = (btree_node_t *)tree->allocator(sizeof(btree_node_t));
+  new_tree->nil = (ds_btree_node_t *)tree->allocator(sizeof(ds_btree_node_t));
 
 #ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(tree)

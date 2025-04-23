@@ -4,27 +4,27 @@
 #include <time.h>
 
 typedef struct my_node {
-  dlist_node_t node;
+  ds_dlist_node_t node;
   int data;
 } my_node_t;
 
-int compare_nodes(dlist_node_t *node1, dlist_node_t *node2) {
+int compare_nodes(ds_dlist_node_t *node1, ds_dlist_node_t *node2) {
   my_node_t *node_a = CAST(node1, my_node_t);
   my_node_t *node_b = CAST(node2, my_node_t);
   return node_b->data - node_a->data;
 }
 
-void print_node(dlist_node_t *node) {
+void print_node(ds_dlist_node_t *node) {
   my_node_t *my_node = CAST(node, my_node_t);
   printf("%d ", my_node->data);
 }
 
-void destroy_node(dlist_node_t *node) {
+void destroy_node(ds_dlist_node_t *node) {
   my_node_t *my_node = CAST(node, my_node_t);
   free(my_node);
 }
 
-dlist_node_t *node_clone(dlist_node_t *node) {
+ds_dlist_node_t *node_clone(ds_dlist_node_t *node) {
   if (node == NULL) {
     return NULL;
   }
@@ -36,7 +36,7 @@ dlist_node_t *node_clone(dlist_node_t *node) {
 int main(void) {
   int i;
   my_node_t *node, *found_node, *search_value;
-  dlist_t *list;
+  ds_dlist_t *list;
   srand((unsigned int)time((long int *)NULL));
   list = dlist_create();
   search_value = (my_node_t *)malloc(sizeof(my_node_t));
@@ -54,7 +54,7 @@ int main(void) {
 
   found_node =
       (my_node_t *)dlist_search(list, &search_value->node, compare_nodes);
-  if ((dlist_node_t *)found_node != list->nil) {
+  if ((ds_dlist_node_t *)found_node != list->nil) {
     printf("found %d\n", found_node->data);
   } else {
     printf("not found\n");
@@ -75,7 +75,7 @@ int main(void) {
   }
   free(search_value);
 
-  dlist_t *new_list = dlist_clone(list, node_clone);
+  ds_dlist_t *new_list = dlist_clone(list, node_clone);
   dlist_destroy(list, destroy_node);
   printf("\n");
   dlist_walk_forward(new_list, new_list->head, print_node);

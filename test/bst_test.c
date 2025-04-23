@@ -4,11 +4,11 @@
 #include <stdlib.h>
 
 typedef struct my_data_struct {
-  bst_node_t node;
+  ds_bst_node_t node;
   int value;
 } my_data_t;
 
-void walk(bst_t *tree, bst_node_t *node) {
+void walk(ds_bst_t *tree, ds_bst_node_t *node) {
   if (node == tree->nil) {
     return;
   }
@@ -17,24 +17,24 @@ void walk(bst_t *tree, bst_node_t *node) {
   walk(tree, node->right);
 }
 
-int compare(bst_node_t *node1, bst_node_t *node2) {
+int compare(ds_bst_node_t *node1, ds_bst_node_t *node2) {
   return CAST(node1, my_data_t)->value - CAST(node2, my_data_t)->value;
 }
 
-void destroy_bst_node(bst_node_t *node) {
+void destroy_bst_node(ds_bst_node_t *node) {
   my_data_t *data = (my_data_t *)node;
   printf("Destroying node with value: %d\n", data->value);
   free(data);
 }
 
-bst_node_t *clone_node(bst_node_t *node) {
+ds_bst_node_t *clone_node(ds_bst_node_t *node) {
   my_data_t *new_node = (my_data_t *)malloc(sizeof(my_data_t));
   new_node->value = (CAST(node, my_data_t))->value;
   return &new_node->node;
 }
 
 int main() {
-  bst_t *tree = bst_create();
+  ds_bst_t *tree = bst_create();
 
   for (int i = 0; i < 10; i++) {
     my_data_t *data = (my_data_t *)malloc(sizeof(my_data_t));
@@ -42,13 +42,13 @@ int main() {
     bst_insert(tree, &data->node, compare);
   }
 
-  bst_node_t *kek = bst_minimum(tree, tree->root);
+  ds_bst_node_t *kek = bst_minimum(tree, tree->root);
   walk(tree, kek);
   printf("\n");
 
   my_data_t search_data;
   search_data.value = 5;
-  bst_node_t *found_node = bst_search(tree, &(search_data.node), compare);
+  ds_bst_node_t *found_node = bst_search(tree, &(search_data.node), compare);
 
   if (found_node != tree->nil) {
     my_data_t *found_data = (my_data_t *)found_node;
@@ -73,7 +73,7 @@ int main() {
   walk(tree, kek);
   printf("\n");
 
-  bst_t *new_tree = bst_clone(tree, clone_node);
+  ds_bst_t *new_tree = bst_clone(tree, clone_node);
 
   printf("destroying tree...\n");
   bst_destroy_tree(tree, destroy_bst_node);

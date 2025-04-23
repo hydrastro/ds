@@ -22,14 +22,14 @@ void *clone_key(void *key) { return (void *)strdup(key); }
 
 void *clone_value(void *value) { return (void *)strdup(value); }
 
-void destroy_node(hash_node_t *node) {
+void destroy_node(ds_hash_node_t *node) {
   free(node->key);
   free(node->value);
 }
 
 int main(void) {
-  hash_table_t *table = hash_table_create((size_t)4000, HASH_CHAINING, NULL);
-  hash_node_t *node;
+  ds_hash_table_t *table = hash_table_create((size_t)4000, HASH_CHAINING, NULL);
+  ds_hash_node_t *node;
 
   char *value;
   node = hash_table_lookup(table, "key2", string_hash, string_compare);
@@ -57,7 +57,7 @@ int main(void) {
   }
 
   printf("Cloning hash table\n");
-  hash_table_t *new_table = hash_table_clone(table, clone_key, clone_value);
+  ds_hash_table_t *new_table = hash_table_clone(table, clone_key, clone_value);
   printf("Cloned hash table\n");
 
   hash_table_remove(table, "key2", string_hash, string_compare, NULL);
