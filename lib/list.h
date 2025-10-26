@@ -24,11 +24,12 @@ typedef struct linked_list {
 
 ds_list_t *FUNC(list_create)(void);
 ds_list_t *FUNC(list_create_alloc)(void *(*allocator)(size_t),
-                                void (*deallocator)(void *));
+                                   void (*deallocator)(void *));
 void FUNC(list_append)(ds_list_t *list, ds_list_node_t *node);
 void FUNC(list_prepend)(ds_list_t *list, ds_list_node_t *node);
 ds_list_node_t *FUNC(list_search)(ds_list_t *list, ds_list_node_t *node,
-                               int (*compare)(ds_list_node_t *, ds_list_node_t *));
+                                  int (*compare)(ds_list_node_t *,
+                                                 ds_list_node_t *));
 void FUNC(list_insert_before)(ds_list_t *list, ds_list_node_t *node,
                               ds_list_node_t *next);
 void FUNC(list_insert_after)(ds_list_t *list, ds_list_node_t *node,
@@ -44,6 +45,6 @@ void FUNC(list_walk_backwards)(ds_list_t *list, ds_list_node_t *node,
                                void (*callback)(ds_list_node_t *));
 bool FUNC(list_is_empty)(ds_list_t *list);
 ds_list_t *FUNC(list_clone)(ds_list_t *list,
-                         ds_list_node_t *(*clone_node)(ds_list_node_t *));
+                            ds_list_node_t *(*clone_node)(ds_list_node_t *));
 
 #endif /* DS_LIST_H */

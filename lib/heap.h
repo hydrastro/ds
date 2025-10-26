@@ -29,15 +29,16 @@ void heapify_down(ds_heap_t *heap, size_t index,
                   int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
 ds_heap_t *FUNC(heap_create)(size_t capacity);
 ds_heap_t *FUNC(heap_create_alloc)(size_t capacity, void *(*allocator)(size_t),
-                                void (*deallocator)(void *));
+                                   void (*deallocator)(void *));
 void FUNC(heap_insert)(ds_heap_t *heap, ds_heap_node_t *node,
                        int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
 void *FUNC(heap_extract_root)(ds_heap_t *heap,
-                              int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
+                              int (*compare)(ds_heap_node_t *,
+                                             ds_heap_node_t *));
 void *FUNC(heap_peek_root)(ds_heap_t *heap);
 bool FUNC(heap_is_empty)(ds_heap_t *heap);
 void FUNC(heap_destroy)(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *));
 ds_heap_t *FUNC(heap_clone)(ds_heap_t *heap,
-                         ds_heap_node_t *(*clone_node)(ds_heap_node_t *));
+                            ds_heap_node_t *(*clone_node)(ds_heap_node_t *));
 
 #endif /* DS_HEAP_H */

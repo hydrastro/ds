@@ -23,7 +23,7 @@ typedef struct stack {
 
 ds_stack_t *FUNC(stack_create)(void);
 ds_stack_t *FUNC(stack_create_alloc)(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *));
+                                     void (*deallocator)(void *));
 void FUNC(stack_push)(ds_stack_t *stack, ds_stack_node_t *node);
 ds_stack_node_t *FUNC(stack_pop)(ds_stack_t *stack);
 ds_stack_node_t *FUNC(stack_peek)(ds_stack_t *stack);
@@ -36,13 +36,14 @@ void FUNC(stack_destroy_node)(ds_stack_t *stack, ds_stack_node_t *node,
 void FUNC(stack_pop_destroy)(ds_stack_t *stack,
                              void (*destroy_node)(ds_stack_node_t *));
 ds_stack_node_t *FUNC(stack_search)(ds_stack_t *stack, ds_stack_node_t *node,
-                                 int (*compare)(ds_stack_node_t *,
-                                                ds_stack_node_t *));
+                                    int (*compare)(ds_stack_node_t *,
+                                                   ds_stack_node_t *));
 void FUNC(stack_walk_forward)(ds_stack_t *stack, ds_stack_node_t *node,
                               void (*callback)(ds_stack_node_t *));
 void FUNC(stack_walk_backwards)(ds_stack_t *stack, ds_stack_node_t *node,
                                 void (*callback)(ds_stack_node_t *));
-ds_stack_t *FUNC(stack_clone)(ds_stack_t *stack,
-                           ds_stack_node_t *(*clone_node)(ds_stack_node_t *));
+ds_stack_t *
+    FUNC(stack_clone)(ds_stack_t *stack,
+                      ds_stack_node_t *(*clone_node)(ds_stack_node_t *));
 
 #endif /* DS_STACK_H */

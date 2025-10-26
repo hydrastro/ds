@@ -1,10 +1,12 @@
 #include "bst.h"
 #include <stdlib.h>
 
-ds_bst_t *FUNC(bst_create)(void) { return FUNC(bst_create_alloc)(malloc, free); }
+ds_bst_t *FUNC(bst_create)(void) {
+  return FUNC(bst_create_alloc)(malloc, free);
+}
 
 ds_bst_t *FUNC(bst_create_alloc)(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
+                                 void (*deallocator)(void *)) {
   ds_bst_t *tree = (ds_bst_t *)allocator(sizeof(ds_bst_t));
   tree->allocator = allocator;
   tree->deallocator = deallocator;
@@ -54,7 +56,8 @@ void FUNC(bst_insert)(ds_bst_t *tree, ds_bst_node_t *node,
 }
 
 ds_bst_node_t *FUNC(bst_search)(ds_bst_t *tree, ds_bst_node_t *data,
-                             int (*compare)(ds_bst_node_t *, ds_bst_node_t *)) {
+                                int (*compare)(ds_bst_node_t *,
+                                               ds_bst_node_t *)) {
   ds_bst_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -351,9 +354,10 @@ ds_bst_node_t *FUNC(bst_predecessor)(ds_bst_t *tree, ds_bst_node_t *node_x) {
   return node_y;
 }
 
-ds_bst_node_t *FUNC(bst_clone_recursive)(ds_bst_t *tree, ds_bst_t *new_tree,
-                                      ds_bst_node_t *node,
-                                      ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
+ds_bst_node_t *
+FUNC(bst_clone_recursive)(ds_bst_t *tree, ds_bst_t *new_tree,
+                          ds_bst_node_t *node,
+                          ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
   ds_bst_node_t *new_node;
   if (node == tree->nil) {
     return new_tree->nil;
@@ -374,7 +378,8 @@ ds_bst_node_t *FUNC(bst_clone_recursive)(ds_bst_t *tree, ds_bst_t *new_tree,
   return new_node;
 }
 
-ds_bst_t *FUNC(bst_clone)(ds_bst_t *tree, ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
+ds_bst_t *FUNC(bst_clone)(ds_bst_t *tree,
+                          ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
   ds_bst_t *new_tree;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)

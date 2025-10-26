@@ -7,7 +7,7 @@ ds_dlist_t *FUNC(dlist_create)(void) {
 }
 
 ds_dlist_t *FUNC(dlist_create_alloc)(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
+                                     void (*deallocator)(void *)) {
   ds_dlist_t *list = (ds_dlist_t *)allocator(sizeof(ds_dlist_t));
   list->allocator = allocator;
   list->deallocator = deallocator;
@@ -44,8 +44,8 @@ void FUNC(dlist_prepend)(ds_dlist_t *list, ds_dlist_node_t *node) {
 }
 
 ds_dlist_node_t *FUNC(dlist_search)(ds_dlist_t *list, ds_dlist_node_t *node,
-                                 int (*compare)(ds_dlist_node_t *,
-                                                ds_dlist_node_t *)) {
+                                    int (*compare)(ds_dlist_node_t *,
+                                                   ds_dlist_node_t *)) {
   ds_dlist_node_t *head;
 #ifdef DS_THREAD_SAFE
   LOCK(list)
@@ -213,8 +213,9 @@ bool FUNC(dlist_is_empty)(ds_dlist_t *list) {
   return result;
 }
 
-ds_dlist_t *FUNC(dlist_clone)(ds_dlist_t *list,
-                           ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *)) {
+ds_dlist_t *
+FUNC(dlist_clone)(ds_dlist_t *list,
+                  ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *)) {
   ds_dlist_t *new_list;
   ds_dlist_node_t *current;
 #ifdef DS_THREAD_SAFE

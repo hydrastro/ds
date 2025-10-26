@@ -17,7 +17,7 @@ typedef enum {
 } ds_hash_table_mode_t;
 
 typedef size_t (*ds_hash_probing_func_t)(size_t base_index, size_t iteration,
-                                      size_t capacity);
+                                         size_t capacity);
 
 typedef struct hash_node {
   void *key;
@@ -55,13 +55,14 @@ size_t hash_func_default(void *key);
 
 size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity);
 size_t linear_probing(size_t base_index, size_t iteration, size_t capacity);
-ds_hash_table_t *FUNC(hash_table_create)(size_t capacity, ds_hash_table_mode_t mode,
-                                      ds_hash_probing_func_t probing_func);
-ds_hash_table_t *FUNC(hash_table_create_alloc)(size_t capacity,
-                                            ds_hash_table_mode_t mode,
-                                            ds_hash_probing_func_t probing_func,
-                                            void *(*allocator)(size_t),
-                                            void (*deallocator)(void *));
+ds_hash_table_t *FUNC(hash_table_create)(size_t capacity,
+                                         ds_hash_table_mode_t mode,
+                                         ds_hash_probing_func_t probing_func);
+ds_hash_table_t *
+    FUNC(hash_table_create_alloc)(size_t capacity, ds_hash_table_mode_t mode,
+                                  ds_hash_probing_func_t probing_func,
+                                  void *(*allocator)(size_t),
+                                  void (*deallocator)(void *));
 void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *));
@@ -79,7 +80,7 @@ bool FUNC(hash_table_is_empty)(ds_hash_table_t *table);
 void FUNC(hash_table_destroy)(ds_hash_table_t *table,
                               void (*destroy)(ds_hash_node_t *));
 ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
-                                     void *(*clone_key)(void *),
-                                     void *(*clone_value)(void *));
+                                        void *(*clone_key)(void *),
+                                        void *(*clone_value)(void *));
 
 #endif /* DS_HASH_TABLE_H */

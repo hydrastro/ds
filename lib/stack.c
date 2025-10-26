@@ -6,7 +6,7 @@ ds_stack_t *FUNC(stack_create)(void) {
 }
 
 ds_stack_t *FUNC(stack_create_alloc)(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
+                                     void (*deallocator)(void *)) {
   ds_stack_t *stack = (ds_stack_t *)allocator(sizeof(ds_stack_t));
   stack->allocator = allocator;
   stack->deallocator = deallocator;
@@ -76,7 +76,8 @@ bool FUNC(stack_is_empty)(ds_stack_t *stack) {
   return result;
 }
 
-void FUNC(stack_destroy)(ds_stack_t *stack, void (*destroy)(ds_stack_node_t *)) {
+void FUNC(stack_destroy)(ds_stack_t *stack,
+                         void (*destroy)(ds_stack_node_t *)) {
   ds_stack_node_t *node = stack->top;
   while (node != stack->nil) {
     ds_stack_node_t *next = node->next;
@@ -164,8 +165,8 @@ void FUNC(stack_pop_destroy)(ds_stack_t *stack,
 }
 
 ds_stack_node_t *FUNC(stack_search)(ds_stack_t *stack, ds_stack_node_t *node,
-                                 int (*compare)(ds_stack_node_t *,
-                                                ds_stack_node_t *)) {
+                                    int (*compare)(ds_stack_node_t *,
+                                                   ds_stack_node_t *)) {
   ds_stack_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(stack)
@@ -227,8 +228,9 @@ void FUNC(stack_walk_backwards)(ds_stack_t *stack, ds_stack_node_t *current,
 #endif
 }
 
-ds_stack_t *FUNC(stack_clone)(ds_stack_t *stack,
-                           ds_stack_node_t *(*clone_node)(ds_stack_node_t *)) {
+ds_stack_t *
+FUNC(stack_clone)(ds_stack_t *stack,
+                  ds_stack_node_t *(*clone_node)(ds_stack_node_t *)) {
   ds_stack_t *temp_stack;
   ds_stack_t *new_stack;
   ds_stack_node_t *current;

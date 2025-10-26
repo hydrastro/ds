@@ -26,7 +26,8 @@ my_data_t *create_data(int key) {
 
 void destroy(ds_avl_node_t *node) { free(node); }
 
-void draw_avl_tree_recursive(ds_avl_t *tree, ds_avl_node_t *node, char *prefix) {
+void draw_avl_tree_recursive(ds_avl_t *tree, ds_avl_node_t *node,
+                             char *prefix) {
   if (node == tree->nil) {
     return;
   }
@@ -79,7 +80,8 @@ int main() {
   printf("\n");
 
   search_data.key = 7;
-  found_node = avl_search(tree, (ds_avl_node_t *)&search_data, compare_avl_nodes);
+  found_node =
+      avl_search(tree, (ds_avl_node_t *)&search_data, compare_avl_nodes);
   if (found_node != tree->nil) {
     avl_destroy_node(tree, found_node, destroy);
     printf("Deleted entry 7\n");

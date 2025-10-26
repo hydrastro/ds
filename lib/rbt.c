@@ -11,10 +11,12 @@ void FUNC(rbt_set_parent_color)(ds_rbt_node_t *node, ds_rbt_node_t *parent,
   node->parent_color = (unsigned long)parent + (long unsigned int)color;
 }
 
-ds_rbt_t *FUNC(rbt_create)(void) { return FUNC(rbt_create_alloc)(malloc, free); }
+ds_rbt_t *FUNC(rbt_create)(void) {
+  return FUNC(rbt_create_alloc)(malloc, free);
+}
 
 ds_rbt_t *FUNC(rbt_create_alloc)(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
+                                 void (*deallocator)(void *)) {
   ds_rbt_t *tree;
   tree = (ds_rbt_t *)allocator(sizeof(ds_rbt_t));
   tree->allocator = allocator;
@@ -103,8 +105,9 @@ ds_rbt_node_t *FUNC(rbt_predecessor)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   return node_y;
 }
 
-ds_rbt_node_t *FUNC(rbt_search)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *data,
-                             int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
+ds_rbt_node_t *
+FUNC(rbt_search)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *data,
+                 int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
   int cmp;
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
@@ -128,9 +131,9 @@ ds_rbt_node_t *FUNC(rbt_search)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_no
   return tree->nil;
 }
 
-ds_rbt_node_t *FUNC(rbt_bigger_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
-                                  ds_rbt_node_t *key,
-                                  int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
+ds_rbt_node_t *
+FUNC(rbt_bigger_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *key,
+                      int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
   int cmp;
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
@@ -153,8 +156,9 @@ ds_rbt_node_t *FUNC(rbt_bigger_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
 }
 
 ds_rbt_node_t *FUNC(rbt_smaller_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
-                                   ds_rbt_node_t *key,
-                                   int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
+                                      ds_rbt_node_t *key,
+                                      int (*compare)(ds_rbt_node_t *,
+                                                     ds_rbt_node_t *)) {
   int cmp;
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
@@ -409,7 +413,8 @@ void FUNC(rbt_postorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *)) {
 #endif
 }
 
-void FUNC(rbt_transplant)(ds_rbt_t *tree, ds_rbt_node_t *node_u, ds_rbt_node_t *node_v) {
+void FUNC(rbt_transplant)(ds_rbt_t *tree, ds_rbt_node_t *node_u,
+                          ds_rbt_node_t *node_v) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree)
 #endif
@@ -588,9 +593,10 @@ void FUNC(rbt_destroy_tree)(ds_rbt_t *tree, void (*destroy)(ds_rbt_node_t *)) {
   tree->deallocator(tree);
 }
 
-ds_rbt_node_t *FUNC(rbt_clone_recursive)(ds_rbt_t *tree, ds_rbt_t *new_tree,
-                                      ds_rbt_node_t *node,
-                                      ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *)) {
+ds_rbt_node_t *
+FUNC(rbt_clone_recursive)(ds_rbt_t *tree, ds_rbt_t *new_tree,
+                          ds_rbt_node_t *node,
+                          ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *)) {
   ds_rbt_node_t *new_node;
   if (node == tree->nil) {
     return new_tree->nil;
@@ -605,7 +611,8 @@ ds_rbt_node_t *FUNC(rbt_clone_recursive)(ds_rbt_t *tree, ds_rbt_t *new_tree,
   return new_node;
 }
 
-ds_rbt_t *FUNC(rbt_clone)(ds_rbt_t *tree, ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *)) {
+ds_rbt_t *FUNC(rbt_clone)(ds_rbt_t *tree,
+                          ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *)) {
   ds_rbt_t *new_tree;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);

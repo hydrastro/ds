@@ -66,11 +66,12 @@ ds_heap_t *FUNC(heap_create)(size_t capacity) {
 }
 
 ds_heap_t *FUNC(heap_create_alloc)(size_t capacity, void *(*allocator)(size_t),
-                                void (*deallocator)(void *)) {
+                                   void (*deallocator)(void *)) {
   ds_heap_t *heap = (ds_heap_t *)allocator(sizeof(ds_heap_t));
   heap->allocator = allocator;
   heap->deallocator = deallocator;
-  heap->data = (ds_heap_node_t **)allocator(capacity * sizeof(ds_heap_node_t *));
+  heap->data =
+      (ds_heap_node_t **)allocator(capacity * sizeof(ds_heap_node_t *));
   heap->size = 0;
   heap->capacity = capacity;
   heap->nil = (ds_heap_node_t *)allocator(sizeof(ds_heap_node_t));
@@ -88,8 +89,8 @@ void FUNC(heap_insert)(ds_heap_t *heap, ds_heap_node_t *node,
 #endif
   if (heap->size >= heap->capacity) {
     heap->capacity *= 2;
-    heap->data = (ds_heap_node_t **)realloc(heap->data, heap->capacity *
-                                                         sizeof(ds_heap_node_t *));
+    heap->data = (ds_heap_node_t **)realloc(
+        heap->data, heap->capacity * sizeof(ds_heap_node_t *));
   }
   node->index = heap->size;
   heap->data[heap->size] = node;
@@ -101,7 +102,8 @@ void FUNC(heap_insert)(ds_heap_t *heap, ds_heap_node_t *node,
 }
 
 void *FUNC(heap_extract_root)(ds_heap_t *heap,
-                              int (*compare)(ds_heap_node_t *, ds_heap_node_t *)) {
+                              int (*compare)(ds_heap_node_t *,
+                                             ds_heap_node_t *)) {
   void *root;
 #ifdef DS_THREAD_SAFE
   LOCK(heap)
@@ -156,7 +158,7 @@ void FUNC(heap_destroy)(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *)) {
 }
 
 ds_heap_t *FUNC(heap_clone)(ds_heap_t *heap,
-                         ds_heap_node_t *(*clone_node)(ds_heap_node_t *)) {
+                            ds_heap_node_t *(*clone_node)(ds_heap_node_t *)) {
   size_t i;
   ds_heap_t *new_heap;
 #ifdef DS_THREAD_SAFE

@@ -25,8 +25,8 @@ size_t my_hash(void *key) { return hash_func_int(&key); }
 
 ds_trie_node_t *my_hash_table_search(void *store, size_t slice) {
   ds_hash_table_t *table = (ds_hash_table_t *)store;
-  ds_trie_node_t *result = (ds_trie_node_t *)hash_table_lookup(table, (void *)slice,
-                                                         my_hash, compare_int);
+  ds_trie_node_t *result = (ds_trie_node_t *)hash_table_lookup(
+      table, (void *)slice, my_hash, compare_int);
   if (result == table->nil) {
     return NULL;
   }
@@ -66,7 +66,8 @@ size_t my_hash_table_get_size(void *store) {
 }
 
 void my_hash_table_apply(ds_trie_t *trie, void *store,
-                         void (*f)(struct trie *, ds_trie_node_t *, va_list *args),
+                         void (*f)(struct trie *, ds_trie_node_t *,
+                                   va_list *args),
                          va_list *args) {
   ds_hash_table_t *table = (ds_hash_table_t *)store;
   if (table == NULL) {
@@ -89,7 +90,8 @@ void my_hash_table_apply(ds_trie_t *trie, void *store,
       va_end(args_copy1);
       va_end(args_copy2);
     } else {
-      my_hash_table_apply(trie, ((ds_trie_node_t *)cur->value)->children, f, NULL);
+      my_hash_table_apply(trie, ((ds_trie_node_t *)cur->value)->children, f,
+                          NULL);
       f(trie, (ds_trie_node_t *)cur->value, NULL);
     }
 
@@ -145,7 +147,7 @@ void *my_hash_table_clone(struct trie *trie, void *store,
   while (cur != NULL) {
     temp = cur->list_prev;
     ds_trie_node_t *node = trie_clone_node(trie, (ds_trie_node_t *)cur->value,
-                                        parent_node, clone_trie_data);
+                                           parent_node, clone_trie_data);
     my_hash_table_insert_store(new_table, node);
 
     cur = temp;
@@ -154,7 +156,8 @@ void *my_hash_table_clone(struct trie *trie, void *store,
   return (void *)new_table;
 }
 
-void destroy_new_trie_data(ds_trie_t *trie, ds_trie_node_t *node, va_list *args) {
+void destroy_new_trie_data(ds_trie_t *trie, ds_trie_node_t *node,
+                           va_list *args) {
   free(node->terminal_data);
 }
 

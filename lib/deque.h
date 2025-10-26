@@ -25,7 +25,7 @@ typedef struct deque {
 
 ds_deque_t *FUNC(deque_create)(void);
 ds_deque_t *FUNC(deque_create_alloc)(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *));
+                                     void (*deallocator)(void *));
 void FUNC(deque_push_front)(ds_deque_t *deque, ds_deque_node_t *node);
 void FUNC(deque_push_back)(ds_deque_t *deque, ds_deque_node_t *node);
 ds_deque_node_t *FUNC(deque_pop_front)(ds_deque_t *deque);
@@ -44,13 +44,14 @@ void FUNC(deque_pop_front_destroy)(ds_deque_t *deque,
 void FUNC(deque_pop_back_destroy)(ds_deque_t *deque,
                                   void (*destroy)(ds_deque_node_t *));
 ds_deque_node_t *FUNC(deque_search)(ds_deque_t *deque, ds_deque_node_t *node,
-                                 int (*compare)(ds_deque_node_t *,
-                                                ds_deque_node_t *));
+                                    int (*compare)(ds_deque_node_t *,
+                                                   ds_deque_node_t *));
 void FUNC(deque_walk_forward)(ds_deque_t *deque, ds_deque_node_t *node,
                               void (*callback)(ds_deque_node_t *));
 void FUNC(deque_walk_backwards)(ds_deque_t *deque, ds_deque_node_t *node,
                                 void (*callback)(ds_deque_node_t *));
-ds_deque_t *FUNC(deque_clone)(ds_deque_t *deque,
-                           ds_deque_node_t *(*clone_node)(ds_deque_node_t *));
+ds_deque_t *
+    FUNC(deque_clone)(ds_deque_t *deque,
+                      ds_deque_node_t *(*clone_node)(ds_deque_node_t *));
 
 #endif /* DS_DEQUE_H */

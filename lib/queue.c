@@ -6,7 +6,7 @@ ds_queue_t *FUNC(queue_create)(void) {
 }
 
 ds_queue_t *FUNC(queue_create_alloc)(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
+                                     void (*deallocator)(void *)) {
   ds_queue_t *queue = (ds_queue_t *)allocator(sizeof(ds_queue_t));
   queue->allocator = allocator;
   queue->deallocator = deallocator;
@@ -110,7 +110,8 @@ bool FUNC(queue_is_empty)(ds_queue_t *queue) {
   return empty;
 }
 
-void FUNC(queue_destroy)(ds_queue_t *queue, void (*destroy)(ds_queue_node_t *)) {
+void FUNC(queue_destroy)(ds_queue_t *queue,
+                         void (*destroy)(ds_queue_node_t *)) {
   ds_queue_node_t *node = queue->head;
   while (node != queue->nil) {
     ds_queue_node_t *next = node->next;
@@ -188,7 +189,8 @@ void FUNC(queue_destroy_node)(ds_queue_t *queue, ds_queue_node_t *node,
 #endif
 }
 
-void FUNC(queue_pop_destroy)(ds_queue_t *queue, void (*destroy)(ds_queue_node_t *)) {
+void FUNC(queue_pop_destroy)(ds_queue_t *queue,
+                             void (*destroy)(ds_queue_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
 #endif
@@ -206,8 +208,8 @@ void FUNC(queue_pop_destroy)(ds_queue_t *queue, void (*destroy)(ds_queue_node_t 
 }
 
 ds_queue_node_t *FUNC(queue_search)(ds_queue_t *queue, ds_queue_node_t *node,
-                                 int (*compare)(ds_queue_node_t *,
-                                                ds_queue_node_t *)) {
+                                    int (*compare)(ds_queue_node_t *,
+                                                   ds_queue_node_t *)) {
   ds_queue_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(queue)
@@ -266,8 +268,9 @@ void FUNC(queue_walk_backwards)(ds_queue_t *queue, ds_queue_node_t *current,
 #endif
 }
 
-ds_queue_t *FUNC(queue_clone)(ds_queue_t *queue,
-                           ds_queue_node_t *(*clone_node)(ds_queue_node_t *)) {
+ds_queue_t *
+FUNC(queue_clone)(ds_queue_t *queue,
+                  ds_queue_node_t *(*clone_node)(ds_queue_node_t *)) {
   ds_queue_t *new_queue;
   ds_queue_node_t *current;
 #ifdef DS_THREAD_SAFE
