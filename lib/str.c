@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static size_t ds__grow_cap(size_t cur, size_t need) {
+size_t ds__grow_cap(size_t cur, size_t need) {
   size_t cap = cur ? cur : 16u;
   while (cap < need) {
     if (cap > SIZE_MAX / 2u) {
@@ -16,7 +16,7 @@ static size_t ds__grow_cap(size_t cur, size_t need) {
   return cap;
 }
 
-static int ds__ensure(ds_str_t *s, size_t need_cap) {
+int ds__ensure(ds_str_t *s, size_t need_cap) {
   char *nbuf;
   size_t bytes;
   if (!s)

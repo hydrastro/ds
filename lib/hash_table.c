@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const size_t prime_capacities[] = {5,
+const size_t prime_capacities[] = {5,
                                           11,
                                           23,
                                           47,
@@ -106,7 +106,7 @@ size_t hash_func_double(void *key) {
 
 size_t hash_func_default(void *key) { return (size_t)key; }
 
-static ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
+ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                         void *value) {
   ds_hash_node_t *node =
       (ds_hash_node_t *)table->allocator(sizeof(ds_hash_node_t));
@@ -118,7 +118,7 @@ static ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
   return node;
 }
 
-static size_t next_prime_capacity(size_t current_capacity) {
+size_t next_prime_capacity(size_t current_capacity) {
   size_t i;
   for (i = 0; i < sizeof(prime_capacities) / sizeof(prime_capacities[0]); i++) {
     if (prime_capacities[i] > current_capacity) {
