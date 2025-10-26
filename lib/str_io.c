@@ -1,9 +1,10 @@
 #include "str_io.h"
 
 int FUNC(str_write_all)(ds_str_t *s, ds_write_cb cb, void *ud) {
-  size_t off = 0u, n = FUNC_str_len(s);
+  size_t off = 0u, n;
   long w;
   if (!s || !cb) return -1;
+  n = FUNC_str_len(s);
 #ifdef DS_THREAD_SAFE
   LOCK(s)
 #endif
@@ -31,16 +32,15 @@ int FUNC(str_writev_all)(ds_str_t **arr, size_t count, ds_writev_cb vcb, void *u
     const void *bufs[16];
     size_t lens[16];
     size_t j, batch = count - i;
+    long w;
     if (batch > 16) batch = 16;
     for (j = 0; j < batch; ++j) {
       ds_str_t *s = arr[i + j];
       bufs[j] = s ? (const void*)s->buf : (const void*)"";
       lens[j] = s ? s->len : 0u;
     }
-    {
-      long w = vcb(ud, bufs, lens, batch);
-      if (w < 0) return -1;
-    }
+    w = vcb(ud, bufs, lens, batch);
+    if (w < 0) return -1;
     i += batch;
   }
   return 0;
@@ -63,16 +63,25 @@ int FUNC(str_views_writev_all)(const ds_str_view_t *views, size_t count, ds_writ
     const void *bufs[16];
     size_t lens[16];
     size_t j, batch = count - i;
+    long w;
     if (batch > 16) batch = 16;
     for (j = 0; j < batch; ++j) {
       bufs[j] = views[i + j].data;
       lens[j] = views[i + j].len;
     }
-    {
-      long w = vcb(ud, bufs, lens, batch);
-      if (w < 0) return -1;
-    }
+    w = vcb(ud, bufs, lens, batch);
+    if (w < 0) return -1;
     i += batch;
   }
   return 0;
+}
+
+ds_str_view_t FUNC(str_view)(ds_str_t *s, size_t pos, size_t n) {
+  ds_str_view_t v;
+  size_t len = FUNC_str_len(s);
+  if (pos > len) pos = len;
+  if (n > len - pos) n = len - pos;
+  v.data = (s && s->buf) ? s->buf + pos : (const char *)"";
+  v.len = n;
+  return v;
 }
