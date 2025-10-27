@@ -800,3 +800,148 @@ int load_EmojiData(void) {
   fclose(f);
   return 0;
 }
+
+int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf, size_t len) {
+  if (!it) return -1;
+  it->buf = buf;
+  it->len = buf ? len : 0;
+  it->i = 0;
+  it->cur_start = 0;
+  it->have_prev = 0;
+  it->prev_prop = GB_Other;
+  it->ri_run_len = 0;
+  it->prev_is_zwj_ign_ext = 0;
+  it->last_base_is_EP = 0;
+  it->cp = 0;
+  it->prop = GB_Other;
+  it->break_here = 0;
+  it->prev_is_Control = 0;
+  it->cur_is_Control = 0;
+  return 0;
+}
+
+/* Emit clusters by detecting a boundary BEFORE the current code point.
+   On break, we emit the previous cluster range.
+   At EOF, we emit the tail cluster if any. */
+int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start, size_t *out_len) {
+  if (!it || !it->buf) return -1;
+
+  /* If we haven't consumed anything yet, we must read the first cp to seed state,
+     but we DON'T emit a cluster yet (GB1). */
+  while (1) {
+    size_t cp_start;
+    unsigned long prop;
+    int break_here = 1;
+
+    if (it->i >= it->len) {
+      /* End of text: emit tail cluster if any pending */
+      if (!it->have_prev && it->cur_start < it->len) {
+        /* empty input corner case (shouldn’t happen with valid state) */
+      }
+      if (it->cur_start < it->len) {
+        if (out_start) *out_start = it->cur_start;
+        if (out_len)   *out_len   = it->len - it->cur_start;
+        it->cur_start = it->len; /* consumed */
+        return 1;
+      }
+      return 0; /* no more clusters */
+    }
+
+    cp_start = it->i;
+    if (u8_next(it->buf, it->len, &it->i, &it->cp) != 1) return -1; /* invalid UTF-8 */
+    prop = gb_get(it->cp);
+
+    if (!it->have_prev) {
+      /* GB1: start of text: always a boundary before first cp.
+         We *start* the first cluster here but do NOT emit yet. */
+      it->have_prev = 1;
+      it->prev_prop = prop;
+      it->cur_start = cp_start;
+
+      /* init EP/RI/ZWJ tracking */
+      it->last_base_is_EP = is_EP(it->cp);
+      it->prev_is_zwj_ign_ext = 0;
+      it->ri_run_len = (prop == GB_Regional_Indicator) ? 1 : 0;
+
+      /* loop to fetch the *next* code point to decide if we should break before it */
+      continue;
+    }
+
+    /* Apply rules vs previous cp (same order you used in len counter) */
+    it->prev_is_Control = (it->prev_prop == GB_Control || it->prev_prop == GB_CR || it->prev_prop == GB_LF);
+    it->cur_is_Control  = (prop          == GB_Control || prop          == GB_CR || prop          == GB_LF);
+
+    /* GB3: CR × LF */
+    if (it->prev_prop == GB_CR && prop == GB_LF) break_here = 0;
+
+    /* GB4/GB5: Control/CR/LF boundaries */
+    else if (it->prev_is_Control || it->cur_is_Control) break_here = 1;
+
+    /* Hangul GB6–GB8 */
+    else if (it->prev_prop == GB_L &&
+            (prop == GB_L || prop == GB_V || prop == GB_LV || prop == GB_LVT)) break_here = 0;
+    else if ((it->prev_prop == GB_LV || it->prev_prop == GB_V) &&
+             (prop == GB_V || prop == GB_T)) break_here = 0;
+    else if ((it->prev_prop == GB_LVT || it->prev_prop == GB_T) &&
+             (prop == GB_T)) break_here = 0;
+
+    /* GB9: × Extend */
+    else if (prop == GB_Extend) break_here = 0;
+
+    /* GB9a: × SpacingMark */
+    else if (prop == GB_SpacingMark) break_here = 0;
+
+    /* GB9b: Prepend × */
+    else if (it->prev_prop == GB_Prepend) break_here = 0;
+
+    /* GB11: EP Extend* ZWJ × EP */
+    else if (is_EP(it->cp) && it->prev_is_zwj_ign_ext && it->last_base_is_EP) break_here = 0;
+
+    /* GB12/13: RI pairing */
+    else if (it->prev_prop == GB_Regional_Indicator && prop == GB_Regional_Indicator) {
+      if ((it->ri_run_len % 2) == 1) break_here = 0;
+    }
+
+    if (break_here) {
+      /* Emit previous cluster: [cur_start, cp_start - cur_start] */
+      if (out_start) *out_start = it->cur_start;
+      if (out_len)   *out_len   = cp_start - it->cur_start;
+
+      /* Start new cluster at cp_start */
+      it->cur_start = cp_start;
+      /* Update state for next comparisons (treat this cp as "previous") */
+      it->prev_prop = prop;
+
+      /* Update RI/EP/ZWJ tracking based on *this* cp (like in len version) */
+      if (prop == GB_Regional_Indicator) it->ri_run_len += 1;
+      else it->ri_run_len = 0;
+
+      if (prop == GB_Extend) {
+        /* keep flags */
+      } else if (prop == GB_ZWJ) {
+        it->prev_is_zwj_ign_ext = 1;
+      } else {
+        it->last_base_is_EP = is_EP(it->cp);
+        it->prev_is_zwj_ign_ext = 0;
+      }
+      return 1;
+    }
+
+    /* No boundary: merge current cp into running cluster, update state, continue */
+    it->prev_prop = prop;
+
+    if (prop == GB_Regional_Indicator) it->ri_run_len += 1;
+    else it->ri_run_len = 0;
+
+    if (prop == GB_Extend) {
+      /* keep flags */
+    } else if (prop == GB_ZWJ) {
+      it->prev_is_zwj_ign_ext = 1;
+    } else {
+      it->last_base_is_EP = is_EP(it->cp);
+      it->prev_is_zwj_ign_ext = 0;
+    }
+
+    /* loop to read next cp */
+  }
+}

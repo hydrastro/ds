@@ -77,6 +77,36 @@ typedef struct {
 #define NCount (VCount * TCount)
 #define SCount (LCount * NCount)
 
+
+/* ---- internal grapheme iterator (rule engine lives here) ---- */
+typedef struct {
+  const char *buf;
+  size_t len;
+  size_t i;                 /* next read position (byte) */
+  size_t cur_start;         /* current cluster start (byte) */
+  int have_prev;
+
+  /* UAX #29 state */
+  unsigned long prev_prop;
+  int ri_run_len;           /* consecutive RI count in current run */
+  int prev_is_zwj_ign_ext;  /* we saw ZWJ with only Extend between bases */
+  int last_base_is_EP;      /* last non-Extend/ZWJ base was Extended_Pictographic */
+
+  /* scratch (avoid re-decl in C89 loops) */
+  unsigned long cp, prop;
+  int break_here;
+  int prev_is_Control, cur_is_Control;
+} ds__grapheme_iter_t;
+
+/* Initialize iterator over a byte buffer */
+int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf, size_t len);
+
+/* Produce the next cluster as [start,len] in bytes.
+   Returns 1 if a cluster was produced, 0 on end, or -1 on error. */
+int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start, size_t *out_len);
+
+
+
 int u32vec_push(u32vec_t *v, unsigned long x);
 void u32vec_free(u32vec_t *v);
 unsigned long uh32(unsigned long x);

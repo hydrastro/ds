@@ -4,12 +4,6 @@
 #include <limits.h>
 #include <stdint.h>
 
-extern int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat, int compose);
-extern int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src);
-extern int ds__ucd_tolower(ds_str_t *dst, const ds_str_t *src);
-extern int ds__ucd_toupper(ds_str_t *dst, const ds_str_t *src);
-extern long ds__ucd_grapheme_len(const ds_str_t *s);
-
 int ds__is_nonchar(unsigned long cp) {
   if (cp >= 0xFDD0ul && cp <= 0xFDEFul) return 1;
   if ((cp & 0xFFFEul) == 0xFFFEul && cp <= 0x10FFFFul) return 1;
@@ -388,4 +382,199 @@ int FUNC(str_view_u8_prev)(ds_str_view_t v, size_t *ioff, unsigned long *out_cp,
     if (ioff) *ioff = start;
   }
   return 1;
+}
+
+int FUNC(str_u8_grapheme_iter_init)(ds_u8_grapheme_iter_t *it, const ds_str_t *s) {
+  if (!it || !s) return -1;
+  if (ucd_init_once()!=0) return -1;
+  return ds__grapheme_iter_init(&it->_it, s->buf, s->len);
+}
+
+int FUNC(str_u8_grapheme_next)(ds_u8_grapheme_iter_t *it, size_t *out_start, size_t *out_len) {
+  if (!it) return -1;
+  return ds__grapheme_iter_next(&it->_it, out_start, out_len);
+}
+
+int FUNC(str_view_u8_grapheme_next)(ds_u8_grapheme_iter_t *it, ds_str_view_t *out_view) {
+  size_t a, n;
+  int r;
+  if (!it || !out_view) return -1;
+  r = ds__grapheme_iter_next(&it->_it, &a, &n);
+  if (r == 1) {
+    out_view->data = it->_it.buf + a;
+    out_view->len  = n;
+  }
+  return r;
+}
+
+int FUNC(str_u8_slice_graphemes)(ds_str_t *dst, const ds_str_t *src,
+                                 size_t start_gc, size_t count_gc) {
+  ds_u8_grapheme_iter_t it;
+  size_t a = 0, b = 0;
+  size_t gc = 0;
+  int r;
+
+  if (!dst || !src) return -1;
+  if (ucd_init_once()!=0) return -1;
+
+  r = FUNC(str_u8_grapheme_iter_init)(&it, src);
+  if (r != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &b)) == 1) {
+    if (gc == start_gc) {
+      size_t start_byte = a;
+      size_t end_byte   = a + b;
+
+      if (count_gc == (size_t)-1) {
+        end_byte = src->len;
+        return FUNC(str_assign)(dst, src->buf + start_byte, end_byte - start_byte);
+      }
+
+      {
+        size_t left = (count_gc > 0) ? (count_gc - 1) : 0;
+        while (left > 0) {
+          r = FUNC(str_u8_grapheme_next)(&it, &a, &b);
+          if (r != 1) break;
+          end_byte = a + b;
+          --left;
+        }
+      }
+      return FUNC(str_assign)(dst, src->buf + start_byte, (end_byte > start_byte) ? (end_byte - start_byte) : 0);
+    }
+    ++gc;
+  }
+
+  return FUNC(str_assign)(dst, "", 0u);
+}
+
+int FUNC(str_u8_backspace_one_egc)(ds_str_t *s) {
+  ds_u8_grapheme_iter_t it;
+  size_t a=0, n=0;
+  size_t last_a=0, last_n=0;
+  int r, saw_any = 0;
+
+  if (!s) return -1;
+  if (s->len == 0) return 0;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    last_a = a; last_n = n; saw_any = 1;
+  }
+  if (r < 0) return -1;
+  if (!saw_any) return 0;
+
+  return FUNC(str_erase)(s, last_a, last_n) == 0 ? 1 : -1;
+}
+
+int FUNC(str_u8_truncate_graphemes)(ds_str_t *s, size_t max_gc) {
+  ds_u8_grapheme_iter_t it;
+  size_t a=0, n=0;
+  size_t gc = 0;
+  size_t cut_byte = s ? s->len : 0;
+  int r;
+
+  if (!s) return -1;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (gc == max_gc) { cut_byte = a; break; }
+    ++gc;
+  }
+  if (r < 0) return -1;
+
+  if (gc <= max_gc) return 0;
+
+  return FUNC(str_erase)(s, cut_byte, s->len - cut_byte);
+}
+
+int FUNC(str_u8_grapheme_to_byte)(const ds_str_t *s, size_t gi, size_t *byte_out) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n, idx = 0;
+  int r;
+
+  if (!s || !byte_out) return -1;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (idx == gi) { *byte_out = a; return 0; }
+    idx++;
+  }
+  if (r < 0) return -1;
+
+  if (idx == gi) { *byte_out = s->len; return 0; }
+
+  return -1;
+}
+
+int FUNC(str_u8_byte_to_grapheme)(const ds_str_t *s, size_t byte, size_t *gi_out) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n, idx = 0;
+  int r;
+
+  if (!s || !gi_out) return -1;
+  if (byte > s->len) byte = s->len;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (byte < a + n) { *gi_out = idx; return 0; }
+    idx++;
+  }
+  if (r < 0) return -1;
+
+  *gi_out = idx;
+  return 0;
+}
+
+int FUNC(str_u8_delete_grapheme_at)(ds_str_t *s, size_t gi) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n, idx = 0;
+  int r;
+
+  if (!s) return -1;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (idx == gi) {
+      return FUNC(str_erase)(s, a, n) == 0 ? 1 : -1;
+    }
+    idx++;
+  }
+  if (r < 0) return -1;
+  return 0;
+}
+
+int FUNC(str_u8_insert_at_grapheme)(ds_str_t *s, size_t gi, const void *data, size_t n) {
+  size_t byte = 0;
+  if (!s) return -1;
+  if (FUNC(str_u8_grapheme_to_byte)(s, gi, &byte) != 0) return -1;
+  return FUNC(str_insert)(s, byte, data, n);
+}
+
+int FUNC(str_u8_delete_next_egc_from_byte)(ds_str_t *s, size_t cursor_byte) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n;
+  int r;
+
+  if (!s) return -1;
+  if (cursor_byte >= s->len) return 0;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (cursor_byte < a + n) {
+      return FUNC(str_erase)(s, a, n) == 0 ? 1 : -1;
+    }
+  }
+  return (r < 0) ? -1 : 0;
 }
