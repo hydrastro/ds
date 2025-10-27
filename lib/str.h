@@ -25,10 +25,14 @@ typedef struct ds_str {
 #define FUNC_str_cstr(s) (((s) && (s)->buf) ? (s)->buf : "")
 #define FUNC_str_data(s) ((s) ? (s)->buf : (char *)"")
 
+int ds__ensure_exact(ds_str_t *s, size_t need_cap);
+
 #ifdef DS_THREAD_SAFE
 void ds__lock2(ds_str_t *a, ds_str_t *b);
 void ds__unlock2(ds_str_t *a, ds_str_t *b);
 #endif
+
+size_t ds__grow_cap(size_t cur, size_t need);
 
 ds_str_t *FUNC(str_create)(void);
 ds_str_t *FUNC(str_create_alloc)(void *(*allocator)(size_t),
@@ -58,5 +62,10 @@ int FUNC(str_clear_freebuf)(ds_str_t *s);
 
 int FUNC(str_append_vfmt)(ds_str_t *s, const char *fmt, va_list ap);
 int FUNC(str_append_fmt)(ds_str_t *s, const char *fmt, ...);
+
+int FUNC(str_reserve_exact)(ds_str_t *s, size_t cap);
+int FUNC(str_assign)(ds_str_t *s, const void *data, size_t n);
+int FUNC(str_pop)(ds_str_t *s, int *out_ch);
+ds_str_t *FUNC(str_slice)(ds_str_t *s, size_t pos, size_t n);
 
 #endif /* DS_STR_H */

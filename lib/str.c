@@ -5,6 +5,31 @@
 #include <stdint.h>
 #include <stdarg.h>
 
+int ds__ensure_exact(ds_str_t *s, size_t need_cap) {
+  char *nbuf;
+  size_t bytes;
+  if (!s) return -1;
+  if (s->cap >= need_cap) return 0;
+  if (need_cap > SIZE_MAX - 1u) return -1;
+  bytes = need_cap + 1u;
+  if (s->buf == NULL) {
+    nbuf = (char *)s->allocator(bytes);
+    if (!nbuf) return -1;
+    nbuf[0] = '\0';
+  } else {
+    char *tmp = (char *)s->allocator(bytes);
+    size_t copy = s->len;
+    if (!tmp) return -1;
+    if (copy) memcpy(tmp, s->buf, copy);
+    tmp[copy] = '\0';
+    s->deallocator(s->buf);
+    nbuf = tmp;
+  }
+  s->buf = nbuf;
+  s->cap = need_cap;
+  return 0;
+}
+
 #ifdef DS_THREAD_SAFE
 void ds__lock2(ds_str_t *a, ds_str_t *b) {
   if (a == b) { if (a) LOCK(a); return; }
@@ -522,4 +547,91 @@ int FUNC(str_append_vfmt)(ds_str_t *s, const char *fmt, va_list ap) {
   UNLOCK(s)
 #endif
   return 0;
+}
+
+int FUNC(str_reserve_exact)(ds_str_t *s, size_t cap) {
+  int r;
+  if (!s) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  r = ds__ensure_exact(s, cap);
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return r;
+}
+
+int FUNC(str_assign)(ds_str_t *s, const void *data, size_t n) {
+  int r;
+  if (!s) return -1;
+  if (!data && n) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  r = ds__ensure(s, n);
+  if (r != 0) {
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return -1;
+  }
+  if (n) memcpy(s->buf, data, n);
+  s->len = n;
+  s->buf[s->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return 0;
+}
+
+int FUNC(str_pop)(ds_str_t *s, int *out_ch) {
+  unsigned char c;
+  if (!s) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  if (s->len == 0u) {
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return -1;
+  }
+  c = (unsigned char)s->buf[s->len - 1u];
+  s->len -= 1u;
+  s->buf[s->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  if (out_ch) *out_ch = (int)c;
+  return 0;
+}
+
+ds_str_t *FUNC(str_slice)(ds_str_t *s, size_t pos, size_t n) {
+  ds_str_t *out;
+  size_t len, start, take;
+  if (!s) return NULL;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  len = s->len;
+  start = pos > len ? len : pos;
+  if (n > len - start) take = len - start; else take = n;
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  out = FUNC(str_with_capacity)(take);
+  if (!out) return NULL;
+  if (take) {
+#ifdef DS_THREAD_SAFE
+    LOCK(s)
+#endif
+    memcpy(out->buf, s->buf + start, take);
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+  }
+  out->len = take;
+  out->buf[take] = '\0';
+  return out;
 }
