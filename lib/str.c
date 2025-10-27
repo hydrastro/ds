@@ -63,10 +63,16 @@ ds_str_t *FUNC(str_create_alloc)(void *(*allocator)(size_t), void (*deallocator)
 ds_str_t *FUNC(str_with_capacity)(size_t cap) {
   ds_str_t *s = FUNC(str_create)();
   if (!s) return NULL;
-  if (ds__ensure(s, cap) != 0) {
-    FUNC(str_destroy)(s);
-    return NULL;
+  if (cap == 0) {
+    if (ds__ensure(s, 0) != 0) { FUNC(str_destroy)(s); return NULL; }
+    if (!s->buf) {
+      char *p = (char*)s->allocator(1u);
+      if (!p) { FUNC(str_destroy)(s); return NULL; }
+      p[0] = '\0'; s->buf = p; s->cap = 0;
+    }
+    return s;
   }
+  if (ds__ensure(s, cap) != 0) { FUNC(str_destroy)(s); return NULL; }
   return s;
 }
 
@@ -129,14 +135,14 @@ int FUNC(str_shrink_to_fit)(ds_str_t *s) {
 #endif
     return 0;
   }
-  bytes = s->len + 1u;
-  if (bytes == 0) {
+  if (s->len == SIZE_MAX) {
 #ifdef DS_THREAD_SAFE
     UNLOCK(s)
 #endif
     return -1;
   }
-  nbuf = (char *)s->allocator(bytes);
+  bytes = s->len + 1u;
+  nbuf = (char*)s->allocator(bytes);
   if (!nbuf) {
 #ifdef DS_THREAD_SAFE
     UNLOCK(s)
@@ -281,6 +287,35 @@ ds_str_t *FUNC(str_clone)(ds_str_t *s) {
   return n;
 }
 
+ds_str_t *FUNC(str_clone_cap)(ds_str_t *s) {
+  ds_str_t *n;
+  size_t want;
+  if (!s) {return NULL;}
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  n = FUNC(str_create_alloc)(s->allocator, s->deallocator);
+  if (!n) { 
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return NULL; 
+  }
+  want = s->cap ? s->cap : s->len;
+  if (want && ds__ensure(n, want) != 0) { FUNC(str_destroy)(n);
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return NULL; }
+  if (s->len) memcpy(n->buf, s->buf, s->len);
+  n->len = s->len;
+  if (n->buf) n->buf[n->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return n;
+}
+
 int FUNC(str_cmp)(ds_str_t *a, ds_str_t *b) {
   size_t la = a ? a->len : 0u;
   size_t lb = b ? b->len : 0u;
@@ -300,10 +335,15 @@ long FUNC(str_find)(ds_str_t *s, const void *needle, size_t n, size_t start) {
   const unsigned char *h;
   const unsigned char *nd = (const unsigned char *)needle;
   size_t i, len;
-  if (!s || !needle || n == 0u) return -1;
+  const void *p;
+  if (!s || !needle || n == 0u) { return -1; }
   len = s->len;
-  if (start > len) return -1;
+  if (start > len) { return -1; }
   h = (const unsigned char *)s->buf;
+  if (n == 1u) {
+    p = memchr(h + start, *nd, len - start);
+    return p ? (long)((const unsigned char*)p - h) : -1;
+  }
   for (i = start; i + n <= len; ++i) {
     if (memcmp(h + i, nd, n) == 0) return (long)i;
   }
@@ -311,16 +351,15 @@ long FUNC(str_find)(ds_str_t *s, const void *needle, size_t n, size_t start) {
 }
 
 long FUNC(str_rfind)(ds_str_t *s, const void *needle, size_t n, size_t start) {
-  const unsigned char *h;
-  long i;
-  size_t len;
+  const unsigned char *h, *nd = (const unsigned char*)needle;
+  size_t i, len;
   if (!s || !needle || n == 0u) return -1;
   len = s->len;
   if (start > len) start = len;
   if (start < n) return -1;
-  h = (const unsigned char *)s->buf;
-  for (i = (long)start - (long)n; i >= 0; --i) {
-    if (memcmp(h + (size_t)i, needle, n) == 0) return i;
+  h = (const unsigned char*)s->buf;
+  for (i = start - n + 1; i-- > 0;) {
+    if (memcmp(h + i, nd, n) == 0) return (long)i;
   }
   return -1;
 }
@@ -328,19 +367,75 @@ long FUNC(str_rfind)(ds_str_t *s, const void *needle, size_t n, size_t start) {
 void FUNC(str_to_upper)(ds_str_t *s) {
   size_t i, n;
   if (!s) return;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
   n = s->len;
   for (i = 0; i < n; ++i) {
     unsigned char c = (unsigned char)s->buf[i];
     if (c >= 'a' && c <= 'z') s->buf[i] = (char)(c - 'a' + 'A');
   }
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
 }
 
 void FUNC(str_to_lower)(ds_str_t *s) {
   size_t i, n;
   if (!s) return;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
   n = s->len;
   for (i = 0; i < n; ++i) {
     unsigned char c = (unsigned char)s->buf[i];
     if (c >= 'A' && c <= 'Z') s->buf[i] = (char)(c - 'A' + 'a');
   }
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+}
+
+void FUNC(str_swap)(ds_str_t *a, ds_str_t *b) {
+  ds_str_t tmp;
+  if (!a || !b) return;
+#ifdef DS_THREAD_SAFE
+  if (a == b) return;
+#endif
+  tmp = *a; *a = *b; *b = tmp;
+}
+
+int FUNC(str_clear_freebuf)(ds_str_t *s) {
+  if (!s) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  if (s->buf) s->deallocator(s->buf);
+  s->buf = NULL; s->len = 0; s->cap = 0;
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return 0;
+}
+
+int FUNC(str_append_vfmt)(ds_str_t *s, const char *fmt, va_list ap) {
+  va_list ap2;
+  int need;
+  if (!s || !fmt) return -1;
+  va_copy(ap2, ap);
+  need = vsnprintf(NULL, 0, fmt, ap2);
+  va_end(ap2);
+  if (need < 0) return -1;
+  if (str_reserve(s, s->len + (size_t)need) != 0) return -1;
+  if (vsnprintf(s->buf + s->len, (size_t)need + 1, fmt, ap) != need) return -1;
+  s->len += (size_t)need;
+  return 0;
+}
+
+int FUNC(str_append_fmt)(ds_str_t *s, const char *fmt, ...) {
+  va_list ap; int r;
+  va_start(ap, fmt);
+  r = FUNC(str_append_vfmt)(s, fmt, ap);
+  va_end(ap);
+  return r;
 }

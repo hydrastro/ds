@@ -100,10 +100,10 @@ long FUNC(str_find_bmh)(ds_str_t *s, const void *needle, size_t n, size_t start)
     const void *p = memchr(s->buf + start, *pat, len - start);
     return p ? (long)((const unsigned char*)p - (const unsigned char*)s->buf) : -1;
   }
+  if (n > 255u) return FUNC(str_find_twoway)(s, needle, n, start);
   for (i = 0; i < 256; ++i) skip[i] = (unsigned char)n;
   for (i = 0; i < n - 1; ++i) skip[pat[i]] = (unsigned char)(n - 1 - i);
-  h = (const unsigned char*)s->buf;
-  i = start;
+  h = (const unsigned char*)s->buf; i = start;
   while (i + n <= len) {
     unsigned char last = h[i + n - 1];
     if (last == pat[n - 1] && memcmp(h + i, pat, n) == 0) return (long)i;
@@ -248,6 +248,63 @@ int FUNC(str_join_c)(ds_str_t *dst, ds_str_t **parts, size_t count, const void *
   }
 #ifdef DS_THREAD_SAFE
   UNLOCK(dst)
+#endif
+  return 0;
+}
+
+int FUNC(str_starts_with)(ds_str_t *s, const void *prefix, size_t n) {
+  if (!s || !prefix) return 0;
+  if (s->len < n) return 0;
+  return memcmp(s->buf, prefix, n) == 0;
+}
+
+int FUNC(str_ends_with)(ds_str_t *s, const void *suffix, size_t n) {
+  if (!s || !suffix) return 0;
+  if (s->len < n) return 0;
+  return memcmp(s->buf + (s->len - n), suffix, n) == 0;
+}
+
+long FUNC(str_count)(ds_str_t *s, const void *needle, size_t n) {
+  size_t pos = 0u; long c = 0; long at;
+  if (!s || !needle || n == 0u) return 0;
+  for (;;) {
+    at = FUNC(str_find_twoway)(s, needle, n, pos);
+    if (at < 0) break;
+    ++c; pos = (size_t)at + n;
+    if (pos > s->len) break;
+  }
+  return c;
+}
+
+int FUNC(str_replace_all)(ds_str_t *s, const void *from, size_t nfrom, const void *to, size_t nto) {
+  size_t pos = 0u; long at;
+  if (!s || !from || nfrom == 0u) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  while (1) {
+    at = FUNC(str_find_twoway)(s, from, nfrom, pos);
+    if (at < 0) break;
+    if (FUNC(str_erase)(s, (size_t)at, nfrom) != 0) { 
+#ifdef DS_THREAD_SAFE
+      UNLOCK(s)
+#endif
+      return -1; 
+    }
+    if (nto) {
+      if (FUNC(str_insert)(s, (size_t)at, to, nto) != 0) { 
+#ifdef DS_THREAD_SAFE
+        UNLOCK(s)
+#endif
+        return -1; 
+      }
+      pos = (size_t)at + nto;
+    } else {
+      pos = (size_t)at;
+    }
+  }
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
 #endif
   return 0;
 }

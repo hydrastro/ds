@@ -2,8 +2,11 @@
 #define DS_STR_H
 
 #include "common.h"
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 typedef struct ds_str {
   char *buf;
@@ -38,11 +41,17 @@ int FUNC(str_pushc)(ds_str_t *s, int c);
 int FUNC(str_insert)(ds_str_t *s, size_t pos, const void *data, size_t n);
 int FUNC(str_erase)(ds_str_t *s, size_t pos, size_t n);
 ds_str_t *FUNC(str_clone)(ds_str_t *s);
+ds_str_t *FUNC(str_clone_cap)(ds_str_t *s);
 int FUNC(str_cmp)(ds_str_t *a, ds_str_t *b);
 int FUNC(str_eq)(ds_str_t *a, ds_str_t *b);
 long FUNC(str_find)(ds_str_t *s, const void *needle, size_t n, size_t start);
 long FUNC(str_rfind)(ds_str_t *s, const void *needle, size_t n, size_t start);
 void FUNC(str_to_upper)(ds_str_t *s);
 void FUNC(str_to_lower)(ds_str_t *s);
+void FUNC(str_swap)(ds_str_t *a, ds_str_t *b);
+int FUNC(str_clear_freebuf)(ds_str_t *s);
+
+int FUNC(str_append_vfmt)(ds_str_t *s, const char *fmt, va_list ap);
+int FUNC(str_append_fmt)(ds_str_t *s, const char *fmt, ...);
 
 #endif /* DS_STR_H */
