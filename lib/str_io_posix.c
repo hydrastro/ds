@@ -1,31 +1,53 @@
 #include "str_io_posix.h"
-#include <unistd.h>
+#include <errno.h>
 #include <sys/uio.h>
+#include <unistd.h>
+#include <string.h> /* memcpy */
 
 long ds_posix_write_cb(void *ud, const void *buf, size_t n) {
   int fd = (int)(long)ud;
-  ssize_t w = write(fd, buf, n);
-  return (w < 0) ? -1 : (long)w;
+  const char *p = (const char*)buf;
+  size_t off = 0;
+  while (off < n) {
+    ssize_t w = write(fd, p + off, n - off);
+    if (w < 0) {
+      if (errno == EINTR) continue;
+      return -1;
+    }
+    if (w == 0) return -1;
+    off += (size_t)w;
+  }
+  return (long)off;
 }
 
-long ds_posix_writev_cb(void *ud, const void * const *bufs, const size_t *lens, size_t count) {
+long ds_posix_writev_cb(void *ud,
+                        const void * const *bufs,
+                        const size_t *lens,
+                        size_t count) {
   struct iovec vec[16];
   size_t off = 0;
   int fd = (int)(long)ud;
 
   while (off < count) {
-    size_t batch = count - off, i;
-    ssize_t w;
+    size_t batch = count - off;
+    size_t i;
     if (batch > 16) batch = 16;
 
     for (i = 0; i < batch; ++i) {
-      vec[i].iov_base = (void*)bufs[off + i];
+      /* avoid -Wcast-qual by copying pointer bytes into a void* */
+      const void *srcp = bufs[off + i];
+      void *dstp;
+      memcpy(&dstp, &srcp, sizeof(void*));
+      vec[i].iov_base = dstp;
       vec[i].iov_len  = lens[off + i];
     }
 
-    while (1) {
-      w = writev(fd, vec, (int)batch);
-      if (w < 0) return -1;
+    for (;;) {
+      ssize_t w = writev(fd, vec, (int)batch);
+      if (w < 0) {
+        if (errno == EINTR) continue;
+        return -1;
+      }
       if (w == 0) return -1;
 
       {
@@ -50,8 +72,7 @@ long ds_posix_writev_cb(void *ud, const void * const *bufs, const size_t *lens, 
       }
     }
 
-    off += (size_t)(batch);
+    off += batch;
   }
-
   return 0;
 }

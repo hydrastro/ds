@@ -2,13 +2,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-static int ds__in_set(unsigned char c, const unsigned char *set, size_t n) {
+int ds__in_set(unsigned char c, const unsigned char *set, size_t n) {
   size_t i;
   for (i = 0; i < n; ++i) if (c == set[i]) return 1;
   return 0;
 }
 
-static void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p) {
+void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p) {
   size_t i = 0, j = 1, k = 1;
   int a;
   *p = 1;
@@ -21,7 +21,7 @@ static void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p
   }
 }
 
-static void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p) {
+void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p) {
   size_t i = 0, j = 1, k = 1;
   int a;
   *p = 1;
@@ -40,34 +40,45 @@ long FUNC(str_find_twoway)(ds_str_t *s, const void *needle, size_t m, size_t sta
   size_t n;
   int ms, p1, p2;
   size_t q, j, memory;
+  long ret = -1;
   if (!s || !needle || m == 0u) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
   n = s->len;
-  if (start > n) return -1;
+  if (start > n) { 
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return -1; 
+  }
   y = (const unsigned char*)s->buf;
   if (m == 1u) {
     const void *p = memchr(y + start, x[0], n - start);
-    return p ? (long)((const unsigned char*)p - y) : -1;
+    ret = p ? (long)((const unsigned char*)p - y) : -1;
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return ret;
   }
   ds__maximal_suffix(x, m, &ms, &p1);
   q = (size_t)ms;
   ds__maximal_suffix_rev(x, m, &ms, &p2);
   if ((size_t)ms > q) q = (size_t)ms;
+
   if (memcmp(x, x + p1, (size_t)(m - (size_t)p1)) == 0) {
     size_t per = (size_t)p1;
-    j = start;
-    memory = 0;
+    j = start; memory = 0;
     while (j <= n - m) {
       size_t i = (q > memory) ? q : memory;
       while (i < m && x[i] == y[j + i]) ++i;
       if (i >= m) {
         i = q;
         while (i > memory && x[i - 1] == y[j + i - 1]) --i;
-        if (i <= memory) return (long)j;
-        j += per;
-        memory = m - per;
+        if (i <= memory) { ret = (long)j; break; }
+        j += per; memory = m - per;
       } else {
-        j += (i - q + 1);
-        memory = 0;
+        j += (i - q + 1); memory = 0;
       }
     }
   } else {
@@ -79,37 +90,61 @@ long FUNC(str_find_twoway)(ds_str_t *s, const void *needle, size_t m, size_t sta
       if (i >= m) {
         i = q;
         while (i > 0 && x[i - 1] == y[j + i - 1]) --i;
-        if (i == 0) return (long)j;
+        if (i == 0) { ret = (long)j; break; }
         j += per;
       } else {
         j += (i - q + 1);
       }
     }
   }
-  return -1;
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return ret;
 }
 
 long FUNC(str_find_bmh)(ds_str_t *s, const void *needle, size_t n, size_t start) {
   const unsigned char *h, *pat = (const unsigned char*)needle;
   size_t i, len;
   unsigned char skip[256];
+  long ret = -1;
   if (!s || !needle || n == 0u) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
   len = s->len;
-  if (start > len) return -1;
+  if (start > len) { 
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return -1; 
+  }
   if (n == 1u) {
     const void *p = memchr(s->buf + start, *pat, len - start);
-    return p ? (long)((const unsigned char*)p - (const unsigned char*)s->buf) : -1;
+    ret = p ? (long)((const unsigned char*)p - (const unsigned char*)s->buf) : -1;
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return ret;
   }
-  if (n > 255u) return FUNC(str_find_twoway)(s, needle, n, start);
+  if (n > 255u) {
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return FUNC(str_find_twoway)(s, needle, n, start);
+  }
   for (i = 0; i < 256; ++i) skip[i] = (unsigned char)n;
   for (i = 0; i < n - 1; ++i) skip[pat[i]] = (unsigned char)(n - 1 - i);
   h = (const unsigned char*)s->buf; i = start;
   while (i + n <= len) {
     unsigned char last = h[i + n - 1];
-    if (last == pat[n - 1] && memcmp(h + i, pat, n) == 0) return (long)i;
+    if (last == pat[n - 1] && memcmp(h + i, pat, n) == 0) { ret = (long)i; break; }
     i += skip[last];
   }
-  return -1;
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return ret;
 }
 
 int FUNC(str_ltrim_set)(ds_str_t *s, const unsigned char *set, size_t set_n) {

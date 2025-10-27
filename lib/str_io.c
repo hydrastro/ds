@@ -1,13 +1,14 @@
 #include "str_io.h"
+#include <string.h>
 
 int FUNC(str_write_all)(ds_str_t *s, ds_write_cb cb, void *ud) {
   size_t off = 0u, n;
   long w;
   if (!s || !cb) return -1;
-  n = FUNC_str_len(s);
 #ifdef DS_THREAD_SAFE
   LOCK(s)
 #endif
+  n = FUNC_str_len(s);
   while (off < n) {
     w = cb(ud, s->buf + off, n - off);
     if (w <= 0) {
@@ -76,27 +77,31 @@ int FUNC(str_views_writev_all)(const ds_str_view_t *views, size_t count, ds_writ
   return 0;
 }
 
-ds_str_view_t FUNC(str_view)(ds_str_t *s, size_t pos, size_t n) {
-  ds_str_view_t v;
-  size_t len = FUNC_str_len(s);
+/* out-parameter versions: return 0 on success, -1 on error */
+int FUNC(str_view)(ds_str_t *s, size_t pos, size_t n, ds_str_view_t *out) {
+  size_t len;
+  if (!out) return -1;
+  len = FUNC_str_len(s);
   if (pos > len) pos = len;
   if (n > len - pos) n = len - pos;
-  v.data = (s && s->buf) ? s->buf + pos : (const char *)"";
-  v.len = n;
-  return v;
+  out->data = (s && s->buf) ? s->buf + pos : (const char *)"";
+  out->len = n;
+  return 0;
+}
+
+int FUNC(str_view_sub)(ds_str_view_t v, size_t pos, size_t n, ds_str_view_t *out) {
+  if (!out) return -1;
+  if (pos > v.len) pos = v.len;
+  if (n > v.len - pos) n = v.len - pos;
+  out->data = v.data + pos;
+  out->len = n;
+  return 0;
 }
 
 int FUNC(str_view_eq)(ds_str_view_t a, ds_str_view_t b) {
   if (a.len != b.len) return 0;
   if (a.len == 0) return 1;
   return memcmp(a.data, b.data, a.len) == 0;
-}
-
-ds_str_view_t FUNC(str_view_sub)(ds_str_view_t v, size_t pos, size_t n) {
-  ds_str_view_t out;
-  if (pos > v.len) pos = v.len;
-  if (n > v.len - pos) n = v.len - pos;
-  out.data = v.data + pos; out.len = n; return out;
 }
 
 long FUNC(str_view_find)(ds_str_view_t v, const void *needle, size_t n, size_t start) {
@@ -109,6 +114,7 @@ long FUNC(str_view_find)(ds_str_view_t v, const void *needle, size_t n, size_t s
     const void *p = memchr(h + start, *nd, v.len - start);
     return p ? (long)((const unsigned char*)p - h) : -1;
   }
-  for (i = start; i + n <= v.len; ++i) if (memcmp(h + i, nd, n) == 0) return (long)i;
+  for (i = start; i + n <= v.len; ++i)
+    if (memcmp(h + i, nd, n) == 0) return (long)i;
   return -1;
 }

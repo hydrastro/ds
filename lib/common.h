@@ -54,4 +54,24 @@ void mutex_init(mutex_t *lock);
 void mutex_init_recursive(mutex_t *lock);
 void mutex_destroy(mutex_t *lock);
 
+#ifndef DS_VA_COPY
+#if defined(__has_builtin)
+#if __has_builtin(__builtin_va_copy)
+#define DS_VA_COPY(dst, src) __builtin_va_copy((dst), (src))
+#endif
+#endif
+#ifndef DS_VA_COPY
+#ifdef __builtin_va_copy
+#define DS_VA_COPY(dst, src) __builtin_va_copy((dst), (src))
+#elif defined(__va_copy)
+#define DS_VA_COPY(dst, src) __va_copy((dst), (src))
+#elif defined(va_copy)
+#define DS_VA_COPY(dst, src) va_copy((dst), (src))
+#else
+#error                                                                         \
+    "No va_copy/__va_copy available on this platform; cannot safely copy va_list under -std=c89."
+#endif
+#endif
+#endif
+
 #endif /* DS_COMMON_H */

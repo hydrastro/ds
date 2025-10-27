@@ -25,6 +25,11 @@ typedef struct ds_str {
 #define FUNC_str_cstr(s) (((s) && (s)->buf) ? (s)->buf : "")
 #define FUNC_str_data(s) ((s) ? (s)->buf : (char *)"")
 
+#ifdef DS_THREAD_SAFE
+void ds__lock2(ds_str_t *a, ds_str_t *b);
+void ds__unlock2(ds_str_t *a, ds_str_t *b);
+#endif
+
 ds_str_t *FUNC(str_create)(void);
 ds_str_t *FUNC(str_create_alloc)(void *(*allocator)(size_t),
                                  void (*deallocator)(void *));
