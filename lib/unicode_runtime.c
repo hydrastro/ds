@@ -296,8 +296,6 @@ int load_DerivedNormalizationProps(void) {
   return 0;
 }
 
-enum { GB_Other=0, GB_Extend=1, GB_ZWJ=2, GB_SpacingMark=3 };
-
 int load_GraphemeBreakProperty(void) {
   FILE *f = ucd_fopen("GraphemeBreakProperty.txt");
   char line[1024];
@@ -326,9 +324,21 @@ int load_GraphemeBreakProperty(void) {
 
     {
       unsigned long val = GB_Other;
-      if (strcmp(prop,"Extend")==0) val = GB_Extend;
+
+      if (strcmp(prop,"CR")==0) val = GB_CR;
+      else if (strcmp(prop,"LF")==0) val = GB_LF;
+      else if (strcmp(prop,"Control")==0) val = GB_Control;
+      else if (strcmp(prop,"Extend")==0) val = GB_Extend;
       else if (strcmp(prop,"ZWJ")==0) val = GB_ZWJ;
       else if (strcmp(prop,"SpacingMark")==0) val = GB_SpacingMark;
+      else if (strcmp(prop,"Prepend")==0) val = GB_Prepend;
+      else if (strcmp(prop,"Regional_Indicator")==0) val = GB_Regional_Indicator;
+      else if (strcmp(prop,"L")==0) val = GB_L;
+      else if (strcmp(prop,"V")==0) val = GB_V;
+      else if (strcmp(prop,"T")==0) val = GB_T;
+      else if (strcmp(prop,"LV")==0) val = GB_LV;
+      else if (strcmp(prop,"LVT")==0) val = GB_LVT;
+
       while (a <= b) { (void)u32map_put(&U.gb_prop, a, val); ++a; }
     }
   }
@@ -371,6 +381,7 @@ void ucd_free(void) {
   pairmap_free(&U.comp_map);
   u32map_free(&U.comp_exclusions);
   u32map_free(&U.gb_prop);
+  u32map_free(&U.ep_prop);
 }
 
 int ucd_do_init(void) {
@@ -389,12 +400,15 @@ int ucd_do_init(void) {
 
   if (u32map_init(&U.gb_prop, 4096) != 0) goto fail;
 
+  if (u32map_init(&U.ep_prop, 2048) != 0) goto fail;
+
   if (load_UnicodeData() != 0) goto fail;
   (void)load_DerivedNormalizationProps();
   (void)load_CompositionExclusions();
   if (build_comp_pairs() != 0) goto fail;
   (void)load_CaseFolding();
   (void)load_GraphemeBreakProperty();
+  (void)load_EmojiData();
 
   U.inited = 1;
   atexit(ucd_free);
@@ -406,10 +420,10 @@ fail:
 }
 
 #ifdef DS_THREAD_SAFE
-static mutex_t g_ucd_once_lock;
-static int g_ucd_once_lock_inited = 0;
+mutex_t g_ucd_once_lock;
+int g_ucd_once_lock_inited = 0;
 
-static void ensure_ucd_once_lock(void) {
+void ensure_ucd_once_lock(void) {
   if (!g_ucd_once_lock_inited) {
     mutex_init(&g_ucd_once_lock);
     g_ucd_once_lock_inited = 1;
@@ -643,20 +657,146 @@ unsigned long gb_get(unsigned long cp){
   return GB_Other;
 }
 
-long ds__ucd_grapheme_len(const ds_str_t *s) {
-  size_t i=0; unsigned long cp; long g=0; unsigned long prev;
-  if (!s) return -1;
-  if (ucd_init_once()!=0) return -1;
-  prev = GB_Other;
-  while (u8_next(s->buf, s->len, &i, &cp)==1) {
-    unsigned long cl = gb_get(cp);
-    if (cl==GB_Extend) {
-    } else if (cl==GB_ZWJ && prev!=GB_Other) {
-    } else if (cl==GB_SpacingMark) {
-    } else {
-      g++;
+int is_EP(unsigned long cp) {
+  unsigned long v;
+  return u32map_get(&U.ep_prop, cp, &v) && v == 1ul;
+}
+
+long ds__ucd_grapheme_len(const ds_str_t *s)
+{
+  size_t i = 0;
+  unsigned long cp = 0;
+  long clusters = 0;
+  int have_prev = 0;
+
+  unsigned long prev_prop = GB_Other;
+  int ri_run_len = 0;
+  int prev_is_zwj_ign_ext = 0;
+  int last_base_is_EP = 0;
+
+  unsigned long prop;
+  int break_here;
+  int prev_is_Control;
+  int cur_is_Control;
+
+  if (s == 0) return -1;
+  if (ucd_init_once() != 0) return -1;
+
+  while (u8_next(s->buf, s->len, &i, &cp) == 1) {
+    prop = gb_get(cp);
+    break_here = 1;
+
+    if (!have_prev) {
+      clusters++;
+      have_prev = 1;
+
+      last_base_is_EP = is_EP(cp);
+      prev_is_zwj_ign_ext = 0;
+      if (prop == GB_Regional_Indicator) {
+        ri_run_len = 1;
+      } else {
+        ri_run_len = 0;
+      }
+      prev_prop = prop;
+      continue;
     }
-    prev = cl;
+
+    prev_is_Control = (prev_prop == GB_Control || prev_prop == GB_CR || prev_prop == GB_LF);
+    cur_is_Control = (prop == GB_Control || prop == GB_CR || prop == GB_LF);
+
+    if (prev_prop == GB_CR && prop == GB_LF) {
+      break_here = 0;
+    }
+
+    else if (prev_is_Control || cur_is_Control) {
+      break_here = 1;
+    }
+
+    else if (prev_prop == GB_L &&
+             (prop == GB_L || prop == GB_V || prop == GB_LV || prop == GB_LVT)) {
+      break_here = 0;
+    } else if ((prev_prop == GB_LV || prev_prop == GB_V) &&
+               (prop == GB_V || prop == GB_T)) {
+      break_here = 0;
+    } else if ((prev_prop == GB_LVT || prev_prop == GB_T) &&
+               (prop == GB_T)) {
+      break_here = 0;
+    }
+
+    else if (prop == GB_Extend) {
+      break_here = 0;
+    }
+
+    else if (prop == GB_SpacingMark) {
+      break_here = 0;
+    }
+
+    else if (prev_prop == GB_Prepend) {
+      break_here = 0;
+    }
+
+    else if (is_EP(cp) && prev_is_zwj_ign_ext && last_base_is_EP) {
+      break_here = 0;
+    }
+
+    else if (prev_prop == GB_Regional_Indicator && prop == GB_Regional_Indicator) {
+      if ((ri_run_len % 2) == 1) break_here = 0;
+    }
+
+    if (break_here) clusters++;
+
+    if (prop == GB_Regional_Indicator) {
+      ri_run_len += 1;
+    } else {
+      ri_run_len = 0;
+    }
+
+    if (prop == GB_Extend) {
+    } else if (prop == GB_ZWJ) {
+      prev_is_zwj_ign_ext = 1;
+    } else {
+      last_base_is_EP = is_EP(cp);
+      prev_is_zwj_ign_ext = 0;
+    }
+
+    prev_prop = prop;
   }
-  return g;
+
+  return clusters;
+}
+
+int load_EmojiData(void) {
+  FILE *f = ucd_fopen("emoji-data.txt");
+  char line[1024];
+  if (!f) return -1;
+
+  while (fgets(line, sizeof(line), f)) {
+    char *p = line, *semi, *hash, *dots, *end, *prop;
+    unsigned long a, b;
+
+    if (*p=='#' || *p=='\n' || *p=='\0') continue;
+    hash = strchr(p,'#'); if (hash) *hash = 0;
+
+    semi = strchr(p,';'); if (!semi) continue; *semi = 0;
+
+    while (*p==' '||*p=='\t') ++p;
+    dots = strstr(p, "..");
+    if (dots) {
+      *dots = 0;
+      if (hex_to_u32(p, &a)!=0) continue;
+      if (hex_to_u32(dots+2, &b)!=0) continue;
+    } else {
+      if (hex_to_u32(p, &a)!=0) continue;
+      b = a;
+    }
+
+    prop = semi+1; while (*prop==' '||*prop=='\t') ++prop;
+    end = prop; while (*end && *end!=' '&&*end!='\t'&&*end!='\n') ++end; *end = 0;
+
+    if (strcmp(prop, "Extended_Pictographic")==0) {
+      while (a <= b) { (void)u32map_put(&U.ep_prop, a, 1ul); ++a; }
+    }
+  }
+  fclose(f);
+  return 0;
 }

@@ -10,6 +10,22 @@ int ds__ucd_tolower(ds_str_t *dst, const ds_str_t *src);
 int ds__ucd_toupper(ds_str_t *dst, const ds_str_t *src);
 long ds__ucd_grapheme_len(const ds_str_t *s);
 
+
+enum {
+  GB_Other = 0,
+  GB_CR,
+  GB_LF,
+  GB_Control,
+  GB_Extend,
+  GB_ZWJ,
+  GB_SpacingMark,
+  GB_Prepend,
+  GB_Regional_Indicator,
+  GB_L, GB_V, GB_T, GB_LV, GB_LVT
+};
+
+int load_EmojiData(void);
+
 typedef struct {
   unsigned long *p;
   size_t n, cap;
@@ -47,6 +63,7 @@ typedef struct {
   u32map comp_exclusions;
 
   u32map gb_prop;
+  u32map ep_prop;
   int inited;
 } ucd_t;
 
@@ -83,6 +100,7 @@ int load_DerivedNormalizationProps(void);
 int load_GraphemeBreakProperty(void);
 int build_comp_pairs(void);
 void ucd_free(void);
+void ensure_ucd_once_lock(void);
 int ucd_init_once(void);
 int ucd_do_init(void);
 int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp);
@@ -99,5 +117,6 @@ void reorder_ccc(u32vec_t *v);
 void compose_vec(u32vec_t *v);
 int fold_cp(unsigned long cp, u32vec_t *out);
 unsigned long gb_get(unsigned long cp);
+int is_EP(unsigned long cp);
 
 #endif /* DS_UNICODE_RUNTIME_H */
