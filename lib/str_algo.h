@@ -33,5 +33,7 @@ int FUNC(str_ends_with)(ds_str_t *s, const void *suffix, size_t n);
 long FUNC(str_count)(ds_str_t *s, const void *needle, size_t n);
 int FUNC(str_replace_all)(ds_str_t *s, const void *from, size_t nfrom,
                           const void *to, size_t nto);
-
+int FUNC(str_replace_all_builder)(ds_str_t *s,
+                                  const void *from, size_t nfrom,
+                                  const void *to,   size_t nto);
 #endif /* DS_STR_ALGO_H */

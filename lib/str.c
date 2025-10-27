@@ -365,7 +365,10 @@ int FUNC(str_cmp)(ds_str_t *a, ds_str_t *b) {
   size_t la, lb, lm;
   int r;
 #ifdef DS_THREAD_SAFE
+  if (a == b) return 0;
   ds__lock2(a, b);
+#else
+  if (a == b) return 0;
 #endif
   la = a ? a->len : 0u;
   lb = b ? b->len : 0u;
@@ -634,4 +637,45 @@ ds_str_t *FUNC(str_slice)(ds_str_t *s, size_t pos, size_t n) {
   out->len = take;
   out->buf[take] = '\0';
   return out;
+}
+
+char *FUNC(str_detach)(ds_str_t *s, size_t *len_out, size_t *cap_out) {
+  char *p;
+  if (!s) return NULL;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  p = s->buf;
+  if (len_out) *len_out = s->len;
+  if (cap_out) *cap_out = s->cap;
+  s->buf = NULL;
+  s->len = 0u;
+  s->cap = 0u;
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return p;
+}
+
+int FUNC(str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap) {
+  if (!s) return -1;
+  if (!buf && (len != 0u || cap != 0u)) return -1;
+  if (buf && cap < len) return -1;
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  if (s->buf) s->deallocator(s->buf);
+  s->buf = buf;
+  s->len = len;
+  s->cap = cap;
+  if (s->buf) s->buf[s->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return 0;
+}
+
+void FUNC(str_free_external)(ds_str_t *owner, void *p) {
+  if (!owner || !p) return;
+  owner->deallocator(p);
 }

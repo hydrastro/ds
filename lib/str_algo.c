@@ -343,3 +343,86 @@ int FUNC(str_replace_all)(ds_str_t *s, const void *from, size_t nfrom, const voi
 #endif
   return 0;
 }
+
+int FUNC(str_replace_all_builder)(ds_str_t *s,
+                                  const void *from, size_t nfrom,
+                                  const void *to,   size_t nto) {
+  size_t pos = 0u;
+  long at;
+  ds_str_t *out;
+  size_t last = 0u;
+
+  if (!s || !from || nfrom == 0u) return -1;
+
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  out = FUNC(str_create_alloc)(s->allocator, s->deallocator);
+  if (!out) {
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return -1;
+  }
+
+  if (s->len > 0u) {
+    if (FUNC(str_reserve)(out, s->len) != 0) { FUNC(str_destroy)(out);
+#ifdef DS_THREAD_SAFE
+      UNLOCK(s)
+#endif
+      return -1;
+    }
+  }
+
+  while (1) {
+    at = FUNC(str_find_twoway)(s, from, nfrom, pos);
+    if (at < 0) {
+      if (last < s->len) {
+        if (FUNC(str_append)(out, s->buf + last, s->len - last) != 0) {
+          FUNC(str_destroy)(out);
+#ifdef DS_THREAD_SAFE
+          UNLOCK(s)
+#endif
+          return -1;
+        }
+      }
+      break;
+    }
+
+    if ((size_t)at > last) {
+      if (FUNC(str_append)(out, s->buf + last, (size_t)at - last) != 0) {
+        FUNC(str_destroy)(out);
+#ifdef DS_THREAD_SAFE
+        UNLOCK(s)
+#endif
+        return -1;
+      }
+    }
+
+    if (nto) {
+      if (FUNC(str_append)(out, to, nto) != 0) {
+        FUNC(str_destroy)(out);
+#ifdef DS_THREAD_SAFE
+        UNLOCK(s)
+#endif
+        return -1;
+      }
+    }
+
+    pos  = (size_t)at + nfrom;
+    last = pos;
+    if (pos > s->len) pos = s->len;
+  }
+
+  if (s->buf) s->deallocator(s->buf);
+  s->buf = out->buf;
+  s->len = out->len;
+  s->cap = out->cap;
+  out->buf = NULL; out->len = 0u; out->cap = 0u;
+  FUNC(str_destroy)(out);
+  if (s->buf) s->buf[s->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return 0;
+}
