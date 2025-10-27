@@ -9,7 +9,7 @@ CFLAGS += -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security
 CFLAGS += -fstack-clash-protection -z noexecstack -z relro -z now
 CFLAGS += -Wl,-z,relro,-z,now -Wl,-pie #-fpie
 CFLAGS += -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual -Wdeclaration-after-statement
-CLFAGS += -Wfloat-equal -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wmissing-prototypes -Wnested-externs
+CFLAGS += -Wfloat-equal -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wmissing-prototypes -Wnested-externs
 CFLAGS += -Wpointer-arith -Wredundant-decls -Wsequence-point -Wstrict-prototypes
 CFLAGS += -Wswitch -Wundef -Wunreachable-code -Wwrite-strings -Wconversion
 
@@ -27,6 +27,34 @@ OUT_INCLUDE_DIR = $(PREFIX)/include/lib
 SRC_FILES = $(wildcard $(LIB_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:.c=.o)
 OBJ_FILES_SAFE = $(SRC_FILES:.c=_safe.o)
+
+UNICODE_DIR := data
+UNICODE_FILES := \
+  $(UNICODE_DIR)/UnicodeData.txt \
+  $(UNICODE_DIR)/CaseFolding.txt \
+  $(UNICODE_DIR)/DerivedNormalizationProps.txt \
+  $(UNICODE_DIR)/CompositionExclusions.txt \
+  $(UNICODE_DIR)/GraphemeBreakProperty.txt
+
+$(UNICODE_DIR):
+	@mkdir -p $(UNICODE_DIR)
+
+$(UNICODE_DIR)/UnicodeData.txt: | $(UNICODE_DIR)
+	@curl -fsSL -o $@ https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt
+
+$(UNICODE_DIR)/CaseFolding.txt: | $(UNICODE_DIR)
+	@curl -fsSL -o $@ https://www.unicode.org/Public/UCD/latest/ucd/CaseFolding.txt
+
+$(UNICODE_DIR)/DerivedNormalizationProps.txt: | $(UNICODE_DIR)
+	@curl -fsSL -o $@ https://www.unicode.org/Public/UCD/latest/ucd/DerivedNormalizationProps.txt
+
+$(UNICODE_DIR)/CompositionExclusions.txt: | $(UNICODE_DIR)
+	@curl -fsSL -o $@ https://www.unicode.org/Public/UCD/latest/ucd/CompositionExclusions.txt
+
+$(UNICODE_DIR)/GraphemeBreakProperty.txt: | $(UNICODE_DIR)
+	@curl -fsSL -o $@ https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakProperty.txt
+
+$(LIB_DIR)/unicode_runtime.o: $(UNICODE_FILES)
 
 all: libds.a libds.so libds_safe.a libds_safe.so
 
@@ -64,3 +92,5 @@ uninstall:
 
 clean:
 	rm -f $(OBJ_FILES) $(OBJ_FILES_SAFE) libds.a libds.so libds_safe.a libds_safe.so
+
+unicode-data: $(UNICODE_FILES)

@@ -5,6 +5,10 @@
 #include "str.h"
 #include <stddef.h>
 
+int ds__in_set(unsigned char c, const unsigned char *set, size_t n);
+void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p);
+void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p);
+
 long FUNC(str_find_bmh)(ds_str_t *s, const void *needle, size_t n,
                         size_t start);
 long FUNC(str_find_twoway)(ds_str_t *s, const void *needle, size_t n,

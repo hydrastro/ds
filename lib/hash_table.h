@@ -47,11 +47,16 @@ typedef struct hash_table {
 #endif
 } ds_hash_table_t;
 
+ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
+                                 void *value);
+
 size_t hash_func_string_djb2(void *key);
 size_t hash_func_int(void *key);
 size_t hash_func_pointer(void *key);
 size_t hash_func_double(void *key);
 size_t hash_func_default(void *key);
+
+size_t next_prime_capacity(size_t current_capacity);
 
 size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity);
 size_t linear_probing(size_t base_index, size_t iteration, size_t capacity);

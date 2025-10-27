@@ -1,459 +1,378 @@
 #include "str_unicode.h"
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <limits.h>
 #include <stdint.h>
 
-int ds__snapshot_src(const ds_str_t *src, char **out_buf, size_t *out_len) {
-  char *tmp;
-  size_t n;
-
-  if (!src || !out_buf || !out_len) return -1;
-
-#ifdef DS_THREAD_SAFE
-  #if defined(__GNUC__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wcast-qual"
-  #endif
-  if (src->is_thread_safe) mutex_lock(&((ds_str_t*)src)->lock);
-  #if defined(__GNUC__)
-  #pragma GCC diagnostic pop
-  #endif
-#endif
-
-  n = src->len;
-  tmp = (char*)malloc(n ? n : 1u);
-  if (!tmp) {
-#ifdef DS_THREAD_SAFE
-  #if defined(__GNUC__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wcast-qual"
-  #endif
-    if (src->is_thread_safe) mutex_unlock(&((ds_str_t*)src)->lock);
-  #if defined(__GNUC__)
-  #pragma GCC diagnostic pop
-  #endif
-#endif
-    return -1;
-  }
-  if (n) memcpy(tmp, src->buf, n);
-
-#ifdef DS_THREAD_SAFE
-  #if defined(__GNUC__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wcast-qual"
-  #endif
-  if (src->is_thread_safe) mutex_unlock(&((ds_str_t*)src)->lock);
-  #if defined(__GNUC__)
-  #pragma GCC diagnostic pop
-  #endif
-#endif
-
-  *out_buf = tmp;
-  *out_len = n;
-  return 0;
-}
+extern int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat, int compose);
+extern int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src);
+extern int ds__ucd_tolower(ds_str_t *dst, const ds_str_t *src);
+extern int ds__ucd_toupper(ds_str_t *dst, const ds_str_t *src);
+extern long ds__ucd_grapheme_len(const ds_str_t *s);
 
 int ds__is_nonchar(unsigned long cp) {
-  unsigned long lo16 = cp & 0xFFFFul;
-  if ((cp >= 0xFDD0ul && cp <= 0xFDEFul) ||
-      lo16 == 0xFFFEul || lo16 == 0xFFFFul) return 1;
+  if (cp >= 0xFDD0ul && cp <= 0xFDEFul) return 1;
+  if ((cp & 0xFFFEul) == 0xFFFEul && cp <= 0x10FFFFul) return 1;
   return 0;
 }
 
-size_t ds__u8_decode(const unsigned char *p, const unsigned char *end,
-                            unsigned long *out_cp, unsigned int flags) {
-  unsigned char b0;
-  unsigned long cp;
-  size_t need;
+int ds__decode_one(const unsigned char *s, size_t n, size_t *adv,
+                          unsigned long *out, unsigned int flags)
+{
+  unsigned long cp; size_t need;
 
-  if (p >= end) return 0;
-  b0 = *p;
-  if (b0 < 0x80u) {
-    cp = (unsigned long)b0;
-    need = 1u;
-  } else if ((b0 >> 5) == 0x6u) {
-    if (end - p < 2) return 0;
-    if ((p[1] & 0xC0u) != 0x80u) return 0;
-    cp = ((unsigned long)(b0 & 0x1Fu) << 6) |
-         ((unsigned long)(p[1] & 0x3Fu));
-    if ((flags & DS_U8_REJECT_OVERLONG) && cp < 0x80ul) return 0;
-    need = 2u;
-  } else if ((b0 >> 4) == 0xEu) {
-    if (end - p < 3) return 0;
-    if ((p[1] & 0xC0u) != 0x80u || (p[2] & 0xC0u) != 0x80u) return 0;
-    cp = ((unsigned long)(b0 & 0x0Fu) << 12) |
-         ((unsigned long)(p[1] & 0x3Fu) << 6) |
-         ((unsigned long)(p[2] & 0x3Fu));
-    if ((flags & DS_U8_REJECT_OVERLONG) && cp < 0x800ul) return 0;
-    if ((flags & DS_U8_REJECT_SURROGATE) && (cp >= 0xD800ul && cp <= 0xDFFFul)) return 0;
-    need = 3u;
-  } else if ((b0 >> 3) == 0x1Eu) {
-    if (end - p < 4) return 0;
-    if ((p[1] & 0xC0u) != 0x80u || (p[2] & 0xC0u) != 0x80u || (p[3] & 0xC0u) != 0x80u) return 0;
-    cp = ((unsigned long)(b0 & 0x07u) << 18) |
-         ((unsigned long)(p[1] & 0x3Fu) << 12) |
-         ((unsigned long)(p[2] & 0x3Fu) << 6) |
-         ((unsigned long)(p[3] & 0x3Fu));
-    if ((flags & DS_U8_REJECT_OVERLONG) && cp < 0x10000ul) return 0;
-    if ((flags & DS_U8_REJECT_OUT_OF_RANGE) && cp > 0x10FFFFul) return 0;
-    need = 4u;
+  if (n == 0) return 0;
+  if (s[0] < 0x80u) {
+    *adv = 1; cp = s[0];
+  } else if ((s[0] & 0xE0u) == 0xC0u) {
+    if (n < 2 || (s[1] & 0xC0u) != 0x80u) return -1;
+    cp = ((unsigned long)(s[0] & 0x1Fu) << 6) | (unsigned long)(s[1] & 0x3Fu);
+    *adv = 2; if ((flags & DS_U8_REJECT_OVERLONG) && cp < 0x80ul) return -1;
+  } else if ((s[0] & 0xF0u) == 0xE0u) {
+    if (n < 3 || (s[1] & 0xC0u) != 0x80u || (s[2] & 0xC0u) != 0x80u) return -1;
+    cp = ((unsigned long)(s[0] & 0x0Fu) << 12)
+       | ((unsigned long)(s[1] & 0x3Fu) << 6)
+       |  (unsigned long)(s[2] & 0x3Fu);
+    *adv = 3;
+    if ((flags & DS_U8_REJECT_OVERLONG) && cp < 0x800ul) return -1;
+    if ((flags & DS_U8_REJECT_SURROGATE) && cp >= 0xD800ul && cp <= 0xDFFFul) return -1;
+  } else if ((s[0] & 0xF8u) == 0xF0u) {
+    if (n < 4 || (s[1] & 0xC0u) != 0x80u || (s[2] & 0xC0u) != 0x80u || (s[3] & 0xC0u) != 0x80u) return -1;
+    cp = ((unsigned long)(s[0] & 0x07u) << 18)
+       | ((unsigned long)(s[1] & 0x3Fu) << 12)
+       | ((unsigned long)(s[2] & 0x3Fu) << 6)
+       |  (unsigned long)(s[3] & 0x3Fu);
+    *adv = 4;
+    if ((flags & DS_U8_REJECT_OVERLONG) && cp < 0x10000ul) return -1;
+    if ((flags & DS_U8_REJECT_OUT_OF_RANGE) && cp > 0x10FFFFul) return -1;
   } else {
-    return 0;
+    return -1;
   }
 
-  if ((flags & DS_U8_REJECT_OUT_OF_RANGE) && cp > 0x10FFFFul) return 0;
-  if ((flags & DS_U8_REJECT_NONCHAR) && ds__is_nonchar(cp)) return 0;
+  if ((flags & DS_U8_REJECT_OUT_OF_RANGE) && cp > 0x10FFFFul) return -1;
+  if ((flags & DS_U8_REJECT_NONCHAR) && ds__is_nonchar(cp)) return -1;
 
-  if (out_cp) *out_cp = cp;
-  return need;
+  if (out) *out = cp;
+  (void)need;
+  return 1;
 }
 
-size_t ds__u8_encode(unsigned long cp, unsigned char out[4]) {
-  if (cp <= 0x7Ful) {
-    out[0] = (unsigned char)cp; return 1u;
-  } else if (cp <= 0x7FFul) {
-    out[0] = (unsigned char)(0xC0u | ((cp >> 6) & 0x1Fu));
+size_t ds__encode_one(unsigned long cp, unsigned char out[4]) {
+  if (cp <= 0x7Ful) { out[0] = (unsigned char)cp; return 1; }
+  if (cp <= 0x7FFul) {
+    out[0] = (unsigned char)(0xC0u | (cp >> 6));
     out[1] = (unsigned char)(0x80u | (cp & 0x3Fu));
-    return 2u;
-  } else if (cp >= 0xD800ul && cp <= 0xDFFFul) {
-    return 0;
-  } else if (cp <= 0xFFFFul) {
-    out[0] = (unsigned char)(0xE0u | ((cp >> 12) & 0x0Fu));
+    return 2;
+  }
+  if (cp <= 0xFFFFul) {
+    out[0] = (unsigned char)(0xE0u | (cp >> 12));
     out[1] = (unsigned char)(0x80u | ((cp >> 6) & 0x3Fu));
     out[2] = (unsigned char)(0x80u | (cp & 0x3Fu));
-    return 3u;
-  } else if (cp <= 0x10FFFFul) {
-    out[0] = (unsigned char)(0xF0u | ((cp >> 18) & 0x07u));
-    out[1] = (unsigned char)(0x80u | ((cp >> 12) & 0x3Fu));
-    out[2] = (unsigned char)(0x80u | ((cp >> 6) & 0x3Fu));
-    out[3] = (unsigned char)(0x80u | (cp & 0x3Fu));
-    return 4u;
+    return 3;
   }
-  return 0;
-}
-
-size_t ds__u8_back_to_start(const char *buf, size_t len, size_t i) {
-  size_t k;
-  if (i > len) i = len;
-  k = i;
-  while (k > 0 && ((unsigned char)buf[k - 1] & 0xC0u) == 0x80u) {
-    --k;
-    if (i - k >= 3u) break;
-  }
-  return k;
+  out[0] = (unsigned char)(0xF0u | (cp >> 18));
+  out[1] = (unsigned char)(0x80u | ((cp >> 12) & 0x3Fu));
+  out[2] = (unsigned char)(0x80u | ((cp >> 6) & 0x3Fu));
+  out[3] = (unsigned char)(0x80u | (cp & 0x3Fu));
+  return 4;
 }
 
 int FUNC(str_u8_push_cp)(ds_str_t *s, unsigned long cp) {
-  unsigned char tmp[4];
-  size_t n;
+  unsigned char buf[4]; size_t k;
   if (!s) return -1;
-  n = ds__u8_encode(cp, tmp);
-  if (n == 0u) return -1;
-  return FUNC(str_append)(s, tmp, n);
+  if (cp > 0x10FFFFul || (cp >= 0xD800ul && cp <= 0xDFFFul)) cp = DS_U8_REPLACEMENT_CHAR;
+  k = ds__encode_one(cp, buf);
+  return FUNC(str_append)(s, buf, k);
 }
 
 int FUNC(str_u8_pop_cp)(ds_str_t *s, unsigned long *out_cp) {
-  size_t i, start;
-  unsigned long cp;
-  size_t n;
-  const unsigned char *p;
-  if (!s) return -1;
-
-#ifdef DS_THREAD_SAFE
-  LOCK(s)
-#endif
-  if (s->len == 0u) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(s)
-#endif
-    return -1;
+  size_t len; const unsigned char *p; size_t i = 0;
+  if (!s || s->len == 0) return -1;
+  len = s->len; p = (const unsigned char*)s->buf;
+  i = len;
+  while (i > 0) {
+    unsigned char c = p[i-1];
+    if ((c & 0xC0u) != 0x80u) {
+      size_t adv; unsigned long cp;
+      if (ds__decode_one(p + (i-1), len - (i-1), &adv, &cp, DS_U8_STRICT) <= 0) return -1;
+      if (i - 1 + adv != len) return -1;
+      if (out_cp) *out_cp = cp;
+      return FUNC(str_erase)(s, i-1, adv);
+    }
+    --i;
+    if (len - i > 4) break;
   }
-
-  i = s->len;
-  start = ds__u8_back_to_start(s->buf, s->len, i);
-  if (start >= s->len) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(s)
-#endif
-    return -1;
-  }
-  p = (const unsigned char*)s->buf + start;
-  n = ds__u8_decode(p, (const unsigned char*)s->buf + s->len, &cp, DS_U8_STRICT);
-  if (n == 0u || start + n != s->len) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(s)
-#endif
-    return -1;
-  }
-  s->len = start;
-  s->buf[s->len] = '\0';
-#ifdef DS_THREAD_SAFE
-  UNLOCK(s)
-#endif
-  if (out_cp) *out_cp = cp;
-  return 0;
+  return -1;
 }
 
 size_t FUNC(str_u8_count)(const ds_str_t *s, unsigned int flags, int *valid_out) {
-  char *b;
-  size_t n, off = 0u, count = 0u;
-  int valid = 1;
-  size_t used;
-
-  if (!s) {
-    if (valid_out) *valid_out = 1;
-    return 0u;
+  size_t i = 0, n; size_t count = 0; const unsigned char *p;
+  int ok = 1;
+  if (!s) { if (valid_out) *valid_out = 0; return 0; }
+  n = s->len; p = (const unsigned char*)s->buf;
+  while (i < n) {
+    size_t adv; int r = ds__decode_one(p + i, n - i, &adv, NULL, flags);
+    if (r <= 0) { ok = 0; break; }
+    ++count; i += adv;
   }
-  if (ds__snapshot_src(s, &b, &n) != 0) {
-    if (valid_out) *valid_out = 0;
-    return 0u;
-  }
-  while (off < n) {
-    used = ds__u8_decode((const unsigned char*)b + off, (const unsigned char*)b + n, NULL, flags);
-    if (used == 0u) { valid = 0; break; }
-    off += used;
-    ++count;
-  }
-  free(b);
-  if (valid_out) *valid_out = valid;
-  return count;
+  if (valid_out) *valid_out = ok;
+  return ok ? count : 0;
 }
 
 size_t FUNC(str_view_u8_count)(ds_str_view_t v, unsigned int flags, int *valid_out) {
-  size_t off = 0u, count = 0u, used;
-  int valid = 1;
-  while (off < v.len) {
-    used = ds__u8_decode((const unsigned char*)v.data + off, (const unsigned char*)v.data + v.len, NULL, flags);
-    if (used == 0u) { valid = 0; break; }
-    off += used;
-    ++count;
+  const unsigned char *p = (const unsigned char *)v.data;
+  size_t i = 0, n = v.len, count = 0;
+  int ok = 1;
+
+  while (i < n) {
+    size_t adv;
+    int r = ds__decode_one(p + i, n - i, &adv, NULL, flags);
+    if (r <= 0) { ok = 0; break; }
+    ++count; i += adv;
   }
-  if (valid_out) *valid_out = valid;
-  return count;
+  if (valid_out) *valid_out = ok;
+  return ok ? count : 0;
 }
 
 int FUNC(str_u8_validate)(const ds_str_t *s, unsigned int flags) {
-  int valid;
-  (void)FUNC(str_u8_count)(s, flags, &valid);
-  return valid;
+  int ok; (void)FUNC(str_u8_count)(s, flags, &ok); return ok;
 }
 
 int FUNC(str_view_u8_validate)(ds_str_view_t v, unsigned int flags) {
-  int valid;
-  (void)FUNC(str_view_u8_count)(v, flags, &valid);
-  return valid;
+  int ok; (void)FUNC(str_view_u8_count)(v, flags, &ok); return ok;
 }
 
 int FUNC(str_u8_next)(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp, unsigned int flags) {
-  size_t off, used;
-  if (!buf || !ioff) return 0;
-  off = *ioff;
-  if (off >= len) return 0;
-  used = ds__u8_decode((const unsigned char*)buf + off, (const unsigned char*)buf + len, out_cp, flags);
-  if (used == 0u) return 0;
-  *ioff = off + used;
+  size_t i = ioff ? *ioff : 0; size_t adv; int r;
+  if (!buf) return -1;
+  if (i >= len) return 0;
+  r = ds__decode_one((const unsigned char*)buf + i, len - i, &adv, out_cp, flags);
+  if (r <= 0) return -1;
+  if (ioff) *ioff = i + adv;
   return 1;
 }
 
 int FUNC(str_u8_prev)(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp, unsigned int flags) {
-  size_t i, start, used;
-  if (!buf || !ioff) return 0;
-  i = *ioff;
-  if (i == 0u || i > len) return 0;
-  start = ds__u8_back_to_start(buf, len, i);
-  if (start >= i) return 0;
-  used = ds__u8_decode((const unsigned char*)buf + start, (const unsigned char*)buf + len, out_cp, flags);
-  if (used == 0u || start + used != i) return 0;
-  *ioff = start;
+  size_t i = ioff ? *ioff : len;
+  const unsigned char *p = (const unsigned char*)buf;
+  if (!buf) return -1;
+  if (i == 0) return 0;
+  {
+    size_t j = i;
+    size_t start = j;
+    size_t adv; unsigned long cp;
+    if (j > len) j = len;
+    while (j > 0 && (p[j-1] & 0xC0u) == 0x80u) --j;
+    if (j == 0) return -1;
+    start = j;
+    if (ds__decode_one(p + start, len - start, &adv, &cp, flags) <= 0) return -1;
+    if (start + adv != i) return -1;
+    if (out_cp) *out_cp = cp;
+    if (ioff) *ioff = start;
+  }
   return 1;
 }
 
 size_t FUNC(str_u8_cp_to_byte)(const ds_str_t *s, size_t cp_index, unsigned int flags) {
-  char *b;
-  size_t n, off = 0u, used, i = 0u;
-
-  if (!s) return 0u;
-  if (ds__snapshot_src(s, &b, &n) != 0) return 0u;
-
-  while (off < n && i < cp_index) {
-    used = ds__u8_decode((const unsigned char*)b + off, (const unsigned char*)b + n, NULL, flags);
-    if (used == 0u) break;
-    off += used;
-    ++i;
+  size_t i = 0, n; size_t cp = 0; const unsigned char *p;
+  if (!s) return SIZE_MAX;
+  n = s->len; p = (const unsigned char*)s->buf;
+  while (i < n) {
+    size_t adv; int r = ds__decode_one(p + i, n - i, &adv, NULL, flags);
+    if (r <= 0) return SIZE_MAX;
+    if (cp == cp_index) return i;
+    ++cp; i += adv;
   }
-  if (i < cp_index) off = n;
-  free(b);
-  return off;
+  return (cp_index == cp) ? i : SIZE_MAX;
 }
 
 int FUNC(str_u8_slice_cp)(ds_str_t *dst, const ds_str_t *src, size_t start_cp, size_t count_cp, unsigned int flags) {
-  char *b;
-  size_t n, off, used, i, start_byte, end_byte;
+  size_t a, b;
+  size_t start_byte = FUNC(str_u8_cp_to_byte)(src, start_cp, flags);
+  if (start_byte == SIZE_MAX) return -1;
 
-  if (!dst || !src) return -1;
-  if (ds__snapshot_src(src, &b, &n) != 0) return -1;
-
-  off = 0u; i = 0u;
-  while (off < n && i < start_cp) {
-    used = ds__u8_decode((const unsigned char*)b + off, (const unsigned char*)b + n, NULL, flags);
-    if (used == 0u) break;
-    off += used; ++i;
-  }
-  start_byte = off;
-
-  if (count_cp == (size_t)SIZE_MAX) {
-    end_byte = n;
+  if (count_cp == (size_t)-1) {
+    a = start_byte; b = src->len;
   } else {
-    i = 0u;
-    while (off < n && i < count_cp) {
-      used = ds__u8_decode((const unsigned char*)b + off, (const unsigned char*)b + n, NULL, flags);
-      if (used == 0u) break;
-      off += used; ++i;
-    }
-    end_byte = off;
+    size_t end_cp = start_cp + count_cp;
+    size_t end_byte = FUNC(str_u8_cp_to_byte)(src, end_cp, flags);
+    if (end_byte == SIZE_MAX) return -1;
+    a = start_byte; b = end_byte;
   }
 
-  if (start_byte > n) start_byte = n;
-  if (end_byte > n) end_byte = n;
-  if (end_byte < start_byte) end_byte = start_byte;
-
-  if (FUNC(str_assign)(dst, b + start_byte, end_byte - start_byte) != 0) {
-    free(b);
-    return -1;
+  if (dst == src) {
+    ds_str_t *tmp = FUNC(str_from)(src->buf + a, b - a);
+    if (!tmp) return -1;
+    FUNC(str_clear)(dst);
+    (void)FUNC(str_append)(dst, tmp->buf, tmp->len);
+    FUNC(str_destroy)(tmp);
+    return 0;
   }
-  free(b);
-  return 0;
+  return FUNC(str_assign)(dst, src->buf + a, b - a);
 }
 
 int FUNC(str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src, unsigned int flags) {
-  char *b;
-  size_t n, off = 0u;
-  ds_str_t *out;
-  unsigned char enc[4];
-  unsigned long cp;
-  size_t used, w;
-
+  size_t i = 0, n; const unsigned char *p; unsigned char buf[4];
   if (!dst || !src) return -1;
-  if (ds__snapshot_src(src, &b, &n) != 0) return -1;
-
-  out = FUNC(str_create_alloc)(src->allocator, src->deallocator);
-  if (!out) { free(b); return -1; }
-  if (n && FUNC(str_reserve)(out, n) != 0) { FUNC(str_destroy)(out); free(b); return -1; }
-
-  while (off < n) {
-    used = ds__u8_decode((const unsigned char*)b + off, (const unsigned char*)b + n, &cp, flags);
-    if (used == 0u) {
-      w = ds__u8_encode(DS_U8_REPLACEMENT_CHAR, enc);
-      if (!w || FUNC(str_append)(out, enc, w) != 0) { FUNC(str_destroy)(out); free(b); return -1; }
-      ++off;
-      continue;
+#ifdef DS_THREAD_SAFE
+  if (dst) LOCK(dst);
+#endif
+  (void)FUNC(str_clear)(dst);
+  n = src->len; p = (const unsigned char*)src->buf;
+  while (i < n) {
+    unsigned long cp; size_t adv; int r = ds__decode_one(p + i, n - i, &adv, &cp, flags);
+    if (r <= 0) {
+      size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, buf);
+      if (FUNC(str_append)(dst, buf, k) != 0) { 
+#ifdef DS_THREAD_SAFE
+        if (dst) UNLOCK(dst);
+#endif
+        return -1; 
+      }
+      i += 1;
+    } else {
+      size_t k = ds__encode_one(cp, buf);
+      if (FUNC(str_append)(dst, buf, k) != 0) { 
+#ifdef DS_THREAD_SAFE
+        if (dst) UNLOCK(dst);
+#endif
+        return -1; 
+      }
+      i += adv;
     }
-    if (FUNC(str_append)(out, b + off, used) != 0) { FUNC(str_destroy)(out); free(b); return -1; }
-    off += used;
   }
-
 #ifdef DS_THREAD_SAFE
-  LOCK(dst)
+  if (dst) UNLOCK(dst);
 #endif
-  if (dst->buf) dst->deallocator(dst->buf);
-  dst->buf = out->buf;
-  dst->len = out->len;
-  dst->cap = out->cap;
-  if (dst->buf) dst->buf[dst->len] = '\0';
-  out->buf = NULL; out->len = 0u; out->cap = 0u;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(dst)
-#endif
-  FUNC(str_destroy)(out);
-  free(b);
   return 0;
 }
 
 int FUNC(str_u8_strip_bom)(ds_str_t *s) {
-  int stripped = 0;
-  if (!s || s->len < 3u) return 0;
-#ifdef DS_THREAD_SAFE
-  LOCK(s)
-#endif
-  if (s->len >= 3u &&
-      (unsigned char)s->buf[0] == 0xEFu &&
-      (unsigned char)s->buf[1] == 0xBBu &&
-      (unsigned char)s->buf[2] == 0xBFu) {
-    memmove(s->buf, s->buf + 3, s->len - 3u);
-    s->len -= 3u;
-    s->buf[s->len] = '\0';
-    stripped = 1;
+  const unsigned char bom[3] = {0xEFu, 0xBBu, 0xBFu};
+  if (!s || s->len < 3) return 0;
+  if ((unsigned char)s->buf[0] == bom[0] &&
+      (unsigned char)s->buf[1] == bom[1] &&
+      (unsigned char)s->buf[2] == bom[2]) {
+    (void)FUNC(str_erase)(s, 0u, 3u);
+    return 1;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(s)
-#endif
-  return stripped;
-}
-
-int ds__ascii_map_into(ds_str_t *dst, const ds_str_t *src, int tolower_mode) {
-  char *b;
-  size_t n, i;
-  ds_str_t *out;
-
-  if (!dst || !src) return -1;
-  if (ds__snapshot_src(src, &b, &n) != 0) return -1;
-
-  out = FUNC(str_create_alloc)(src->allocator, src->deallocator);
-  if (!out) { free(b); return -1; }
-  if (n && FUNC(str_reserve)(out, n) != 0) { FUNC(str_destroy)(out); free(b); return -1; }
-
-  for (i = 0u; i < n; ++i) {
-    unsigned char c = (unsigned char)b[i];
-    if (tolower_mode) {
-      if (c >= 'A' && c <= 'Z') c = (unsigned char)(c - 'A' + 'a');
-    } else {
-      if (c >= 'a' && c <= 'z') c = (unsigned char)(c - 'a' + 'A');
-    }
-    if (FUNC(str_pushc)(out, (int)c) != 0) { FUNC(str_destroy)(out); free(b); return -1; }
-  }
-
-#ifdef DS_THREAD_SAFE
-  LOCK(dst)
-#endif
-  if (dst->buf) dst->deallocator(dst->buf);
-  dst->buf = out->buf;
-  dst->len = out->len;
-  dst->cap = out->cap;
-  if (dst->buf) dst->buf[dst->len] = '\0';
-  out->buf = NULL; out->len = 0u; out->cap = 0u;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(dst)
-#endif
-  FUNC(str_destroy)(out);
-  free(b);
   return 0;
 }
 
-int FUNC(str_u8_ascii_tolower)(ds_str_t *dst, const ds_str_t *src) { return ds__ascii_map_into(dst, src, 1); }
-int FUNC(str_u8_ascii_toupper)(ds_str_t *dst, const ds_str_t *src) { return ds__ascii_map_into(dst, src, 0); }
-int FUNC(str_u8_ascii_casefold)(ds_str_t *dst, const ds_str_t *src) { return ds__ascii_map_into(dst, src, 1); }
+unsigned char ds__ascii_lower(unsigned char c) { return (c >= 'A' && c <= 'Z') ? (unsigned char)(c + 32u) : c; }
+unsigned char ds__ascii_upper(unsigned char c) { return (c >= 'a' && c <= 'z') ? (unsigned char)(c - 32u) : c; }
+
+int FUNC(str_u8_ascii_tolower)(ds_str_t *dst, const ds_str_t *src) {
+  size_t i, n;
+  if (!dst || !src) return -1;
+#ifdef DS_THREAD_SAFE
+  if (dst) LOCK(dst);
+#endif
+  if (FUNC(str_reserve)(dst, src->len) != 0) { 
+#ifdef DS_THREAD_SAFE
+    if (dst) UNLOCK(dst);
+#endif
+    return -1; 
+  }
+  for (i = 0, n = src->len; i < n; ++i) dst->buf[i] = (char)ds__ascii_lower((unsigned char)src->buf[i]);
+  dst->len = src->len; dst->buf[dst->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  if (dst) UNLOCK(dst);
+#endif
+  return 0;
+}
+
+int FUNC(str_u8_ascii_toupper)(ds_str_t *dst, const ds_str_t *src) {
+  size_t i, n;
+  if (!dst || !src) return -1;
+#ifdef DS_THREAD_SAFE
+  if (dst) LOCK(dst);
+#endif
+  if (FUNC(str_reserve)(dst, src->len) != 0) { 
+#ifdef DS_THREAD_SAFE
+    if (dst) UNLOCK(dst);
+#endif
+    return -1; 
+  }
+  for (i = 0, n = src->len; i < n; ++i) dst->buf[i] = (char)ds__ascii_upper((unsigned char)src->buf[i]);
+  dst->len = src->len; dst->buf[dst->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  if (dst) UNLOCK(dst);
+#endif
+  return 0;
+}
+
+int FUNC(str_u8_ascii_casefold)(ds_str_t *dst, const ds_str_t *src) {
+  return FUNC(str_u8_ascii_tolower)(dst, src);
+}
+
+unsigned char ds__ascii_fold(unsigned char c) { return ds__ascii_lower(c); }
+
+long FUNC(str_find_ascii_folded)(ds_str_t *s, const void *needle, size_t n, size_t start) {
+  const unsigned char *h, *nd = (const unsigned char*)needle; size_t i, len;
+  if (!s || !needle || n == 0u) return -1;
+  len = s->len; if (start > len) return -1;
+  h = (const unsigned char*)s->buf;
+  if (n == 1u) {
+    unsigned char t = ds__ascii_fold(nd[0]);
+    for (i = start; i < len; ++i) if (ds__ascii_fold(h[i]) == t) return (long)i;
+    return -1;
+  }
+  for (i = start; i + n <= len; ++i) {
+    size_t k = 0;
+    while (k < n && ds__ascii_fold(h[i+k]) == ds__ascii_fold(nd[k])) ++k;
+    if (k == n) return (long)i;
+  }
+  return -1;
+}
+
+int FUNC(str_u8_normalize)(ds_str_t *dst, const ds_str_t *src, ds_u8_norm_form form) {
+  int compat, compose;
+  (void)form;
+  compat = (form == DS_U8_NFKC || form == DS_U8_NFKD);
+  compose = (form == DS_U8_NFC  || form == DS_U8_NFKC);
+  return ds__ucd_normalize(dst, src, compat, compose);
+}
+
+int FUNC(str_u8_casefold)(ds_str_t *dst, const ds_str_t *src) {
+  return ds__ucd_casefold(dst, src);
+}
+
+int FUNC(str_u8_tolower)(ds_str_t *dst, const ds_str_t *src) {
+  return ds__ucd_tolower(dst, src);
+}
+
+int FUNC(str_u8_toupper)(ds_str_t *dst, const ds_str_t *src) {
+  return ds__ucd_toupper(dst, src);
+}
+
+long FUNC(str_u8_len_graphemes)(const ds_str_t *s) {
+  return ds__ucd_grapheme_len(s);
+}
+
 
 int FUNC(str_view_u8_next)(ds_str_view_t v, size_t *ioff, unsigned long *out_cp, unsigned int flags) {
-  size_t off, used;
-  if (!ioff) return 0;
-  off = *ioff;
-  if (off >= v.len) return 0;
-  used = ds__u8_decode((const unsigned char*)v.data + off, (const unsigned char*)v.data + v.len, out_cp, flags);
-  if (used == 0u) return 0;
-  *ioff = off + used;
+  size_t i = ioff ? *ioff : 0, adv; int r;
+  if (i >= v.len) return 0;
+  r = ds__decode_one((const unsigned char*)v.data + i, v.len - i, &adv, out_cp, flags);
+  if (r <= 0) return -1;
+  if (ioff) *ioff = i + adv;
   return 1;
 }
 
 int FUNC(str_view_u8_prev)(ds_str_view_t v, size_t *ioff, unsigned long *out_cp, unsigned int flags) {
-  size_t i, start, used;
-  if (!ioff) return 0;
-  i = *ioff;
-  if (i == 0u || i > v.len) return 0;
-  start = ds__u8_back_to_start(v.data, v.len, i);
-  if (start >= i) return 0;
-  used = ds__u8_decode((const unsigned char*)v.data + start, (const unsigned char*)v.data + v.len, out_cp, flags);
-  if (used == 0u || start + used != i) return 0;
-  *ioff = start;
+  size_t i = ioff ? *ioff : v.len;
+  const unsigned char *p = (const unsigned char*)v.data;
+  if (i == 0) return 0;
+  {
+    size_t j = i, start, adv; unsigned long cp;
+    while (j > 0 && (p[j-1] & 0xC0u) == 0x80u) --j;
+    if (j == 0) return -1;
+    start = j;
+    if (ds__decode_one(p + start, v.len - start, &adv, &cp, flags) <= 0) return -1;
+    if (start + adv != i) return -1;
+    if (out_cp) *out_cp = cp;
+    if (ioff) *ioff = start;
+  }
   return 1;
 }

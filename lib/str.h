@@ -25,6 +25,7 @@ typedef struct ds_str {
 #define FUNC_str_cstr(s) (((s) && (s)->buf) ? (s)->buf : "")
 #define FUNC_str_data(s) ((s) ? (s)->buf : (char *)"")
 
+int ds__ensure(ds_str_t *s, size_t need_cap);
 int ds__ensure_exact(ds_str_t *s, size_t need_cap);
 
 #ifdef DS_THREAD_SAFE
