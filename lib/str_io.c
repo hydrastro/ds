@@ -4,7 +4,7 @@
 int FUNC(str_write_all)(ds_str_t *s, ds_write_cb cb, void *ud) {
   size_t off = 0u, n;
   long w;
-  if (!s || !cb) return -1;
+  if (!s || !cb){ return -1;}
 #ifdef DS_THREAD_SAFE
   LOCK(s)
 #endif
@@ -27,8 +27,8 @@ int FUNC(str_write_all)(ds_str_t *s, ds_write_cb cb, void *ud) {
 
 int FUNC(str_writev_all)(ds_str_t **arr, size_t count, ds_writev_cb vcb, void *ud) {
   size_t i = 0;
-  if (!vcb) return -1;
-  if (count == 0) return 0;
+  if (!vcb) { return -1; }
+  if (count == 0) { return 0; }
   while (i < count) {
     const void *bufs[16];
     size_t lens[16];
@@ -151,7 +151,7 @@ void FUNC(str_view_split_each_substr)(ds_str_view_t v,
   }
 }
 
-static int ds__view_in_set(unsigned char c, const unsigned char *set, size_t n) {
+int ds__view_in_set(unsigned char c, const unsigned char *set, size_t n) {
   size_t i;
   for (i = 0; i < n; ++i) if (c == set[i]) return 1;
   return 0;

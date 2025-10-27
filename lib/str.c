@@ -32,20 +32,29 @@ int ds__ensure_exact(ds_str_t *s, size_t need_cap) {
 
 #ifdef DS_THREAD_SAFE
 void ds__lock2(ds_str_t *a, ds_str_t *b) {
+  uintptr_t ia, ib;
   if (a == b) { if (a) LOCK(a); return; }
   if (!a && !b) return;
   if (!a) { LOCK(b); return; }
   if (!b) { LOCK(a); return; }
-  if (a < b) { LOCK(a); LOCK(b); }
-  else       { LOCK(b); LOCK(a); }
+
+  ia = (uintptr_t)(const void*)a;
+  ib = (uintptr_t)(const void*)b;
+  if (ia < ib) { LOCK(a); LOCK(b); }
+  else         { LOCK(b); LOCK(a); }
 }
+
 void ds__unlock2(ds_str_t *a, ds_str_t *b) {
+  uintptr_t ia, ib;
   if (a == b) { if (a) UNLOCK(a); return; }
   if (!a && !b) return;
   if (!a) { UNLOCK(b); return; }
   if (!b) { UNLOCK(a); return; }
-  if (a < b) { UNLOCK(b); UNLOCK(a); }
-  else       { UNLOCK(a); UNLOCK(b); }
+
+  ia = (uintptr_t)(const void*)a;
+  ib = (uintptr_t)(const void*)b;
+  if (ia < ib) { UNLOCK(b); UNLOCK(a); }
+  else         { UNLOCK(a); UNLOCK(b); }
 }
 #endif
 
@@ -496,12 +505,17 @@ void FUNC(str_to_lower)(ds_str_t *s) {
 }
 
 void FUNC(str_swap)(ds_str_t *a, ds_str_t *b) {
-  ds_str_t tmp;
-  if (!a || !b || a == b) return;
+  char *tbuf; size_t tlen, tcap;
+  void *(*talloc)(size_t); void (*tfree)(void *);
+  if (!a || !b || a == b) { return; }
 #ifdef DS_THREAD_SAFE
   ds__lock2(a, b);
 #endif
-  tmp = *a; *a = *b; *b = tmp;
+  tbuf = a->buf; a->buf = b->buf; b->buf = tbuf;
+  tlen = a->len; a->len = b->len; b->len = tlen;
+  tcap = a->cap; a->cap = b->cap; b->cap = tcap;
+  talloc = a->allocator; a->allocator = b->allocator; b->allocator = talloc;
+  tfree  = a->deallocator; a->deallocator = b->deallocator; b->deallocator = tfree;
 #ifdef DS_THREAD_SAFE
   ds__unlock2(a, b);
 #endif
@@ -619,21 +633,24 @@ ds_str_t *FUNC(str_slice)(ds_str_t *s, size_t pos, size_t n) {
 #endif
   len = s->len;
   start = pos > len ? len : pos;
-  if (n > len - start) take = len - start; else take = n;
+  take = (n > len - start) ? (len - start) : n;
 #ifdef DS_THREAD_SAFE
   UNLOCK(s)
 #endif
   out = FUNC(str_with_capacity)(take);
   if (!out) return NULL;
-  if (take) {
+
 #ifdef DS_THREAD_SAFE
-    LOCK(s)
+  LOCK(s)
 #endif
-    memcpy(out->buf, s->buf + start, take);
+  len = s->len;
+  if (start > len) start = len;
+  if (take > len - start) take = len - start;
+  if (take) memcpy(out->buf, s->buf + start, take);
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+  UNLOCK(s)
 #endif
-  }
+
   out->len = take;
   out->buf[take] = '\0';
   return out;
@@ -678,4 +695,48 @@ int FUNC(str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap) {
 void FUNC(str_free_external)(ds_str_t *owner, void *p) {
   if (!owner || !p) return;
   owner->deallocator(p);
+}
+
+int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap, int has_room_for_nul) {
+  if (!s) return -1;
+  if (!buf && (len != 0u || cap != 0u)) return -1;
+  if (buf && cap < len) return -1;
+
+#ifdef DS_THREAD_SAFE
+  LOCK(s)
+#endif
+  if (!buf) {
+    if (s->buf) s->deallocator(s->buf);
+    s->buf = NULL; s->len = 0u; s->cap = 0u;
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return 0;
+  }
+
+  if (!has_room_for_nul && len == cap) {
+    if (ds__ensure_exact(s, len) != 0) {
+#ifdef DS_THREAD_SAFE
+      UNLOCK(s)
+#endif
+      return -1;
+    }
+    if (len) memcpy(s->buf, buf, len);
+    s->len = len;
+    s->buf[len] = '\0';
+#ifdef DS_THREAD_SAFE
+    UNLOCK(s)
+#endif
+    return 0;
+  }
+
+  if (s->buf) s->deallocator(s->buf);
+  s->buf = buf;
+  s->len = len;
+  s->cap = cap;
+  s->buf[s->len] = '\0';
+#ifdef DS_THREAD_SAFE
+  UNLOCK(s)
+#endif
+  return 0;
 }

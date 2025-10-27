@@ -69,7 +69,10 @@ int FUNC(str_pop)(ds_str_t *s, int *out_ch);
 ds_str_t *FUNC(str_slice)(ds_str_t *s, size_t pos, size_t n);
 
 char *FUNC(str_detach)(ds_str_t *s, size_t *len_out, size_t *cap_out);
-int   FUNC(str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap);
-void  FUNC(str_free_external)(ds_str_t *owner, void *p);
+int FUNC(str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap);
+void FUNC(str_free_external)(ds_str_t *owner, void *p);
+
+int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap,
+                         int has_room_for_nul);
 
 #endif /* DS_STR_H */

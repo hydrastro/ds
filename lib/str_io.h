@@ -32,25 +32,33 @@ long FUNC(str_view_find)(ds_str_view_t v, const void *needle, size_t n,
                          size_t start);
 
 long FUNC(str_view_count)(ds_str_view_t v, const void *needle, size_t n);
-void FUNC(str_view_split_each_substr)(ds_str_view_t v,
-                                      const void *sep, size_t nsep,
-                                      ds_str_token_cb cb, void *ud);
+void FUNC(str_view_split_each_substr)(ds_str_view_t v, const void *sep,
+                                      size_t nsep, ds_str_token_cb cb,
+                                      void *ud);
 
 typedef int (*ds_view_pred)(unsigned char c);
 typedef void (*ds_view_token_cb)(const char *ptr, size_t len, void *ud);
 
+int ds__view_in_set(unsigned char c, const unsigned char *set, size_t n);
+
 int FUNC(str_view_starts_with)(ds_str_view_t v, const void *prefix, size_t n);
 int FUNC(str_view_ends_with)(ds_str_view_t v, const void *suffix, size_t n);
 
+int FUNC(str_view_ltrim_set)(ds_str_view_t v, const unsigned char *set,
+                             size_t set_n, ds_str_view_t *out);
+int FUNC(str_view_rtrim_set)(ds_str_view_t v, const unsigned char *set,
+                             size_t set_n, ds_str_view_t *out);
+int FUNC(str_view_trim_set)(ds_str_view_t v, const unsigned char *set,
+                            size_t set_n, ds_str_view_t *out);
 
-int FUNC(str_view_ltrim_set)(ds_str_view_t v, const unsigned char *set, size_t set_n, ds_str_view_t *out);
-int FUNC(str_view_rtrim_set)(ds_str_view_t v, const unsigned char *set, size_t set_n, ds_str_view_t *out);
-int FUNC(str_view_trim_set)(ds_str_view_t v, const unsigned char *set, size_t set_n, ds_str_view_t *out);
+int FUNC(str_view_ltrim_pred)(ds_str_view_t v, ds_view_pred pred,
+                              ds_str_view_t *out);
+int FUNC(str_view_rtrim_pred)(ds_str_view_t v, ds_view_pred pred,
+                              ds_str_view_t *out);
+int FUNC(str_view_trim_pred)(ds_str_view_t v, ds_view_pred pred,
+                             ds_str_view_t *out);
 
-int FUNC(str_view_ltrim_pred)(ds_str_view_t v, ds_view_pred pred, ds_str_view_t *out);
-int FUNC(str_view_rtrim_pred)(ds_str_view_t v, ds_view_pred pred, ds_str_view_t *out);
-int FUNC(str_view_trim_pred)(ds_str_view_t v, ds_view_pred pred, ds_str_view_t *out);
-
-void FUNC(str_view_split_each_c)(ds_str_view_t v, unsigned char sep, ds_view_token_cb cb, void *ud);
+void FUNC(str_view_split_each_c)(ds_str_view_t v, unsigned char sep,
+                                 ds_view_token_cb cb, void *ud);
 
 #endif /* DS_STR_IO_H */
