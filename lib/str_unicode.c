@@ -710,3 +710,117 @@ int FUNC(str_u8_delete)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor) {
   }
   return (r < 0) ? -1 : 0;
 }
+
+int ds__is_c0_c1(unsigned long cp) {
+  return (cp < 0x20ul) || (cp == 0x7Ful) || (cp >= 0x80ul && cp <= 0x9Ful);
+}
+
+const ds__range DS__WIDE_TABLE[] = {
+  {0x1100ul, 0x115Ful},
+  {0x231Aul, 0x231Bul},
+  {0x2329ul, 0x232Aul},
+  {0x2E80ul, 0x303Eul},
+  {0x3040ul, 0x3247ul},
+  {0x3250ul, 0x4DBFul},
+  {0x4E00ul, 0xA4C6ul},
+  {0xA960ul, 0xA97Cul},
+  {0xAC00ul, 0xD7A3ul},
+  {0xF900ul, 0xFAFFul},
+  {0xFE10ul, 0xFE19ul},
+  {0xFE30ul, 0xFE6Bul},
+  {0xFF01ul, 0xFF60ul},
+  {0xFFE0ul, 0xFFE6ul},
+  {0x1F300ul, 0x1F64Ful},
+  {0x1F900ul, 0x1F9FFul},
+  {0x20000ul,0x2FFFDul},
+  {0x30000ul,0x3FFFDul}
+};
+
+int ds__in_ranges(unsigned long cp, const ds__range *r, size_t n) {
+  size_t lo = 0, hi = n;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo)/2;
+    if (cp < r[mid].a) hi = mid;
+    else if (cp > r[mid].b) lo = mid + 1;
+    else return 1;
+  }
+  return 0;
+}
+
+int FUNC(str_u8_cp_width)(unsigned long cp, unsigned int flags) {
+  if (ds__is_c0_c1(cp)) return -1;
+
+  if (get_ccc(cp) != 0ul) return 0;
+
+  if (ds__in_ranges(cp, DS__WIDE_TABLE, sizeof(DS__WIDE_TABLE)/sizeof(DS__WIDE_TABLE[0]))) {
+    return 2;
+  }
+
+  (void)flags;
+
+  return 1;
+}
+
+int FUNC(str_u8_width)(const ds_str_t *s, unsigned int flags, size_t *out_width) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n;
+  int r;
+  size_t total = 0;
+
+  if (!s || !out_width) return -1;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    int cluster_has_control = 0;
+    int cluster_has_EP = 0;
+    int cluster_base_width = 0;
+
+    size_t i = a;
+    while (i < a + n) {
+      size_t adv;
+      unsigned long cp;
+      if (ds__decode_one((const unsigned char*)s->buf + i, (a + n) - i, &adv, &cp, DS_U8_STRICT) <= 0) {
+        cluster_has_control = 0;
+        if (cluster_base_width == 0) cluster_base_width = 1;
+        i += 1;
+        continue;
+      }
+
+      if (ds__is_c0_c1(cp)) {
+        cluster_has_control = 1;
+      }
+      if (is_EP(cp)) {
+        cluster_has_EP = 1;
+      }
+
+      if (get_ccc(cp) == 0ul && cluster_base_width == 0) {
+        int w = FUNC(str_u8_cp_width)(cp, flags);
+        if (w < 0) w = 0;
+        cluster_base_width = w;
+      }
+
+      i += adv;
+    }
+
+    if (cluster_has_control) {
+      continue;
+    }
+
+    if ((flags & DS_WIDTH_EMOJI_IS_DOUBLE) && cluster_has_EP) {
+      total += 2;
+      continue;
+    }
+
+    if (cluster_base_width == 0) {
+      continue;
+    }
+
+    total += (size_t)cluster_base_width;
+  }
+
+  if (r < 0) return -1;
+  *out_width = total;
+  return 0;
+}

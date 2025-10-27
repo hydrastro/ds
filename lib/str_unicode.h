@@ -17,22 +17,36 @@
 
 #define DS_U8_REPLACEMENT_CHAR 0xFFFDu
 
-
 typedef struct {
   ds__grapheme_iter_t _it;
 } ds_u8_grapheme_iter_t;
 
-int FUNC(str_u8_grapheme_iter_init)(ds_u8_grapheme_iter_t *it, const ds_str_t *s);
+typedef enum ds_u8_width_flags {
+  DS_WIDTH_DEFAULT = 0,
+  DS_WIDTH_EMOJI_IS_DOUBLE = 1u << 0,
+  DS_WIDTH_AMBIG_IS_DOUBLE = 1u << 1
+} ds_u8_width_flags;
 
-int FUNC(str_u8_grapheme_next)(ds_u8_grapheme_iter_t *it, size_t *out_start, size_t *out_len);
+typedef struct {
+  unsigned long a, b;
+} ds__range;
 
-int FUNC(str_view_u8_grapheme_next)(ds_u8_grapheme_iter_t *it, ds_str_view_t *out_view);
+int FUNC(str_u8_cp_width)(unsigned long cp, unsigned int flags);
+
+int FUNC(str_u8_width)(const ds_str_t *s, unsigned int flags,
+                       size_t *out_width);
+
+int FUNC(str_u8_grapheme_iter_init)(ds_u8_grapheme_iter_t *it,
+                                    const ds_str_t *s);
+
+int FUNC(str_u8_grapheme_next)(ds_u8_grapheme_iter_t *it, size_t *out_start,
+                               size_t *out_len);
+
+int FUNC(str_view_u8_grapheme_next)(ds_u8_grapheme_iter_t *it,
+                                    ds_str_view_t *out_view);
 
 int FUNC(str_u8_slice_graphemes)(ds_str_t *dst, const ds_str_t *src,
                                  size_t start_gc, size_t count_gc);
-
-
-
 
 int FUNC(str_u8_push_cp)(ds_str_t *s, unsigned long cp);
 
@@ -102,13 +116,16 @@ int FUNC(str_u8_backspace_one_egc)(ds_str_t *s);
 
 int FUNC(str_u8_truncate_graphemes)(ds_str_t *s, size_t max_gc);
 
-int FUNC(str_u8_grapheme_to_byte)(const ds_str_t *s, size_t gi, size_t *byte_out);
+int FUNC(str_u8_grapheme_to_byte)(const ds_str_t *s, size_t gi,
+                                  size_t *byte_out);
 
-int FUNC(str_u8_byte_to_grapheme)(const ds_str_t *s, size_t byte, size_t *gi_out);
+int FUNC(str_u8_byte_to_grapheme)(const ds_str_t *s, size_t byte,
+                                  size_t *gi_out);
 
 int FUNC(str_u8_delete_grapheme_at)(ds_str_t *s, size_t gi);
 
-int FUNC(str_u8_insert_at_grapheme)(ds_str_t *s, size_t gi, const void *data, size_t n);
+int FUNC(str_u8_insert_at_grapheme)(ds_str_t *s, size_t gi, const void *data,
+                                    size_t n);
 
 int FUNC(str_u8_delete_next_egc_from_byte)(ds_str_t *s, size_t cursor_byte);
 
@@ -121,5 +138,9 @@ size_t FUNC(str_u8_cursor_next)(const ds_str_t *s, size_t cursor_byte);
 int FUNC(str_u8_backspace)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor);
 
 int FUNC(str_u8_delete)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor);
+
+int ds__is_c0_c1(unsigned long cp);
+
+int ds__in_ranges(unsigned long cp, const ds__range *r, size_t n);
 
 #endif /* DS_STR_UNICODE_H */

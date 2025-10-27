@@ -10,7 +10,6 @@ int ds__ucd_tolower(ds_str_t *dst, const ds_str_t *src);
 int ds__ucd_toupper(ds_str_t *dst, const ds_str_t *src);
 long ds__ucd_grapheme_len(const ds_str_t *s);
 
-
 enum {
   GB_Other = 0,
   GB_CR,
@@ -21,7 +20,11 @@ enum {
   GB_SpacingMark,
   GB_Prepend,
   GB_Regional_Indicator,
-  GB_L, GB_V, GB_T, GB_LV, GB_LVT
+  GB_L,
+  GB_V,
+  GB_T,
+  GB_LV,
+  GB_LVT
 };
 
 int load_EmojiData(void);
@@ -77,35 +80,53 @@ typedef struct {
 #define NCount (VCount * TCount)
 #define SCount (LCount * NCount)
 
+typedef enum {
+  DS_MAP_NONE = 0,
 
-/* ---- internal grapheme iterator (rule engine lives here) ---- */
+  DS_MAP_DECOMPOSE = 1 << 0,
+  DS_MAP_COMPOSE = 1 << 1,
+  DS_MAP_COMPAT = 1 << 2,
+
+  DS_MAP_CASEFOLD = 1 << 3,
+  DS_MAP_TOLOWER = 1 << 4,
+  DS_MAP_TOUPPER = 1 << 5,
+
+  DS_MAP_IGNORE = 1 << 6,
+  DS_MAP_STRIPCC = 1 << 7,
+  DS_MAP_STRIPMARK = 1 << 8,
+
+  DS_MAP_NLF2LF = 1 << 9,
+  DS_MAP_NLF2LS = 1 << 10,
+  DS_MAP_NLF2PS = 1 << 11,
+
+  DS_MAP_CHARBOUND = 1 << 12,
+  DS_MAP_LUMP = 1 << 13
+} ds_u8_map_flags;
+
+int FUNC(str_u8_map)(ds_str_t *dst, const ds_str_t *src, unsigned int flags);
+
 typedef struct {
   const char *buf;
   size_t len;
-  size_t i;                 /* next read position (byte) */
-  size_t cur_start;         /* current cluster start (byte) */
+  size_t i;
+  size_t cur_start;
   int have_prev;
 
-  /* UAX #29 state */
   unsigned long prev_prop;
-  int ri_run_len;           /* consecutive RI count in current run */
-  int prev_is_zwj_ign_ext;  /* we saw ZWJ with only Extend between bases */
-  int last_base_is_EP;      /* last non-Extend/ZWJ base was Extended_Pictographic */
+  int ri_run_len;
+  int prev_is_zwj_ign_ext;
+  int last_base_is_EP;
 
-  /* scratch (avoid re-decl in C89 loops) */
   unsigned long cp, prop;
   int break_here;
   int prev_is_Control, cur_is_Control;
 } ds__grapheme_iter_t;
 
-/* Initialize iterator over a byte buffer */
-int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf, size_t len);
+int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf,
+                           size_t len);
 
-/* Produce the next cluster as [start,len] in bytes.
-   Returns 1 if a cluster was produced, 0 on end, or -1 on error. */
-int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start, size_t *out_len);
-
-
+int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
+                           size_t *out_len);
 
 int u32vec_push(u32vec_t *v, unsigned long x);
 void u32vec_free(u32vec_t *v);
@@ -148,5 +169,13 @@ void compose_vec(u32vec_t *v);
 int fold_cp(unsigned long cp, u32vec_t *out);
 unsigned long gb_get(unsigned long cp);
 int is_EP(unsigned long cp);
+
+int ds__is_control_cc(unsigned long cp);
+int ds__is_default_ignorable(unsigned long cp);
+unsigned long ds__lump(unsigned long cp);
+int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags);
+int ds__is_mark(unsigned long cp);
+int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src, unsigned int flags);
+int ds__insert_charbound(ds_str_t *out, const ds_str_t *src);
 
 #endif /* DS_UNICODE_RUNTIME_H */

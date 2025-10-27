@@ -820,64 +820,49 @@ int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf, size_t len)
   return 0;
 }
 
-/* Emit clusters by detecting a boundary BEFORE the current code point.
-   On break, we emit the previous cluster range.
-   At EOF, we emit the tail cluster if any. */
 int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start, size_t *out_len) {
   if (!it || !it->buf) return -1;
 
-  /* If we haven't consumed anything yet, we must read the first cp to seed state,
-     but we DON'T emit a cluster yet (GB1). */
   while (1) {
     size_t cp_start;
     unsigned long prop;
     int break_here = 1;
 
     if (it->i >= it->len) {
-      /* End of text: emit tail cluster if any pending */
       if (!it->have_prev && it->cur_start < it->len) {
-        /* empty input corner case (shouldn’t happen with valid state) */
       }
       if (it->cur_start < it->len) {
         if (out_start) *out_start = it->cur_start;
         if (out_len)   *out_len   = it->len - it->cur_start;
-        it->cur_start = it->len; /* consumed */
+        it->cur_start = it->len;
         return 1;
       }
-      return 0; /* no more clusters */
+      return 0;
     }
 
     cp_start = it->i;
-    if (u8_next(it->buf, it->len, &it->i, &it->cp) != 1) return -1; /* invalid UTF-8 */
+    if (u8_next(it->buf, it->len, &it->i, &it->cp) != 1) return -1;
     prop = gb_get(it->cp);
 
     if (!it->have_prev) {
-      /* GB1: start of text: always a boundary before first cp.
-         We *start* the first cluster here but do NOT emit yet. */
       it->have_prev = 1;
       it->prev_prop = prop;
       it->cur_start = cp_start;
 
-      /* init EP/RI/ZWJ tracking */
       it->last_base_is_EP = is_EP(it->cp);
       it->prev_is_zwj_ign_ext = 0;
       it->ri_run_len = (prop == GB_Regional_Indicator) ? 1 : 0;
 
-      /* loop to fetch the *next* code point to decide if we should break before it */
       continue;
     }
 
-    /* Apply rules vs previous cp (same order you used in len counter) */
     it->prev_is_Control = (it->prev_prop == GB_Control || it->prev_prop == GB_CR || it->prev_prop == GB_LF);
     it->cur_is_Control  = (prop          == GB_Control || prop          == GB_CR || prop          == GB_LF);
 
-    /* GB3: CR × LF */
     if (it->prev_prop == GB_CR && prop == GB_LF) break_here = 0;
 
-    /* GB4/GB5: Control/CR/LF boundaries */
     else if (it->prev_is_Control || it->cur_is_Control) break_here = 1;
 
-    /* Hangul GB6–GB8 */
     else if (it->prev_prop == GB_L &&
             (prop == GB_L || prop == GB_V || prop == GB_LV || prop == GB_LVT)) break_here = 0;
     else if ((it->prev_prop == GB_LV || it->prev_prop == GB_V) &&
@@ -885,39 +870,29 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start, size_t *o
     else if ((it->prev_prop == GB_LVT || it->prev_prop == GB_T) &&
              (prop == GB_T)) break_here = 0;
 
-    /* GB9: × Extend */
     else if (prop == GB_Extend) break_here = 0;
 
-    /* GB9a: × SpacingMark */
     else if (prop == GB_SpacingMark) break_here = 0;
 
-    /* GB9b: Prepend × */
     else if (it->prev_prop == GB_Prepend) break_here = 0;
 
-    /* GB11: EP Extend* ZWJ × EP */
     else if (is_EP(it->cp) && it->prev_is_zwj_ign_ext && it->last_base_is_EP) break_here = 0;
 
-    /* GB12/13: RI pairing */
     else if (it->prev_prop == GB_Regional_Indicator && prop == GB_Regional_Indicator) {
       if ((it->ri_run_len % 2) == 1) break_here = 0;
     }
 
     if (break_here) {
-      /* Emit previous cluster: [cur_start, cp_start - cur_start] */
       if (out_start) *out_start = it->cur_start;
       if (out_len)   *out_len   = cp_start - it->cur_start;
 
-      /* Start new cluster at cp_start */
       it->cur_start = cp_start;
-      /* Update state for next comparisons (treat this cp as "previous") */
       it->prev_prop = prop;
 
-      /* Update RI/EP/ZWJ tracking based on *this* cp (like in len version) */
       if (prop == GB_Regional_Indicator) it->ri_run_len += 1;
       else it->ri_run_len = 0;
 
       if (prop == GB_Extend) {
-        /* keep flags */
       } else if (prop == GB_ZWJ) {
         it->prev_is_zwj_ign_ext = 1;
       } else {
@@ -927,14 +902,12 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start, size_t *o
       return 1;
     }
 
-    /* No boundary: merge current cp into running cluster, update state, continue */
     it->prev_prop = prop;
 
     if (prop == GB_Regional_Indicator) it->ri_run_len += 1;
     else it->ri_run_len = 0;
 
     if (prop == GB_Extend) {
-      /* keep flags */
     } else if (prop == GB_ZWJ) {
       it->prev_is_zwj_ign_ext = 1;
     } else {
@@ -942,6 +915,237 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start, size_t *o
       it->prev_is_zwj_ign_ext = 0;
     }
 
-    /* loop to read next cp */
   }
+}
+
+int ds__is_control_cc(unsigned long cp) {
+  if ((cp <= 0x001Ful) || (cp >= 0x007Ful && cp <= 0x009Ful)) {
+    return (cp != 0x09ul && cp != 0x0Aul && cp != 0x0Dul);
+  }
+  return 0;
+}
+
+int ds__is_default_ignorable(unsigned long cp) {
+  if (cp == 0x00ADul || cp == 0x034Ful || cp == 0x061Cul ||
+      cp == 0x115Ful || cp == 0x1160ul || cp == 0x17B4ul || cp == 0x17B5ul ||
+      cp == 0x180Eul || cp == 0xFE00ul || cp == 0xFE01ul || cp == 0xFE02ul ||
+      cp == 0xFE03ul || cp == 0xFE04ul || cp == 0xFE05ul || cp == 0xFE06ul ||
+      cp == 0xFE07ul || cp == 0xFE08ul || cp == 0xFE09ul || cp == 0xFE0Aul ||
+      cp == 0xFE0Bul || cp == 0xFE0Cul || cp == 0xFE0Dul || cp == 0xFE0Eul ||
+      cp == 0xFE0Ful || cp == 0xFEFFul || cp == 0xE0001ul) return 1;
+
+  if ((cp >= 0x200Bul && cp <= 0x200Ful) ||
+      (cp >= 0x202Aul && cp <= 0x202Eul) ||
+      (cp >= 0x2060ul && cp <= 0x206Ful) ||
+      (cp >= 0xFFF0ul && cp <= 0xFFFBul) ||
+      (cp >= 0x1BCA0ul && cp <= 0x1BCA3ul) ||
+      (cp >= 0x1D173ul && cp <= 0x1D17Aul) ||
+      (cp >= 0xE0020ul && cp <= 0xE007Ful))
+    return 1;
+  return 0;
+}
+
+unsigned long ds__lump(unsigned long cp) {
+  switch (cp) {
+    case 0x2018ul: case 0x2019ul: case 0x201Aul: case 0x2039ul: return '\'';
+    case 0x201Cul: case 0x201Dul: case 0x201Eul: case 0x00ABul: case 0x00BBul: return '"';
+
+    case 0x2010ul: case 0x2011ul: case 0x2012ul: case 0x2013ul: case 0x2014ul: case 0x2015ul: return '-';
+
+    case 0x2026ul: return '.';
+
+    case 0x00B7ul: case 0x2022ul: case 0x2219ul: return '*';
+
+    case 0x2215ul: return '/';
+    case 0x29F8ul: return '/';
+    case 0xFF0Ful: return '/';
+    case 0x2044ul: return '/';
+    case 0x29F9ul: return '\\';
+    case 0xFF3Cul: return '\\';
+
+    default: return cp;
+  }
+}
+
+int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
+  size_t i;
+  int rc;
+  const int to_lf = (flags & DS_MAP_NLF2LF) != 0;
+  const int to_ls = (flags & DS_MAP_NLF2LS) != 0;
+  const int to_ps = (flags & DS_MAP_NLF2PS) != 0;
+  const unsigned long target = to_ls ? 0x2028ul : (to_ps ? 0x2029ul : 0x0Aul);
+
+  if (!(to_lf || to_ls || to_ps)) {
+    return FUNC(str_assign)(out, src->buf, src->len);
+  }
+
+  i = 0;
+  rc = 0;
+  FUNC(str_clear)(out);
+
+  while (1) {
+    size_t prev_i = i;
+    unsigned long cp = 0;
+    int r = FUNC(str_u8_next)(src->buf, src->len, &i, &cp, DS_U8_STRICT);
+    if (r < 0) return -1;
+    if (r == 0) break;
+
+    if (cp == 0x0Dul) {
+      size_t j = i;
+      unsigned long next = 0;
+      (void)FUNC(str_u8_next)(src->buf, src->len, &j, &next, DS_U8_STRICT);
+      if (next == 0x0Aul) {
+        unsigned char enc[4]; size_t k = ds__encode_one(target, enc);
+        if (FUNC(str_append)(out, enc, k) != 0) return -1;
+        i = j;
+        continue;
+      } else {
+        unsigned char enc[4]; size_t k = ds__encode_one(target, enc);
+        if (FUNC(str_append)(out, enc, k) != 0) return -1;
+        continue;
+      }
+    }
+
+    if (cp == 0x0085ul || cp == 0x2028ul || cp == 0x2029ul) {
+      unsigned char enc[4]; size_t k = ds__encode_one(target, enc);
+      if (FUNC(str_append)(out, enc, k) != 0) return -1;
+      continue;
+    }
+
+    if (prev_i < i) {
+      if (FUNC(str_append)(out, src->buf + prev_i, i - prev_i) != 0) return -1;
+    }
+  }
+  return rc;
+}
+
+int ds__is_mark(unsigned long cp) {
+  return get_ccc(cp) != 0ul;
+}
+
+int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
+  size_t i = 0; int r;
+  FUNC(str_clear)(out);
+
+  while ((r = FUNC(str_u8_next)(src->buf, src->len, &i, NULL, DS_U8_STRICT)) == 1) {
+  }
+  {
+    size_t j = 0;
+    while (j < src->len) {
+      size_t adv;
+      unsigned long cp;
+      if (ds__decode_one((const unsigned char*)src->buf + j, src->len - j, &adv, &cp, DS_U8_STRICT) <= 0) {
+        unsigned char enc[4]; size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, enc);
+        if (FUNC(str_append)(out, enc, k) != 0) return -1;
+        j += 1;
+        continue;
+      }
+
+      if ((flags & DS_MAP_IGNORE) && ds__is_default_ignorable(cp)) {
+        j += adv; continue;
+      }
+      if ((flags & DS_MAP_STRIPCC) && ds__is_control_cc(cp)) {
+        j += adv; continue;
+      }
+      if ((flags & DS_MAP_STRIPMARK) && ds__is_mark(cp)) {
+        j += adv; continue;
+      }
+
+      if (flags & DS_MAP_LUMP) {
+        cp = ds__lump(cp);
+      }
+
+      {
+        unsigned char enc[4]; size_t k = ds__encode_one(cp, enc);
+        if (FUNC(str_append)(out, enc, k) != 0) return -1;
+      }
+      j += adv;
+    }
+  }
+  return 0;
+}
+
+int ds__insert_charbound(ds_str_t *out, const ds_str_t *src) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n;
+  int r;
+
+  FUNC(str_clear)(out);
+  if (FUNC(str_u8_grapheme_iter_init)(&it, src) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    {
+      unsigned char enc[4]; size_t k = ds__encode_one(0xFFul, enc);
+      if (FUNC(str_append)(out, enc, k) != 0) return -1;
+    }
+    if (FUNC(str_append)(out, src->buf + a, n) != 0) return -1;
+  }
+  return (r < 0) ? -1 : 0;
+}
+
+int FUNC(str_u8_map)(ds_str_t *dst, const ds_str_t *src, unsigned int flags) {
+  ds_str_t *stage1 = NULL, *stage2 = NULL, *stage3 = NULL;
+  int rc = -1;
+
+  if (!dst || !src) return -1;
+  if (ucd_init_once()!=0) return -1;
+
+  stage1 = FUNC(str_create)();
+  stage2 = FUNC(str_create)();
+  stage3 = FUNC(str_create)();
+  if (!stage1 || !stage2 || !stage3) goto done;
+
+  if (ds__map_newlines(stage1, src, flags) != 0) goto done;
+
+  {
+    const ds_str_t *in = stage1;
+    ds_str_t *out = stage2;
+    FUNC(str_clear)(out);
+
+    if (flags & DS_MAP_CASEFOLD) {
+      if (FUNC(str_u8_casefold)(out, in) != 0) goto done;
+    } else if (flags & DS_MAP_TOLOWER) {
+      if (FUNC(str_u8_tolower)(out, in) != 0) goto done;
+    } else if (flags & DS_MAP_TOUPPER) {
+      if (FUNC(str_u8_toupper)(out, in) != 0) goto done;
+    } else {
+      if (FUNC(str_assign)(out, in->buf, in->len) != 0) goto done;
+    }
+  }
+
+  {
+    const ds_str_t *in = stage2;
+    ds_str_t *out = stage1;
+    ds_u8_norm_form form;
+
+    if (flags & DS_MAP_COMPAT) {
+      form = (flags & DS_MAP_COMPOSE) ? DS_U8_NFKC :
+             DS_U8_NFKD;
+    } else {
+      form = (flags & DS_MAP_COMPOSE) ? DS_U8_NFC : DS_U8_NFD;
+    }
+
+    if ((flags & (DS_MAP_DECOMPOSE | DS_MAP_COMPOSE | DS_MAP_COMPAT)) == 0) {
+      if (FUNC(str_assign)(out, in->buf, in->len) != 0) goto done;
+    } else {
+      if (FUNC(str_u8_normalize)(out, in, form) != 0) goto done;
+    }
+  }
+
+  if (ds__filter_and_lump(stage2, stage1, flags) != 0) goto done;
+
+  if (flags & DS_MAP_CHARBOUND) {
+    if (ds__insert_charbound(stage1, stage2) != 0) goto done;
+    if (FUNC(str_assign)(dst, stage1->buf, stage1->len) != 0) goto done;
+  } else {
+    if (FUNC(str_assign)(dst, stage2->buf, stage2->len) != 0) goto done;
+  }
+
+  rc = 0;
+
+done:
+  if (stage3) FUNC(str_destroy)(stage3);
+  if (stage2) FUNC(str_destroy)(stage2);
+  if (stage1) FUNC(str_destroy)(stage1);
+  return rc;
 }
