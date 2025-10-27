@@ -602,3 +602,111 @@ done:
   if (ns) FUNC(str_destroy)(ns);
   return pos;
 }
+
+size_t FUNC(str_u8_cursor_prev)(const ds_str_t *s, size_t cursor_byte) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n;
+  size_t last_start = 0;
+  int r;
+
+  if (!s) return SIZE_MAX;
+  if (cursor_byte > s->len) cursor_byte = s->len;
+  if (ucd_init_once()!=0) return SIZE_MAX;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return SIZE_MAX;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (a + n >= cursor_byte) {
+
+      return (cursor_byte == 0) ? 0 : last_start;
+    }
+    last_start = a;
+  }
+  if (r < 0) return SIZE_MAX;
+
+  return last_start;
+}
+
+size_t FUNC(str_u8_cursor_next)(const ds_str_t *s, size_t cursor_byte) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n;
+  int r;
+
+  if (!s) return SIZE_MAX;
+  if (cursor_byte >= s->len) return s->len;
+  if (ucd_init_once()!=0) return SIZE_MAX;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return SIZE_MAX;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (cursor_byte < a + n) {
+
+      size_t end = a + n;
+      if (end > s->len) end = s->len;
+      return end;
+    }
+  }
+  if (r < 0) return SIZE_MAX;
+  return s->len;
+}
+
+int FUNC(str_u8_backspace)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n, prev_a = 0, prev_n = 0;
+  int r;
+
+  if (!s) return -1;
+  if (cursor_byte == 0) { if (new_cursor) *new_cursor = 0; return 0; }
+  if (cursor_byte > s->len) cursor_byte = s->len;
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (a + n >= cursor_byte) {
+      if (prev_n == 0 && a == 0) { if (new_cursor) *new_cursor = 0; return 0; }
+      if (prev_n == 0 && a > 0)  {
+        if (FUNC(str_erase)(s, 0, a + n) != 0) return -1;
+        if (new_cursor) *new_cursor = 0;
+        return 1;
+      }
+      if (prev_n > 0) {
+        if (FUNC(str_erase)(s, prev_a, prev_n) != 0) return -1;
+        if (new_cursor) *new_cursor = prev_a;
+        return 1;
+      }
+    }
+    prev_a = a; prev_n = n;
+  }
+  if (r < 0) return -1;
+
+  if (prev_n > 0) {
+    if (FUNC(str_erase)(s, prev_a, prev_n) != 0) return -1;
+    if (new_cursor) *new_cursor = prev_a;
+    return 1;
+  }
+  if (new_cursor) *new_cursor = 0;
+  return 0;
+}
+
+int FUNC(str_u8_delete)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor) {
+  ds_u8_grapheme_iter_t it;
+  size_t a, n;
+  int r;
+
+  if (!s) return -1;
+  if (cursor_byte >= s->len) { if (new_cursor) *new_cursor = s->len; return 0; }
+  if (ucd_init_once()!=0) return -1;
+
+  if (FUNC(str_u8_grapheme_iter_init)(&it, s) != 0) return -1;
+
+  while ((r = FUNC(str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+    if (cursor_byte < a + n) {
+      if (FUNC(str_erase)(s, a, n) != 0) return -1;
+      if (new_cursor) *new_cursor = cursor_byte;
+
+      return 1;
+    }
+  }
+  return (r < 0) ? -1 : 0;
+}

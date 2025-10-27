@@ -114,4 +114,12 @@ int FUNC(str_u8_delete_next_egc_from_byte)(ds_str_t *s, size_t cursor_byte);
 
 long FUNC(str_u8_find_folded)(const ds_str_t *s, const ds_str_t *needle);
 
+size_t FUNC(str_u8_cursor_prev)(const ds_str_t *s, size_t cursor_byte);
+
+size_t FUNC(str_u8_cursor_next)(const ds_str_t *s, size_t cursor_byte);
+
+int FUNC(str_u8_backspace)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor);
+
+int FUNC(str_u8_delete)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor);
+
 #endif /* DS_STR_UNICODE_H */
