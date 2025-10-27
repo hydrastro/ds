@@ -58,23 +58,17 @@ int ds__decode_one(const unsigned char *s, size_t n, size_t *adv,
 }
 
 size_t ds__encode_one(unsigned long cp, unsigned char out[4]) {
-  if (cp <= 0x7Ful) { out[0] = (unsigned char)cp; return 1; }
-  if (cp <= 0x7FFul) {
-    out[0] = (unsigned char)(0xC0u | (cp >> 6));
-    out[1] = (unsigned char)(0x80u | (cp & 0x3Fu));
-    return 2;
-  }
-  if (cp <= 0xFFFFul) {
-    out[0] = (unsigned char)(0xE0u | (cp >> 12));
-    out[1] = (unsigned char)(0x80u | ((cp >> 6) & 0x3Fu));
-    out[2] = (unsigned char)(0x80u | (cp & 0x3Fu));
-    return 3;
-  }
-  out[0] = (unsigned char)(0xF0u | (cp >> 18));
-  out[1] = (unsigned char)(0x80u | ((cp >> 12) & 0x3Fu));
-  out[2] = (unsigned char)(0x80u | ((cp >> 6) & 0x3Fu));
-  out[3] = (unsigned char)(0x80u | (cp & 0x3Fu));
-  return 4;
+  if (cp > 0x10FFFFul || (cp >= 0xD800ul && cp <= 0xDFFFul)) cp = 0xFFFDul;
+  if (cp <= 0x7Ful) { out[0]=(unsigned char)cp; return 1; }
+  if (cp <= 0x7FFul) { out[0]=(unsigned char)(0xC0u | (cp>>6));
+                       out[1]=(unsigned char)(0x80u | (cp & 0x3Fu)); return 2; }
+  if (cp <= 0xFFFFul) { out[0]=(unsigned char)(0xE0u | (cp>>12));
+                        out[1]=(unsigned char)(0x80u | ((cp>>6) & 0x3Fu));
+                        out[2]=(unsigned char)(0x80u | (cp & 0x3Fu)); return 3; }
+  out[0]=(unsigned char)(0xF0u | (cp>>18));
+  out[1]=(unsigned char)(0x80u | ((cp>>12) & 0x3Fu));
+  out[2]=(unsigned char)(0x80u | ((cp>>6) & 0x3Fu));
+  out[3]=(unsigned char)(0x80u | (cp & 0x3Fu)); return 4;
 }
 
 int FUNC(str_u8_push_cp)(ds_str_t *s, unsigned long cp) {
@@ -212,37 +206,56 @@ int FUNC(str_u8_slice_cp)(ds_str_t *dst, const ds_str_t *src, size_t start_cp, s
 }
 
 int FUNC(str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src, unsigned int flags) {
-  size_t i = 0, n; const unsigned char *p; unsigned char buf[4];
+  size_t i = 0, n;
+  const unsigned char *p;
+  unsigned char enc[4];
+
   if (!dst || !src) return -1;
+
+  if (dst == src) {
+    ds_str_t *tmp = FUNC(str_create)();
+    int rc;
+    if (!tmp) return -1;
+    rc = FUNC(str_u8_sanitize)(tmp, src, flags);
+    if (rc == 0) rc = FUNC(str_assign)(dst, tmp->buf, tmp->len);
+    FUNC(str_destroy)(tmp);
+    return rc;
+  }
+
 #ifdef DS_THREAD_SAFE
-  if (dst) LOCK(dst);
+  LOCK(dst)
 #endif
-  (void)FUNC(str_clear)(dst);
-  n = src->len; p = (const unsigned char*)src->buf;
+  FUNC(str_clear)(dst);
+
+  n = src->len;
+  p = (const unsigned char *)src->buf;
+
   while (i < n) {
-    unsigned long cp; size_t adv; int r = ds__decode_one(p + i, n - i, &adv, &cp, flags);
+    unsigned long cp;
+    size_t adv;
+    int r = ds__decode_one(p + i, n - i, &adv, &cp, flags);
     if (r <= 0) {
-      size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, buf);
-      if (FUNC(str_append)(dst, buf, k) != 0) { 
+      size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, enc);
+      if (FUNC(str_append)(dst, enc, k) != 0) {
 #ifdef DS_THREAD_SAFE
-        if (dst) UNLOCK(dst);
+        UNLOCK(dst)
 #endif
-        return -1; 
+        return -1;
       }
       i += 1;
     } else {
-      size_t k = ds__encode_one(cp, buf);
-      if (FUNC(str_append)(dst, buf, k) != 0) { 
+      size_t k = ds__encode_one(cp, enc);
+      if (FUNC(str_append)(dst, enc, k) != 0) {
 #ifdef DS_THREAD_SAFE
-        if (dst) UNLOCK(dst);
+        UNLOCK(dst)
 #endif
-        return -1; 
+        return -1;
       }
       i += adv;
     }
   }
 #ifdef DS_THREAD_SAFE
-  if (dst) UNLOCK(dst);
+  UNLOCK(dst)
 #endif
   return 0;
 }

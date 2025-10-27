@@ -373,35 +373,64 @@ void ucd_free(void) {
   u32map_free(&U.gb_prop);
 }
 
-int ucd_init_once(void) {
-  if (U.inited) return 0;
+int ucd_do_init(void) {
+  if (u32map_init(&U.ccc, 4096) != 0) goto fail;
+  if (u32map_init(&U.decomp_head, 4096) != 0) goto fail;
+  U.decomp_pool.p = NULL; U.decomp_pool.n = 0; U.decomp_pool.cap = 0;
 
-  if (u32map_init(&U.ccc, 4096) != 0) return -1;
-  if (u32map_init(&U.decomp_head, 4096) != 0) return -1;
-  U.decomp_pool.p=NULL; U.decomp_pool.n=0; U.decomp_pool.cap=0;
+  if (u32map_init(&U.tolower_map, 4096) != 0) goto fail;
+  if (u32map_init(&U.toupper_map, 4096) != 0) goto fail;
 
-  if (u32map_init(&U.tolower_map, 4096)!=0) return -1;
-  if (u32map_init(&U.toupper_map, 4096)!=0) return -1;
+  if (u32map_init(&U.fold_head, 4096) != 0) goto fail;
+  U.fold_pool.p = NULL; U.fold_pool.n = 0; U.fold_pool.cap = 0;
 
-  if (u32map_init(&U.fold_head, 4096)!=0) return -1;
-  U.fold_pool.p=NULL; U.fold_pool.n=0; U.fold_pool.cap=0;
+  if (pairmap_init(&U.comp_map, 4096) != 0) goto fail;
+  if (u32map_init(&U.comp_exclusions, 1024) != 0) goto fail;
 
-  if (pairmap_init(&U.comp_map, 4096)!=0) return -1;
-  if (u32map_init(&U.comp_exclusions, 1024)!=0) return -1;
+  if (u32map_init(&U.gb_prop, 4096) != 0) goto fail;
 
-  if (u32map_init(&U.gb_prop, 4096)!=0) return -1;
-
-  if (load_UnicodeData()!=0) return -1;
+  if (load_UnicodeData() != 0) goto fail;
   (void)load_DerivedNormalizationProps();
   (void)load_CompositionExclusions();
-  if (build_comp_pairs()!=0) return -1;
+  if (build_comp_pairs() != 0) goto fail;
   (void)load_CaseFolding();
   (void)load_GraphemeBreakProperty();
 
   U.inited = 1;
   atexit(ucd_free);
   return 0;
+
+fail:
+  ucd_free();
+  return -1;
 }
+
+#ifdef DS_THREAD_SAFE
+static mutex_t g_ucd_once_lock;
+static int g_ucd_once_lock_inited = 0;
+
+static void ensure_ucd_once_lock(void) {
+  if (!g_ucd_once_lock_inited) {
+    mutex_init(&g_ucd_once_lock);
+    g_ucd_once_lock_inited = 1;
+  }
+}
+#endif
+
+int ucd_init_once(void) {
+#ifndef DS_THREAD_SAFE
+  if (U.inited) return 0;
+  return ucd_do_init();
+#else
+  int rc = 0;
+  ensure_ucd_once_lock();
+  mutex_lock(&g_ucd_once_lock);
+  if (!U.inited) rc = ucd_do_init();
+  mutex_unlock(&g_ucd_once_lock);
+  return rc;
+#endif
+}
+
 
 int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp) {
   return FUNC(str_u8_next)(buf, len, ioff, out_cp, DS_U8_STRICT);
@@ -482,32 +511,48 @@ void reorder_ccc(u32vec_t *v) {
 
 void compose_vec(u32vec_t *v) {
   size_t r, w;
-  size_t consumed = 0u;
 
-  if (v->n==0) return;
-  r=0; w=0;
+  if (v->n == 0) return;
+  r = 0; w = 0;
   v->p[w++] = v->p[r++];
 
   while (r < v->n) {
-    unsigned long a = v->p[w-1];
     unsigned long b = v->p[r];
+    unsigned long cccb = get_ccc(b);
 
-    consumed = 0u;
-    if (compose_Hangul(&a, b, &consumed)) {
-      v->p[w-1]=a; r+=consumed; continue;
+    {
+      size_t consumed = 0u;
+      unsigned long a = v->p[w-1];
+      if (compose_Hangul(&a, b, &consumed)) {
+        v->p[w-1] = a; r += consumed; continue;
+      }
     }
-    if (get_ccc(b)==0) {
-      unsigned long comp;
+
+    if (cccb == 0) {
+      unsigned long a = v->p[w-1], comp;
       if (pairmap_get(&U.comp_map, a, b, &comp)) {
-        v->p[w-1]=comp; r++; continue;
+        v->p[w-1] = comp; r++; continue;
       }
     } else {
-      unsigned long comp2;
-      if (pairmap_get(&U.comp_map, a, b, &comp2)) {
-        v->p[w-1]=comp2; r++; continue;
+      size_t j = w;
+      while (j > 0) {
+        unsigned long a2 = v->p[j-1];
+        unsigned long ccca2 = get_ccc(a2);
+        if (ccca2 == 0) {
+          unsigned long comp;
+          if (pairmap_get(&U.comp_map, a2, b, &comp)) {
+            v->p[j-1] = comp; r++; goto next_char;
+          }
+          break;
+        }
+        if (ccca2 >= cccb) break;
+        --j;
       }
     }
+
     v->p[w++] = v->p[r++];
+  next_char:
+    ;
   }
   v->n = w;
 }

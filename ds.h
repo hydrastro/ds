@@ -16,4 +16,11 @@
 #include "lib/stack.h"
 #include "lib/trie.h"
 
-#endif // DS_H
+#include "lib/str.h"
+#include "lib/str_algo.h"
+#include "lib/str_io.h"
+#include "lib/str_io_posix.h"
+#include "lib/str_unicode.h"
+#include "lib/unicode_runtime.h"
+
+#endif /* DS_H */

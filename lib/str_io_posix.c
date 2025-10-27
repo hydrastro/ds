@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <sys/uio.h>
 #include <unistd.h>
-#include <string.h> /* memcpy */
+#include <string.h>
 
 long ds_posix_write_cb(void *ud, const void *buf, size_t n) {
   int fd = (int)(long)ud;
@@ -34,7 +34,6 @@ long ds_posix_writev_cb(void *ud,
     if (batch > 16) batch = 16;
 
     for (i = 0; i < batch; ++i) {
-      /* avoid -Wcast-qual by copying pointer bytes into a void* */
       const void *srcp = bufs[off + i];
       void *dstp;
       memcpy(&dstp, &srcp, sizeof(void*));

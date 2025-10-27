@@ -84,6 +84,7 @@ int load_GraphemeBreakProperty(void);
 int build_comp_pairs(void);
 void ucd_free(void);
 int ucd_init_once(void);
+int ucd_do_init(void);
 int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp);
 int u8_push(ds_str_t *s, unsigned long cp);
 int is_Hangul_S(unsigned long cp);
