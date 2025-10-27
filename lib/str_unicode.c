@@ -578,3 +578,27 @@ int FUNC(str_u8_delete_next_egc_from_byte)(ds_str_t *s, size_t cursor_byte) {
   }
   return (r < 0) ? -1 : 0;
 }
+
+long FUNC(str_u8_find_folded)(const ds_str_t *s, const ds_str_t *needle) {
+  ds_str_t *hs = NULL, *ns = NULL;
+  long pos = -1;
+
+  if (!s || !needle) return -1;
+  if (ucd_init_once()!=0) return -1;
+
+  hs = FUNC(str_create)(); ns = FUNC(str_create)();
+  if (!hs || !ns) goto done;
+
+  if (FUNC(str_u8_casefold)(hs, s) != 0) goto done;
+  if (FUNC(str_u8_normalize)(hs, hs, DS_U8_NFC) != 0) goto done;
+
+  if (FUNC(str_u8_casefold)(ns, needle) != 0) goto done;
+  if (FUNC(str_u8_normalize)(ns, ns, DS_U8_NFC) != 0) goto done;
+
+  pos = FUNC(str_find)((ds_str_t*)hs, ns->buf, ns->len, 0);
+
+done:
+  if (hs) FUNC(str_destroy)(hs);
+  if (ns) FUNC(str_destroy)(ns);
+  return pos;
+}

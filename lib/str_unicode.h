@@ -112,4 +112,6 @@ int FUNC(str_u8_insert_at_grapheme)(ds_str_t *s, size_t gi, const void *data, si
 
 int FUNC(str_u8_delete_next_egc_from_byte)(ds_str_t *s, size_t cursor_byte);
 
+long FUNC(str_u8_find_folded)(const ds_str_t *s, const ds_str_t *needle);
+
 #endif /* DS_STR_UNICODE_H */
