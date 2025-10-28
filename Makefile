@@ -1,5 +1,6 @@
 CC = gcc
 AR = ar
+
 CFLAGS = -c -fPIC -std=c89
 CFLAGS += -O2 -march=native -mtune=native
 CFLAGS += -Wall -Wextra -Werror -pedantic -pedantic-errors
@@ -13,8 +14,9 @@ CFLAGS += -Wfloat-equal -Wlogical-op -Wmissing-declarations -Wmissing-include-di
 CFLAGS += -Wpointer-arith -Wredundant-decls -Wsequence-point -Wstrict-prototypes
 CFLAGS += -Wswitch -Wundef -Wunreachable-code -Wwrite-strings -Wconversion
 
-CFLAGS_DEBUG = -g -fno-omit-frame-pointer -fsanitize=address,undefined -fsanitize=leak
+CPPFLAGS += -I$(LIB_DIR) -I$(BUILD_DIR)
 
+CFLAGS_DEBUG = -g -fno-omit-frame-pointer -fsanitize=address,undefined -fsanitize=leak
 CFLAGS_SAFE = -D DS_THREAD_SAFE
 LDFLAGS = -shared
 
@@ -24,9 +26,19 @@ PREFIX ?= /usr/local
 OUT_LIB_DIR = $(PREFIX)/lib
 OUT_INCLUDE_DIR = $(PREFIX)/include/lib
 
+GEN_DIR   := gen
+BUILD_DIR := build
+
+GEN_SRC := $(GEN_DIR)/gen_ucd.c
+GEN_BIN := $(BUILD_DIR)/gen_ucd
+
 SRC_FILES = $(wildcard $(LIB_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:.c=.o)
 OBJ_FILES_SAFE = $(SRC_FILES:.c=_safe.o)
+
+GEN_C := $(BUILD_DIR)/unicode_tables.c
+GEN_H := $(BUILD_DIR)/unicode_tables.h
+GEN_OBJ := $(BUILD_DIR)/unicode_tables.o
 
 UNICODE_DIR := data
 UNICODE_FILES := \
@@ -34,7 +46,14 @@ UNICODE_FILES := \
   $(UNICODE_DIR)/CaseFolding.txt \
   $(UNICODE_DIR)/DerivedNormalizationProps.txt \
   $(UNICODE_DIR)/CompositionExclusions.txt \
-  $(UNICODE_DIR)/GraphemeBreakProperty.txt
+  $(UNICODE_DIR)/GraphemeBreakProperty.txt \
+  $(UNICODE_DIR)/emoji-data.txt
+
+
+all: $(BUILD_DIR) unicode-tables libds.a libds.so libds_safe.a libds_safe.so
+
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
 
 $(UNICODE_DIR):
 	@mkdir -p $(UNICODE_DIR)
@@ -54,27 +73,46 @@ $(UNICODE_DIR)/CompositionExclusions.txt: | $(UNICODE_DIR)
 $(UNICODE_DIR)/GraphemeBreakProperty.txt: | $(UNICODE_DIR)
 	@curl -fsSL -o $@ https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakProperty.txt
 
-$(LIB_DIR)/unicode_runtime.o: $(UNICODE_FILES)
+$(UNICODE_DIR)/emoji-data.txt: | $(UNICODE_DIR)
+	@curl -fsSL -o $@ https://www.unicode.org/Public/UCD/latest/ucd/emoji/emoji-data.txt
 
-all: libds.a libds.so libds_safe.a libds_safe.so
+$(GEN_BIN): $(GEN_SRC) | $(BUILD_DIR)
+	$(CC) -std=c89 -O2 -Wall -Wextra -o $@ $<
 
-libds.a: $(OBJ_FILES)
+$(GEN_C) $(GEN_H): $(GEN_BIN) $(UNICODE_FILES) | $(BUILD_DIR)
+	$(GEN_BIN) \
+	  --unicode-data $(UNICODE_DIR)/UnicodeData.txt \
+	  --case-folding $(UNICODE_DIR)/CaseFolding.txt \
+	  --comp-excl $(UNICODE_DIR)/CompositionExclusions.txt \
+	  --gb-prop $(UNICODE_DIR)/GraphemeBreakProperty.txt \
+	  --emoji-data $(UNICODE_DIR)/emoji-data.txt \
+	  --out-c $(GEN_C) \
+	  --out-h $(GEN_H)
+
+unicode-tables: $(GEN_C) $(GEN_H)
+
+$(LIB_DIR)/unicode_runtime.o: $(GEN_H)
+
+$(GEN_OBJ): $(GEN_C) $(GEN_H)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(GEN_C) -o $(GEN_OBJ)
+
+libds.a: $(OBJ_FILES) $(GEN_OBJ)
 	$(AR) rcs $@ $^
 
-libds.so: $(OBJ_FILES)
+libds.so: $(OBJ_FILES) $(GEN_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
-libds_safe.a: $(OBJ_FILES_SAFE)
+libds_safe.a: $(OBJ_FILES_SAFE) $(GEN_OBJ)
 	$(AR) rcs $@ $^
 
-libds_safe.so: $(OBJ_FILES_SAFE)
+libds_safe.so: $(OBJ_FILES_SAFE) $(GEN_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
-%.o: %.c
-	$(CC) $(CFLAGS) $< -o $@
+%.o: %.c $(GEN_H)
+	$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@
 
-%_safe.o: %.c
-	$(CC) $(CFLAGS) $(CFLAGS_SAFE) $< -o $@
+%_safe.o: %.c $(GEN_H)
+	$(CC) $(CFLAGS) $(CFLAGS_SAFE) $(CPPFLAGS) $< -o $@
 
 install: all
 	mkdir -p $(OUT_LIB_DIR)
@@ -91,6 +129,7 @@ uninstall:
 	rm -f $(PREFIX)/include/ds.h
 
 clean:
-	rm -f $(OBJ_FILES) $(OBJ_FILES_SAFE) libds.a libds.so libds_safe.a libds_safe.so
+	rm -f $(OBJ_FILES) $(OBJ_FILES_SAFE) $(GEN_OBJ) libds.a libds.so libds_safe.a libds_safe.so
+	rm -f $(GEN_C) $(GEN_H) $(GEN_BIN)
 
 unicode-data: $(UNICODE_FILES)
