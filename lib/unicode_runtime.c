@@ -121,19 +121,41 @@ void reorder_ccc(void *vec_void) {
   }
 }
 
-int ds__pair_cmp(unsigned long a1, unsigned long b1, unsigned long a2, unsigned long b2) {
-  if (a1 < a2) return -1;
-  if (a1 > a2) return 1;
-  if (b1 < b2) return -1;
-  if (b1 > b2) return 1;
+#ifndef U_COMP_KEYS_A
+# ifdef U_COMP_A
+#  define U_COMP_KEYS_A U_COMP_A
+#  define U_COMP_KEYS_B U_COMP_B
+# endif
+#endif
+
+int ds__pair_cmp(unsigned long a1, unsigned long b1,
+                 unsigned long a2, unsigned long b2) {
+  if (a1 < a2){ return -1; }if (a1 > a2){ return 1;}
+  if (b1 < b2){ return -1; }if (b1 > b2){ return 1;}
   return 0;
 }
+
+size_t ds__comp_find_pair(unsigned long a, unsigned long b) {
+  size_t lo = 0, hi = U_COMP_LEN;
+  while (lo < hi) {
+    size_t mid = lo + ((hi - lo) >> 1);
+    unsigned long ka = U_COMP_KEYS_A[mid];
+    unsigned long kb = U_COMP_KEYS_B[mid];
+    int cmp = ds__pair_cmp(a, b, ka, kb);
+    if (cmp < 0) hi = mid;
+    else if (cmp > 0) lo = mid + 1;
+    else return mid;
+  }
+  return (size_t)-1;
+}
+
 
 void compose_vec(void *vec_void) {
   u32vec_like *v = (u32vec_like*)vec_void;
   size_t r, w;
 
   if (v->n == 0) return;
+
   r = 0; w = 0;
   v->p[w++] = v->p[r++];
 
@@ -143,46 +165,44 @@ void compose_vec(void *vec_void) {
 
     {
       size_t consumed = 0u;
-      unsigned long a = v->p[w-1];
-      if (compose_Hangul(&a, b, &consumed)) {
-        v->p[w-1] = a; r += consumed; continue;
+      unsigned long a0 = v->p[w-1];
+      if (compose_Hangul(&a0, b, &consumed)) {
+        v->p[w-1] = a0;
+        r += consumed;
+        continue;
       }
     }
 
-    if (cccb == 0) {
+    if (cccb == 0ul) {
       unsigned long a = v->p[w-1];
-      size_t lo = 0, hi = U_COMP_LEN;
-      while (lo < hi) {
-        size_t mid = lo + ((hi - lo) >> 1);
-        int cmp = ds__pair_cmp(a, b, U_COMP_A[mid], U_COMP_B[mid]);
-        if (cmp < 0) hi = mid;
-        else if (cmp > 0) lo = mid + 1;
-        else { v->p[w-1] = U_COMP_VAL[mid]; goto took_pair; }
+      size_t idx = ds__comp_find_pair(a, b);
+      if (idx != (size_t)-1) {
+        v->p[w-1] = U_COMP_VALS[idx];
+        r++;
+        continue;
       }
     } else {
       size_t j = w;
       while (j > 0) {
         unsigned long a2 = v->p[j-1];
-        if (get_ccc(a2) == 0) {
-          size_t lo2 = 0, hi2 = U_COMP_LEN;
-          while (lo2 < hi2) {
-            size_t mid2 = lo2 + ((hi2 - lo2) >> 1);
-            int cmp2 = ds__pair_cmp(a2, b, U_COMP_A[mid2], U_COMP_B[mid2]);
-            if (cmp2 < 0) hi2 = mid2;
-            else if (cmp2 > 0) lo2 = mid2 + 1;
-            else { v->p[j-1] = U_COMP_VAL[mid2]; goto took_pair; }
+        unsigned long ccca2 = get_ccc(a2);
+        if (ccca2 == 0ul) {
+          size_t idx = ds__comp_find_pair(a2, b);
+          if (idx != (size_t)-1) {
+            v->p[j-1] = U_COMP_VALS[idx];
+            r++;
+            goto next_char;
           }
           break;
         }
-        if (get_ccc(a2) >= cccb) break;
+        if (ccca2 >= cccb) break;
         --j;
       }
     }
 
     v->p[w++] = v->p[r++];
-    continue;
-took_pair:
-    r++;
+  next_char:
+    ;
   }
 }
 
