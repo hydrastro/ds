@@ -478,9 +478,9 @@ int write_header(const char *out_h) {
     "extern const unsigned long U_DECOMP_POOL[];\n"
     "extern const size_t        U_DECOMP_LEN;\n"
     "extern const size_t        U_DECOMP_POOL_LEN;\n\n"
-    "extern const unsigned long U_COMP_A[];\n"
-    "extern const unsigned long U_COMP_B[];\n"
-    "extern const unsigned long U_COMP_VAL[];\n"
+    "extern const unsigned long U_COMP_KEYS_A[];\n"
+    "extern const unsigned long U_COMP_KEYS_B[];\n"
+    "extern const unsigned long U_COMP_VALS[];\n"
     "extern const size_t        U_COMP_LEN;\n\n"
     "extern const unsigned long U_TOLOWER_KEYS[];\n"
     "extern const unsigned long U_TOLOWER_VALS[];\n"
@@ -536,13 +536,13 @@ int write_source(const char *out_c) {
   fprintf(c, "const size_t U_DECOMP_LEN = %luu;\n", (unsigned long)DECOMP_KEYS.n);
   fprintf(c, "const size_t U_DECOMP_POOL_LEN = %luu;\n\n", (unsigned long)DECOMP_POOL.n);
 
-  fprintf(c, "const unsigned long U_COMP_A[] = {");
+  fprintf(c, "const unsigned long U_COMP_KEYS_A[] = {");
   for (i=0;i<COMP_N;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", COMP[i].a); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_COMP_B[] = {");
+  fprintf(c, "const unsigned long U_COMP_KEYS_B[] = {");
   for (i=0;i<COMP_N;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", COMP[i].b); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_COMP_VAL[] = {");
+  fprintf(c, "const unsigned long U_COMP_VALS[] = {");
   for (i=0;i<COMP_N;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", COMP[i].v); }
   fprintf(c, "};\n");
   fprintf(c, "const size_t U_COMP_LEN = %luu;\n\n", (unsigned long)COMP_N);

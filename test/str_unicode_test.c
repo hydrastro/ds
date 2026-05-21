@@ -321,10 +321,9 @@ static void test_unicode_runtime(void) {
   TASSERT(str_append_cstr(src, "\xE2\x80\x8D") == 0);
   TASSERT(str_append_cstr(src, "\xF0\x9F\x8F\xA0") == 0);
   g = str_u8_len_graphemes(src);
-  TASSERT(g >= 1)
-  l
+  TASSERT(g >= 1);
 
-      str_destroy(src);
+  str_destroy(src);
   str_destroy(dst);
 }
 

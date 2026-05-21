@@ -204,6 +204,8 @@ void compose_vec(void *vec_void) {
   next_char:
     ;
   }
+
+  v->n = w;
 }
 
 int fold_cp(unsigned long cp, void *out_vec_void) {

@@ -16,20 +16,52 @@ typedef enum {
   HASH_CUSTOM_PROBING
 } ds_hash_table_mode_t;
 
+struct hash_node;
+struct hash_table;
+struct hash_bucket_store;
+
+typedef struct hash_node ds_hash_node_t;
+typedef struct hash_table ds_hash_table_t;
+typedef struct hash_bucket_store ds_hash_bucket_store_t;
+
 typedef size_t (*ds_hash_probing_func_t)(size_t base_index, size_t iteration,
                                          size_t capacity);
+typedef void *(*ds_hash_bucket_create_func_t)(ds_hash_table_t *table);
+typedef ds_hash_node_t *(*ds_hash_bucket_search_func_t)(
+    ds_hash_table_t *table, void *bucket, void *key,
+    int (*compare)(void *, void *));
+typedef void (*ds_hash_bucket_insert_func_t)(
+    ds_hash_table_t *table, void **bucket, ds_hash_node_t *node,
+    int (*compare)(void *, void *));
+typedef ds_hash_node_t *(*ds_hash_bucket_remove_func_t)(
+    ds_hash_table_t *table, void **bucket, void *key,
+    int (*compare)(void *, void *));
+typedef void (*ds_hash_bucket_destroy_func_t)(
+    ds_hash_table_t *table, void *bucket, void (*destroy)(ds_hash_node_t *));
+typedef void (*ds_hash_bucket_apply_func_t)(
+    ds_hash_table_t *table, void *bucket,
+    void (*callback)(ds_hash_node_t *, void *), void *args);
 
-typedef struct hash_node {
+struct hash_node {
   void *key;
   void *value;
   struct hash_node *next;
   struct hash_node *list_next;
   struct hash_node *list_prev;
-} ds_hash_node_t;
+};
 
-typedef struct hash_table {
+struct hash_bucket_store {
+  ds_hash_bucket_create_func_t create;
+  ds_hash_bucket_search_func_t search;
+  ds_hash_bucket_insert_func_t insert;
+  ds_hash_bucket_remove_func_t remove;
+  ds_hash_bucket_destroy_func_t destroy;
+  ds_hash_bucket_apply_func_t apply;
+};
+
+struct hash_table {
   union {
-    ds_hash_node_t **buckets;
+    void **buckets;
     ds_hash_node_t *entries;
   } store;
   size_t size;
@@ -38,20 +70,22 @@ typedef struct hash_table {
   void *tombstone;
   ds_hash_table_mode_t mode;
   ds_hash_probing_func_t probing_func;
+  const ds_hash_bucket_store_t *bucket_store;
   ds_hash_node_t *last_node;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef HASH_DS_THREAD_SAFE
+#ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif
-} ds_hash_table_t;
+};
 
 ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                  void *value);
 
 size_t hash_func_string_djb2(void *key);
 size_t hash_func_int(void *key);
+size_t hash_func_size_t(void *key);
 size_t hash_func_pointer(void *key);
 size_t hash_func_double(void *key);
 size_t hash_func_default(void *key);
@@ -60,14 +94,21 @@ size_t next_prime_capacity(size_t current_capacity);
 
 size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity);
 size_t linear_probing(size_t base_index, size_t iteration, size_t capacity);
+
+const ds_hash_bucket_store_t *FUNC(hash_table_linked_list_bucket_store)(void);
+
 ds_hash_table_t *FUNC(hash_table_create)(size_t capacity,
                                          ds_hash_table_mode_t mode,
                                          ds_hash_probing_func_t probing_func);
-ds_hash_table_t *
-    FUNC(hash_table_create_alloc)(size_t capacity, ds_hash_table_mode_t mode,
-                                  ds_hash_probing_func_t probing_func,
-                                  void *(*allocator)(size_t),
-                                  void (*deallocator)(void *));
+ds_hash_table_t *FUNC(hash_table_create_chain)(
+    size_t capacity, const ds_hash_bucket_store_t *bucket_store);
+ds_hash_table_t *FUNC(hash_table_create_alloc)(
+    size_t capacity, ds_hash_table_mode_t mode,
+    ds_hash_probing_func_t probing_func, void *(*allocator)(size_t),
+    void (*deallocator)(void *));
+ds_hash_table_t *FUNC(hash_table_create_chain_alloc)(
+    size_t capacity, const ds_hash_bucket_store_t *bucket_store,
+    void *(*allocator)(size_t), void (*deallocator)(void *));
 void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *));
@@ -81,11 +122,18 @@ void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *),
                              void (*destroy)(ds_hash_node_t *));
+void FUNC(hash_table_for_each)(ds_hash_table_t *table,
+                               void (*callback)(ds_hash_node_t *, void *),
+                               void *args);
 bool FUNC(hash_table_is_empty)(ds_hash_table_t *table);
 void FUNC(hash_table_destroy)(ds_hash_table_t *table,
                               void (*destroy)(ds_hash_node_t *));
 ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
                                         void *(*clone_key)(void *),
                                         void *(*clone_value)(void *));
+ds_hash_table_t *FUNC(hash_table_clone_with)(
+    ds_hash_table_t *table, void *(*clone_key)(void *),
+    void *(*clone_value)(void *), size_t (*hash_func)(void *),
+    int (*compare)(void *, void *));
 
 #endif /* DS_HASH_TABLE_H */

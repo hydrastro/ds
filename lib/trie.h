@@ -18,7 +18,7 @@ typedef struct trie {
   ds_trie_node_t *root;
   size_t num_splits;
   ds_trie_node_t *(*store_search)(void *, size_t);
-  void *(*store_create)(size_t);
+  void *(*store_create)(struct trie *, size_t);
   void (*store_insert)(void *, ds_trie_node_t *);
   void (*store_remove)(void *, ds_trie_node_t *);
   void (*store_destroy_entry)(void *, ds_trie_node_t *);
@@ -27,7 +27,8 @@ typedef struct trie {
   void (*store_apply)(struct trie *, void *,
                       void (*)(struct trie *, ds_trie_node_t *, va_list *),
                       va_list *);
-  void *(*store_clone)(struct trie *, void *, ds_trie_node_t *);
+  void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
+                       void *(*clone_data)(void *));
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 #ifdef DS_THREAD_SAFE
@@ -37,9 +38,29 @@ typedef struct trie {
 } ds_trie_t;
 
 ds_trie_node_t *FUNC(trie_create_node)(ds_trie_t *trie);
+
+ds_trie_t *FUNC(trie_create_hash)(size_t num_splits);
+ds_trie_t *FUNC(trie_create_hash_alloc)(size_t num_splits,
+                                        void *(*allocator)(size_t),
+                                        void (*deallocator)(void *));
+ds_trie_node_t *FUNC(trie_hash_table_store_search)(void *store,
+                                                   size_t slice);
+void *FUNC(trie_hash_table_store_create)(struct trie *trie, size_t size);
+void FUNC(trie_hash_table_store_insert)(void *store, ds_trie_node_t *node);
+void FUNC(trie_hash_table_store_remove)(void *store, ds_trie_node_t *node);
+void FUNC(trie_hash_table_store_destroy_entry)(void *store,
+                                               ds_trie_node_t *node);
+void FUNC(trie_hash_table_store_destroy)(void *store);
+size_t FUNC(trie_hash_table_store_get_size)(void *store);
+void FUNC(trie_hash_table_store_apply)(
+    struct trie *trie, void *store,
+    void (*f)(struct trie *, ds_trie_node_t *, va_list *), va_list *args);
+void *FUNC(trie_hash_table_store_clone)(struct trie *trie, void *store,
+                                        ds_trie_node_t *parent_node,
+                                        void *(*clone_data)(void *));
 ds_trie_t *FUNC(trie_create)(
     size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
-    void *(*store_create)(size_t),
+    void *(*store_create)(struct trie *, size_t),
     void (*store_insert)(void *, ds_trie_node_t *),
     void (*store_remove)(void *, ds_trie_node_t *),
     void (*store_destroy_entry)(void *, ds_trie_node_t *),
@@ -47,10 +68,11 @@ ds_trie_t *FUNC(trie_create)(
     void (*store_apply)(struct trie *, void *,
                         void (*)(struct trie *, ds_trie_node_t *, va_list *),
                         va_list *),
-    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *));
+    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
+                        void *(*clone_data)(void *)));
 ds_trie_t *FUNC(trie_create_alloc)(
     size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
-    void *(*store_create)(size_t),
+    void *(*store_create)(struct trie *, size_t),
     void (*store_insert)(void *, ds_trie_node_t *),
     void (*store_remove)(void *, ds_trie_node_t *),
     void (*store_destroy_entry)(void *, ds_trie_node_t *),
@@ -58,7 +80,8 @@ ds_trie_t *FUNC(trie_create_alloc)(
     void (*store_apply)(struct trie *, void *,
                         void (*)(struct trie *, ds_trie_node_t *, va_list *),
                         va_list *),
-    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *),
+    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
+                        void *(*clone_data)(void *)),
     void *(*allocator)(size_t), void (*deallocator)(void *));
 void FUNC(trie_insert)(ds_trie_t *trie, void *data,
                        size_t (*get_slice)(void *, size_t),

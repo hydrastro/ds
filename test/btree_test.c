@@ -41,7 +41,7 @@ void print_int(ds_btree_node_t *data) {
 
 ds_btree_node_t *clone_node(ds_btree_node_t *node) {
   my_node_t *new_node = (my_node_t *)malloc(sizeof(my_node_t));
-  printf(" node %p\n", new_node);
+  printf(" node %p\n", (void *)new_node);
   new_node->data = (CAST(node, my_node_t))->data;
   return &new_node->node;
 }
@@ -49,7 +49,7 @@ ds_btree_node_t *clone_node(ds_btree_node_t *node) {
 void test_btree_operations() {
   ds_btree_t *tree = btree_create(2);
   int values[] = {10, 20, 5, 6, 15, 30, 25, 35};
-  for (int i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+  for (size_t i = 0u; i < sizeof(values) / sizeof(values[0]); i++) {
     my_node_t *data = (my_node_t *)malloc(sizeof(my_node_t));
     data->data = values[i];
     btree_insert(tree, &data->node, compare_int);
@@ -83,7 +83,7 @@ void test_btree_operations() {
   print_btree_node(tree->root, 0, print_int);
 
   int delete_values[] = {10, 20, 5, 6, 15, 35};
-  for (int i = 0; i < sizeof(delete_values) / sizeof(delete_values[0]); i++) {
+  for (size_t i = 0u; i < sizeof(delete_values) / sizeof(delete_values[0]); i++) {
     printf("deleting %d\n", delete_values[i]);
     fflush(stdout);
     wkey->data = delete_values[i];

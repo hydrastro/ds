@@ -27,8 +27,13 @@ nix build
 ### With Make
 ```shell
 make
+make test
 make install
 ```
+
+`make test` builds and runs every test under `test/`. It uses the small
+Unicode fixture set in `test/ucd/` so the test suite is self-contained and does
+not need to download the full UCD.
 
 ## Usage
 Include the central header ds.h in your C code:
