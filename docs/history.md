@@ -84,3 +84,26 @@ with `ds_history_snapshot_destroy`.
 
 Query result ownership is adapter-specific. The history layer simply returns the
 value produced by the adapter's `query` callback.
+
+## Serialization
+
+History serialization is split into two layers:
+
+- branch-local operation export/import for tooling that only wants one branch's
+  operation log;
+- full-history save/load for preserving branch topology.
+
+`ds_history_serialize` writes the entire branch DAG in parent-before-child order.
+It records each branch id, parent id, fork time, name, and branch-local operation
+log. The history layer writes operation metadata (`id`, `time`, `kind`) and calls
+adapter-provided payload callbacks for the operation payload. This keeps the core
+history engine generic; the wrapped container still owns the binary format for
+its own operations.
+
+`ds_history_deserialize` reconstructs the branch DAG and operation logs from that
+stream. The stream format is intentionally callback-driven: callers can write to
+memory, files, sockets, or their own endian-stable binary codec.
+
+The current built-in format writes native C integer representations through the
+provided `write` callback. For portable archives, provide read/write callbacks
+that normalize integer sizes and endianness before storing bytes.

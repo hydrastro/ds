@@ -8,17 +8,30 @@ Implemented foundation:
 - iterator abstraction
 - string map/string set wrappers
 - generic graph module
-- Tier-1 persistent trie
-- Tier-1 persistent red-black tree wrapper
-- history transaction batching and operation export hook
+- structural persistent trie module
+- structural persistent red-black tree module
+- history transaction batching
 - history oracle randomized test
 - `make sanitize` and `make test-safe`
 
-Future improvements:
+## Current hardening status
 
-- migrate every legacy API to `ds_status_t`
-- convert all complex constructors to config structs
-- add richer graph algorithms
-- add structural-sharing persistent RBT
-- add binary serializers for history payloads
-- add arena/pool/debug allocators through `ds_context_t`
+The largest trie/RBT/history limitations have been addressed:
+
+- Persistent trie supports structural-sharing insert, exact-key removal, prefix existence, longest-prefix lookup, prefix traversal, inclusive range traversal, and `ds_ptrie_remove_prefix` for bulk subtree removal.
+- Persistent red-black tree uses an immutable, refcounted, path-copying left-leaning red-black implementation. It supports insert, get, remove, full ordered traversal, inclusive range traversal, floor, ceiling, rank, select, and version-isolated subtree sizes.
+- History supports transaction batching, branch-local operation serialization/deserialization, full multi-branch history serialization/deserialization, portable little-endian metadata helpers, portable full-history serialization/deserialization, and deterministic operation-log branch merge.
+- The graph module supports directed storage, weighted edges, BFS, DFS, topological sort, Dijkstra shortest paths, weakly connected components, and strongly connected components.
+- `make sanitize` cleans after its sanitizer run so later normal builds do not accidentally link against sanitizer-instrumented objects.
+
+## Remaining high-value work
+
+- Migrate every legacy API to `ds_status_t` while keeping compatibility wrappers.
+- Convert all complex constructors to config structs.
+- Add context-aware allocation throughout older modules.
+- Add persistent trie prefix counting, prefix copy/move helpers, and compressed/radix-node storage.
+- Add persistent RBT delete-min/delete-max, predecessor/successor convenience wrappers, and validation/debug introspection.
+- Add history semantic conflict hooks for merges; current merge is a deterministic operation-log merge and does not try to interpret payload conflicts.
+- Add a first-class portable archive object for history instead of only exposing helper callbacks.
+- Add graph weighted-edge update/remove, Bellman-Ford for negative weights, minimum spanning tree helpers, and adjacency iterators.
+- Add arena/pool/debug allocators through `ds_context_t`.

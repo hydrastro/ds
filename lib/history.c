@@ -1,4 +1,5 @@
 #include "history.h"
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -92,6 +93,11 @@ static bool history_branch_has_descendant(ds_history_t *history,
                                           ds_history_branch_t *branch);
 static bool history_time_before_fork(ds_history_branch_t *branch,
                                      unsigned long time);
+static unsigned long history_branch_insert_with_id(ds_history_branch_t *branch,
+                                                   unsigned long id,
+                                                   unsigned long time, int kind,
+                                                   void *payload);
+static size_t history_branch_operation_count(ds_history_branch_t *branch);
 
 static void *history_default_allocator(size_t size) { return malloc(size); }
 
@@ -739,6 +745,26 @@ ds_history_branch_t *FUNC(ds_history_branch_parent)(ds_history_branch_t *branch)
   return branch->parent;
 }
 
+ds_history_branch_t *FUNC(ds_history_branch_find_name)(ds_history_t *history,
+                                                        const char *name) {
+  struct ds_history_branch_node *node;
+
+  if (history == NULL || name == NULL) {
+    return NULL;
+  }
+  LOCK(history);
+  node = history->branches;
+  while (node != NULL) {
+    if (node->branch->name != NULL && strcmp(node->branch->name, name) == 0) {
+      UNLOCK(history);
+      return node->branch;
+    }
+    node = node->next;
+  }
+  UNLOCK(history);
+  return NULL;
+}
+
 ds_history_operation_t *FUNC(ds_history_branch_find_op)(
     ds_history_branch_t *branch, unsigned long op_id) {
   struct ds_history_operation_node *op;
@@ -758,33 +784,31 @@ ds_history_operation_t *FUNC(ds_history_branch_find_op)(
   return NULL;
 }
 
-unsigned long FUNC(ds_history_branch_insert_at)(ds_history_branch_t *branch,
-                                                unsigned long time, int kind,
-                                                void *payload) {
+static unsigned long history_branch_insert_with_id(ds_history_branch_t *branch,
+                                                   unsigned long id,
+                                                   unsigned long time, int kind,
+                                                   void *payload) {
   ds_history_t *history;
   struct ds_history_operation_node *node;
   struct ds_history_operation_node *walk;
   struct ds_history_operation_node *prev;
 
-  if (branch == NULL) {
+  if (branch == NULL || id == 0UL) {
     return 0UL;
   }
 
   history = branch->history;
-  LOCK(history);
 
   if (time < branch->fork_time) {
-    UNLOCK(history);
     return 0UL;
   }
 
   node = (struct ds_history_operation_node *)history->allocator(sizeof(*node));
   if (node == NULL) {
-    UNLOCK(history);
     return 0UL;
   }
 
-  node->operation.id = history->next_operation_id++;
+  node->operation.id = id;
   node->operation.time = time;
   node->operation.kind = kind;
   node->operation.payload = payload;
@@ -807,9 +831,35 @@ unsigned long FUNC(ds_history_branch_insert_at)(ds_history_branch_t *branch,
     prev->next = node;
   }
 
+  if (history->next_operation_id <= id) {
+    history->next_operation_id = id + 1UL;
+  }
   history_note_edit(branch, time);
-  UNLOCK(history);
   return node->operation.id;
+}
+
+unsigned long FUNC(ds_history_branch_insert_at)(ds_history_branch_t *branch,
+                                                unsigned long time, int kind,
+                                                void *payload) {
+  ds_history_t *history;
+  unsigned long id;
+
+  if (branch == NULL) {
+    return 0UL;
+  }
+
+  history = branch->history;
+  LOCK(history);
+  id = history->next_operation_id++;
+  if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
+    if (history->next_operation_id == id + 1UL) {
+      history->next_operation_id = id;
+    }
+    UNLOCK(history);
+    return 0UL;
+  }
+  UNLOCK(history);
+  return id;
 }
 
 unsigned long FUNC(ds_history_branch_append)(ds_history_branch_t *branch,
@@ -868,6 +918,74 @@ bool FUNC(ds_history_branch_delete_op)(ds_history_branch_t *branch,
   history_note_edit(branch, edit_time);
   UNLOCK(history);
   return true;
+}
+
+size_t FUNC(ds_history_branch_merge)(ds_history_branch_t *target,
+                                      ds_history_branch_t *source,
+                                      unsigned long from_time,
+                                      unsigned long through_time,
+                                      unsigned int flags) {
+  ds_history_t *history;
+  struct ds_history_operation_node *op;
+  void *payload;
+  unsigned long time;
+  unsigned long append_time;
+  size_t merged;
+
+  if (target == NULL || source == NULL || target->history != source->history ||
+      from_time > through_time) {
+    return 0U;
+  }
+
+  history = target->history;
+  merged = 0U;
+  LOCK(history);
+  append_time = history_branch_local_head_time(target);
+  if (append_time < target->fork_time) {
+    append_time = target->fork_time;
+  }
+
+  op = source->operations;
+  while (op != NULL) {
+    if (op->operation.time >= from_time && op->operation.time <= through_time) {
+      if (history->ops.clone_payload != NULL) {
+        payload = history->ops.clone_payload(op->operation.kind,
+                                             op->operation.payload,
+                                             history->clone_data);
+        if (payload == NULL && op->operation.payload != NULL) {
+          break;
+        }
+      } else {
+        if (history->ops.destroy_payload != NULL &&
+            op->operation.payload != NULL) {
+          break;
+        }
+        payload = op->operation.payload;
+      }
+
+      if ((flags & DS_HISTORY_MERGE_APPEND_AFTER_HEAD) != 0U) {
+        append_time++;
+        time = append_time;
+      } else {
+        time = op->operation.time;
+      }
+
+      if (history_branch_insert_with_id(target, history->next_operation_id++,
+                                        time, op->operation.kind, payload) ==
+          0UL) {
+        if (history->ops.destroy_payload != NULL &&
+            payload != op->operation.payload) {
+          history->ops.destroy_payload(op->operation.kind, payload);
+        }
+        break;
+      }
+      history_note_edit(target, time);
+      merged++;
+    }
+    op = op->next;
+  }
+  UNLOCK(history);
+  return merged;
 }
 
 void *FUNC(ds_history_branch_snapshot_at)(ds_history_branch_t *branch,
@@ -975,4 +1093,731 @@ size_t FUNC(ds_history_branch_export_ops)(ds_history_branch_t *branch,
     op = op->next;
   }
   return count;
+}
+
+
+static size_t history_branch_operation_count(ds_history_branch_t *branch) {
+  struct ds_history_operation_node *op;
+  size_t count;
+  count = 0U;
+  if (branch == NULL) {
+    return 0U;
+  }
+  op = branch->operations;
+  while (op != NULL) {
+    count++;
+    op = op->next;
+  }
+  return count;
+}
+
+bool FUNC(ds_history_write_ulong)(ds_history_write_func_t write, void *io_user,
+                                   unsigned long value) {
+  unsigned char bytes[8];
+  size_t i;
+
+  if (write == NULL) {
+    return false;
+  }
+  for (i = 0U; i < 8U; i++) {
+    bytes[i] = (unsigned char)(value & 0xffUL);
+    value >>= 8;
+  }
+  return write(bytes, sizeof(bytes), io_user);
+}
+
+bool FUNC(ds_history_read_ulong)(ds_history_read_func_t read, void *io_user,
+                                  unsigned long *out_value) {
+  unsigned char bytes[8];
+  unsigned long value;
+  size_t i;
+  size_t ulong_bytes;
+
+  if (read == NULL || out_value == NULL) {
+    return false;
+  }
+  if (!read(bytes, sizeof(bytes), io_user)) {
+    return false;
+  }
+  value = 0UL;
+  ulong_bytes = sizeof(unsigned long);
+  for (i = 0U; i < 8U; i++) {
+    if (i >= ulong_bytes) {
+      if (bytes[i] != 0U) {
+        return false;
+      }
+    } else {
+      value |= ((unsigned long)bytes[i]) << (i * 8U);
+    }
+  }
+  *out_value = value;
+  return true;
+}
+
+bool FUNC(ds_history_write_int)(ds_history_write_func_t write, void *io_user,
+                                 int value) {
+  unsigned long encoded;
+  long signed_value;
+
+  signed_value = (long)value;
+  if (signed_value < 0L) {
+    encoded = ((unsigned long)(-(signed_value + 1L)) * 2UL) + 1UL;
+  } else {
+    encoded = ((unsigned long)signed_value) * 2UL;
+  }
+  return FUNC(ds_history_write_ulong)(write, io_user, encoded);
+}
+
+bool FUNC(ds_history_read_int)(ds_history_read_func_t read, void *io_user,
+                                int *out_value) {
+  unsigned long encoded;
+  unsigned long magnitude;
+  long signed_value;
+
+  if (out_value == NULL) {
+    return false;
+  }
+  if (!FUNC(ds_history_read_ulong)(read, io_user, &encoded)) {
+    return false;
+  }
+  magnitude = encoded / 2UL;
+  if ((encoded & 1UL) != 0UL) {
+    if (magnitude > (unsigned long)LONG_MAX) {
+      return false;
+    }
+    signed_value = -((long)magnitude) - 1L;
+  } else {
+    if (magnitude > (unsigned long)INT_MAX) {
+      return false;
+    }
+    signed_value = (long)magnitude;
+  }
+  if (signed_value < (long)INT_MIN || signed_value > (long)INT_MAX) {
+    return false;
+  }
+  *out_value = (int)signed_value;
+  return true;
+}
+
+bool FUNC(ds_history_write_size)(ds_history_write_func_t write, void *io_user,
+                                  size_t value) {
+  if (value > (size_t)ULONG_MAX) {
+    return false;
+  }
+  return FUNC(ds_history_write_ulong)(write, io_user, (unsigned long)value);
+}
+
+bool FUNC(ds_history_read_size)(ds_history_read_func_t read, void *io_user,
+                                 size_t *out_value) {
+  unsigned long value;
+
+  if (out_value == NULL) {
+    return false;
+  }
+  if (!FUNC(ds_history_read_ulong)(read, io_user, &value)) {
+    return false;
+  }
+  *out_value = (size_t)value;
+  return true;
+}
+
+size_t FUNC(ds_history_branch_serialize_ops)(
+    ds_history_branch_t *branch, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
+  struct ds_history_operation_node *op;
+  size_t count;
+  size_t written;
+
+  if (branch == NULL || write == NULL || write_payload == NULL) {
+    return 0U;
+  }
+
+  count = history_branch_operation_count(branch);
+  if (!write(&count, sizeof(count), io_user)) {
+    return 0U;
+  }
+
+  written = 0U;
+  op = branch->operations;
+  while (op != NULL) {
+    if (!write(&op->operation.id, sizeof(op->operation.id), io_user) ||
+        !write(&op->operation.time, sizeof(op->operation.time), io_user) ||
+        !write(&op->operation.kind, sizeof(op->operation.kind), io_user) ||
+        !write_payload(&op->operation, write, io_user, payload_user)) {
+      break;
+    }
+    written++;
+    op = op->next;
+  }
+  return written;
+}
+
+size_t FUNC(ds_history_branch_deserialize_ops)(
+    ds_history_branch_t *branch, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user) {
+  ds_history_t *history;
+  size_t count;
+  size_t imported;
+  unsigned long id;
+  unsigned long time;
+  int kind;
+  void *payload;
+
+  if (branch == NULL || read == NULL || read_payload == NULL) {
+    return 0U;
+  }
+  if (!read(&count, sizeof(count), io_user)) {
+    return 0U;
+  }
+
+  history = branch->history;
+  imported = 0U;
+  LOCK(history);
+  while (imported < count) {
+    if (!read(&id, sizeof(id), io_user) || !read(&time, sizeof(time), io_user) ||
+        !read(&kind, sizeof(kind), io_user)) {
+      break;
+    }
+    payload = read_payload(id, time, kind, read, io_user, payload_user);
+    if (payload == NULL && read_payload != NULL) {
+      break;
+    }
+    if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
+      if (history->ops.destroy_payload != NULL) {
+        history->ops.destroy_payload(kind, payload);
+      }
+      break;
+    }
+    imported++;
+  }
+  UNLOCK(history);
+  return imported;
+}
+
+static size_t history_branch_count(ds_history_t *history) {
+  struct ds_history_branch_node *node;
+  size_t count;
+
+  count = 0U;
+  node = history->branches;
+  while (node != NULL) {
+    count++;
+    node = node->next;
+  }
+  return count;
+}
+
+static ds_history_branch_t *history_find_branch_by_id(ds_history_t *history,
+                                                       unsigned long id) {
+  struct ds_history_branch_node *node;
+
+  node = history->branches;
+  while (node != NULL) {
+    if (node->branch->id == id) {
+      return node->branch;
+    }
+    node = node->next;
+  }
+  return NULL;
+}
+
+static bool history_write_branch_ops(
+    ds_history_branch_t *branch, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
+  struct ds_history_operation_node *op;
+  size_t count;
+
+  count = history_branch_operation_count(branch);
+  if (!write(&count, sizeof(count), io_user)) {
+    return false;
+  }
+  op = branch->operations;
+  while (op != NULL) {
+    if (!write(&op->operation.id, sizeof(op->operation.id), io_user) ||
+        !write(&op->operation.time, sizeof(op->operation.time), io_user) ||
+        !write(&op->operation.kind, sizeof(op->operation.kind), io_user) ||
+        !write_payload(&op->operation, write, io_user, payload_user)) {
+      return false;
+    }
+    op = op->next;
+  }
+  return true;
+}
+
+static bool history_serialize_branch_recursive(
+    ds_history_branch_t *branch, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
+  ds_history_t *history;
+  struct ds_history_branch_node *node;
+  unsigned long parent_id;
+  size_t name_len;
+
+  history = branch->history;
+  parent_id = branch->parent == NULL ? 0UL : branch->parent->id;
+  name_len = branch->name == NULL ? 0U : strlen(branch->name);
+
+  if (!write(&branch->id, sizeof(branch->id), io_user) ||
+      !write(&parent_id, sizeof(parent_id), io_user) ||
+      !write(&branch->fork_time, sizeof(branch->fork_time), io_user) ||
+      !write(&name_len, sizeof(name_len), io_user)) {
+    return false;
+  }
+  if (name_len != 0U && !write(branch->name, name_len, io_user)) {
+    return false;
+  }
+  if (!history_write_branch_ops(branch, write, write_payload, io_user,
+                                payload_user)) {
+    return false;
+  }
+
+  node = history->branches;
+  while (node != NULL) {
+    if (node->branch->parent == branch) {
+      if (!history_serialize_branch_recursive(node->branch, write,
+                                              write_payload, io_user,
+                                              payload_user)) {
+        return false;
+      }
+    }
+    node = node->next;
+  }
+  return true;
+}
+
+static char *history_read_name(ds_history_t *history, ds_history_read_func_t read,
+                               void *io_user, size_t name_len) {
+  char *name;
+
+  if (name_len == 0U) {
+    return NULL;
+  }
+  name = (char *)history->allocator(name_len + 1U);
+  if (name == NULL) {
+    return NULL;
+  }
+  if (!read(name, name_len, io_user)) {
+    history->deallocator(name);
+    return NULL;
+  }
+  name[name_len] = '\0';
+  return name;
+}
+
+static bool history_read_branch_ops(
+    ds_history_branch_t *branch, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user) {
+  ds_history_t *history;
+  size_t count;
+  size_t i;
+  unsigned long id;
+  unsigned long time;
+  int kind;
+  void *payload;
+
+  history = branch->history;
+  if (!read(&count, sizeof(count), io_user)) {
+    return false;
+  }
+  for (i = 0U; i < count; i++) {
+    if (!read(&id, sizeof(id), io_user) || !read(&time, sizeof(time), io_user) ||
+        !read(&kind, sizeof(kind), io_user)) {
+      return false;
+    }
+    payload = read_payload(id, time, kind, read, io_user, payload_user);
+    if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
+      if (history->ops.destroy_payload != NULL) {
+        history->ops.destroy_payload(kind, payload);
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
+bool FUNC(ds_history_serialize)(ds_history_t *history,
+                                 ds_history_write_func_t write,
+                                 ds_history_payload_write_func_t write_payload,
+                                 void *io_user, void *payload_user) {
+  static const unsigned char magic[8] = {'D', 'S', 'H', 'I', 'S', 'T', '3', 0};
+  size_t branch_count;
+  bool ok;
+
+  if (history == NULL || write == NULL || write_payload == NULL) {
+    return false;
+  }
+
+  LOCK(history);
+  branch_count = history_branch_count(history);
+  ok = write(magic, sizeof(magic), io_user) &&
+       write(&branch_count, sizeof(branch_count), io_user) &&
+       write(&history->next_operation_id, sizeof(history->next_operation_id),
+             io_user) &&
+       write(&history->next_branch_id, sizeof(history->next_branch_id),
+             io_user) &&
+       write(&history->checkpoint_interval, sizeof(history->checkpoint_interval),
+             io_user) &&
+       history_serialize_branch_recursive(history->main_branch, write,
+                                          write_payload, io_user, payload_user);
+  UNLOCK(history);
+  return ok;
+}
+
+ds_history_t *FUNC(ds_history_deserialize)(
+    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user) {
+  static const unsigned char expected_magic[8] = {'D', 'S', 'H', 'I', 'S', 'T',
+                                                  '3', 0};
+  unsigned char magic[8];
+  ds_history_t *history;
+  ds_history_branch_t *branch;
+  ds_history_branch_t *parent;
+  size_t branch_count;
+  size_t i;
+  unsigned long next_operation_id;
+  unsigned long next_branch_id;
+  size_t checkpoint_interval;
+  unsigned long id;
+  unsigned long parent_id;
+  unsigned long fork_time;
+  size_t name_len;
+  char *name;
+
+  if (ops == NULL || read == NULL || read_payload == NULL) {
+    return NULL;
+  }
+  if (!read(magic, sizeof(magic), io_user) ||
+      memcmp(magic, expected_magic, sizeof(magic)) != 0 ||
+      !read(&branch_count, sizeof(branch_count), io_user) ||
+      !read(&next_operation_id, sizeof(next_operation_id), io_user) ||
+      !read(&next_branch_id, sizeof(next_branch_id), io_user) ||
+      !read(&checkpoint_interval, sizeof(checkpoint_interval), io_user)) {
+    return NULL;
+  }
+  if (branch_count == 0U) {
+    return NULL;
+  }
+
+  history = FUNC(ds_history_create)(ops, config);
+  if (history == NULL) {
+    return NULL;
+  }
+  history->checkpoint_interval = checkpoint_interval;
+
+  for (i = 0U; i < branch_count; i++) {
+    if (!read(&id, sizeof(id), io_user) ||
+        !read(&parent_id, sizeof(parent_id), io_user) ||
+        !read(&fork_time, sizeof(fork_time), io_user) ||
+        !read(&name_len, sizeof(name_len), io_user)) {
+      FUNC(ds_history_destroy)(history);
+      return NULL;
+    }
+    name = history_read_name(history, read, io_user, name_len);
+    if (name_len != 0U && name == NULL) {
+      FUNC(ds_history_destroy)(history);
+      return NULL;
+    }
+
+    if (parent_id == 0UL) {
+      branch = history->main_branch;
+      if (branch == NULL) {
+        if (name != NULL) {
+          history->deallocator(name);
+        }
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+      if (branch->name != NULL) {
+        history->deallocator(branch->name);
+      }
+      branch->name = name;
+      branch->id = id;
+      branch->fork_time = fork_time;
+    } else {
+      parent = history_find_branch_by_id(history, parent_id);
+      if (parent == NULL) {
+        if (name != NULL) {
+          history->deallocator(name);
+        }
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+      branch = history_branch_alloc(history, parent, fork_time, name);
+      if (name != NULL) {
+        history->deallocator(name);
+      }
+      if (branch == NULL) {
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+      branch->id = id;
+      if (!history_branch_register(history, branch)) {
+        history_branch_destroy(branch);
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+    }
+
+    if (history->next_branch_id <= id) {
+      history->next_branch_id = id + 1UL;
+    }
+    if (!history_read_branch_ops(branch, read, read_payload, io_user,
+                                 payload_user)) {
+      FUNC(ds_history_destroy)(history);
+      return NULL;
+    }
+  }
+
+  if (history->next_operation_id < next_operation_id) {
+    history->next_operation_id = next_operation_id;
+  }
+  if (history->next_branch_id < next_branch_id) {
+    history->next_branch_id = next_branch_id;
+  }
+  return history;
+}
+
+static bool history_write_branch_ops_portable(
+    ds_history_branch_t *branch, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
+  struct ds_history_operation_node *op;
+  size_t count;
+
+  count = history_branch_operation_count(branch);
+  if (!FUNC(ds_history_write_size)(write, io_user, count)) {
+    return false;
+  }
+  op = branch->operations;
+  while (op != NULL) {
+    if (!FUNC(ds_history_write_ulong)(write, io_user, op->operation.id) ||
+        !FUNC(ds_history_write_ulong)(write, io_user, op->operation.time) ||
+        !FUNC(ds_history_write_int)(write, io_user, op->operation.kind) ||
+        !write_payload(&op->operation, write, io_user, payload_user)) {
+      return false;
+    }
+    op = op->next;
+  }
+  return true;
+}
+
+static bool history_serialize_branch_recursive_portable(
+    ds_history_branch_t *branch, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
+  ds_history_t *history;
+  struct ds_history_branch_node *node;
+  unsigned long parent_id;
+  size_t name_len;
+
+  history = branch->history;
+  parent_id = branch->parent == NULL ? 0UL : branch->parent->id;
+  name_len = branch->name == NULL ? 0U : strlen(branch->name);
+
+  if (!FUNC(ds_history_write_ulong)(write, io_user, branch->id) ||
+      !FUNC(ds_history_write_ulong)(write, io_user, parent_id) ||
+      !FUNC(ds_history_write_ulong)(write, io_user, branch->fork_time) ||
+      !FUNC(ds_history_write_size)(write, io_user, name_len)) {
+    return false;
+  }
+  if (name_len != 0U && !write(branch->name, name_len, io_user)) {
+    return false;
+  }
+  if (!history_write_branch_ops_portable(branch, write, write_payload, io_user,
+                                         payload_user)) {
+    return false;
+  }
+
+  node = history->branches;
+  while (node != NULL) {
+    if (node->branch->parent == branch) {
+      if (!history_serialize_branch_recursive_portable(node->branch, write,
+                                                       write_payload, io_user,
+                                                       payload_user)) {
+        return false;
+      }
+    }
+    node = node->next;
+  }
+  return true;
+}
+
+static bool history_read_branch_ops_portable(
+    ds_history_branch_t *branch, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user) {
+  ds_history_t *history;
+  size_t count;
+  size_t i;
+  unsigned long id;
+  unsigned long time;
+  int kind;
+  void *payload;
+
+  history = branch->history;
+  if (!FUNC(ds_history_read_size)(read, io_user, &count)) {
+    return false;
+  }
+  for (i = 0U; i < count; i++) {
+    if (!FUNC(ds_history_read_ulong)(read, io_user, &id) ||
+        !FUNC(ds_history_read_ulong)(read, io_user, &time) ||
+        !FUNC(ds_history_read_int)(read, io_user, &kind)) {
+      return false;
+    }
+    payload = read_payload(id, time, kind, read, io_user, payload_user);
+    if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
+      if (history->ops.destroy_payload != NULL) {
+        history->ops.destroy_payload(kind, payload);
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
+bool FUNC(ds_history_serialize_portable)(
+    ds_history_t *history, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
+  static const unsigned char magic[8] = {'D', 'S', 'H', 'I', 'S', 'T', '4', 0};
+  size_t branch_count;
+  bool ok;
+
+  if (history == NULL || write == NULL || write_payload == NULL) {
+    return false;
+  }
+
+  LOCK(history);
+  branch_count = history_branch_count(history);
+  ok = write(magic, sizeof(magic), io_user) &&
+       FUNC(ds_history_write_size)(write, io_user, branch_count) &&
+       FUNC(ds_history_write_ulong)(write, io_user,
+                                    history->next_operation_id) &&
+       FUNC(ds_history_write_ulong)(write, io_user, history->next_branch_id) &&
+       FUNC(ds_history_write_size)(write, io_user,
+                                   history->checkpoint_interval) &&
+       history_serialize_branch_recursive_portable(
+           history->main_branch, write, write_payload, io_user, payload_user);
+  UNLOCK(history);
+  return ok;
+}
+
+ds_history_t *FUNC(ds_history_deserialize_portable)(
+    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user) {
+  static const unsigned char expected_magic[8] = {'D', 'S', 'H', 'I', 'S', 'T',
+                                                  '4', 0};
+  unsigned char magic[8];
+  ds_history_t *history;
+  ds_history_branch_t *branch;
+  ds_history_branch_t *parent;
+  size_t branch_count;
+  size_t i;
+  unsigned long next_operation_id;
+  unsigned long next_branch_id;
+  size_t checkpoint_interval;
+  unsigned long id;
+  unsigned long parent_id;
+  unsigned long fork_time;
+  size_t name_len;
+  char *name;
+
+  if (ops == NULL || read == NULL || read_payload == NULL) {
+    return NULL;
+  }
+  if (!read(magic, sizeof(magic), io_user) ||
+      memcmp(magic, expected_magic, sizeof(magic)) != 0 ||
+      !FUNC(ds_history_read_size)(read, io_user, &branch_count) ||
+      !FUNC(ds_history_read_ulong)(read, io_user, &next_operation_id) ||
+      !FUNC(ds_history_read_ulong)(read, io_user, &next_branch_id) ||
+      !FUNC(ds_history_read_size)(read, io_user, &checkpoint_interval)) {
+    return NULL;
+  }
+  if (branch_count == 0U) {
+    return NULL;
+  }
+
+  history = FUNC(ds_history_create)(ops, config);
+  if (history == NULL) {
+    return NULL;
+  }
+  history->checkpoint_interval = checkpoint_interval;
+
+  for (i = 0U; i < branch_count; i++) {
+    if (!FUNC(ds_history_read_ulong)(read, io_user, &id) ||
+        !FUNC(ds_history_read_ulong)(read, io_user, &parent_id) ||
+        !FUNC(ds_history_read_ulong)(read, io_user, &fork_time) ||
+        !FUNC(ds_history_read_size)(read, io_user, &name_len)) {
+      FUNC(ds_history_destroy)(history);
+      return NULL;
+    }
+    name = history_read_name(history, read, io_user, name_len);
+    if (name_len != 0U && name == NULL) {
+      FUNC(ds_history_destroy)(history);
+      return NULL;
+    }
+
+    if (parent_id == 0UL) {
+      branch = history->main_branch;
+      if (branch == NULL) {
+        if (name != NULL) {
+          history->deallocator(name);
+        }
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+      if (branch->name != NULL) {
+        history->deallocator(branch->name);
+      }
+      branch->name = name;
+      branch->id = id;
+      branch->fork_time = fork_time;
+    } else {
+      parent = history_find_branch_by_id(history, parent_id);
+      if (parent == NULL) {
+        if (name != NULL) {
+          history->deallocator(name);
+        }
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+      branch = history_branch_alloc(history, parent, fork_time, name);
+      if (name != NULL) {
+        history->deallocator(name);
+      }
+      if (branch == NULL) {
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+      branch->id = id;
+      if (!history_branch_register(history, branch)) {
+        history_branch_destroy(branch);
+        FUNC(ds_history_destroy)(history);
+        return NULL;
+      }
+    }
+
+    if (history->next_branch_id <= id) {
+      history->next_branch_id = id + 1UL;
+    }
+    if (!history_read_branch_ops_portable(branch, read, read_payload, io_user,
+                                          payload_user)) {
+      FUNC(ds_history_destroy)(history);
+      return NULL;
+    }
+  }
+
+  if (history->next_operation_id < next_operation_id) {
+    history->next_operation_id = next_operation_id;
+  }
+  if (history->next_branch_id < next_branch_id) {
+    history->next_branch_id = next_branch_id;
+  }
+  return history;
 }

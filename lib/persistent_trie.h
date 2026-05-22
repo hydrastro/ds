@@ -5,6 +5,7 @@
 
 #include "context.h"
 #include "status.h"
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -17,6 +18,8 @@ typedef struct ds_ptrie_version ds_ptrie_version_t;
 
 typedef void *(*ds_ptrie_clone_value_func_t)(void *value, void *user);
 typedef void (*ds_ptrie_destroy_value_func_t)(void *value, void *user);
+typedef bool (*ds_ptrie_visit_func_t)(const unsigned char *key, size_t len,
+                                      void *value, void *user);
 
 typedef struct ds_ptrie_config {
   ds_ptrie_clone_value_func_t clone_value;
@@ -33,9 +36,36 @@ ds_ptrie_version_t *FUNC(ds_ptrie_insert)(ds_ptrie_t *trie,
                                            ds_ptrie_version_t *base,
                                            const unsigned char *key,
                                            size_t len, void *value);
+ds_ptrie_version_t *FUNC(ds_ptrie_remove)(ds_ptrie_t *trie,
+                                           ds_ptrie_version_t *base,
+                                           const unsigned char *key,
+                                           size_t len);
+ds_ptrie_version_t *FUNC(ds_ptrie_remove_prefix)(ds_ptrie_t *trie,
+                                                  ds_ptrie_version_t *base,
+                                                  const unsigned char *prefix,
+                                                  size_t prefix_len,
+                                                  size_t *out_removed);
 ds_status_t FUNC(ds_ptrie_get)(ds_ptrie_version_t *version,
                                 const unsigned char *key, size_t len,
                                 void **out_value);
+ds_status_t FUNC(ds_ptrie_contains_prefix)(ds_ptrie_version_t *version,
+                                            const unsigned char *prefix,
+                                            size_t prefix_len);
+ds_status_t FUNC(ds_ptrie_longest_prefix)(ds_ptrie_version_t *version,
+                                           const unsigned char *key, size_t len,
+                                           size_t *out_len, void **out_value);
+ds_status_t FUNC(ds_ptrie_visit_prefix)(ds_ptrie_version_t *version,
+                                         const unsigned char *prefix,
+                                         size_t prefix_len,
+                                         ds_ptrie_visit_func_t visit,
+                                         void *user);
+ds_status_t FUNC(ds_ptrie_visit_range)(ds_ptrie_version_t *version,
+                                        const unsigned char *lower,
+                                        size_t lower_len,
+                                        const unsigned char *upper,
+                                        size_t upper_len,
+                                        ds_ptrie_visit_func_t visit,
+                                        void *user);
 void FUNC(ds_ptrie_version_retain)(ds_ptrie_version_t *version);
 void FUNC(ds_ptrie_version_release)(ds_ptrie_t *trie,
                                     ds_ptrie_version_t *version);

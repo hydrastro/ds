@@ -6,6 +6,7 @@
 #include "context.h"
 #include "rbt.h"
 #include "status.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +20,7 @@ typedef struct ds_prbt_version ds_prbt_version_t;
 typedef int (*ds_prbt_compare_func_t)(void *a, void *b, void *user);
 typedef void *(*ds_prbt_clone_func_t)(void *ptr, void *user);
 typedef void (*ds_prbt_destroy_func_t)(void *ptr, void *user);
+typedef bool (*ds_prbt_visit_func_t)(void *key, void *value, void *user);
 
 typedef struct ds_prbt_config {
   ds_prbt_compare_func_t compare;
@@ -39,6 +41,26 @@ ds_prbt_version_t *FUNC(ds_prbt_insert)(ds_prbt_t *tree,
                                          void *value);
 ds_status_t FUNC(ds_prbt_get)(ds_prbt_t *tree, ds_prbt_version_t *version,
                                void *key, void **out_value);
+ds_prbt_version_t *FUNC(ds_prbt_remove)(ds_prbt_t *tree,
+                                         ds_prbt_version_t *base, void *key);
+ds_status_t FUNC(ds_prbt_visit)(ds_prbt_t *tree, ds_prbt_version_t *version,
+                                 ds_prbt_visit_func_t visit, void *user);
+ds_status_t FUNC(ds_prbt_visit_range)(ds_prbt_t *tree,
+                                       ds_prbt_version_t *version,
+                                       void *lower, void *upper,
+                                       ds_prbt_visit_func_t visit, void *user);
+ds_status_t FUNC(ds_prbt_floor)(ds_prbt_t *tree, ds_prbt_version_t *version,
+                                 void *key, void **out_key,
+                                 void **out_value);
+ds_status_t FUNC(ds_prbt_ceiling)(ds_prbt_t *tree, ds_prbt_version_t *version,
+                                   void *key, void **out_key,
+                                   void **out_value);
+ds_status_t FUNC(ds_prbt_rank)(ds_prbt_t *tree, ds_prbt_version_t *version,
+                                void *key, size_t *out_rank);
+ds_status_t FUNC(ds_prbt_select)(ds_prbt_t *tree, ds_prbt_version_t *version,
+                                  size_t rank, void **out_key,
+                                  void **out_value);
+size_t FUNC(ds_prbt_size)(ds_prbt_version_t *version);
 void FUNC(ds_prbt_version_retain)(ds_prbt_version_t *version);
 void FUNC(ds_prbt_version_release)(ds_prbt_t *tree,
                                    ds_prbt_version_t *version);
