@@ -26,6 +26,9 @@ typedef struct ds_graph_vertex {
 } ds_graph_vertex_t;
 
 typedef bool (*ds_graph_visit_func_t)(size_t vertex, void *data, void *user);
+typedef bool (*ds_graph_edge_visit_func_t)(size_t from,
+                                           const ds_graph_edge_t *edge,
+                                           void *user);
 
 typedef struct ds_graph {
   ds_graph_vertex_t *vertices;
@@ -48,6 +51,15 @@ ds_status_t FUNC(ds_graph_add_weighted_edge)(ds_graph_t *graph, size_t from,
                                               void *data);
 ds_status_t FUNC(ds_graph_get_vertex)(ds_graph_t *graph, size_t index,
                                        void **out_data);
+ds_status_t FUNC(ds_graph_update_edge)(ds_graph_t *graph, size_t from,
+                                        size_t to, double weight, void *data,
+                                        void (*destroy_old_edge)(void *));
+ds_status_t FUNC(ds_graph_remove_edge)(ds_graph_t *graph, size_t from,
+                                        size_t to,
+                                        void (*destroy_edge)(void *));
+ds_status_t FUNC(ds_graph_visit_edges)(ds_graph_t *graph, size_t from,
+                                        ds_graph_edge_visit_func_t visit,
+                                        void *user);
 size_t FUNC(ds_graph_vertex_count)(ds_graph_t *graph);
 size_t FUNC(ds_graph_edge_count)(ds_graph_t *graph, size_t vertex);
 ds_status_t FUNC(ds_graph_bfs)(ds_graph_t *graph, size_t start,
@@ -61,6 +73,12 @@ ds_status_t FUNC(ds_graph_topological_sort)(ds_graph_t *graph,
 ds_status_t FUNC(ds_graph_dijkstra)(ds_graph_t *graph, size_t start,
                                      double *out_distances,
                                      size_t *out_previous, size_t capacity);
+ds_status_t FUNC(ds_graph_bellman_ford)(ds_graph_t *graph, size_t start,
+                                          double *out_distances,
+                                          size_t *out_previous, size_t capacity,
+                                          bool *out_has_negative_cycle);
+ds_status_t FUNC(ds_graph_minimum_spanning_tree)(ds_graph_t *graph,
+                                                  ds_graph_t *out_tree);
 ds_status_t FUNC(ds_graph_connected_components)(ds_graph_t *graph,
                                                  size_t *out_components,
                                                  size_t capacity,

@@ -39,9 +39,25 @@ typedef bool (*ds_history_payload_write_func_t)(
 typedef void *(*ds_history_payload_read_func_t)(
     unsigned long id, unsigned long time, int kind, ds_history_read_func_t read,
     void *io_user, void *payload_user);
+typedef unsigned int (*ds_history_merge_policy_func_t)(
+    ds_history_branch_t *target, ds_history_branch_t *source,
+    const ds_history_operation_t *source_operation, unsigned long *in_out_time,
+    int *in_out_kind, void **in_out_payload, void *user);
+
+typedef struct ds_history_archive {
+  unsigned char *data;
+  size_t size;
+  size_t capacity;
+  size_t offset;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
+} ds_history_archive_t;
 
 #define DS_HISTORY_MERGE_PRESERVE_TIME 0U
 #define DS_HISTORY_MERGE_APPEND_AFTER_HEAD 1U
+#define DS_HISTORY_MERGE_TAKE 0U
+#define DS_HISTORY_MERGE_SKIP 1U
+#define DS_HISTORY_MERGE_STOP 2U
 
 struct ds_history_operation {
   unsigned long id;
@@ -112,6 +128,10 @@ size_t FUNC(ds_history_branch_merge)(ds_history_branch_t *target,
                                       unsigned long from_time,
                                       unsigned long through_time,
                                       unsigned int flags);
+size_t FUNC(ds_history_branch_merge_with)(
+    ds_history_branch_t *target, ds_history_branch_t *source,
+    unsigned long from_time, unsigned long through_time, unsigned int flags,
+    ds_history_merge_policy_func_t policy, void *policy_user);
 
 void *FUNC(ds_history_branch_snapshot_at)(ds_history_branch_t *branch,
                                           unsigned long time);
@@ -153,6 +173,19 @@ ds_history_t *FUNC(ds_history_deserialize)(
     const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
     ds_history_payload_read_func_t read_payload, void *io_user,
     void *payload_user);
+void FUNC(ds_history_archive_init)(ds_history_archive_t *archive);
+void FUNC(ds_history_archive_init_alloc)(ds_history_archive_t *archive,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *));
+void FUNC(ds_history_archive_destroy)(ds_history_archive_t *archive);
+void FUNC(ds_history_archive_clear)(ds_history_archive_t *archive);
+void FUNC(ds_history_archive_rewind)(ds_history_archive_t *archive);
+const unsigned char *FUNC(ds_history_archive_data)(
+    const ds_history_archive_t *archive);
+size_t FUNC(ds_history_archive_size)(const ds_history_archive_t *archive);
+bool FUNC(ds_history_archive_write)(const void *data, size_t size, void *user);
+bool FUNC(ds_history_archive_read)(void *data, size_t size, void *user);
+
 bool FUNC(ds_history_serialize_portable)(
     ds_history_t *history, ds_history_write_func_t write,
     ds_history_payload_write_func_t write_payload, void *io_user,

@@ -51,6 +51,18 @@ ds_status_t FUNC(ds_ptrie_get)(ds_ptrie_version_t *version,
 ds_status_t FUNC(ds_ptrie_contains_prefix)(ds_ptrie_version_t *version,
                                             const unsigned char *prefix,
                                             size_t prefix_len);
+size_t FUNC(ds_ptrie_count_prefix)(ds_ptrie_version_t *version,
+                                    const unsigned char *prefix,
+                                    size_t prefix_len);
+ds_ptrie_version_t *FUNC(ds_ptrie_copy_prefix)(
+    ds_ptrie_t *trie, ds_ptrie_version_t *destination_base,
+    ds_ptrie_version_t *source_version, const unsigned char *source_prefix,
+    size_t source_prefix_len, const unsigned char *destination_prefix,
+    size_t destination_prefix_len, size_t *out_copied);
+ds_ptrie_version_t *FUNC(ds_ptrie_move_prefix)(
+    ds_ptrie_t *trie, ds_ptrie_version_t *base, const unsigned char *source_prefix,
+    size_t source_prefix_len, const unsigned char *destination_prefix,
+    size_t destination_prefix_len, size_t *out_moved);
 ds_status_t FUNC(ds_ptrie_longest_prefix)(ds_ptrie_version_t *version,
                                            const unsigned char *key, size_t len,
                                            size_t *out_len, void **out_value);

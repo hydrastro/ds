@@ -35,3 +35,38 @@ The largest trie/RBT/history limitations have been addressed:
 - Add a first-class portable archive object for history instead of only exposing helper callbacks.
 - Add graph weighted-edge update/remove, Bellman-Ford for negative weights, minimum spanning tree helpers, and adjacency iterators.
 - Add arena/pool/debug allocators through `ds_context_t`.
+
+## High-value hardening pass
+
+Additional work now implemented:
+
+- `make valgrind` runs the full test suite, safe smoke test, and examples under Valgrind when Valgrind is installed. Split targets are also available: `make valgrind-test`, `make valgrind-safe`, and `make valgrind-examples`.
+- `ds_context_t` now has first-class allocator backends in `lib/allocators.h`:
+  - `ds_arena_t` for bump allocation
+  - `ds_pool_t` for fixed-size block allocation
+  - `ds_debug_allocator_t` for allocation/free/realloc statistics
+- Persistent trie now includes high-level prefix helpers:
+  - `ds_ptrie_count_prefix`
+  - `ds_ptrie_copy_prefix`
+  - `ds_ptrie_move_prefix`
+- Persistent red-black tree now includes:
+  - `ds_prbt_delete_min`
+  - `ds_prbt_delete_max`
+  - `ds_prbt_predecessor`
+  - `ds_prbt_successor`
+  - `ds_prbt_validate`
+- History now includes:
+  - `ds_history_archive_t`, an owned in-memory archive object
+  - archive read/write callbacks usable directly with portable serialization
+  - `ds_history_branch_merge_with`, a callback-driven semantic merge policy hook
+- Graph now includes:
+  - edge update/remove APIs
+  - edge visitation
+  - Bellman-Ford shortest paths
+  - minimum spanning tree / forest helper over the graph's weak undirected view
+
+Still intentionally open:
+
+- Full legacy API migration to `ds_status_t` remains incremental because it changes a large public surface.
+- Compressed/radix persistent trie storage remains a separate performance-oriented backend, not a small extension to the current byte-edge trie.
+- History merge conflict handling is now hookable, but domain-specific conflict resolution belongs in adapters.

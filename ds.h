@@ -6,6 +6,7 @@
 #include "lib/error.h"
 #include "lib/diagnostic.h"
 #include "lib/context.h"
+#include "lib/allocators.h"
 #include "lib/result.h"
 #include "lib/iter.h"
 

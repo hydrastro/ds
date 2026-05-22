@@ -123,9 +123,6 @@ ds_status_t FUNC(ds_graph_add_weighted_edge)(ds_graph_t *graph, size_t from,
   if (from >= graph->vertex_count || to >= graph->vertex_count) {
     return DS_ERR_RANGE;
   }
-  if (weight < 0.0) {
-    return DS_ERR_RANGE;
-  }
   if (graph->vertices[from].edge_count == graph->vertices[from].edge_capacity) {
     status = graph_reserve_edges(
         graph, from, graph->vertices[from].edge_capacity == 0U
@@ -155,6 +152,77 @@ ds_status_t FUNC(ds_graph_get_vertex)(ds_graph_t *graph, size_t index,
     return DS_ERR_RANGE;
   }
   *out_data = graph->vertices[index].data;
+  return DS_OK;
+}
+
+
+ds_status_t FUNC(ds_graph_update_edge)(ds_graph_t *graph, size_t from,
+                                        size_t to, double weight, void *data,
+                                        void (*destroy_old_edge)(void *)) {
+  size_t i;
+
+  if (graph == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (from >= graph->vertex_count || to >= graph->vertex_count) {
+    return DS_ERR_RANGE;
+  }
+  for (i = 0U; i < graph->vertices[from].edge_count; i++) {
+    if (graph->vertices[from].edges[i].to == to) {
+      if (destroy_old_edge != NULL) {
+        destroy_old_edge(graph->vertices[from].edges[i].data);
+      }
+      graph->vertices[from].edges[i].weight = weight;
+      graph->vertices[from].edges[i].data = data;
+      return DS_OK;
+    }
+  }
+  return FUNC(ds_graph_add_weighted_edge)(graph, from, to, weight, data);
+}
+
+ds_status_t FUNC(ds_graph_remove_edge)(ds_graph_t *graph, size_t from,
+                                        size_t to,
+                                        void (*destroy_edge)(void *)) {
+  size_t i;
+  size_t j;
+
+  if (graph == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (from >= graph->vertex_count || to >= graph->vertex_count) {
+    return DS_ERR_RANGE;
+  }
+  for (i = 0U; i < graph->vertices[from].edge_count; i++) {
+    if (graph->vertices[from].edges[i].to == to) {
+      if (destroy_edge != NULL) {
+        destroy_edge(graph->vertices[from].edges[i].data);
+      }
+      for (j = i + 1U; j < graph->vertices[from].edge_count; j++) {
+        graph->vertices[from].edges[j - 1U] = graph->vertices[from].edges[j];
+      }
+      graph->vertices[from].edge_count--;
+      return DS_OK;
+    }
+  }
+  return DS_NOT_FOUND;
+}
+
+ds_status_t FUNC(ds_graph_visit_edges)(ds_graph_t *graph, size_t from,
+                                        ds_graph_edge_visit_func_t visit,
+                                        void *user) {
+  size_t i;
+
+  if (graph == NULL || visit == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (from >= graph->vertex_count) {
+    return DS_ERR_RANGE;
+  }
+  for (i = 0U; i < graph->vertices[from].edge_count; i++) {
+    if (!visit(from, &graph->vertices[from].edges[i], user)) {
+      return DS_STOP;
+    }
+  }
   return DS_OK;
 }
 
@@ -350,6 +418,14 @@ ds_status_t FUNC(ds_graph_dijkstra)(ds_graph_t *graph, size_t start,
     return DS_ERR_RANGE;
   }
 
+  for (i = 0U; i < graph->vertex_count; i++) {
+    for (j = 0U; j < graph->vertices[i].edge_count; j++) {
+      if (graph->vertices[i].edges[j].weight < 0.0) {
+        return DS_ERR_RANGE;
+      }
+    }
+  }
+
   done = (bool *)calloc(graph->vertex_count, sizeof(*done));
   if (done == NULL) {
     return DS_ERR_ALLOC;
@@ -387,6 +463,189 @@ ds_status_t FUNC(ds_graph_dijkstra)(ds_graph_t *graph, size_t start,
   }
 
   free(done);
+  return DS_OK;
+}
+
+
+ds_status_t FUNC(ds_graph_bellman_ford)(ds_graph_t *graph, size_t start,
+                                          double *out_distances,
+                                          size_t *out_previous, size_t capacity,
+                                          bool *out_has_negative_cycle) {
+  size_t i;
+  size_t j;
+  size_t k;
+  size_t to;
+  bool changed;
+  double next_distance;
+
+  if (out_has_negative_cycle != NULL) {
+    *out_has_negative_cycle = false;
+  }
+  if (graph == NULL || out_distances == NULL || out_previous == NULL ||
+      out_has_negative_cycle == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (start >= graph->vertex_count || capacity < graph->vertex_count) {
+    return DS_ERR_RANGE;
+  }
+  for (i = 0U; i < graph->vertex_count; i++) {
+    out_distances[i] = DBL_MAX;
+    out_previous[i] = (size_t)-1;
+  }
+  out_distances[start] = 0.0;
+
+  for (i = 1U; i < graph->vertex_count; i++) {
+    changed = false;
+    for (j = 0U; j < graph->vertex_count; j++) {
+      if (out_distances[j] >= DBL_MAX) {
+        continue;
+      }
+      for (k = 0U; k < graph->vertices[j].edge_count; k++) {
+        to = graph->vertices[j].edges[k].to;
+        next_distance = out_distances[j] + graph->vertices[j].edges[k].weight;
+        if (next_distance < out_distances[to]) {
+          out_distances[to] = next_distance;
+          out_previous[to] = j;
+          changed = true;
+        }
+      }
+    }
+    if (!changed) {
+      break;
+    }
+  }
+
+  for (j = 0U; j < graph->vertex_count; j++) {
+    if (out_distances[j] >= DBL_MAX) {
+      continue;
+    }
+    for (k = 0U; k < graph->vertices[j].edge_count; k++) {
+      to = graph->vertices[j].edges[k].to;
+      if (out_distances[j] + graph->vertices[j].edges[k].weight <
+          out_distances[to]) {
+        *out_has_negative_cycle = true;
+        break;
+      }
+    }
+  }
+
+  return DS_OK;
+}
+
+typedef struct graph_mst_edge {
+  size_t from;
+  size_t to;
+  double weight;
+  void *data;
+} graph_mst_edge_t;
+
+static int graph_mst_edge_compare(const void *a, const void *b) {
+  const graph_mst_edge_t *ea;
+  const graph_mst_edge_t *eb;
+
+  ea = (const graph_mst_edge_t *)a;
+  eb = (const graph_mst_edge_t *)b;
+  if (ea->weight < eb->weight) {
+    return -1;
+  }
+  if (ea->weight > eb->weight) {
+    return 1;
+  }
+  return 0;
+}
+
+static size_t graph_uf_find(size_t *parent, size_t index) {
+  while (parent[index] != index) {
+    parent[index] = parent[parent[index]];
+    index = parent[index];
+  }
+  return index;
+}
+
+ds_status_t FUNC(ds_graph_minimum_spanning_tree)(ds_graph_t *graph,
+                                                  ds_graph_t *out_tree) {
+  graph_mst_edge_t *edges;
+  size_t edge_total;
+  size_t edge_index;
+  size_t i;
+  size_t j;
+  size_t added;
+  size_t root_a;
+  size_t root_b;
+  size_t *parent;
+  size_t ignored_index;
+  ds_status_t status;
+
+  if (graph == NULL || out_tree == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (out_tree->vertex_count != 0U) {
+    return DS_ERR_STATE;
+  }
+
+  edge_total = 0U;
+  for (i = 0U; i < graph->vertex_count; i++) {
+    edge_total += graph->vertices[i].edge_count;
+  }
+  edges = NULL;
+  if (edge_total != 0U) {
+    edges = (graph_mst_edge_t *)malloc(edge_total * sizeof(*edges));
+    if (edges == NULL) {
+      return DS_ERR_ALLOC;
+    }
+  }
+  parent = (size_t *)malloc(graph->vertex_count * sizeof(*parent));
+  if (parent == NULL && graph->vertex_count != 0U) {
+    free(edges);
+    return DS_ERR_ALLOC;
+  }
+
+  for (i = 0U; i < graph->vertex_count; i++) {
+    status = FUNC(ds_graph_add_vertex)(out_tree, graph->vertices[i].data,
+                                       &ignored_index);
+    if (status != DS_OK) {
+      free(parent);
+      free(edges);
+      return status;
+    }
+    parent[i] = i;
+  }
+
+  edge_index = 0U;
+  for (i = 0U; i < graph->vertex_count; i++) {
+    for (j = 0U; j < graph->vertices[i].edge_count; j++) {
+      edges[edge_index].from = i;
+      edges[edge_index].to = graph->vertices[i].edges[j].to;
+      edges[edge_index].weight = graph->vertices[i].edges[j].weight;
+      edges[edge_index].data = graph->vertices[i].edges[j].data;
+      edge_index++;
+    }
+  }
+  qsort(edges, edge_total, sizeof(*edges), graph_mst_edge_compare);
+
+  added = 0U;
+  for (i = 0U; i < edge_total && added + 1U < graph->vertex_count; i++) {
+    root_a = graph_uf_find(parent, edges[i].from);
+    root_b = graph_uf_find(parent, edges[i].to);
+    if (root_a != root_b) {
+      parent[root_b] = root_a;
+      status = FUNC(ds_graph_add_weighted_edge)(out_tree, edges[i].from,
+                                                edges[i].to, edges[i].weight,
+                                                edges[i].data);
+      if (status != DS_OK) {
+        free(parent);
+        free(edges);
+        return status;
+      }
+      added++;
+    }
+  }
+
+  free(parent);
+  free(edges);
+  if (graph->vertex_count != 0U && added + 1U != graph->vertex_count) {
+    return DS_ERR_STATE;
+  }
   return DS_OK;
 }
 

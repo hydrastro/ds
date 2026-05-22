@@ -730,6 +730,171 @@ ds_status_t FUNC(ds_ptrie_contains_prefix)(ds_ptrie_version_t *version,
   return node == NULL ? DS_NOT_FOUND : DS_OK;
 }
 
+
+size_t FUNC(ds_ptrie_count_prefix)(ds_ptrie_version_t *version,
+                                    const unsigned char *prefix,
+                                    size_t prefix_len) {
+  ds_ptrie_node_t *node;
+
+  if (version == NULL || (prefix == NULL && prefix_len != 0U)) {
+    return 0U;
+  }
+  node = ptrie_find_node(version->root, prefix, prefix_len);
+  return ptrie_terminal_count(node);
+}
+
+typedef struct ptrie_copy_prefix_state {
+  ds_ptrie_t *trie;
+  ds_ptrie_version_t *current;
+  const unsigned char *source_prefix;
+  size_t source_prefix_len;
+  const unsigned char *destination_prefix;
+  size_t destination_prefix_len;
+  size_t copied;
+  bool failed;
+} ptrie_copy_prefix_state_t;
+
+static bool ptrie_copy_prefix_visit(const unsigned char *key, size_t len,
+                                    void *value, void *user) {
+  ptrie_copy_prefix_state_t *state;
+  ds_ptrie_version_t *next;
+  unsigned char *new_key;
+  size_t suffix_len;
+  size_t new_len;
+
+  state = (ptrie_copy_prefix_state_t *)user;
+  if (state == NULL || len < state->source_prefix_len) {
+    return false;
+  }
+  suffix_len = len - state->source_prefix_len;
+  new_len = state->destination_prefix_len + suffix_len;
+  new_key = NULL;
+  if (new_len != 0U) {
+    new_key = (unsigned char *)malloc(new_len);
+    if (new_key == NULL) {
+      state->failed = true;
+      return false;
+    }
+    if (state->destination_prefix_len != 0U) {
+      memcpy(new_key, state->destination_prefix, state->destination_prefix_len);
+    }
+    if (suffix_len != 0U) {
+      memcpy(new_key + state->destination_prefix_len,
+             key + state->source_prefix_len, suffix_len);
+    }
+  }
+  next = FUNC(ds_ptrie_insert)(state->trie, state->current, new_key, new_len,
+                               value);
+  if (new_key != NULL) {
+    free(new_key);
+  }
+  if (next == NULL) {
+    state->failed = true;
+    return false;
+  }
+  FUNC(ds_ptrie_version_release)(state->trie, state->current);
+  state->current = next;
+  state->copied++;
+  return true;
+}
+
+ds_ptrie_version_t *FUNC(ds_ptrie_copy_prefix)(
+    ds_ptrie_t *trie, ds_ptrie_version_t *destination_base,
+    ds_ptrie_version_t *source_version, const unsigned char *source_prefix,
+    size_t source_prefix_len, const unsigned char *destination_prefix,
+    size_t destination_prefix_len, size_t *out_copied) {
+  ptrie_copy_prefix_state_t state;
+  ds_status_t status;
+
+  if (out_copied != NULL) {
+    *out_copied = 0U;
+  }
+  if (trie == NULL || destination_base == NULL || source_version == NULL ||
+      (source_prefix == NULL && source_prefix_len != 0U) ||
+      (destination_prefix == NULL && destination_prefix_len != 0U)) {
+    return NULL;
+  }
+
+  if (FUNC(ds_ptrie_count_prefix)(source_version, source_prefix,
+                                  source_prefix_len) == 0U) {
+    return NULL;
+  }
+
+  state.trie = trie;
+  state.current = destination_base;
+  state.source_prefix = source_prefix;
+  state.source_prefix_len = source_prefix_len;
+  state.destination_prefix = destination_prefix;
+  state.destination_prefix_len = destination_prefix_len;
+  state.copied = 0U;
+  state.failed = false;
+  FUNC(ds_ptrie_version_retain)(state.current);
+
+  status = FUNC(ds_ptrie_visit_prefix)(source_version, source_prefix,
+                                       source_prefix_len,
+                                       ptrie_copy_prefix_visit, &state);
+  if (status != DS_OK || state.failed || state.copied == 0U) {
+    FUNC(ds_ptrie_version_release)(trie, state.current);
+    return NULL;
+  }
+  if (out_copied != NULL) {
+    *out_copied = state.copied;
+  }
+  return state.current;
+}
+
+ds_ptrie_version_t *FUNC(ds_ptrie_move_prefix)(
+    ds_ptrie_t *trie, ds_ptrie_version_t *base, const unsigned char *source_prefix,
+    size_t source_prefix_len, const unsigned char *destination_prefix,
+    size_t destination_prefix_len, size_t *out_moved) {
+  ds_ptrie_version_t *removed;
+  ds_ptrie_version_t *moved;
+  size_t removed_count;
+  size_t copied_count;
+
+  if (out_moved != NULL) {
+    *out_moved = 0U;
+  }
+  if (trie == NULL || base == NULL ||
+      (source_prefix == NULL && source_prefix_len != 0U) ||
+      (destination_prefix == NULL && destination_prefix_len != 0U)) {
+    return NULL;
+  }
+  if (source_prefix_len == destination_prefix_len &&
+      (source_prefix_len == 0U ||
+       memcmp(source_prefix, destination_prefix, source_prefix_len) == 0)) {
+    removed_count = FUNC(ds_ptrie_count_prefix)(base, source_prefix,
+                                                source_prefix_len);
+    if (removed_count == 0U) {
+      return NULL;
+    }
+    FUNC(ds_ptrie_version_retain)(base);
+    if (out_moved != NULL) {
+      *out_moved = removed_count;
+    }
+    return base;
+  }
+
+  removed_count = 0U;
+  removed = FUNC(ds_ptrie_remove_prefix)(trie, base, source_prefix,
+                                         source_prefix_len, &removed_count);
+  if (removed == NULL || removed_count == 0U) {
+    return NULL;
+  }
+  copied_count = 0U;
+  moved = FUNC(ds_ptrie_copy_prefix)(trie, removed, base, source_prefix,
+                                     source_prefix_len, destination_prefix,
+                                     destination_prefix_len, &copied_count);
+  FUNC(ds_ptrie_version_release)(trie, removed);
+  if (moved == NULL) {
+    return NULL;
+  }
+  if (out_moved != NULL) {
+    *out_moved = copied_count;
+  }
+  return moved;
+}
+
 ds_status_t FUNC(ds_ptrie_longest_prefix)(ds_ptrie_version_t *version,
                                            const unsigned char *key, size_t len,
                                            size_t *out_len, void **out_value) {

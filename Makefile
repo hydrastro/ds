@@ -1,5 +1,6 @@
 CC ?= cc
 AR ?= ar
+VALGRIND ?= valgrind
 
 CFLAGS = -std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors \
          -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual \
@@ -13,6 +14,7 @@ TEST_CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic -O2
 LDFLAGS = -shared
 LDLIBS = -pthread
 ARFLAGS = rcs
+VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=definite,possible --error-exitcode=99 --track-origins=yes
 
 LIB_DIR   := lib
 GEN_DIR   := gen
@@ -23,6 +25,7 @@ TEST_BUILD_DIR := $(BUILD_DIR)/test
 INCLUDES  := -I. -I$(LIB_DIR) -I$(BUILD_DIR)
 
 LIB_SRC := \
+  $(LIB_DIR)/allocators.c \
   $(LIB_DIR)/avl.c \
   $(LIB_DIR)/bst.c \
   $(LIB_DIR)/btree.c \
@@ -98,7 +101,7 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data test test-build check sanitize test-safe examples
+.PHONY: all clean distclean unicode-data test test-build check sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples
 all: $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE)
 
 $(BUILD_DIR) $(DATA_DIR) $(TEST_BUILD_DIR) $(EXAMPLE_BUILD_DIR):
@@ -224,3 +227,39 @@ sanitize:
 	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' LDLIBS='-pthread -fsanitize=address,undefined' test || status=$$?; \
 	$(MAKE) clean; \
 	exit $$status
+
+
+valgrind-test: test-build
+	@command -v $(VALGRIND) >/dev/null 2>&1 || { \
+	  echo "valgrind not found; install Valgrind or set VALGRIND=/path/to/valgrind"; \
+	  exit 127; \
+	}
+	@set -e; \
+	for test_bin in $(TEST_BIN); do \
+	  printf '\n== valgrind %s ==\n' "$$test_bin"; \
+	  $(VALGRIND) $(VALGRIND_FLAGS) "$$test_bin"; \
+	done
+
+valgrind-safe: test-safe
+	@command -v $(VALGRIND) >/dev/null 2>&1 || { \
+	  echo "valgrind not found; install Valgrind or set VALGRIND=/path/to/valgrind"; \
+	  exit 127; \
+	}
+	@set -e; \
+	for test_bin in $(TEST_BIN_SAFE); do \
+	  printf '\n== valgrind %s ==\n' "$$test_bin"; \
+	  $(VALGRIND) $(VALGRIND_FLAGS) "$$test_bin"; \
+	done
+
+valgrind-examples: examples
+	@command -v $(VALGRIND) >/dev/null 2>&1 || { \
+	  echo "valgrind not found; install Valgrind or set VALGRIND=/path/to/valgrind"; \
+	  exit 127; \
+	}
+	@set -e; \
+	for example_bin in $(EXAMPLE_BIN); do \
+	  printf '\n== valgrind %s ==\n' "$$example_bin"; \
+	  $(VALGRIND) $(VALGRIND_FLAGS) "$$example_bin"; \
+	done
+
+valgrind: valgrind-test valgrind-safe valgrind-examples

@@ -60,6 +60,7 @@ static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
                                        void *key, bool *removed,
                                        bool *failed);
 static ds_prbt_node_t *prbt_min_node(ds_prbt_node_t *node);
+static ds_prbt_node_t *prbt_max_node(ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree,
                                         ds_prbt_node_t *node, void *key);
 static ds_prbt_version_t *prbt_version_create(ds_prbt_node_t *root,
@@ -420,6 +421,13 @@ static ds_prbt_node_t *prbt_min_node(ds_prbt_node_t *node) {
   return node;
 }
 
+static ds_prbt_node_t *prbt_max_node(ds_prbt_node_t *node) {
+  while (node != NULL && node->right != NULL) {
+    node = node->right;
+  }
+  return node;
+}
+
 static ds_prbt_node_t *prbt_delete_min_rec(ds_prbt_t *tree,
                                            ds_prbt_node_t *node,
                                            bool *failed) {
@@ -676,6 +684,105 @@ static ds_prbt_node_t *prbt_ceiling_node(ds_prbt_t *tree,
   return candidate;
 }
 
+
+static ds_prbt_node_t *prbt_predecessor_node(ds_prbt_t *tree,
+                                             ds_prbt_node_t *node, void *key) {
+  ds_prbt_node_t *candidate;
+  int cmp;
+
+  candidate = NULL;
+  while (node != NULL) {
+    cmp = tree->config.compare(key, node->key, tree->config.user);
+    if (cmp <= 0) {
+      node = node->left;
+    } else {
+      candidate = node;
+      node = node->right;
+    }
+  }
+  return candidate;
+}
+
+static ds_prbt_node_t *prbt_successor_node(ds_prbt_t *tree,
+                                           ds_prbt_node_t *node, void *key) {
+  ds_prbt_node_t *candidate;
+  int cmp;
+
+  candidate = NULL;
+  while (node != NULL) {
+    cmp = tree->config.compare(key, node->key, tree->config.user);
+    if (cmp < 0) {
+      candidate = node;
+      node = node->left;
+    } else {
+      node = node->right;
+    }
+  }
+  return candidate;
+}
+
+static bool prbt_validate_node(ds_prbt_t *tree, ds_prbt_node_t *node,
+                               void *min_key, void *max_key,
+                               size_t *out_size, size_t black_count,
+                               size_t *expected_black_count) {
+  size_t left_size;
+  size_t right_size;
+  int cmp;
+
+  if (node == NULL) {
+    if (*expected_black_count == (size_t)-1) {
+      *expected_black_count = black_count;
+      *out_size = 0U;
+      return true;
+    }
+    *out_size = 0U;
+    return black_count == *expected_black_count;
+  }
+
+  if (min_key != NULL &&
+      tree->config.compare(node->key, min_key, tree->config.user) <= 0) {
+    return false;
+  }
+  if (max_key != NULL &&
+      tree->config.compare(node->key, max_key, tree->config.user) >= 0) {
+    return false;
+  }
+  if (prbt_is_red(node) && (prbt_is_red(node->left) || prbt_is_red(node->right))) {
+    return false;
+  }
+  if (prbt_is_red(node->right)) {
+    return false;
+  }
+  if (!prbt_is_red(node)) {
+    black_count++;
+  }
+  if (!prbt_validate_node(tree, node->left, min_key, node->key, &left_size,
+                          black_count, expected_black_count)) {
+    return false;
+  }
+  if (!prbt_validate_node(tree, node->right, node->key, max_key, &right_size,
+                          black_count, expected_black_count)) {
+    return false;
+  }
+  if (node->subtree_size != left_size + right_size + 1U) {
+    return false;
+  }
+  if (node->left != NULL) {
+    cmp = tree->config.compare(node->left->key, node->key, tree->config.user);
+    if (cmp >= 0) {
+      return false;
+    }
+  }
+  if (node->right != NULL) {
+    cmp = tree->config.compare(node->right->key, node->key, tree->config.user);
+    if (cmp <= 0) {
+      return false;
+    }
+  }
+  *out_size = node->subtree_size;
+  return true;
+}
+
 static size_t prbt_rank_node(ds_prbt_t *tree, ds_prbt_node_t *node,
                              void *key) {
   size_t rank;
@@ -831,6 +938,29 @@ ds_prbt_version_t *FUNC(ds_prbt_remove)(ds_prbt_t *tree,
   return version;
 }
 
+
+ds_prbt_version_t *FUNC(ds_prbt_delete_min)(ds_prbt_t *tree,
+                                             ds_prbt_version_t *base) {
+  ds_prbt_node_t *node;
+
+  if (tree == NULL || base == NULL || base->root == NULL) {
+    return NULL;
+  }
+  node = prbt_min_node(base->root);
+  return FUNC(ds_prbt_remove)(tree, base, node->key);
+}
+
+ds_prbt_version_t *FUNC(ds_prbt_delete_max)(ds_prbt_t *tree,
+                                             ds_prbt_version_t *base) {
+  ds_prbt_node_t *node;
+
+  if (tree == NULL || base == NULL || base->root == NULL) {
+    return NULL;
+  }
+  node = prbt_max_node(base->root);
+  return FUNC(ds_prbt_remove)(tree, base, node->key);
+}
+
 ds_status_t FUNC(ds_prbt_visit)(ds_prbt_t *tree, ds_prbt_version_t *version,
                                  ds_prbt_visit_func_t visit, void *user) {
   if (tree == NULL || version == NULL || visit == NULL) {
@@ -907,6 +1037,53 @@ ds_status_t FUNC(ds_prbt_ceiling)(ds_prbt_t *tree, ds_prbt_version_t *version,
   return DS_OK;
 }
 
+
+ds_status_t FUNC(ds_prbt_predecessor)(ds_prbt_t *tree,
+                                       ds_prbt_version_t *version, void *key,
+                                       void **out_key, void **out_value) {
+  ds_prbt_node_t *node;
+
+  if (out_key != NULL) {
+    *out_key = NULL;
+  }
+  if (out_value != NULL) {
+    *out_value = NULL;
+  }
+  if (tree == NULL || version == NULL || out_key == NULL || out_value == NULL) {
+    return DS_ERR_NULL;
+  }
+  node = prbt_predecessor_node(tree, version->root, key);
+  if (node == NULL) {
+    return DS_NOT_FOUND;
+  }
+  *out_key = node->key;
+  *out_value = node->value;
+  return DS_OK;
+}
+
+ds_status_t FUNC(ds_prbt_successor)(ds_prbt_t *tree,
+                                     ds_prbt_version_t *version, void *key,
+                                     void **out_key, void **out_value) {
+  ds_prbt_node_t *node;
+
+  if (out_key != NULL) {
+    *out_key = NULL;
+  }
+  if (out_value != NULL) {
+    *out_value = NULL;
+  }
+  if (tree == NULL || version == NULL || out_key == NULL || out_value == NULL) {
+    return DS_ERR_NULL;
+  }
+  node = prbt_successor_node(tree, version->root, key);
+  if (node == NULL) {
+    return DS_NOT_FOUND;
+  }
+  *out_key = node->key;
+  *out_value = node->value;
+  return DS_OK;
+}
+
 ds_status_t FUNC(ds_prbt_rank)(ds_prbt_t *tree, ds_prbt_version_t *version,
                                 void *key, size_t *out_rank) {
   if (out_rank != NULL) {
@@ -954,6 +1131,27 @@ size_t FUNC(ds_prbt_size)(ds_prbt_version_t *version) {
     return 0U;
   }
   return version->size;
+}
+
+
+ds_status_t FUNC(ds_prbt_validate)(ds_prbt_t *tree,
+                                    ds_prbt_version_t *version) {
+  size_t size;
+  size_t black_count;
+
+  if (tree == NULL || version == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (version->root != NULL && prbt_is_red(version->root)) {
+    return DS_ERR_STATE;
+  }
+  size = 0U;
+  black_count = (size_t)-1;
+  if (!prbt_validate_node(tree, version->root, NULL, NULL, &size, 0U,
+                          &black_count)) {
+    return DS_ERR_STATE;
+  }
+  return size == version->size ? DS_OK : DS_ERR_STATE;
 }
 
 void FUNC(ds_prbt_version_retain)(ds_prbt_version_t *version) {

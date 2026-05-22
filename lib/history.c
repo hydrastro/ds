@@ -920,17 +920,18 @@ bool FUNC(ds_history_branch_delete_op)(ds_history_branch_t *branch,
   return true;
 }
 
-size_t FUNC(ds_history_branch_merge)(ds_history_branch_t *target,
-                                      ds_history_branch_t *source,
-                                      unsigned long from_time,
-                                      unsigned long through_time,
-                                      unsigned int flags) {
+size_t FUNC(ds_history_branch_merge_with)(
+    ds_history_branch_t *target, ds_history_branch_t *source,
+    unsigned long from_time, unsigned long through_time, unsigned int flags,
+    ds_history_merge_policy_func_t policy, void *policy_user) {
   ds_history_t *history;
   struct ds_history_operation_node *op;
   void *payload;
   unsigned long time;
   unsigned long append_time;
+  int kind;
   size_t merged;
+  unsigned int action;
 
   if (target == NULL || source == NULL || target->history != source->history ||
       from_time > through_time) {
@@ -969,13 +970,29 @@ size_t FUNC(ds_history_branch_merge)(ds_history_branch_t *target,
       } else {
         time = op->operation.time;
       }
-
-      if (history_branch_insert_with_id(target, history->next_operation_id++,
-                                        time, op->operation.kind, payload) ==
-          0UL) {
+      kind = op->operation.kind;
+      action = DS_HISTORY_MERGE_TAKE;
+      if (policy != NULL) {
+        action = policy(target, source, &op->operation, &time, &kind, &payload,
+                        policy_user);
+      }
+      if (action == DS_HISTORY_MERGE_STOP || action == DS_HISTORY_MERGE_SKIP) {
         if (history->ops.destroy_payload != NULL &&
             payload != op->operation.payload) {
-          history->ops.destroy_payload(op->operation.kind, payload);
+          history->ops.destroy_payload(kind, payload);
+        }
+        if (action == DS_HISTORY_MERGE_STOP) {
+          break;
+        }
+        op = op->next;
+        continue;
+      }
+
+      if (history_branch_insert_with_id(target, history->next_operation_id++,
+                                        time, kind, payload) == 0UL) {
+        if (history->ops.destroy_payload != NULL &&
+            payload != op->operation.payload) {
+          history->ops.destroy_payload(kind, payload);
         }
         break;
       }
@@ -986,6 +1003,15 @@ size_t FUNC(ds_history_branch_merge)(ds_history_branch_t *target,
   }
   UNLOCK(history);
   return merged;
+}
+
+size_t FUNC(ds_history_branch_merge)(ds_history_branch_t *target,
+                                      ds_history_branch_t *source,
+                                      unsigned long from_time,
+                                      unsigned long through_time,
+                                      unsigned int flags) {
+  return FUNC(ds_history_branch_merge_with)(target, source, from_time,
+                                            through_time, flags, NULL, NULL);
 }
 
 void *FUNC(ds_history_branch_snapshot_at)(ds_history_branch_t *branch,
@@ -1677,6 +1703,122 @@ static bool history_read_branch_ops_portable(
       return false;
     }
   }
+  return true;
+}
+
+static void *history_archive_default_allocator(size_t size) {
+  return malloc(size);
+}
+
+static void history_archive_default_deallocator(void *ptr) { free(ptr); }
+
+void FUNC(ds_history_archive_init)(ds_history_archive_t *archive) {
+  FUNC(ds_history_archive_init_alloc)(archive, history_archive_default_allocator,
+                                      history_archive_default_deallocator);
+}
+
+void FUNC(ds_history_archive_init_alloc)(ds_history_archive_t *archive,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *)) {
+  if (archive == NULL) {
+    return;
+  }
+  archive->data = NULL;
+  archive->size = 0U;
+  archive->capacity = 0U;
+  archive->offset = 0U;
+  archive->allocator = allocator != NULL ? allocator : history_archive_default_allocator;
+  archive->deallocator = deallocator != NULL ? deallocator : history_archive_default_deallocator;
+}
+
+void FUNC(ds_history_archive_destroy)(ds_history_archive_t *archive) {
+  if (archive == NULL) {
+    return;
+  }
+  if (archive->data != NULL) {
+    archive->deallocator(archive->data);
+  }
+  FUNC(ds_history_archive_init_alloc)(archive, archive->allocator,
+                                      archive->deallocator);
+}
+
+void FUNC(ds_history_archive_clear)(ds_history_archive_t *archive) {
+  if (archive == NULL) {
+    return;
+  }
+  archive->size = 0U;
+  archive->offset = 0U;
+}
+
+void FUNC(ds_history_archive_rewind)(ds_history_archive_t *archive) {
+  if (archive != NULL) {
+    archive->offset = 0U;
+  }
+}
+
+const unsigned char *FUNC(ds_history_archive_data)(
+    const ds_history_archive_t *archive) {
+  return archive == NULL ? NULL : archive->data;
+}
+
+size_t FUNC(ds_history_archive_size)(const ds_history_archive_t *archive) {
+  return archive == NULL ? 0U : archive->size;
+}
+
+bool FUNC(ds_history_archive_write)(const void *data, size_t size, void *user) {
+  ds_history_archive_t *archive;
+  unsigned char *next;
+  size_t capacity;
+
+  archive = (ds_history_archive_t *)user;
+  if (archive == NULL || (data == NULL && size != 0U)) {
+    return false;
+  }
+  if (size > ((size_t)-1) - archive->size) {
+    return false;
+  }
+  if (archive->size + size > archive->capacity) {
+    capacity = archive->capacity == 0U ? 64U : archive->capacity;
+    while (capacity < archive->size + size) {
+      if (capacity > ((size_t)-1) / 2U) {
+        return false;
+      }
+      capacity *= 2U;
+    }
+    next = (unsigned char *)archive->allocator(capacity);
+    if (next == NULL) {
+      return false;
+    }
+    if (archive->data != NULL && archive->size != 0U) {
+      memcpy(next, archive->data, archive->size);
+    }
+    if (archive->data != NULL) {
+      archive->deallocator(archive->data);
+    }
+    archive->data = next;
+    archive->capacity = capacity;
+  }
+  if (size != 0U) {
+    memcpy(archive->data + archive->size, data, size);
+  }
+  archive->size += size;
+  return true;
+}
+
+bool FUNC(ds_history_archive_read)(void *data, size_t size, void *user) {
+  ds_history_archive_t *archive;
+
+  archive = (ds_history_archive_t *)user;
+  if (archive == NULL || (data == NULL && size != 0U)) {
+    return false;
+  }
+  if (size > archive->size - archive->offset) {
+    return false;
+  }
+  if (size != 0U) {
+    memcpy(data, archive->data + archive->offset, size);
+  }
+  archive->offset += size;
   return true;
 }
 

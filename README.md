@@ -55,3 +55,12 @@ Contributions are welcome!
 Before submitting a pull request please:
 - format your code with `clang-format`
 - test your code with `valgrind`
+
+
+## Test helpers
+
+- `make test` builds and runs the normal test suite.
+- `make sanitize` runs the test suite with AddressSanitizer and UndefinedBehaviorSanitizer.
+- `make test-safe` builds the thread-safe library variant and runs the safe smoke test.
+- `make valgrind` runs tests, the safe smoke test, and examples under Valgrind when Valgrind is installed.
+- `make examples` builds the example programs.
