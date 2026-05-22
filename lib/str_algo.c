@@ -43,12 +43,12 @@ long FUNC(str_find_twoway)(ds_str_t *s, const void *needle, size_t m, size_t sta
   long ret = -1;
   if (!s || !needle || m == 0u) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   n = s->len;
   if (start > n) { 
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1; 
   }
@@ -57,7 +57,7 @@ long FUNC(str_find_twoway)(ds_str_t *s, const void *needle, size_t m, size_t sta
     const void *p = memchr(y + start, x[0], n - start);
     ret = p ? (long)((const unsigned char*)p - y) : -1;
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return ret;
   }
@@ -98,7 +98,7 @@ long FUNC(str_find_twoway)(ds_str_t *s, const void *needle, size_t m, size_t sta
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return ret;
 }
@@ -110,12 +110,12 @@ long FUNC(str_find_bmh)(ds_str_t *s, const void *needle, size_t n, size_t start)
   long ret = -1;
   if (!s || !needle || n == 0u) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   len = s->len;
   if (start > len) { 
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1; 
   }
@@ -123,13 +123,13 @@ long FUNC(str_find_bmh)(ds_str_t *s, const void *needle, size_t n, size_t start)
     const void *p = memchr(s->buf + start, *pat, len - start);
     ret = p ? (long)((const unsigned char*)p - (const unsigned char*)s->buf) : -1;
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return ret;
   }
   if (n > 255u) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return FUNC(str_find_twoway)(s, needle, n, start);
   }
@@ -142,7 +142,7 @@ long FUNC(str_find_bmh)(ds_str_t *s, const void *needle, size_t n, size_t start)
     i += skip[last];
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return ret;
 }
@@ -152,7 +152,7 @@ int FUNC(str_ltrim_set)(ds_str_t *s, const unsigned char *set, size_t set_n) {
   if (!s) return -1;
   len = s->len;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   while (i < len && ds__in_set((unsigned char)s->buf[i], set, set_n)) ++i;
   if (i) {
@@ -161,7 +161,7 @@ int FUNC(str_ltrim_set)(ds_str_t *s, const unsigned char *set, size_t set_n) {
     s->buf[s->len] = '\0';
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -171,13 +171,13 @@ int FUNC(str_rtrim_set)(ds_str_t *s, const unsigned char *set, size_t set_n) {
   if (!s) return -1;
   len = s->len;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   while (len && ds__in_set((unsigned char)s->buf[len - 1], set, set_n)) --len;
   s->len = len;
   s->buf[len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -192,7 +192,7 @@ int FUNC(str_ltrim_pred)(ds_str_t *s, ds_byte_pred pred) {
   if (!s || !pred) return -1;
   len = s->len;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   while (i < len && pred((unsigned char)s->buf[i])) ++i;
   if (i) {
@@ -201,7 +201,7 @@ int FUNC(str_ltrim_pred)(ds_str_t *s, ds_byte_pred pred) {
     s->buf[s->len] = '\0';
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -211,13 +211,13 @@ int FUNC(str_rtrim_pred)(ds_str_t *s, ds_byte_pred pred) {
   if (!s || !pred) return -1;
   len = s->len;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   while (len && pred((unsigned char)s->buf[len - 1])) --len;
   s->len = len;
   s->buf[len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -261,13 +261,13 @@ int FUNC(str_join_c)(ds_str_t *dst, ds_str_t **parts, size_t count, const void *
   if (!dst) return -1;
   if (!parts || count == 0) return 0;
 #ifdef DS_THREAD_SAFE
-  LOCK(dst)
+  LOCK(dst);
 #endif
   for (i = 0; i < count; ++i) {
     if (i) {
       if (FUNC(str_append)(dst, sep, nsep) != 0) {
 #ifdef DS_THREAD_SAFE
-        UNLOCK(dst)
+        UNLOCK(dst);
 #endif
         return -1;
       }
@@ -275,14 +275,14 @@ int FUNC(str_join_c)(ds_str_t *dst, ds_str_t **parts, size_t count, const void *
     if (parts[i] && parts[i]->len) {
       if (FUNC(str_append)(dst, parts[i]->buf, parts[i]->len) != 0) {
 #ifdef DS_THREAD_SAFE
-        UNLOCK(dst)
+        UNLOCK(dst);
 #endif
         return -1;
       }
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(dst)
+  UNLOCK(dst);
 #endif
   return 0;
 }
@@ -315,21 +315,21 @@ int FUNC(str_replace_all)(ds_str_t *s, const void *from, size_t nfrom, const voi
   size_t pos = 0u; long at;
   if (!s || !from || nfrom == 0u) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   while (1) {
     at = FUNC(str_find_twoway)(s, from, nfrom, pos);
     if (at < 0) break;
     if (FUNC(str_erase)(s, (size_t)at, nfrom) != 0) { 
 #ifdef DS_THREAD_SAFE
-      UNLOCK(s)
+      UNLOCK(s);
 #endif
       return -1; 
     }
     if (nto) {
       if (FUNC(str_insert)(s, (size_t)at, to, nto) != 0) { 
 #ifdef DS_THREAD_SAFE
-        UNLOCK(s)
+        UNLOCK(s);
 #endif
         return -1; 
       }
@@ -339,7 +339,7 @@ int FUNC(str_replace_all)(ds_str_t *s, const void *from, size_t nfrom, const voi
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -355,12 +355,12 @@ int FUNC(str_replace_all_builder)(ds_str_t *s,
   if (!s || !from || nfrom == 0u) return -1;
 
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   out = FUNC(str_create_alloc)(s->allocator, s->deallocator);
   if (!out) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -368,7 +368,7 @@ int FUNC(str_replace_all_builder)(ds_str_t *s,
   if (s->len > 0u) {
     if (FUNC(str_reserve)(out, s->len) != 0) { FUNC(str_destroy)(out);
 #ifdef DS_THREAD_SAFE
-      UNLOCK(s)
+      UNLOCK(s);
 #endif
       return -1;
     }
@@ -381,7 +381,7 @@ int FUNC(str_replace_all_builder)(ds_str_t *s,
         if (FUNC(str_append)(out, s->buf + last, s->len - last) != 0) {
           FUNC(str_destroy)(out);
 #ifdef DS_THREAD_SAFE
-          UNLOCK(s)
+          UNLOCK(s);
 #endif
           return -1;
         }
@@ -393,7 +393,7 @@ int FUNC(str_replace_all_builder)(ds_str_t *s,
       if (FUNC(str_append)(out, s->buf + last, (size_t)at - last) != 0) {
         FUNC(str_destroy)(out);
 #ifdef DS_THREAD_SAFE
-        UNLOCK(s)
+        UNLOCK(s);
 #endif
         return -1;
       }
@@ -403,7 +403,7 @@ int FUNC(str_replace_all_builder)(ds_str_t *s,
       if (FUNC(str_append)(out, to, nto) != 0) {
         FUNC(str_destroy)(out);
 #ifdef DS_THREAD_SAFE
-        UNLOCK(s)
+        UNLOCK(s);
 #endif
         return -1;
       }
@@ -422,7 +422,7 @@ int FUNC(str_replace_all_builder)(ds_str_t *s,
   FUNC(str_destroy)(out);
   if (s->buf) s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }

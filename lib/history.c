@@ -864,17 +864,30 @@ unsigned long FUNC(ds_history_branch_insert_at)(ds_history_branch_t *branch,
 
 unsigned long FUNC(ds_history_branch_append)(ds_history_branch_t *branch,
                                              int kind, void *payload) {
+  ds_history_t *history;
   unsigned long time;
+  unsigned long id;
 
   if (branch == NULL) {
     return 0UL;
   }
 
-  time = FUNC(ds_history_branch_head_time)(branch);
+  history = branch->history;
+  LOCK(history);
+  time = history_branch_local_head_time(branch);
   if (time != ~0UL) {
     time++;
   }
-  return FUNC(ds_history_branch_insert_at)(branch, time, kind, payload);
+  id = history->next_operation_id++;
+  if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
+    if (history->next_operation_id == id + 1UL) {
+      history->next_operation_id = id;
+    }
+    UNLOCK(history);
+    return 0UL;
+  }
+  UNLOCK(history);
+  return id;
 }
 
 bool FUNC(ds_history_branch_delete_op)(ds_history_branch_t *branch,
@@ -933,8 +946,8 @@ size_t FUNC(ds_history_branch_merge_with)(
   size_t merged;
   unsigned int action;
 
-  if (target == NULL || source == NULL || target->history != source->history ||
-      from_time > through_time) {
+  if (target == NULL || source == NULL || target == source ||
+      target->history != source->history || from_time > through_time) {
     return 0U;
   }
 

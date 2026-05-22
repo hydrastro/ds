@@ -63,7 +63,8 @@ static ds_prbt_node_t *prbt_min_node(ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_max_node(ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree,
                                         ds_prbt_node_t *node, void *key);
-static ds_prbt_version_t *prbt_version_create(ds_prbt_node_t *root,
+static ds_prbt_version_t *prbt_version_create(ds_prbt_t *tree,
+                                              ds_prbt_node_t *root,
                                               size_t size);
 static ds_status_t prbt_visit_node(ds_prbt_t *tree, ds_prbt_node_t *node,
                                    void *lower, void *upper,
@@ -123,7 +124,8 @@ static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key,
                                         void *value, bool red) {
   ds_prbt_node_t *node;
 
-  node = (ds_prbt_node_t *)malloc(sizeof(*node));
+  node = (ds_prbt_node_t *)ds_context_alloc(tree->config.context,
+                                             sizeof(*node));
   if (node == NULL) {
     return NULL;
   }
@@ -134,14 +136,14 @@ static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key,
   node->right = NULL;
   node->key = prbt_clone_key(tree, key);
   if (node->key == NULL && key != NULL && tree->config.clone_key != NULL) {
-    free(node);
+    ds_context_free(tree->config.context, node);
     return NULL;
   }
   node->subtree_size = 1U;
   node->value = prbt_clone_value(tree, value);
   if (node->value == NULL && value != NULL && tree->config.clone_value != NULL) {
     prbt_destroy_key(tree, node->key);
-    free(node);
+    ds_context_free(tree->config.context, node);
     return NULL;
   }
 
@@ -185,7 +187,7 @@ static void prbt_node_release(ds_prbt_t *tree, ds_prbt_node_t *node) {
   prbt_node_release(tree, node->right);
   prbt_destroy_key(tree, node->key);
   prbt_destroy_value(tree, node->value);
-  free(node);
+  ds_context_free(tree->config.context, node);
 }
 
 static bool prbt_is_red(ds_prbt_node_t *node) {
@@ -589,11 +591,13 @@ static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree,
   return NULL;
 }
 
-static ds_prbt_version_t *prbt_version_create(ds_prbt_node_t *root,
+static ds_prbt_version_t *prbt_version_create(ds_prbt_t *tree,
+                                              ds_prbt_node_t *root,
                                               size_t size) {
   ds_prbt_version_t *version;
 
-  version = (ds_prbt_version_t *)malloc(sizeof(*version));
+  version = (ds_prbt_version_t *)ds_context_alloc(tree->config.context,
+                                                   sizeof(*version));
   if (version == NULL) {
     return NULL;
   }
@@ -829,14 +833,19 @@ ds_prbt_t *FUNC(ds_prbt_create)(const ds_prbt_config_t *config) {
     return NULL;
   }
 
-  tree = (ds_prbt_t *)malloc(sizeof(*tree));
+  tree = (ds_prbt_t *)ds_context_alloc(
+      config->context != NULL ? config->context : ds_default_context(),
+      sizeof(*tree));
   if (tree == NULL) {
     return NULL;
   }
   tree->config = *config;
-  tree->root = prbt_version_create(NULL, 0U);
+  if (tree->config.context == NULL) {
+    tree->config.context = ds_default_context();
+  }
+  tree->root = prbt_version_create(tree, NULL, 0U);
   if (tree->root == NULL) {
-    free(tree);
+    ds_context_free(tree->config.context, tree);
     return NULL;
   }
   return tree;
@@ -847,7 +856,7 @@ void FUNC(ds_prbt_destroy)(ds_prbt_t *tree) {
     return;
   }
   FUNC(ds_prbt_version_release)(tree, tree->root);
-  free(tree);
+  ds_context_free(tree->config.context, tree);
 }
 
 ds_prbt_version_t *FUNC(ds_prbt_root)(ds_prbt_t *tree) {
@@ -878,7 +887,7 @@ ds_prbt_version_t *FUNC(ds_prbt_insert)(ds_prbt_t *tree,
   }
   root->red = PRBT_BLACK;
 
-  version = prbt_version_create(root, base->size + (inserted ? 1U : 0U));
+  version = prbt_version_create(tree, root, base->size + (inserted ? 1U : 0U));
   if (version == NULL) {
     prbt_node_release(tree, root);
     return NULL;
@@ -930,7 +939,7 @@ ds_prbt_version_t *FUNC(ds_prbt_remove)(ds_prbt_t *tree,
     root->red = PRBT_BLACK;
   }
 
-  version = prbt_version_create(root, base->size - 1U);
+  version = prbt_version_create(tree, root, base->size - 1U);
   if (version == NULL) {
     prbt_node_release(tree, root);
     return NULL;
@@ -1170,5 +1179,5 @@ void FUNC(ds_prbt_version_release)(ds_prbt_t *tree,
     return;
   }
   prbt_node_release(tree, version->root);
-  free(version);
+  ds_context_free(tree->config.context, version);
 }

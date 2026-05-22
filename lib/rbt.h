@@ -40,7 +40,7 @@ typedef struct rbt_node {
 #define RBT_SET_BLACK_FROM_NODE(node)                                          \
   (RBT_SET_BLACK_FROM_COLOR((node)->parent_color))
 #define RBT_SET_COLOR_FROM_NODE(node, color)                                   \
-  ((node)->parent_color = (unsigned long)RBT_GET_PARENT_FROM_NODE(node) +      \
+  ((node)->parent_color = (unsigned long)RBT_GET_PARENT_FROM_NODE(node) |      \
                           ((long unsigned int)color))
 
 typedef struct rbt {

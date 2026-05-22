@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200112L
 #include "diagnostic.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,18 +71,17 @@ int ds_diagnostic_format(const ds_diagnostic_t *diagnostic, char *buffer,
   const char *message;
   int n;
 
-  (void)buffer_size;
-  if (buffer == NULL) {
+  if (buffer == NULL || buffer_size == 0U) {
     return -1;
   }
   if (diagnostic == NULL) {
-    return sprintf(buffer, "[DIAGNOSTIC NULL]");
+    return snprintf(buffer, buffer_size, "[DIAGNOSTIC NULL]");
   }
 
   id = diagnostic->id != NULL ? diagnostic->id : "ds.diagnostic/unknown";
   module = diagnostic->module != NULL ? diagnostic->module : "unknown";
   message = diagnostic->message != NULL ? diagnostic->message : "";
-  n = sprintf(buffer, "[%s] %s (%s): %s",
+  n = snprintf(buffer, buffer_size, "[%s] %s (%s): %s",
                ds_diagnostic_level_name(diagnostic->level), id, module,
                message);
   return n;

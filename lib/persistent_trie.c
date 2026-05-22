@@ -26,14 +26,15 @@ struct ds_ptrie {
   ds_ptrie_version_t *root;
 };
 
-static ds_ptrie_node_t *ptrie_node_create(void);
+static ds_ptrie_node_t *ptrie_node_create(ds_ptrie_t *trie);
 static void *ptrie_value_clone(ds_ptrie_t *trie, void *value);
 static void ptrie_value_destroy(ds_ptrie_t *trie, void *value);
 static void ptrie_node_retain(ds_ptrie_node_t *node);
 static void ptrie_node_release(ds_ptrie_t *trie, ds_ptrie_node_t *node);
 static ds_ptrie_edge_t *ptrie_edge_find(ds_ptrie_edge_t *edge,
                                         unsigned char token);
-static ds_ptrie_edge_t *ptrie_edge_clone_list(ds_ptrie_edge_t *edge);
+static ds_ptrie_edge_t *ptrie_edge_clone_list(ds_ptrie_t *trie,
+                                                 ds_ptrie_edge_t *edge);
 static bool ptrie_node_empty(ds_ptrie_node_t *node);
 static size_t ptrie_terminal_count(ds_ptrie_node_t *node);
 static void ptrie_release_edge_list(ds_ptrie_t *trie, ds_ptrie_edge_t *edge);
@@ -54,7 +55,8 @@ static ds_ptrie_node_t *ptrie_remove_prefix_node(ds_ptrie_t *trie,
                                                  const unsigned char *prefix,
                                                  size_t prefix_len, size_t pos,
                                                  size_t *removed_count);
-static ds_ptrie_version_t *ptrie_version_create(ds_ptrie_node_t *root);
+static ds_ptrie_version_t *ptrie_version_create(ds_ptrie_t *trie,
+                                                  ds_ptrie_node_t *root);
 static ds_ptrie_node_t *ptrie_find_node(ds_ptrie_node_t *node,
                                         const unsigned char *key, size_t len);
 static int ptrie_key_compare(const unsigned char *a, size_t alen,
@@ -91,9 +93,10 @@ static void ptrie_value_destroy(ds_ptrie_t *trie, void *value) {
   }
 }
 
-static ds_ptrie_node_t *ptrie_node_create(void) {
+static ds_ptrie_node_t *ptrie_node_create(ds_ptrie_t *trie) {
   ds_ptrie_node_t *node;
-  node = (ds_ptrie_node_t *)malloc(sizeof(*node));
+  node = (ds_ptrie_node_t *)ds_context_alloc(trie->config.context,
+                                            sizeof(*node));
   if (node == NULL) {
     return NULL;
   }
@@ -127,10 +130,10 @@ static void ptrie_node_release(ds_ptrie_t *trie, ds_ptrie_node_t *node) {
   while (edge != NULL) {
     next = edge->next;
     ptrie_node_release(trie, edge->child);
-    free(edge);
+    ds_context_free(trie->config.context, edge);
     edge = next;
   }
-  free(node);
+  ds_context_free(trie->config.context, node);
 }
 
 static ds_ptrie_edge_t *ptrie_edge_find(ds_ptrie_edge_t *edge,
@@ -144,19 +147,21 @@ static ds_ptrie_edge_t *ptrie_edge_find(ds_ptrie_edge_t *edge,
   return NULL;
 }
 
-static ds_ptrie_edge_t *ptrie_edge_clone_list(ds_ptrie_edge_t *edge) {
+static ds_ptrie_edge_t *ptrie_edge_clone_list(ds_ptrie_t *trie,
+                                                 ds_ptrie_edge_t *edge) {
   ds_ptrie_edge_t *head;
   ds_ptrie_edge_t *tail;
   ds_ptrie_edge_t *copy;
   head = NULL;
   tail = NULL;
   while (edge != NULL) {
-    copy = (ds_ptrie_edge_t *)malloc(sizeof(*copy));
+    copy = (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context,
+                                               sizeof(*copy));
     if (copy == NULL) {
       while (head != NULL) {
         copy = head->next;
-        ptrie_node_release(NULL, head->child);
-        free(head);
+        ptrie_node_release(trie, head->child);
+        ds_context_free(trie->config.context, head);
         head = copy;
       }
       return NULL;
@@ -203,7 +208,7 @@ static void ptrie_release_edge_list(ds_ptrie_t *trie, ds_ptrie_edge_t *edge) {
   while (edge != NULL) {
     next = edge->next;
     ptrie_node_release(trie, edge->child);
-    free(edge);
+    ds_context_free(trie->config.context, edge);
     edge = next;
   }
 }
@@ -211,7 +216,7 @@ static void ptrie_release_edge_list(ds_ptrie_t *trie, ds_ptrie_edge_t *edge) {
 static ds_ptrie_node_t *ptrie_node_clone_shallow(ds_ptrie_t *trie,
                                                  ds_ptrie_node_t *node) {
   ds_ptrie_node_t *copy;
-  copy = ptrie_node_create();
+  copy = ptrie_node_create(trie);
   if (copy == NULL) {
     return NULL;
   }
@@ -221,16 +226,16 @@ static ds_ptrie_node_t *ptrie_node_clone_shallow(ds_ptrie_t *trie,
     copy->value = ptrie_value_clone(trie, node->value);
     if (copy->value == NULL && node->value != NULL &&
         trie->config.clone_value != NULL) {
-      free(copy);
+      ds_context_free(trie->config.context, copy);
       return NULL;
     }
   }
-  copy->children = ptrie_edge_clone_list(node->children);
+  copy->children = ptrie_edge_clone_list(trie, node->children);
   if (node->children != NULL && copy->children == NULL) {
     if (copy->terminal) {
       ptrie_value_destroy(trie, copy->value);
     }
-    free(copy);
+    ds_context_free(trie->config.context, copy);
     return NULL;
   }
   return copy;
@@ -270,7 +275,7 @@ static ds_ptrie_node_t *ptrie_insert_node(ds_ptrie_t *trie,
     edge->child = new_child;
     ptrie_node_release(trie, old_child);
   } else {
-    old_child = ptrie_node_create();
+    old_child = ptrie_node_create(trie);
     if (old_child == NULL) {
       ptrie_node_release(trie, copy);
       return NULL;
@@ -281,7 +286,8 @@ static ds_ptrie_node_t *ptrie_insert_node(ds_ptrie_t *trie,
       ptrie_node_release(trie, copy);
       return NULL;
     }
-    edge = (ds_ptrie_edge_t *)malloc(sizeof(*edge));
+    edge = (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context,
+                                               sizeof(*edge));
     if (edge == NULL) {
       ptrie_node_release(trie, new_child);
       ptrie_node_release(trie, copy);
@@ -351,7 +357,7 @@ static ds_ptrie_node_t *ptrie_remove_node(ds_ptrie_t *trie,
         prev->next = edge->next;
       }
       ptrie_node_release(trie, old_child);
-      free(edge);
+      ds_context_free(trie->config.context, edge);
     } else {
       edge->child = new_child;
       ptrie_node_release(trie, old_child);
@@ -423,7 +429,7 @@ static ds_ptrie_node_t *ptrie_remove_prefix_node(ds_ptrie_t *trie,
         prev->next = edge->next;
       }
       ptrie_node_release(trie, old_child);
-      free(edge);
+      ds_context_free(trie->config.context, edge);
     } else {
       edge->child = new_child;
       ptrie_node_release(trie, old_child);
@@ -437,9 +443,11 @@ static ds_ptrie_node_t *ptrie_remove_prefix_node(ds_ptrie_t *trie,
   return copy;
 }
 
-static ds_ptrie_version_t *ptrie_version_create(ds_ptrie_node_t *root) {
+static ds_ptrie_version_t *ptrie_version_create(ds_ptrie_t *trie,
+                                                  ds_ptrie_node_t *root) {
   ds_ptrie_version_t *version;
-  version = (ds_ptrie_version_t *)malloc(sizeof(*version));
+  version = (ds_ptrie_version_t *)ds_context_alloc(trie->config.context,
+                                                   sizeof(*version));
   if (version == NULL) {
     return NULL;
   }
@@ -567,7 +575,10 @@ static ds_status_t ptrie_visit_from(ds_ptrie_node_t *node, unsigned char **buffe
 
 ds_ptrie_t *FUNC(ds_ptrie_create)(const ds_ptrie_config_t *config) {
   ds_ptrie_t *trie;
-  trie = (ds_ptrie_t *)malloc(sizeof(*trie));
+  trie = (ds_ptrie_t *)ds_context_alloc(
+      config != NULL && config->context != NULL ? config->context
+                                                : ds_default_context(),
+      sizeof(*trie));
   if (trie == NULL) {
     return NULL;
   }
@@ -576,16 +587,19 @@ ds_ptrie_t *FUNC(ds_ptrie_create)(const ds_ptrie_config_t *config) {
   } else {
     ds_ptrie_config_init(&trie->config);
   }
+  if (trie->config.context == NULL) {
+    trie->config.context = ds_default_context();
+  }
   if (trie->config.destroy_value != NULL && trie->config.clone_value == NULL) {
-    free(trie);
+    ds_context_free(trie->config.context, trie);
     return NULL;
   }
-  trie->root = ptrie_version_create(ptrie_node_create());
+  trie->root = ptrie_version_create(trie, ptrie_node_create(trie));
   if (trie->root == NULL || trie->root->root == NULL) {
     if (trie->root != NULL) {
-      free(trie->root);
+      ds_context_free(trie->config.context, trie->root);
     }
-    free(trie);
+    ds_context_free(trie->config.context, trie);
     return NULL;
   }
   return trie;
@@ -596,7 +610,7 @@ void FUNC(ds_ptrie_destroy)(ds_ptrie_t *trie) {
     return;
   }
   FUNC(ds_ptrie_version_release)(trie, trie->root);
-  free(trie);
+  ds_context_free(trie->config.context, trie);
 }
 
 ds_ptrie_version_t *FUNC(ds_ptrie_root)(ds_ptrie_t *trie) {
@@ -625,7 +639,7 @@ ds_ptrie_version_t *FUNC(ds_ptrie_insert)(ds_ptrie_t *trie,
     ptrie_value_destroy(trie, stored_value);
     return NULL;
   }
-  version = ptrie_version_create(new_root);
+  version = ptrie_version_create(trie, new_root);
   if (version == NULL) {
     ptrie_node_release(trie, new_root);
     return NULL;
@@ -648,7 +662,7 @@ ds_ptrie_version_t *FUNC(ds_ptrie_remove)(ds_ptrie_t *trie,
   if (!removed || new_root == NULL) {
     return NULL;
   }
-  version = ptrie_version_create(new_root);
+  version = ptrie_version_create(trie, new_root);
   if (version == NULL) {
     ptrie_node_release(trie, new_root);
     return NULL;
@@ -678,7 +692,7 @@ ds_ptrie_version_t *FUNC(ds_ptrie_remove_prefix)(ds_ptrie_t *trie,
   if (removed_count == 0U || new_root == NULL) {
     return NULL;
   }
-  version = ptrie_version_create(new_root);
+  version = ptrie_version_create(trie, new_root);
   if (version == NULL) {
     ptrie_node_release(trie, new_root);
     return NULL;
@@ -770,7 +784,7 @@ static bool ptrie_copy_prefix_visit(const unsigned char *key, size_t len,
   new_len = state->destination_prefix_len + suffix_len;
   new_key = NULL;
   if (new_len != 0U) {
-    new_key = (unsigned char *)malloc(new_len);
+    new_key = (unsigned char *)ds_context_alloc(state->trie->config.context, new_len);
     if (new_key == NULL) {
       state->failed = true;
       return false;
@@ -786,7 +800,7 @@ static bool ptrie_copy_prefix_visit(const unsigned char *key, size_t len,
   next = FUNC(ds_ptrie_insert)(state->trie, state->current, new_key, new_len,
                                value);
   if (new_key != NULL) {
-    free(new_key);
+    ds_context_free(state->trie->config.context, new_key);
   }
   if (next == NULL) {
     state->failed = true;
@@ -1027,6 +1041,6 @@ void FUNC(ds_ptrie_version_release)(ds_ptrie_t *trie,
   version->refs--;
   if (version->refs == 0UL) {
     ptrie_node_release(trie, version->root);
-    free(version);
+    ds_context_free(trie->config.context, version);
   }
 }

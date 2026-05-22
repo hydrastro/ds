@@ -26,27 +26,38 @@ typedef pthread_mutex_t mutex_t;
 
 #ifndef LOCK
 #define LOCK(structure)                                                        \
-  if ((structure)->is_thread_safe) {                                           \
-    mutex_lock(&(structure)->lock);                                            \
-  }
+  do {                                                                         \
+    if ((structure)->is_thread_safe) {                                         \
+      mutex_lock(&(structure)->lock);                                          \
+    }                                                                          \
+  } while (0)
 #endif
 
 #ifndef UNLOCK
 #define UNLOCK(structure)                                                      \
-  if ((structure)->is_thread_safe) {                                           \
-    mutex_unlock(&(structure)->lock);                                          \
-  }
+  do {                                                                         \
+    if ((structure)->is_thread_safe) {                                         \
+      mutex_unlock(&(structure)->lock);                                        \
+    }                                                                          \
+  } while (0)
 #endif
 
 #define LOCK_INIT(structure)                                                   \
-  (structure)->is_thread_safe = true;                                          \
-  mutex_init(&(structure)->lock);
+  do {                                                                         \
+    (structure)->is_thread_safe = true;                                        \
+    mutex_init(&(structure)->lock);                                            \
+  } while (0)
 
 #define LOCK_INIT_RECURSIVE(structure)                                         \
-  (structure)->is_thread_safe = true;                                          \
-  mutex_init_recursive(&(structure)->lock);
+  do {                                                                         \
+    (structure)->is_thread_safe = true;                                        \
+    mutex_init_recursive(&(structure)->lock);                                  \
+  } while (0)
 
-#define LOCK_DESTROY(structure) mutex_destroy(&(structure)->lock);
+#define LOCK_DESTROY(structure)                                                \
+  do {                                                                         \
+    mutex_destroy(&(structure)->lock);                                         \
+  } while (0)
 
 void mutex_lock(mutex_t *lock);
 void mutex_unlock(mutex_t *lock);

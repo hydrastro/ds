@@ -16,6 +16,11 @@ LDLIBS = -pthread
 ARFLAGS = rcs
 VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=definite,possible --error-exitcode=99 --track-origins=yes
 
+PREFIX ?= /usr/local
+INCLUDEDIR ?= $(PREFIX)/include
+LIBDIR ?= $(PREFIX)/lib
+INSTALL ?= install
+
 LIB_DIR   := lib
 GEN_DIR   := gen
 TEST_DIR  := test
@@ -101,8 +106,22 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data test test-build check sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples
+.PHONY: all clean distclean unicode-data install uninstall test test-build check sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples
 all: $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE)
+
+install: all
+	$(INSTALL) -d $(DESTDIR)$(INCLUDEDIR)/lib $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -m 0644 ds.h ds_safe.h $(DESTDIR)$(INCLUDEDIR)
+	$(INSTALL) -m 0644 $(LIB_DIR)/*.h $(DESTDIR)$(INCLUDEDIR)/lib
+	$(INSTALL) -m 0644 $(LIB_STATIC) $(LIB_STATIC_SAFE) $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -m 0755 $(LIB_SHARED) $(LIB_SHARED_SAFE) $(DESTDIR)$(LIBDIR)
+
+uninstall:
+	rm -f $(DESTDIR)$(INCLUDEDIR)/ds.h $(DESTDIR)$(INCLUDEDIR)/ds_safe.h
+	rm -rf $(DESTDIR)$(INCLUDEDIR)/lib
+	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_STATIC) $(DESTDIR)$(LIBDIR)/$(LIB_STATIC_SAFE)
+	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_SHARED) $(DESTDIR)$(LIBDIR)/$(LIB_SHARED_SAFE)
+
 
 $(BUILD_DIR) $(DATA_DIR) $(TEST_BUILD_DIR) $(EXAMPLE_BUILD_DIR):
 	@mkdir -p $@
@@ -202,7 +221,9 @@ distclean: clean
 
 SAFE_TEST_BUILD_DIR := $(TEST_BUILD_DIR)/safe
 TEST_LIB_STATIC_SAFE_TEST := $(SAFE_TEST_BUILD_DIR)/libds_test_safe.a
-SAFE_TEST_SRC := $(TEST_DIR)/thread_safe_smoke_test.c
+SAFE_TEST_SRC := \
+  $(TEST_DIR)/thread_safe_smoke_test.c \
+  $(TEST_DIR)/thread_safe_all_structures_test.c
 TEST_BIN_SAFE := $(patsubst $(TEST_DIR)/%.c,$(SAFE_TEST_BUILD_DIR)/%,$(SAFE_TEST_SRC))
 
 $(SAFE_TEST_BUILD_DIR):

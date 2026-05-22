@@ -109,7 +109,7 @@ ds_str_t *FUNC(str_create_alloc)(void *(*allocator)(size_t), void (*deallocator)
   s->len = 0u;
   s->cap = 0u;
 #ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(s)
+  LOCK_INIT_RECURSIVE(s);
 #endif
   return s;
 }
@@ -151,12 +151,12 @@ void FUNC(str_destroy)(ds_str_t *s) {
 void FUNC(str_clear)(ds_str_t *s) {
   if (!s) return;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   s->len = 0u;
   if (s->buf) s->buf[0] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
 }
 
@@ -167,11 +167,11 @@ void FUNC(str_delete)(ds_str_t *s) {
 int FUNC(str_reserve)(ds_str_t *s, size_t need) {
   int r;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   r = ds__ensure(s, need);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return r;
 }
@@ -181,17 +181,17 @@ int FUNC(str_shrink_to_fit)(ds_str_t *s) {
   size_t bytes;
   if (!s) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   if (s->cap == s->len) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return 0;
   }
   if (s->len == SIZE_MAX) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -199,7 +199,7 @@ int FUNC(str_shrink_to_fit)(ds_str_t *s) {
   nbuf = (char*)s->allocator(bytes);
   if (!nbuf) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -209,7 +209,7 @@ int FUNC(str_shrink_to_fit)(ds_str_t *s) {
   s->buf = nbuf;
   s->cap = s->len;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -219,18 +219,18 @@ int FUNC(str_append)(ds_str_t *s, const void *data, size_t n) {
   if (!s || (!data && n)) return -1;
   if (n == 0u) return 0;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   need_len = s->len + n;
   if (need_len < s->len) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
   if (ds__ensure(s, need_len) != 0) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -238,7 +238,7 @@ int FUNC(str_append)(ds_str_t *s, const void *data, size_t n) {
   s->len = need_len;
   s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -257,19 +257,19 @@ int FUNC(str_insert)(ds_str_t *s, size_t pos, const void *data, size_t n) {
   size_t len;
   if (!s || (!data && n)) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   len = s->len;
   if (pos > len) pos = len;
   if (n == 0u) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return 0;
   }
   if (ds__ensure(s, len + n) != 0) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -278,7 +278,7 @@ int FUNC(str_insert)(ds_str_t *s, size_t pos, const void *data, size_t n) {
   s->len = len + n;
   s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -287,19 +287,19 @@ int FUNC(str_erase)(ds_str_t *s, size_t pos, size_t n) {
   size_t len;
   if (!s) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   len = s->len;
   if (pos > len) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return 0;
   }
   if (n > len - pos) n = len - pos;
   if (n == 0u) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return 0;
   }
@@ -307,7 +307,7 @@ int FUNC(str_erase)(ds_str_t *s, size_t pos, size_t n) {
   s->len = len - n;
   s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -316,19 +316,19 @@ ds_str_t *FUNC(str_clone)(ds_str_t *s) {
   ds_str_t *n;
   if (!s) return NULL;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   n = FUNC(str_create_alloc)(s->allocator, s->deallocator);
   if (!n) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return NULL;
   }
   if (ds__ensure(n, s->len) != 0) {
     FUNC(str_destroy)(n);
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return NULL;
   }
@@ -336,7 +336,7 @@ ds_str_t *FUNC(str_clone)(ds_str_t *s) {
   n->len = s->len;
   n->buf[n->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return n;
 }
@@ -346,26 +346,26 @@ ds_str_t *FUNC(str_clone_cap)(ds_str_t *s) {
   size_t want;
   if (!s) {return NULL;}
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   n = FUNC(str_create_alloc)(s->allocator, s->deallocator);
   if (!n) { 
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return NULL; 
   }
   want = s->cap ? s->cap : s->len;
   if (want && ds__ensure(n, want) != 0) { FUNC(str_destroy)(n);
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return NULL; }
   if (s->len) memcpy(n->buf, s->buf, s->len);
   n->len = s->len;
   if (n->buf) n->buf[n->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return n;
 }
@@ -419,12 +419,12 @@ long FUNC(str_find)(ds_str_t *s, const void *needle, size_t n, size_t start) {
   long ret = -1;
   if (!s || !needle || n == 0u) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   len = s->len;
   if (start > len) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -433,7 +433,7 @@ long FUNC(str_find)(ds_str_t *s, const void *needle, size_t n, size_t start) {
     p = memchr(h + start, *nd, len - start);
     ret = p ? (long)((const unsigned char*)p - h) : -1;
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return ret;
   }
@@ -441,7 +441,7 @@ long FUNC(str_find)(ds_str_t *s, const void *needle, size_t n, size_t start) {
     if (memcmp(h + i, nd, n) == 0) { ret = (long)i; break; }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return ret;
 }
@@ -452,13 +452,13 @@ long FUNC(str_rfind)(ds_str_t *s, const void *needle, size_t n, size_t start) {
   long ret = -1;
   if (!s || !needle || n == 0u) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   len = s->len;
   if (start > len) start = len;
   if (start < n) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -467,7 +467,7 @@ long FUNC(str_rfind)(ds_str_t *s, const void *needle, size_t n, size_t start) {
     if (memcmp(h + i, nd, n) == 0) { ret = (long)i; break; }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return ret;
 }
@@ -476,7 +476,7 @@ void FUNC(str_to_upper)(ds_str_t *s) {
   size_t i, n;
   if (!s) return;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   n = s->len;
   for (i = 0; i < n; ++i) {
@@ -484,7 +484,7 @@ void FUNC(str_to_upper)(ds_str_t *s) {
     if (c >= 'a' && c <= 'z') s->buf[i] = (char)(c - 'a' + 'A');
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
 }
 
@@ -492,7 +492,7 @@ void FUNC(str_to_lower)(ds_str_t *s) {
   size_t i, n;
   if (!s) return;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   n = s->len;
   for (i = 0; i < n; ++i) {
@@ -500,7 +500,7 @@ void FUNC(str_to_lower)(ds_str_t *s) {
     if (c >= 'A' && c <= 'Z') s->buf[i] = (char)(c - 'A' + 'a');
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
 }
 
@@ -524,12 +524,12 @@ void FUNC(str_swap)(ds_str_t *a, ds_str_t *b) {
 int FUNC(str_clear_freebuf)(ds_str_t *s) {
   if (!s) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   if (s->buf) s->deallocator(s->buf);
   s->buf = NULL; s->len = 0; s->cap = 0;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -545,23 +545,23 @@ int FUNC(str_append_vfmt)(ds_str_t *s, const char *fmt, va_list ap) {
   if (need < 0) return -1;
 
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   if (ds__ensure(s, s->len + (size_t)need) != 0) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
   if (vsnprintf(s->buf + s->len, (size_t)need + 1, fmt, ap) != need) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
   s->len += (size_t)need;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -570,11 +570,11 @@ int FUNC(str_reserve_exact)(ds_str_t *s, size_t cap) {
   int r;
   if (!s) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   r = ds__ensure_exact(s, cap);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return r;
 }
@@ -584,12 +584,12 @@ int FUNC(str_assign)(ds_str_t *s, const void *data, size_t n) {
   if (!s) return -1;
   if (!data && n) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   r = ds__ensure(s, n);
   if (r != 0) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -597,7 +597,7 @@ int FUNC(str_assign)(ds_str_t *s, const void *data, size_t n) {
   s->len = n;
   s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -606,11 +606,11 @@ int FUNC(str_pop)(ds_str_t *s, int *out_ch) {
   unsigned char c;
   if (!s) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   if (s->len == 0u) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return -1;
   }
@@ -618,7 +618,7 @@ int FUNC(str_pop)(ds_str_t *s, int *out_ch) {
   s->len -= 1u;
   s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   if (out_ch) *out_ch = (int)c;
   return 0;
@@ -629,26 +629,26 @@ ds_str_t *FUNC(str_slice)(ds_str_t *s, size_t pos, size_t n) {
   size_t len, start, take;
   if (!s) return NULL;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   len = s->len;
   start = pos > len ? len : pos;
   take = (n > len - start) ? (len - start) : n;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   out = FUNC(str_with_capacity)(take);
   if (!out) return NULL;
 
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   len = s->len;
   if (start > len) start = len;
   if (take > len - start) take = len - start;
   if (take) memcpy(out->buf, s->buf + start, take);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
 
   out->len = take;
@@ -660,7 +660,7 @@ char *FUNC(str_detach)(ds_str_t *s, size_t *len_out, size_t *cap_out) {
   char *p;
   if (!s) return NULL;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   p = s->buf;
   if (len_out) *len_out = s->len;
@@ -669,7 +669,7 @@ char *FUNC(str_detach)(ds_str_t *s, size_t *len_out, size_t *cap_out) {
   s->len = 0u;
   s->cap = 0u;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return p;
 }
@@ -679,7 +679,7 @@ int FUNC(str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap) {
   if (!buf && (len != 0u || cap != 0u)) return -1;
   if (buf && cap < len) return -1;
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   if (s->buf) s->deallocator(s->buf);
   s->buf = buf;
@@ -687,7 +687,7 @@ int FUNC(str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap) {
   s->cap = cap;
   if (s->buf) s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }
@@ -703,13 +703,13 @@ int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap, int has
   if (buf && cap < len) return -1;
 
 #ifdef DS_THREAD_SAFE
-  LOCK(s)
+  LOCK(s);
 #endif
   if (!buf) {
     if (s->buf) s->deallocator(s->buf);
     s->buf = NULL; s->len = 0u; s->cap = 0u;
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return 0;
   }
@@ -717,7 +717,7 @@ int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap, int has
   if (!has_room_for_nul && len == cap) {
     if (ds__ensure_exact(s, len) != 0) {
 #ifdef DS_THREAD_SAFE
-      UNLOCK(s)
+      UNLOCK(s);
 #endif
       return -1;
     }
@@ -725,7 +725,7 @@ int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap, int has
     s->len = len;
     s->buf[len] = '\0';
 #ifdef DS_THREAD_SAFE
-    UNLOCK(s)
+    UNLOCK(s);
 #endif
     return 0;
   }
@@ -736,7 +736,7 @@ int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap, int has
   s->cap = cap;
   s->buf[s->len] = '\0';
 #ifdef DS_THREAD_SAFE
-  UNLOCK(s)
+  UNLOCK(s);
 #endif
   return 0;
 }

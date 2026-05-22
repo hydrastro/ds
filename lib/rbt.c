@@ -37,26 +37,26 @@ ds_rbt_t *FUNC(rbt_create_alloc)(void *(*allocator)(size_t),
 
 ds_rbt_node_t *FUNC(rbt_minimum)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   while (node_x->left != tree->nil) {
     node_x = node_x->left;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
   return node_x;
 }
 
 ds_rbt_node_t *FUNC(rbt_maximum)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   while (node_x->right != tree->nil) {
     node_x = node_x->right;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
   return node_x;
 }
@@ -64,11 +64,11 @@ ds_rbt_node_t *FUNC(rbt_maximum)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
 ds_rbt_node_t *FUNC(rbt_successor)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   if (node_x->right != tree->nil) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(tree)
+    UNLOCK(tree);
 #endif
     return FUNC(rbt_minimum)(tree, node_x->right);
   }
@@ -78,7 +78,7 @@ ds_rbt_node_t *FUNC(rbt_successor)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
     node_y = RBT_GET_PARENT_FROM_NODE(node_y);
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
   return node_y;
 }
@@ -86,11 +86,11 @@ ds_rbt_node_t *FUNC(rbt_successor)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
 ds_rbt_node_t *FUNC(rbt_predecessor)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   if (node_x->left != tree->nil) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(tree)
+    UNLOCK(tree);
 #endif
     return FUNC(rbt_maximum)(tree, node_x->left);
   }
@@ -100,7 +100,7 @@ ds_rbt_node_t *FUNC(rbt_predecessor)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
     node_y = RBT_GET_PARENT_FROM_NODE(node_y);
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
   return node_y;
 }
@@ -110,13 +110,13 @@ FUNC(rbt_search)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *data,
                  int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
   int cmp;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   while (node_x != tree->nil) {
     cmp = compare(data, node_x);
     if (cmp == 0) {
 #ifdef DS_THREAD_SAFE
-      UNLOCK(tree)
+      UNLOCK(tree);
 #endif
       return node_x;
     } else if (cmp < 0) {
@@ -126,7 +126,7 @@ FUNC(rbt_search)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *data,
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
   return tree->nil;
 }
@@ -137,7 +137,7 @@ FUNC(rbt_bigger_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *key,
   int cmp;
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   node_y = tree->nil;
   while (node_x != tree->nil) {
@@ -150,7 +150,7 @@ FUNC(rbt_bigger_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *key,
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
   return node_y;
 }
@@ -162,7 +162,7 @@ ds_rbt_node_t *FUNC(rbt_smaller_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
   int cmp;
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   node_y = tree->nil;
   while (node_x != tree->nil) {
@@ -175,7 +175,7 @@ ds_rbt_node_t *FUNC(rbt_smaller_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
   return node_y;
 }
@@ -183,7 +183,7 @@ ds_rbt_node_t *FUNC(rbt_smaller_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
 void FUNC(rbt_left_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   node_y = node_x->right;
   node_x->right = node_y->left;
@@ -201,14 +201,14 @@ void FUNC(rbt_left_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   node_y->left = node_x;
   FUNC(rbt_set_parent)(node_x, node_y);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_right_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   ds_rbt_node_t *node_y;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   node_y = node_x->left;
   node_x->left = node_y->right;
@@ -226,13 +226,13 @@ void FUNC(rbt_right_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   node_y->right = node_x;
   FUNC(rbt_set_parent)(node_x, node_y);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_insert_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_z) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   while (RBT_IS_RED_FROM_NODE(RBT_GET_PARENT_FROM_NODE(node_z))) {
 
@@ -284,7 +284,7 @@ void FUNC(rbt_insert_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_z) {
   }
   RBT_SET_BLACK_FROM_NODE(tree->root);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
@@ -293,7 +293,7 @@ void FUNC(rbt_insert)(ds_rbt_t *tree, ds_rbt_node_t *node_z,
   ds_rbt_node_t *node_y;
   ds_rbt_node_t *node_x;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   node_y = tree->nil;
   node_x = tree->root;
@@ -319,7 +319,7 @@ void FUNC(rbt_insert)(ds_rbt_t *tree, ds_rbt_node_t *node_z,
   FUNC(rbt_insert_fixup)(tree, node_z);
   tree->size += 1;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
@@ -335,21 +335,21 @@ void FUNC(rbt_inorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
 void FUNC(rbt_inorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
                             void (*callback)(void *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   FUNC(rbt_inorder_walk_helper)(tree, node, callback);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_inorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   FUNC(rbt_inorder_walk_helper)(tree, tree->root, callback);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
@@ -365,21 +365,21 @@ void FUNC(rbt_preorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
 void FUNC(rbt_preorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
                              void (*callback)(void *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   FUNC(rbt_preorder_walk_helper)(tree, node, callback);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_preorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   FUNC(rbt_preorder_walk_helper)(tree, tree->root, callback);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
@@ -395,28 +395,28 @@ void FUNC(rbt_postorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
 void FUNC(rbt_postorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
                               void (*callback)(void *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   FUNC(rbt_postorder_walk_helper)(tree, node, callback);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_postorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   FUNC(rbt_postorder_walk_helper)(tree, tree->root, callback);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_transplant)(ds_rbt_t *tree, ds_rbt_node_t *node_u,
                           ds_rbt_node_t *node_v) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   if (RBT_GET_PARENT_FROM_NODE(node_u) == tree->nil) {
     tree->root = node_v;
@@ -427,13 +427,13 @@ void FUNC(rbt_transplant)(ds_rbt_t *tree, ds_rbt_node_t *node_u,
   }
   FUNC(rbt_set_parent)(node_v, RBT_GET_PARENT_FROM_NODE(node_u));
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_delete_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   while (node_x != tree->root && RBT_IS_BLACK_FROM_NODE(node_x)) {
     if (node_x == RBT_GET_PARENT_FROM_NODE(node_x)->left) {
@@ -494,7 +494,7 @@ void FUNC(rbt_delete_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   }
   RBT_SET_BLACK_FROM_NODE(node_x);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
@@ -503,7 +503,7 @@ void FUNC(rbt_delete_node)(ds_rbt_t *tree, ds_rbt_node_t *node_z) {
   ds_rbt_node_t *node_x;
   unsigned int color;
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   node_y = node_z;
   color = RBT_GET_COLOR_FROM_NODE(node_y);
@@ -534,43 +534,43 @@ void FUNC(rbt_delete_node)(ds_rbt_t *tree, ds_rbt_node_t *node_z) {
   }
   tree->size -= 1;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_delete_tree)(ds_rbt_t *tree) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   tree->root = tree->nil;
   tree->size = 0;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_destroy_node)(ds_rbt_t *tree, ds_rbt_node_t *node,
                             void (*destroy)(ds_rbt_node_t *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   FUNC(rbt_delete_node)(tree, node);
   if (destroy != NULL) {
     destroy(node);
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_destroy_recursive)(ds_rbt_t *tree, ds_rbt_node_t *node,
                                  void (*destroy)(ds_rbt_node_t *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(tree)
+  LOCK(tree);
 #endif
   if (node == tree->nil) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(tree)
+    UNLOCK(tree);
 #endif
     return;
   }
@@ -580,14 +580,14 @@ void FUNC(rbt_destroy_recursive)(ds_rbt_t *tree, ds_rbt_node_t *node,
     destroy(node);
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(tree)
+  UNLOCK(tree);
 #endif
 }
 
 void FUNC(rbt_destroy_tree)(ds_rbt_t *tree, void (*destroy)(ds_rbt_node_t *)) {
   FUNC(rbt_destroy_recursive)(tree, tree->root, destroy);
 #ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(tree)
+  LOCK_DESTROY(tree);
 #endif
   tree->deallocator(tree->nil);
   tree->deallocator(tree);

@@ -18,28 +18,28 @@ ds_dlist_t *FUNC(dlist_create_alloc)(void *(*allocator)(size_t),
   list->nil->next = list->nil;
   list->size = 0;
 #ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(list)
+  LOCK_INIT_RECURSIVE(list);
 #endif
   return list;
 }
 
 void FUNC(dlist_append)(ds_dlist_t *list, ds_dlist_node_t *node) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   FUNC(dlist_insert_after)(list, node, list->tail);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
 void FUNC(dlist_prepend)(ds_dlist_t *list, ds_dlist_node_t *node) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   FUNC(dlist_insert_before)(list, node, list->head);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
@@ -48,7 +48,7 @@ ds_dlist_node_t *FUNC(dlist_search)(ds_dlist_t *list, ds_dlist_node_t *node,
                                                    ds_dlist_node_t *)) {
   ds_dlist_node_t *head;
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   head = list->head;
   while (head != list->nil && compare(head, node) != 0) {
@@ -56,13 +56,13 @@ ds_dlist_node_t *FUNC(dlist_search)(ds_dlist_t *list, ds_dlist_node_t *node,
   }
   if (head == list->nil) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(list)
+    UNLOCK(list);
 #endif
 
     return list->nil;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
   return head;
 }
@@ -70,7 +70,7 @@ ds_dlist_node_t *FUNC(dlist_search)(ds_dlist_t *list, ds_dlist_node_t *node,
 void FUNC(dlist_insert_before)(ds_dlist_t *list, ds_dlist_node_t *node,
                                ds_dlist_node_t *next) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   node->next = next;
   node->prev = next->prev;
@@ -86,14 +86,14 @@ void FUNC(dlist_insert_before)(ds_dlist_t *list, ds_dlist_node_t *node,
   }
   list->size += 1;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
 void FUNC(dlist_insert_after)(ds_dlist_t *list, ds_dlist_node_t *node,
                               ds_dlist_node_t *prev) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   node->next = prev->next;
   node->prev = prev;
@@ -109,13 +109,13 @@ void FUNC(dlist_insert_after)(ds_dlist_t *list, ds_dlist_node_t *node,
   }
   list->size += 1;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
 void FUNC(dlist_delete_node)(ds_dlist_t *list, ds_dlist_node_t *node) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   node->prev->next = node->next;
   node->next->prev = node->prev;
@@ -129,31 +129,32 @@ void FUNC(dlist_delete_node)(ds_dlist_t *list, ds_dlist_node_t *node) {
   }
   list->size -= 1;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
 void FUNC(dlist_delete)(ds_dlist_t *list) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   list->head = list->tail = list->nil;
+  list->size = 0;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
 void FUNC(dlist_destroy_node)(ds_dlist_t *list, ds_dlist_node_t *node,
                               void (*destroy)(ds_dlist_node_t *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   FUNC(dlist_delete_node)(list, node);
   if (destroy != NULL) {
     destroy(node);
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
@@ -167,7 +168,7 @@ void FUNC(dlist_destroy)(ds_dlist_t *list, void (*destroy)(ds_dlist_node_t *)) {
     node = next;
   }
 #ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(list)
+  LOCK_DESTROY(list);
 #endif
   list->deallocator(list->nil);
   list->deallocator(list);
@@ -176,39 +177,39 @@ void FUNC(dlist_destroy)(ds_dlist_t *list, void (*destroy)(ds_dlist_node_t *)) {
 void FUNC(dlist_walk_forward)(ds_dlist_t *list, ds_dlist_node_t *node,
                               void (*callback)(ds_dlist_node_t *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   while (node != list->nil) {
     callback(CAST(node, void));
     node = node->next;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
 void FUNC(dlist_walk_backwards)(ds_dlist_t *list, ds_dlist_node_t *node,
                                 void (*callback)(ds_dlist_node_t *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   while (node != list->nil) {
     callback(CAST(node, void));
     node = node->prev;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 }
 
 bool FUNC(dlist_is_empty)(ds_dlist_t *list) {
   bool result;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  LOCK(list);
 #endif
   result = list->size == 0;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
   return result;
 }
@@ -219,7 +220,7 @@ FUNC(dlist_clone)(ds_dlist_t *list,
   ds_dlist_t *new_list;
   ds_dlist_node_t *current;
 #ifdef DS_THREAD_SAFE
-  LOCK(list)
+  LOCK(list);
 #endif
   new_list = FUNC(dlist_create_alloc)(list->allocator, list->deallocator);
   current = list->head;
@@ -229,7 +230,7 @@ FUNC(dlist_clone)(ds_dlist_t *list,
     current = current->next;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(list)
+  UNLOCK(list);
 #endif
 
   return new_list;

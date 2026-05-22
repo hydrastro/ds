@@ -27,6 +27,7 @@ void mutex_init_recursive(mutex_t *lock) {
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
 #endif
   pthread_mutex_init(lock, &attr);
+  pthread_mutexattr_destroy(&attr);
 }
 
 void mutex_destroy(mutex_t *lock) { pthread_mutex_destroy(lock); }

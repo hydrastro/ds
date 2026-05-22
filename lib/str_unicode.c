@@ -217,7 +217,7 @@ int FUNC(str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src, unsigned int flags
   }
 
 #ifdef DS_THREAD_SAFE
-  LOCK(dst)
+  LOCK(dst);
 #endif
   FUNC(str_clear)(dst);
 
@@ -232,7 +232,7 @@ int FUNC(str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src, unsigned int flags
       size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, enc);
       if (FUNC(str_append)(dst, enc, k) != 0) {
 #ifdef DS_THREAD_SAFE
-        UNLOCK(dst)
+        UNLOCK(dst);
 #endif
         return -1;
       }
@@ -241,7 +241,7 @@ int FUNC(str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src, unsigned int flags
       size_t k = ds__encode_one(cp, enc);
       if (FUNC(str_append)(dst, enc, k) != 0) {
 #ifdef DS_THREAD_SAFE
-        UNLOCK(dst)
+        UNLOCK(dst);
 #endif
         return -1;
       }
@@ -249,7 +249,7 @@ int FUNC(str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src, unsigned int flags
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(dst)
+  UNLOCK(dst);
 #endif
   return 0;
 }

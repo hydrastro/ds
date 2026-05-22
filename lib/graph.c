@@ -13,8 +13,8 @@ static ds_status_t graph_reserve_vertices(ds_graph_t *graph, size_t capacity) {
   if (capacity <= graph->vertex_capacity) {
     return DS_OK;
   }
-  vertices = (ds_graph_vertex_t *)realloc(graph->vertices,
-                                          capacity * sizeof(*vertices));
+  vertices = (ds_graph_vertex_t *)ds_context_realloc(
+      graph->context, graph->vertices, capacity * sizeof(*vertices));
   if (vertices == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -35,8 +35,8 @@ static ds_status_t graph_reserve_edges(ds_graph_t *graph, size_t vertex,
   if (capacity <= graph->vertices[vertex].edge_capacity) {
     return DS_OK;
   }
-  edges = (ds_graph_edge_t *)realloc(graph->vertices[vertex].edges,
-                                     capacity * sizeof(*edges));
+  edges = (ds_graph_edge_t *)ds_context_realloc(
+      graph->context, graph->vertices[vertex].edges, capacity * sizeof(*edges));
   if (edges == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -49,14 +49,17 @@ ds_graph_t *FUNC(ds_graph_create)(void) { return FUNC(ds_graph_create_ctx)(NULL)
 
 ds_graph_t *FUNC(ds_graph_create_ctx)(ds_context_t *context) {
   ds_graph_t *graph;
-  graph = (ds_graph_t *)malloc(sizeof(*graph));
+  if (context == NULL) {
+    context = ds_default_context();
+  }
+  graph = (ds_graph_t *)ds_context_alloc(context, sizeof(*graph));
   if (graph == NULL) {
     return NULL;
   }
   graph->vertices = NULL;
   graph->vertex_count = 0U;
   graph->vertex_capacity = 0U;
-  graph->context = context != NULL ? context : ds_default_context();
+  graph->context = context;
   return graph;
 }
 
@@ -77,10 +80,10 @@ void FUNC(ds_graph_destroy)(ds_graph_t *graph,
         destroy_edge(graph->vertices[i].edges[j].data);
       }
     }
-    free(graph->vertices[i].edges);
+    ds_context_free(graph->context, graph->vertices[i].edges);
   }
-  free(graph->vertices);
-  free(graph);
+  ds_context_free(graph->context, graph->vertices);
+  ds_context_free(graph->context, graph);
 }
 
 ds_status_t FUNC(ds_graph_add_vertex)(ds_graph_t *graph, void *data,
@@ -649,55 +652,19 @@ ds_status_t FUNC(ds_graph_minimum_spanning_tree)(ds_graph_t *graph,
   return DS_OK;
 }
 
-static bool graph_component_mark_weak(ds_graph_t *graph, size_t start,
-                                      size_t component, size_t *components) {
-  size_t *stack;
-  size_t top;
-  size_t vertex;
-  size_t i;
-  size_t j;
-  size_t to;
-
-  stack = (size_t *)malloc(graph->vertex_count * sizeof(*stack));
-  if (stack == NULL) {
-    return false;
-  }
-  top = 0U;
-  components[start] = component;
-  stack[top] = start;
-  top++;
-  while (top != 0U) {
-    top--;
-    vertex = stack[top];
-    for (i = 0U; i < graph->vertices[vertex].edge_count; i++) {
-      to = graph->vertices[vertex].edges[i].to;
-      if (components[to] == (size_t)-1) {
-        components[to] = component;
-        stack[top] = to;
-        top++;
-      }
-    }
-    for (i = 0U; i < graph->vertex_count; i++) {
-      for (j = 0U; j < graph->vertices[i].edge_count; j++) {
-        if (graph->vertices[i].edges[j].to == vertex &&
-            components[i] == (size_t)-1) {
-          components[i] = component;
-          stack[top] = i;
-          top++;
-        }
-      }
-    }
-  }
-  free(stack);
-  return true;
-}
-
 ds_status_t FUNC(ds_graph_connected_components)(ds_graph_t *graph,
                                                  size_t *out_components,
                                                  size_t capacity,
                                                  size_t *out_count) {
+  size_t *parent;
+  size_t *roots;
   size_t i;
+  size_t j;
+  size_t root;
   size_t count;
+  size_t root_a;
+  size_t root_b;
+  bool found;
 
   if (out_count != NULL) {
     *out_count = 0U;
@@ -708,18 +675,50 @@ ds_status_t FUNC(ds_graph_connected_components)(ds_graph_t *graph,
   if (capacity < graph->vertex_count) {
     return DS_ERR_RANGE;
   }
-  for (i = 0U; i < graph->vertex_count; i++) {
-    out_components[i] = (size_t)-1;
+
+  parent = (size_t *)ds_context_alloc(graph->context,
+                                      graph->vertex_count * sizeof(*parent));
+  roots = (size_t *)ds_context_alloc(graph->context,
+                                     graph->vertex_count * sizeof(*roots));
+  if (parent == NULL || roots == NULL) {
+    ds_context_free(graph->context, parent);
+    ds_context_free(graph->context, roots);
+    return DS_ERR_ALLOC;
   }
+
+  for (i = 0U; i < graph->vertex_count; i++) {
+    parent[i] = i;
+  }
+  for (i = 0U; i < graph->vertex_count; i++) {
+    for (j = 0U; j < graph->vertices[i].edge_count; j++) {
+      root_a = graph_uf_find(parent, i);
+      root_b = graph_uf_find(parent, graph->vertices[i].edges[j].to);
+      if (root_a != root_b) {
+        parent[root_b] = root_a;
+      }
+    }
+  }
+
   count = 0U;
   for (i = 0U; i < graph->vertex_count; i++) {
-    if (out_components[i] == (size_t)-1) {
-      if (!graph_component_mark_weak(graph, i, count, out_components)) {
-        return DS_ERR_ALLOC;
+    root = graph_uf_find(parent, i);
+    found = false;
+    for (j = 0U; j < count; j++) {
+      if (roots[j] == root) {
+        out_components[i] = j;
+        found = true;
+        break;
       }
+    }
+    if (!found) {
+      roots[count] = root;
+      out_components[i] = count;
       count++;
     }
   }
+
+  ds_context_free(graph->context, roots);
+  ds_context_free(graph->context, parent);
   *out_count = count;
   return DS_OK;
 }
@@ -740,18 +739,19 @@ static void graph_scc_order_dfs(ds_graph_t *graph, size_t vertex, bool *seen,
   (*count)++;
 }
 
-static void graph_scc_reverse_mark(ds_graph_t *graph, size_t vertex,
-                                   size_t component, size_t *components) {
+static void graph_scc_reverse_mark(size_t vertex, size_t component,
+                                   size_t *components,
+                                   const size_t *reverse_offsets,
+                                   const size_t *reverse_edges) {
   size_t i;
-  size_t j;
+  size_t from;
 
   components[vertex] = component;
-  for (i = 0U; i < graph->vertex_count; i++) {
-    for (j = 0U; j < graph->vertices[i].edge_count; j++) {
-      if (graph->vertices[i].edges[j].to == vertex &&
-          components[i] == (size_t)-1) {
-        graph_scc_reverse_mark(graph, i, component, components);
-      }
+  for (i = reverse_offsets[vertex]; i < reverse_offsets[vertex + 1U]; i++) {
+    from = reverse_edges[i];
+    if (components[from] == (size_t)-1) {
+      graph_scc_reverse_mark(from, component, components, reverse_offsets,
+                             reverse_edges);
     }
   }
 }
@@ -762,10 +762,18 @@ ds_status_t FUNC(ds_graph_strongly_connected_components)(ds_graph_t *graph,
                                                           size_t *out_count) {
   bool *seen;
   size_t *order;
+  size_t *reverse_counts;
+  size_t *reverse_offsets;
+  size_t *reverse_fill;
+  size_t *reverse_edges;
   size_t i;
+  size_t j;
   size_t count;
   size_t component_count;
   size_t vertex;
+  size_t edge_total;
+  size_t to;
+  size_t pos;
 
   if (out_count != NULL) {
     *out_count = 0U;
@@ -776,18 +784,65 @@ ds_status_t FUNC(ds_graph_strongly_connected_components)(ds_graph_t *graph,
   if (capacity < graph->vertex_count) {
     return DS_ERR_RANGE;
   }
-  seen = (bool *)calloc(graph->vertex_count, sizeof(*seen));
-  if (seen == NULL) {
+  seen = (bool *)ds_context_calloc(graph->context, graph->vertex_count,
+                                   sizeof(*seen));
+  order = (size_t *)ds_context_alloc(graph->context,
+                                     graph->vertex_count * sizeof(*order));
+  reverse_counts = (size_t *)ds_context_calloc(graph->context,
+                                               graph->vertex_count,
+                                               sizeof(*reverse_counts));
+  reverse_offsets = (size_t *)ds_context_alloc(
+      graph->context, (graph->vertex_count + 1U) * sizeof(*reverse_offsets));
+  reverse_fill = (size_t *)ds_context_alloc(graph->context,
+                                            graph->vertex_count *
+                                                sizeof(*reverse_fill));
+  if (seen == NULL || order == NULL || reverse_counts == NULL ||
+      reverse_offsets == NULL || reverse_fill == NULL) {
+    ds_context_free(graph->context, reverse_fill);
+    ds_context_free(graph->context, reverse_offsets);
+    ds_context_free(graph->context, reverse_counts);
+    ds_context_free(graph->context, order);
+    ds_context_free(graph->context, seen);
     return DS_ERR_ALLOC;
   }
-  order = (size_t *)malloc(graph->vertex_count * sizeof(*order));
-  if (order == NULL) {
-    free(seen);
-    return DS_ERR_ALLOC;
-  }
-  count = 0U;
+
+  edge_total = 0U;
   for (i = 0U; i < graph->vertex_count; i++) {
     out_components[i] = (size_t)-1;
+    edge_total += graph->vertices[i].edge_count;
+    for (j = 0U; j < graph->vertices[i].edge_count; j++) {
+      reverse_counts[graph->vertices[i].edges[j].to]++;
+    }
+  }
+
+  reverse_offsets[0] = 0U;
+  for (i = 0U; i < graph->vertex_count; i++) {
+    reverse_offsets[i + 1U] = reverse_offsets[i] + reverse_counts[i];
+    reverse_fill[i] = reverse_offsets[i];
+  }
+
+  reverse_edges = (size_t *)ds_context_alloc(graph->context,
+                                             edge_total * sizeof(*reverse_edges));
+  if (edge_total != 0U && reverse_edges == NULL) {
+    ds_context_free(graph->context, reverse_fill);
+    ds_context_free(graph->context, reverse_offsets);
+    ds_context_free(graph->context, reverse_counts);
+    ds_context_free(graph->context, order);
+    ds_context_free(graph->context, seen);
+    return DS_ERR_ALLOC;
+  }
+
+  for (i = 0U; i < graph->vertex_count; i++) {
+    for (j = 0U; j < graph->vertices[i].edge_count; j++) {
+      to = graph->vertices[i].edges[j].to;
+      pos = reverse_fill[to];
+      reverse_edges[pos] = i;
+      reverse_fill[to]++;
+    }
+  }
+
+  count = 0U;
+  for (i = 0U; i < graph->vertex_count; i++) {
     if (!seen[i]) {
       graph_scc_order_dfs(graph, i, seen, order, &count);
     }
@@ -797,12 +852,18 @@ ds_status_t FUNC(ds_graph_strongly_connected_components)(ds_graph_t *graph,
     count--;
     vertex = order[count];
     if (out_components[vertex] == (size_t)-1) {
-      graph_scc_reverse_mark(graph, vertex, component_count, out_components);
+      graph_scc_reverse_mark(vertex, component_count, out_components,
+                             reverse_offsets, reverse_edges);
       component_count++;
     }
   }
-  free(order);
-  free(seen);
+
+  ds_context_free(graph->context, reverse_edges);
+  ds_context_free(graph->context, reverse_fill);
+  ds_context_free(graph->context, reverse_offsets);
+  ds_context_free(graph->context, reverse_counts);
+  ds_context_free(graph->context, order);
+  ds_context_free(graph->context, seen);
   *out_count = component_count;
   return DS_OK;
 }

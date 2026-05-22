@@ -38,13 +38,13 @@ not need to download the full UCD.
 ## Usage
 Include the central header ds.h in your C code:
 ```C
-#include <ds.h> // thread unsafe
-#include <ds_safe.h> // thread safe
+#include <ds.h>      /* normal symbols */
+#include <ds_safe.h> /* *_safe symbols; compile/link with the safe library */
 ```
 
 To compile your project with the library:
 ```shell
-gcc -o example.c -lds
+gcc -o example example.c -lds
 ```
 
 For specific data structure usage, check out the tests and the headers.
@@ -61,6 +61,6 @@ Before submitting a pull request please:
 
 - `make test` builds and runs the normal test suite.
 - `make sanitize` runs the test suite with AddressSanitizer and UndefinedBehaviorSanitizer.
-- `make test-safe` builds the thread-safe library variant and runs the safe smoke test.
+- `make test-safe` builds the thread-safe library variant and runs safe smoke/regression tests across multiple containers.
 - `make valgrind` runs tests, the safe smoke test, and examples under Valgrind when Valgrind is installed.
 - `make examples` builds the example programs.

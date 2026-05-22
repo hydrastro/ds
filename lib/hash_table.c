@@ -298,7 +298,7 @@ static ds_hash_table_t *hash_table_create_alloc_internal(
   }
 
 #ifdef DS_THREAD_SAFE
-  LOCK_INIT(table)
+  LOCK_INIT(table);
 #endif
 
   return table;
@@ -482,11 +482,11 @@ void FUNC(hash_table_resize)(ds_hash_table_t *table, size_t new_capacity,
                              size_t (*hash_func)(void *),
                              int (*compare)(void *, void *)) {
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   hash_table_resize_unlocked(table, new_capacity, hash_func, compare);
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
 }
 
@@ -500,7 +500,7 @@ void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
   ds_hash_node_t *new_node;
   ds_hash_node_t *current;
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   if ((double)table->size / (double)table->capacity >
       HASH_TABLE_RESIZE_FACTOR) {
@@ -519,7 +519,7 @@ void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
     if (current != NULL) {
       current->value = value;
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return;
     }
@@ -536,7 +536,7 @@ void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
       } else if (compare(table->store.entries[index].key, key) == 0) {
         table->store.entries[index].value = value;
 #ifdef DS_THREAD_SAFE
-        UNLOCK(table)
+        UNLOCK(table);
 #endif
         return;
       }
@@ -557,7 +557,7 @@ void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
   table->size++;
 
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
 }
 
@@ -569,7 +569,7 @@ void *FUNC(hash_table_lookup)(ds_hash_table_t *table, void *key,
   size_t iteration;
   ds_hash_node_t *current;
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   base_index = hash_func(key) % table->capacity;
   index = base_index;
@@ -580,7 +580,7 @@ void *FUNC(hash_table_lookup)(ds_hash_table_t *table, void *key,
                                           key, compare);
     if (current != NULL) {
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return current->value;
     }
@@ -589,7 +589,7 @@ void *FUNC(hash_table_lookup)(ds_hash_table_t *table, void *key,
       if (table->store.entries[index].key != table->tombstone &&
           compare(table->store.entries[index].key, key) == 0) {
 #ifdef DS_THREAD_SAFE
-        UNLOCK(table)
+        UNLOCK(table);
 #endif
         return table->store.entries[index].value;
       }
@@ -598,7 +598,7 @@ void *FUNC(hash_table_lookup)(ds_hash_table_t *table, void *key,
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
 
   return table->nil;
@@ -613,7 +613,7 @@ void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
   size_t iteration;
   ds_hash_node_t *current;
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   base_index = hash_func(key) % table->capacity;
   index = base_index;
@@ -630,7 +630,7 @@ void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
       }
       table->deallocator(current);
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return;
     }
@@ -647,7 +647,7 @@ void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
         table->store.entries[index].next = NULL;
         table->size--;
 #ifdef DS_THREAD_SAFE
-        UNLOCK(table)
+        UNLOCK(table);
 #endif
         return;
       }
@@ -656,7 +656,7 @@ void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
 }
 
@@ -666,7 +666,7 @@ void FUNC(hash_table_for_each)(ds_hash_table_t *table,
   ds_hash_node_t *current;
   ds_hash_node_t *prev;
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   current = table->last_node;
   while (current != NULL) {
@@ -675,7 +675,7 @@ void FUNC(hash_table_for_each)(ds_hash_table_t *table,
     current = prev;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
 }
 
@@ -687,7 +687,7 @@ void FUNC(hash_table_destroy)(ds_hash_table_t *table,
                               void (*destroy)(ds_hash_node_t *)) {
   hash_table_destroy_store(table, destroy);
 #ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(table)
+  LOCK_DESTROY(table);
 #endif
   table->deallocator(table->nil);
   table->deallocator(table->tombstone);
@@ -704,12 +704,12 @@ ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
   ds_hash_node_t *current;
   ds_hash_node_t *new_node;
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   if (table->mode == HASH_CHAINING &&
       table->bucket_store != FUNC(hash_table_linked_list_bucket_store)()) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(table)
+    UNLOCK(table);
 #endif
     return NULL;
   }
@@ -750,7 +750,7 @@ ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
   }
 
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
 
   return new_table;
@@ -765,11 +765,11 @@ ds_hash_table_t *FUNC(hash_table_clone_with)(
   void *key;
   void *value;
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   if (hash_func == NULL || compare == NULL) {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(table)
+    UNLOCK(table);
 #endif
     return NULL;
   }
@@ -784,7 +784,7 @@ ds_hash_table_t *FUNC(hash_table_clone_with)(
     current = current->list_prev;
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
   return new_table;
 }
@@ -968,14 +968,14 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
   }
 
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   if ((double)table->size / (double)table->capacity >
       HASH_TABLE_RESIZE_FACTOR) {
     if (!ds_hash_table_resize_config_unlocked(table,
                                              next_prime_capacity(table->capacity))) {
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return DS_CONTEXT_ERROR(table->context, DS_ERR_ALLOC,
                               "ds.hash_table/resize_failed", "hash_table",
@@ -997,14 +997,14 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
       }
       current->value = value;
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return DS_OK;
     }
     new_node = hash_node_create(table, key, value);
     if (new_node == NULL) {
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return DS_CONTEXT_ERROR(table->context, DS_ERR_ALLOC,
                               "ds.hash_table/node_alloc_failed", "hash_table",
@@ -1027,7 +1027,7 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
         }
         table->store.entries[index].value = value;
 #ifdef DS_THREAD_SAFE
-        UNLOCK(table)
+        UNLOCK(table);
 #endif
         return DS_OK;
       }
@@ -1043,7 +1043,7 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
     hash_table_link_node(table, &table->store.entries[index]);
   } else {
 #ifdef DS_THREAD_SAFE
-    UNLOCK(table)
+    UNLOCK(table);
 #endif
     return DS_CONTEXT_ERROR(table->context, DS_ERR_INVALID,
                             "ds.hash_table/invalid_mode", "hash_table",
@@ -1052,7 +1052,7 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
 
   table->size++;
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
   return DS_OK;
 }
@@ -1079,7 +1079,7 @@ ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
   }
 
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   base_index = hash_table_config_hash(table, key) % table->capacity;
   index = base_index;
@@ -1090,7 +1090,7 @@ ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
     if (current != NULL) {
       *out_value = current->value;
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return DS_OK;
     }
@@ -1101,7 +1101,7 @@ ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
                                     key) == 0) {
         *out_value = table->store.entries[index].value;
 #ifdef DS_THREAD_SAFE
-        UNLOCK(table)
+        UNLOCK(table);
 #endif
         return DS_OK;
       }
@@ -1110,7 +1110,7 @@ ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
   return DS_NOT_FOUND;
 }
@@ -1133,7 +1133,7 @@ ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table,
                             "hash_table", "hash table pointer is NULL");
   }
 #ifdef DS_THREAD_SAFE
-  LOCK(table)
+  LOCK(table);
 #endif
   base_index = hash_table_config_hash(table, key) % table->capacity;
   index = base_index;
@@ -1147,7 +1147,7 @@ ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table,
       hash_table_config_destroy_node(table, current);
       table->deallocator(current);
 #ifdef DS_THREAD_SAFE
-      UNLOCK(table)
+      UNLOCK(table);
 #endif
       return DS_OK;
     }
@@ -1163,7 +1163,7 @@ ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table,
         table->store.entries[index].next = NULL;
         table->size--;
 #ifdef DS_THREAD_SAFE
-        UNLOCK(table)
+        UNLOCK(table);
 #endif
         return DS_OK;
       }
@@ -1172,7 +1172,7 @@ ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table,
     }
   }
 #ifdef DS_THREAD_SAFE
-  UNLOCK(table)
+  UNLOCK(table);
 #endif
   return DS_NOT_FOUND;
 }
@@ -1191,7 +1191,7 @@ void FUNC(ds_hash_table_destroy)(ds_hash_table_t *table) {
   }
   hash_table_destroy_store(table, NULL);
 #ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(table)
+  LOCK_DESTROY(table);
 #endif
   table->deallocator(table->nil);
   table->deallocator(table->tombstone);
@@ -1245,6 +1245,25 @@ ds_hash_table_t *FUNC(ds_hash_table_clone)(ds_hash_table_t *table) {
   return clone;
 }
 
+
+static void hash_table_iter_destroy(ds_iter_t *iter) {
+#ifdef DS_THREAD_SAFE
+  ds_hash_table_t *table;
+#endif
+  if (iter == NULL || iter->container == NULL) {
+    return;
+  }
+#ifdef DS_THREAD_SAFE
+  table = (ds_hash_table_t *)iter->container;
+  UNLOCK(table);
+#endif
+  iter->container = NULL;
+  iter->state = NULL;
+  iter->key = NULL;
+  iter->value = NULL;
+  iter->node = NULL;
+}
+
 static ds_status_t hash_table_iter_next(ds_iter_t *iter) {
   ds_hash_node_t *current;
   if (iter == NULL) {
@@ -1255,6 +1274,7 @@ static ds_status_t hash_table_iter_next(ds_iter_t *iter) {
     iter->key = NULL;
     iter->value = NULL;
     iter->node = NULL;
+    hash_table_iter_destroy(iter);
     return DS_STOP;
   }
   iter->node = current;
@@ -1270,11 +1290,19 @@ ds_status_t FUNC(ds_hash_table_iter_init)(ds_hash_table_t *table,
     return DS_ERR_NULL;
   }
   iter->container = table;
+#ifdef DS_THREAD_SAFE
+  if (table != NULL) {
+    LOCK(table);
+  }
+#endif
   iter->state = table != NULL ? table->last_node : NULL;
   iter->key = NULL;
   iter->value = NULL;
   iter->node = NULL;
   iter->next = hash_table_iter_next;
-  iter->destroy = NULL;
-  return table != NULL ? DS_OK : DS_ERR_NULL;
+  iter->destroy = hash_table_iter_destroy;
+  if (table == NULL) {
+    return DS_ERR_NULL;
+  }
+  return DS_OK;
 }

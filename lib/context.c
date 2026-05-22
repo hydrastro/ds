@@ -34,12 +34,15 @@ void ds_context_init(ds_context_t *context) {
 }
 
 ds_context_t *ds_default_context(void) {
-  static ds_context_t context;
-  static int initialized = 0;
-  if (!initialized) {
-    ds_context_init(&context);
-    initialized = 1;
-  }
+  static ds_context_t context = {
+      ctx_default_alloc,
+      ctx_default_calloc,
+      ctx_default_realloc,
+      ctx_default_free,
+      NULL,
+      NULL,
+      {DS_OK, NULL, NULL, NULL, NULL, 0UL, NULL},
+      0U};
   return &context;
 }
 

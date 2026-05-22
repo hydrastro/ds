@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200112L
 #include "error.h"
 #include <stdio.h>
 
@@ -49,12 +50,11 @@ int ds_error_format(const ds_error_t *error, char *buffer,
   const char *file;
   const char *function;
 
-  (void)buffer_size;
-  if (buffer == NULL) {
+  if (buffer == NULL || buffer_size == 0U) {
     return -1;
   }
   if (error == NULL || error->status == DS_OK) {
-    return sprintf(buffer, "[OK]");
+    return snprintf(buffer, buffer_size, "[OK]");
   }
 
   id = error->id != NULL ? error->id : "ds.error/unknown";
@@ -63,7 +63,7 @@ int ds_error_format(const ds_error_t *error, char *buffer,
   file = error->file != NULL ? error->file : "?";
   function = error->function != NULL ? error->function : "?";
 
-  return sprintf(buffer, "[%s] %s (%s): %s at %s:%lu:%s",
+  return snprintf(buffer, buffer_size, "[%s] %s (%s): %s at %s:%lu:%s",
                   ds_status_name(error->status), id, module, message, file,
                   error->line, function);
 }

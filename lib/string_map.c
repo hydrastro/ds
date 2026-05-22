@@ -77,14 +77,27 @@ ds_string_map_t *FUNC(ds_string_map_create_ctx)(ds_context_t *context) {
 ds_status_t FUNC(ds_string_map_put)(ds_string_map_t *map, const char *key,
                                      void *value) {
   char *copy;
+  ds_status_t status;
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
+  }
+  status = FUNC(ds_hash_table_contains)(map->table, string_map_key_ptr(key));
+  if (status == DS_OK) {
+    return FUNC(ds_hash_table_insert)(map->table, string_map_key_ptr(key),
+                                      value);
+  }
+  if (status != DS_NOT_FOUND) {
+    return status;
   }
   copy = string_map_strdup(key);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
-  return FUNC(ds_hash_table_insert)(map->table, copy, value);
+  status = FUNC(ds_hash_table_insert)(map->table, copy, value);
+  if (status != DS_OK) {
+    free(copy);
+  }
+  return status;
 }
 
 ds_status_t FUNC(ds_string_map_get)(ds_string_map_t *map, const char *key,
