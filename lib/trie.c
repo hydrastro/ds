@@ -210,6 +210,7 @@ ds_trie_t *FUNC(trie_create_alloc)(
   trie = (ds_trie_t *)allocator(sizeof(ds_trie_t));
   trie->allocator = allocator;
   trie->deallocator = deallocator;
+  trie->context = ds_default_context();
   trie->num_splits = num_splits;
   trie->store_search = store_search;
   trie->store_create = store_create;
@@ -411,10 +412,119 @@ ds_trie_t *FUNC(trie_clone)(ds_trie_t *trie, void *(*clone_data)(void *)) {
   new_trie->store_clone = trie->store_clone;
   new_trie->allocator = trie->allocator;
   new_trie->deallocator = trie->deallocator;
+  new_trie->context = trie->context;
   new_trie->root = FUNC(trie_clone_node)(trie, trie->root, NULL, clone_data);
 #ifdef DS_THREAD_SAFE
   LOCK_INIT_RECURSIVE(new_trie)
   UNLOCK(trie)
 #endif
   return new_trie;
+}
+
+
+static const ds_trie_store_ops_t ds_trie_hash_ops = {
+    FUNC(trie_hash_table_store_search),        FUNC(trie_hash_table_store_create),
+    FUNC(trie_hash_table_store_insert),        FUNC(trie_hash_table_store_remove),
+    FUNC(trie_hash_table_store_destroy_entry), FUNC(trie_hash_table_store_destroy),
+    FUNC(trie_hash_table_store_get_size),      FUNC(trie_hash_table_store_apply),
+    FUNC(trie_hash_table_store_clone)};
+
+const ds_trie_store_ops_t *FUNC(ds_trie_hash_store_ops)(void) {
+  return &ds_trie_hash_ops;
+}
+
+void ds_trie_config_init(ds_trie_config_t *config) {
+  if (config == NULL) {
+    return;
+  }
+  config->num_splits = 256U;
+  config->store_ops = NULL;
+  config->allocator = NULL;
+  config->deallocator = NULL;
+  config->context = NULL;
+}
+
+ds_trie_t *FUNC(ds_trie_create_config)(const ds_trie_config_t *config) {
+  const ds_trie_store_ops_t *ops;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
+  ds_trie_t *trie;
+
+  if (config == NULL) {
+    return NULL;
+  }
+  ops = config->store_ops != NULL ? config->store_ops : FUNC(ds_trie_hash_store_ops)();
+  allocator = config->allocator != NULL ? config->allocator : malloc;
+  deallocator = config->deallocator != NULL ? config->deallocator : free;
+
+  trie = FUNC(trie_create_alloc)(config->num_splits, ops->search, ops->create,
+                                 ops->insert, ops->remove, ops->destroy_entry,
+                                 ops->destroy, ops->get_size, ops->apply,
+                                 ops->clone, allocator, deallocator);
+  if (trie != NULL) {
+    trie->context = config->context != NULL ? config->context : ds_default_context();
+  }
+  return trie;
+}
+
+ds_trie_t *FUNC(ds_trie_create_hash)(size_t num_splits) {
+  ds_trie_config_t config;
+  ds_trie_config_init(&config);
+  config.num_splits = num_splits;
+  config.store_ops = FUNC(ds_trie_hash_store_ops)();
+  return FUNC(ds_trie_create_config)(&config);
+}
+
+ds_status_t FUNC(ds_trie_insert)(ds_trie_t *trie, void *data,
+                                  size_t (*get_slice)(void *, size_t),
+                                  bool (*has_slice)(void *, size_t)) {
+  if (trie == NULL || get_slice == NULL || has_slice == NULL) {
+    return DS_CONTEXT_ERROR(trie != NULL ? trie->context : NULL, DS_ERR_NULL,
+                            "ds.trie/null_argument", "trie",
+                            "trie insert received NULL argument");
+  }
+  FUNC(trie_insert)(trie, data, get_slice, has_slice);
+  return DS_OK;
+}
+
+ds_status_t FUNC(ds_trie_get)(ds_trie_t *trie, void *data,
+                               size_t (*get_slice)(void *, size_t),
+                               bool (*has_slice)(void *, size_t),
+                               ds_trie_node_t **out_node) {
+  ds_trie_node_t *node;
+  if (out_node != NULL) {
+    *out_node = NULL;
+  }
+  if (trie == NULL || get_slice == NULL || has_slice == NULL ||
+      out_node == NULL) {
+    return DS_CONTEXT_ERROR(trie != NULL ? trie->context : NULL, DS_ERR_NULL,
+                            "ds.trie/null_argument", "trie",
+                            "trie get received NULL argument");
+  }
+  node = FUNC(trie_search)(trie, data, get_slice, has_slice);
+  if (node == NULL) {
+    return DS_NOT_FOUND;
+  }
+  *out_node = node;
+  return DS_OK;
+}
+
+ds_status_t FUNC(ds_trie_remove)(ds_trie_t *trie, void *data,
+                                  size_t (*get_slice)(void *, size_t),
+                                  bool (*has_slice)(void *, size_t)) {
+  ds_trie_node_t *node;
+  ds_status_t status;
+  status = FUNC(ds_trie_get)(trie, data, get_slice, has_slice, &node);
+  if (status != DS_OK) {
+    return status;
+  }
+  FUNC(trie_delete_node)(trie, node);
+  return DS_OK;
+}
+
+void FUNC(ds_trie_destroy)(ds_trie_t *trie) {
+  if (trie == NULL) {
+    return;
+  }
+  FUNC(trie_destroy_trie)(trie, NULL);
 }

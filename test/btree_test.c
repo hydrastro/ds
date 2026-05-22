@@ -156,7 +156,9 @@ void test_thread_safety() {
 
 int main() {
   test_btree_operations();
+#ifdef DS_THREAD_SAFE
   test_thread_safety();
+#endif
 
   return 0;
 }

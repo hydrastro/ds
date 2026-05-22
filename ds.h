@@ -2,6 +2,12 @@
 #define DS_H
 
 #include "lib/common.h"
+#include "lib/status.h"
+#include "lib/error.h"
+#include "lib/diagnostic.h"
+#include "lib/context.h"
+#include "lib/result.h"
+#include "lib/iter.h"
 
 #include "lib/avl.h"
 #include "lib/bst.h"
@@ -10,6 +16,11 @@
 #include "lib/dlist.h"
 #include "lib/hash_table.h"
 #include "lib/heap.h"
+#include "lib/history.h"
+#include "lib/graph.h"
+#include "lib/persistent_rbt.h"
+#include "lib/persistent_trie.h"
+#include "lib/string_map.h"
 #include "lib/list.h"
 #include "lib/queue.h"
 #include "lib/rbt.h"

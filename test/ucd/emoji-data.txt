@@ -1,0 +1,2 @@
+1F44B ; Extended_Pictographic # waving hand
+1F3E0 ; Extended_Pictographic # house

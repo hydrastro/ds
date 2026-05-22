@@ -2,6 +2,7 @@
 #define DS_TRIE_H
 
 #include "common.h"
+#include "context.h"
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -31,11 +32,52 @@ typedef struct trie {
                        void *(*clone_data)(void *));
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
+  ds_context_t *context;
 #ifdef DS_THREAD_SAFE
   mutex_t lock;
   bool is_thread_safe;
 #endif
 } ds_trie_t;
+
+typedef struct ds_trie_store_ops {
+  ds_trie_node_t *(*search)(void *store, size_t slice);
+  void *(*create)(struct trie *trie, size_t size);
+  void (*insert)(void *store, ds_trie_node_t *node);
+  void (*remove)(void *store, ds_trie_node_t *node);
+  void (*destroy_entry)(void *store, ds_trie_node_t *node);
+  void (*destroy)(void *store);
+  size_t (*get_size)(void *store);
+  void (*apply)(struct trie *trie, void *store,
+                void (*f)(struct trie *, ds_trie_node_t *, va_list *),
+                va_list *args);
+  void *(*clone)(struct trie *trie, void *store,
+                 ds_trie_node_t *parent_node, void *(*clone_data)(void *));
+} ds_trie_store_ops_t;
+
+typedef struct ds_trie_config {
+  size_t num_splits;
+  const ds_trie_store_ops_t *store_ops;
+  void *(*allocator)(size_t);
+  void (*deallocator)(void *);
+  ds_context_t *context;
+} ds_trie_config_t;
+
+
+const ds_trie_store_ops_t *FUNC(ds_trie_hash_store_ops)(void);
+void ds_trie_config_init(ds_trie_config_t *config);
+ds_trie_t *FUNC(ds_trie_create_config)(const ds_trie_config_t *config);
+ds_trie_t *FUNC(ds_trie_create_hash)(size_t num_splits);
+ds_status_t FUNC(ds_trie_insert)(ds_trie_t *trie, void *data,
+                                  size_t (*get_slice)(void *, size_t),
+                                  bool (*has_slice)(void *, size_t));
+ds_status_t FUNC(ds_trie_get)(ds_trie_t *trie, void *data,
+                               size_t (*get_slice)(void *, size_t),
+                               bool (*has_slice)(void *, size_t),
+                               ds_trie_node_t **out_node);
+ds_status_t FUNC(ds_trie_remove)(ds_trie_t *trie, void *data,
+                                  size_t (*get_slice)(void *, size_t),
+                                  bool (*has_slice)(void *, size_t));
+void FUNC(ds_trie_destroy)(ds_trie_t *trie);
 
 ds_trie_node_t *FUNC(trie_create_node)(ds_trie_t *trie);
 

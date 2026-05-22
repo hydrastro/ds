@@ -20,7 +20,7 @@ TEST_DIR  := test
 BUILD_DIR := build
 DATA_DIR  := data
 TEST_BUILD_DIR := $(BUILD_DIR)/test
-INCLUDES  := -I$(LIB_DIR) -I$(BUILD_DIR)
+INCLUDES  := -I. -I$(LIB_DIR) -I$(BUILD_DIR)
 
 LIB_SRC := \
   $(LIB_DIR)/avl.c \
@@ -31,10 +31,20 @@ LIB_SRC := \
   $(LIB_DIR)/dlist.c \
   $(LIB_DIR)/hash_table.c \
   $(LIB_DIR)/heap.c \
+  $(LIB_DIR)/history.c \
   $(LIB_DIR)/list.c \
+  $(LIB_DIR)/context.c \
+  $(LIB_DIR)/diagnostic.c \
+  $(LIB_DIR)/error.c \
+  $(LIB_DIR)/graph.c \
+  $(LIB_DIR)/iter.c \
+  $(LIB_DIR)/persistent_rbt.c \
+  $(LIB_DIR)/persistent_trie.c \
   $(LIB_DIR)/queue.c \
   $(LIB_DIR)/rbt.c \
   $(LIB_DIR)/stack.c \
+  $(LIB_DIR)/status.c \
+  $(LIB_DIR)/string_map.c \
   $(LIB_DIR)/str.c \
   $(LIB_DIR)/str_algo.c \
   $(LIB_DIR)/str_io.c \
@@ -69,6 +79,10 @@ TEST_LIB_STATIC := $(TEST_BUILD_DIR)/libds_test.a
 
 TEST_SRC := $(wildcard $(TEST_DIR)/*_test.c)
 TEST_BIN := $(patsubst $(TEST_DIR)/%.c,$(TEST_BUILD_DIR)/%,$(TEST_SRC))
+EXAMPLE_DIR := examples
+EXAMPLE_BUILD_DIR := $(BUILD_DIR)/examples
+EXAMPLE_SRC := $(wildcard $(EXAMPLE_DIR)/*.c)
+EXAMPLE_BIN := $(patsubst $(EXAMPLE_DIR)/%.c,$(EXAMPLE_BUILD_DIR)/%,$(EXAMPLE_SRC))
 
 GEN_BIN := $(BUILD_DIR)/gen_ucd
 GEN_SRC := $(GEN_DIR)/gen_ucd.c
@@ -84,10 +98,10 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data test test-build check
+.PHONY: all clean distclean unicode-data test test-build check sanitize test-safe examples
 all: $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE)
 
-$(BUILD_DIR) $(DATA_DIR) $(TEST_BUILD_DIR):
+$(BUILD_DIR) $(DATA_DIR) $(TEST_BUILD_DIR) $(EXAMPLE_BUILD_DIR):
 	@mkdir -p $@
 
 $(DATA_DIR)/UnicodeData.txt: | $(DATA_DIR)
@@ -167,6 +181,11 @@ test: $(TEST_BIN)
 
 check: test
 
+$(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(TEST_LIB_STATIC) | $(EXAMPLE_BUILD_DIR)
+	$(CC) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC) $(LDLIBS)
+
+examples: $(EXAMPLE_BIN)
+
 clean:
 	rm -f $(LIB_DIR)/*.o $(LIB_DIR)/*_safe.o $(BUILD_DIR)/*.o \
 	      $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE) \
@@ -176,3 +195,29 @@ clean:
 
 distclean: clean
 	rm -rf $(DATA_DIR)
+
+
+SAFE_TEST_BUILD_DIR := $(TEST_BUILD_DIR)/safe
+TEST_LIB_STATIC_SAFE_TEST := $(SAFE_TEST_BUILD_DIR)/libds_test_safe.a
+SAFE_TEST_SRC := $(TEST_DIR)/thread_safe_smoke_test.c
+TEST_BIN_SAFE := $(patsubst $(TEST_DIR)/%.c,$(SAFE_TEST_BUILD_DIR)/%,$(SAFE_TEST_SRC))
+
+$(SAFE_TEST_BUILD_DIR):
+	@mkdir -p $@
+
+$(TEST_LIB_STATIC_SAFE_TEST): $(LIB_OBJ_SAFE) $(TEST_GEN_OBJ) | $(SAFE_TEST_BUILD_DIR)
+	$(AR) $(ARFLAGS) $@ $^
+
+$(SAFE_TEST_BUILD_DIR)/%: $(TEST_DIR)/%.c $(TEST_LIB_STATIC_SAFE_TEST) | $(SAFE_TEST_BUILD_DIR)
+	$(CC) $(TEST_CFLAGS) -D DS_THREAD_SAFE $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC_SAFE_TEST) $(LDLIBS)
+
+test-safe: $(TEST_BIN_SAFE)
+	@set -e; \
+	for test_bin in $(TEST_BIN_SAFE); do \
+	  printf '\n== %s ==\n' "$$test_bin"; \
+	  "$$test_bin"; \
+	done
+
+sanitize:
+	$(MAKE) clean
+	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' LDLIBS='-pthread -fsanitize=address,undefined' test
