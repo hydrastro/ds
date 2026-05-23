@@ -1,72 +1,131 @@
-# Roadmap
+# Roadmap and current status
 
-Implemented foundation:
+This file tracks the current direction of `ds`: an intrusive,
+allocator-aware, diagnostic-rich, versionable C data-structure library.
 
-- status/error/diagnostic/context layer
-- config-based hash table and trie constructors
-- `ds_`-prefixed APIs for hash table/trie additions
-- iterator abstraction
-- string map/string set wrappers
-- generic graph module
-- structural persistent trie module
-- structural persistent red-black tree module
-- history transaction batching
-- history oracle randomized test
-- `make sanitize` and `make test-safe`
+## Implemented foundation
 
-## Current hardening status
+- `ds_status_t`, `ds_error_t`, `ds_diagnostic_t`, and `ds_context_t`
+- diagnostic sinks and diagnostic collectors
+- context-aware arena, pool, and debug allocators
+- config-based hash table API
+- config-based trie API
+- `ds_`-prefixed APIs for new hash/trie surfaces
+- generic iterator shell
+- string map/string set convenience wrappers
+- `make test`, `make test-safe`, `make sanitize`, `make examples`, and
+  `make valgrind`
+- `ds_safe.h`, `libds_safe.a`, and `libds_safe.so`
 
-The largest trie/RBT/history limitations have been addressed:
+## Implemented persistent/versioned structures
 
-- Persistent trie supports structural-sharing insert, exact-key removal, prefix existence, longest-prefix lookup, prefix traversal, inclusive range traversal, and `ds_ptrie_remove_prefix` for bulk subtree removal.
-- Persistent red-black tree uses an immutable, refcounted, path-copying left-leaning red-black implementation. It supports insert, get, remove, full ordered traversal, inclusive range traversal, floor, ceiling, rank, select, and version-isolated subtree sizes.
-- History supports transaction batching, branch-local operation serialization/deserialization, full multi-branch history serialization/deserialization, portable little-endian metadata helpers, portable full-history serialization/deserialization, and deterministic operation-log branch merge.
-- The graph module supports directed storage, weighted edges, BFS, DFS, topological sort, Dijkstra shortest paths, weakly connected components, and strongly connected components.
-- `make sanitize` cleans after its sanitizer run so later normal builds do not accidentally link against sanitizer-instrumented objects.
+### Persistent trie
 
-## Remaining high-value work
+The persistent trie is structurally shared and versioned. It supports:
 
-- Migrate every legacy API to `ds_status_t` while keeping compatibility wrappers.
-- Convert all complex constructors to config structs.
-- Add context-aware allocation throughout older modules.
-- Add persistent trie prefix counting, prefix copy/move helpers, and compressed/radix-node storage.
-- Add persistent RBT delete-min/delete-max, predecessor/successor convenience wrappers, and validation/debug introspection.
-- Add history semantic conflict hooks for merges; current merge is a deterministic operation-log merge and does not try to interpret payload conflicts.
-- Add a first-class portable archive object for history instead of only exposing helper callbacks.
-- Add graph weighted-edge update/remove, Bellman-Ford for negative weights, minimum spanning tree helpers, and adjacency iterators.
-- Add arena/pool/debug allocators through `ds_context_t`.
+- insert
+- exact-key remove
+- prefix remove / subtree clear
+- get
+- prefix existence
+- prefix counting
+- longest-prefix lookup
+- prefix traversal
+- inclusive lexicographic range traversal
+- prefix copy
+- prefix move
+- version retain/release
 
-## High-value hardening pass
+### Persistent red-black tree
 
-Additional work now implemented:
+The persistent red-black tree is a structurally shared, refcounted,
+path-copying left-leaning red-black tree. It supports:
 
-- `make valgrind` runs the full test suite, safe smoke test, and examples under Valgrind when Valgrind is installed. Split targets are also available: `make valgrind-test`, `make valgrind-safe`, and `make valgrind-examples`.
-- `ds_context_t` now has first-class allocator backends in `lib/allocators.h`:
-  - `ds_arena_t` for bump allocation
-  - `ds_pool_t` for fixed-size block allocation
-  - `ds_debug_allocator_t` for allocation/free/realloc statistics
-- Persistent trie now includes high-level prefix helpers:
-  - `ds_ptrie_count_prefix`
-  - `ds_ptrie_copy_prefix`
-  - `ds_ptrie_move_prefix`
-- Persistent red-black tree now includes:
-  - `ds_prbt_delete_min`
-  - `ds_prbt_delete_max`
-  - `ds_prbt_predecessor`
-  - `ds_prbt_successor`
-  - `ds_prbt_validate`
-- History now includes:
-  - `ds_history_archive_t`, an owned in-memory archive object
-  - archive read/write callbacks usable directly with portable serialization
-  - `ds_history_branch_merge_with`, a callback-driven semantic merge policy hook
-- Graph now includes:
-  - edge update/remove APIs
-  - edge visitation
-  - Bellman-Ford shortest paths
-  - minimum spanning tree / forest helper over the graph's weak undirected view
+- insert
+- remove
+- delete-min
+- delete-max
+- get
+- ordered traversal
+- inclusive range traversal
+- floor / ceiling
+- predecessor / successor
+- rank / select
+- size
+- validation
+- version retain/release
 
-Still intentionally open:
+## Implemented history/timeline support
 
-- Full legacy API migration to `ds_status_t` remains incremental because it changes a large public surface.
-- Compressed/radix persistent trie storage remains a separate performance-oriented backend, not a small extension to the current byte-edge trie.
-- History merge conflict handling is now hookable, but domain-specific conflict resolution belongs in adapters.
+The history module supports:
+
+- branches with parent/fork relationships
+- acyclic timeline model
+- retroactive operation insertion/deletion
+- `snapshot_at` and `query_at`
+- checkpoint replay
+- transaction batching
+- branch-local operation serialization/deserialization
+- full multi-branch serialization/deserialization
+- portable little-endian metadata helpers
+- owned in-memory archive object
+- deterministic operation-log branch merge
+- callback-driven merge policy hooks
+- randomized oracle testing
+
+Semantic conflict resolution remains adapter-owned. The history layer can order,
+copy, serialize, merge, and replay operations, but it should not guess what two
+domain-specific payloads mean.
+
+## Implemented graph support
+
+The graph module supports:
+
+- directed vertices/edges
+- weighted edges
+- edge update/remove
+- edge visitation
+- BFS
+- DFS
+- topological sort
+- Dijkstra shortest paths
+- Bellman-Ford shortest paths and negative-cycle detection
+- weakly connected components
+- strongly connected components
+- minimum spanning tree / forest over the graph's weak undirected view
+
+## Review-driven stabilization status
+
+The review-driven stabilization passes fixed the major correctness bugs found in
+legacy structures and the new high-level modules, including:
+
+- bounded error/diagnostic formatting
+- safe lock macro wrapping
+- recursive mutex attribute cleanup
+- AVL rebalance, clone, postorder, rotation, and destroy callback issues
+- B-tree lock-balance and walk-helper regressions
+- heap index and growth issues
+- list/dlist/queue/stack size and lock-balance issues
+- string-map update ownership and thread-safe TOCTOU
+- graph reverse-edge algorithm complexity
+- pool/debug allocator hardening
+- README/Makefile drift
+
+The test suite now includes focused review-regression tests and multi-container
+safe-build smoke coverage.
+
+## Still open / future work
+
+High-value work that remains intentionally open:
+
+- migrate every legacy sentinel-returning API to `ds_status_t` plus
+  out-parameters while keeping compatibility wrappers
+- add `void *user` callback context to older compare/destroy APIs
+- continue migrating older modules to `ds_context_t` allocation internally
+- document or strengthen iterator synchronization guarantees per container
+- add tombstone-density compaction for probing hash tables
+- add compressed/radix storage as a persistent-trie backend
+- add richer history semantic conflict adapters for common containers
+- add file-backed archive helpers on top of the existing history archive API
+- make very deep list/tree traversals iterative where practical
+- add more graph algorithms only after the current API stabilizes

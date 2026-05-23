@@ -1,4 +1,4 @@
-# ds history architecture
+# History architecture
 
 The history module is a generic versioning and retroactivity layer for existing
 `ds` containers. It intentionally does not make every mutable container aware of
@@ -8,18 +8,18 @@ operation table.
 ## Model
 
 A `ds_history_t` owns one object family and one operation interface. A
-`ds_history_branch_t` is a branch in an acyclic timeline. Each branch stores only
-its own operations and inherits state from its parent at `fork_time`.
+`ds_history_branch_t` is a branch in an acyclic timeline. Each branch stores its
+own operation log and inherits state from its parent at `fork_time`.
 
 The core invariant is:
 
-```text
+```txt
 every branch has finite acyclic ancestry
 ```
 
 That gives deterministic snapshots and avoids the semantic problems created by
-cyclic time dependencies. Loop-like history can be added later as a separate
-fixed-point or simulation layer, but it should not be part of the normal branch
+cyclic time dependencies. Loop-like history can be explored later as a separate
+fixed-point/simulation layer, but it should not be part of the normal branch
 DAG.
 
 ## Persistence vs retroactivity
@@ -27,12 +27,12 @@ DAG.
 Persistence keeps old versions accessible. Retroactivity edits the operation log
 in the past and lets the change propagate to later snapshots.
 
-This module supports both through one replay/checkpoint engine:
+This module supports both through a replay/checkpoint engine:
 
-```text
+```txt
 snapshot_at(branch, t):
-  find the nearest checkpoint <= t
-  otherwise materialize the parent at fork_time
+  find nearest checkpoint <= t
+  otherwise materialize parent at fork_time
   replay branch-local operations up to t
 ```
 
@@ -53,30 +53,34 @@ A container adapter supplies:
 
 The history engine knows nothing about hash tables, tries, lists, or trees. It
 only knows how to order operations, materialize snapshots, cache checkpoints,
-branch, and query.
+branch, serialize, merge, and query.
 
-## Intended tiers
+## Transactions
 
-```text
-Tier 1: generic clone/replay backend
-  Works for most existing mutable containers.
+Transactions batch checkpoint invalidation while multiple history edits are
+performed:
 
-Tier 2: persistent backends
-  Structure-specific implementations with structural sharing.
-
-Tier 3: optimized retroactive backends
-  Structure-specific algorithms for faster past edits and full retroactivity.
+```c
+ds_history_transaction_begin(history);
+/* insert/delete/merge operations */
+ds_history_transaction_commit(history);
 ```
 
-The current implementation is Tier 1. It is deliberately general and should be
-used as the semantic foundation before adding specialized persistent tries,
-persistent red-black trees, HAMT-style maps, or optimized retroactive queues.
+This is useful for bulk retroactive edits or branch merges.
+
+## Branch merge
+
+`ds_history_branch_merge` performs deterministic operation-log merging.
+`ds_history_branch_merge_with` adds a callback-driven merge policy hook.
+
+The history layer can choose whether to take, skip, or stop on an operation, but
+semantic payload conflicts belong to the wrapped container adapter.
 
 ## Ownership
 
-When an operation is inserted into a branch, ownership of its payload moves to the
-history object. The payload is destroyed when the operation is deleted or the
-history is destroyed, if `destroy_payload` is provided.
+When an operation is inserted into a branch, ownership of its payload moves to
+the history object. The payload is destroyed when the operation is deleted or the
+history is destroyed if `destroy_payload` is provided.
 
 Snapshots returned by `ds_history_branch_snapshot_at` and
 `ds_history_branch_snapshot_head` are owned by the caller and must be destroyed
@@ -85,25 +89,29 @@ with `ds_history_snapshot_destroy`.
 Query result ownership is adapter-specific. The history layer simply returns the
 value produced by the adapter's `query` callback.
 
-## Serialization
+## Serialization and archives
 
-History serialization is split into two layers:
+History serialization has several layers:
 
-- branch-local operation export/import for tooling that only wants one branch's
-  operation log;
-- full-history save/load for preserving branch topology.
+- branch-local operation export/import
+- full multi-branch serialization/deserialization
+- portable little-endian metadata helpers
+- `ds_history_archive_t`, an owned in-memory byte archive
 
-`ds_history_serialize` writes the entire branch DAG in parent-before-child order.
-It records each branch id, parent id, fork time, name, and branch-local operation
-log. The history layer writes operation metadata (`id`, `time`, `kind`) and calls
-adapter-provided payload callbacks for the operation payload. This keeps the core
-history engine generic; the wrapped container still owns the binary format for
-its own operations.
+Full serialization preserves:
 
-`ds_history_deserialize` reconstructs the branch DAG and operation logs from that
-stream. The stream format is intentionally callback-driven: callers can write to
-memory, files, sockets, or their own endian-stable binary codec.
+- branch IDs
+- branch names
+- parent relationships
+- fork times
+- operation IDs
+- operation times
+- operation kinds
+- adapter-owned operation payloads
 
-The current built-in format writes native C integer representations through the
-provided `write` callback. For portable archives, provide read/write callbacks
-that normalize integer sizes and endianness before storing bytes.
+Payload encoding/decoding is callback-driven. The history engine writes generic
+operation metadata and calls adapter-provided callbacks for payload bytes. This
+keeps the core history module generic.
+
+Use the portable helpers when archives need to survive machine-endianness or
+integer-representation differences.
