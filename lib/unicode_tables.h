@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
   unsigned long start;
   unsigned long end;
@@ -48,5 +52,10 @@ extern const size_t U_EP_LEN;
 #define U_COMP_A U_COMP_KEYS_A
 #define U_COMP_B U_COMP_KEYS_B
 #define U_COMP_VAL U_COMP_VALS
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_UNICODE_TABLES_H */

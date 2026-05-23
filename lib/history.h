@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ds_history;
 struct ds_history_branch;
 struct ds_history_operation;
@@ -194,5 +198,10 @@ ds_history_t *FUNC(ds_history_deserialize_portable)(
     const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
     ds_history_payload_read_func_t read_payload, void *io_user,
     void *payload_user);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_HISTORY_H */

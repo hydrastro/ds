@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct queue_node {
   struct queue_node *next;
 } ds_queue_node_t;
@@ -48,5 +52,10 @@ void FUNC(queue_walk_backwards)(ds_queue_t *queue, ds_queue_node_t *node,
 ds_queue_t *
     FUNC(queue_clone)(ds_queue_t *queue,
                       ds_queue_node_t *(*clone_node)(ds_queue_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_QUEUE_H */

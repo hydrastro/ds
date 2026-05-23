@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct deque_node {
   struct deque_node *next;
   struct deque_node *prev;
@@ -53,5 +57,10 @@ void FUNC(deque_walk_backwards)(ds_deque_t *deque, ds_deque_node_t *node,
 ds_deque_t *
     FUNC(deque_clone)(ds_deque_t *deque,
                       ds_deque_node_t *(*clone_node)(ds_deque_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_DEQUE_H */

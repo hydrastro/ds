@@ -8,6 +8,10 @@
 #include <stdbool.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct rbt_node {
   unsigned long parent_color;
   struct rbt_node *right;
@@ -113,5 +117,10 @@ ds_rbt_node_t *
                               ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *));
 ds_rbt_t *FUNC(rbt_clone)(ds_rbt_t *tree,
                           ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_RBT_H */

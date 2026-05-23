@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct stack_node {
   struct stack_node *next;
 } ds_stack_node_t;
@@ -45,5 +49,10 @@ void FUNC(stack_walk_backwards)(ds_stack_t *stack, ds_stack_node_t *node,
 ds_stack_t *
     FUNC(stack_clone)(ds_stack_t *stack,
                       ds_stack_node_t *(*clone_node)(ds_stack_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_STACK_H */

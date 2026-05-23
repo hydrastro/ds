@@ -10,6 +10,10 @@ typedef CRITICAL_SECTION mutex_t;
 typedef pthread_mutex_t mutex_t;
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef FUNC
 #undef FUNC
 #endif
@@ -83,6 +87,11 @@ void mutex_destroy(mutex_t *lock);
     "No va_copy/__va_copy available on this platform; cannot safely copy va_list under -std=c89."
 #endif
 #endif
+#endif
+
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* DS_COMMON_H */

@@ -6,6 +6,10 @@
 #include "str_algo.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct ds_str_view {
   const char *data;
   size_t len;
@@ -60,5 +64,10 @@ int FUNC(str_view_trim_pred)(ds_str_view_t v, ds_view_pred pred,
 
 void FUNC(str_view_split_each_c)(ds_str_view_t v, unsigned char sep,
                                  ds_view_token_cb cb, void *ud);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_STR_IO_H */

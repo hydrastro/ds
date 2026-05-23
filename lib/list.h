@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct list_node {
   struct list_node *next;
 } ds_list_node_t;
@@ -46,5 +50,10 @@ void FUNC(list_walk_backwards)(ds_list_t *list, ds_list_node_t *node,
 bool FUNC(list_is_empty)(ds_list_t *list);
 ds_list_t *FUNC(list_clone)(ds_list_t *list,
                             ds_list_node_t *(*clone_node)(ds_list_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_LIST_H */

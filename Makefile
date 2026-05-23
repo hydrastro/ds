@@ -1,4 +1,5 @@
 CC ?= cc
+CXX ?= c++
 AR ?= ar
 VALGRIND ?= valgrind
 
@@ -11,6 +12,7 @@ CFLAGS = -std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors \
          -Wwrite-strings -Wconversion \
          -O2 -fPIC
 TEST_CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic -O2
+CXXFLAGS ?= -std=c++17 -Wall -Wextra -pedantic -O2
 LDFLAGS = -shared
 LDLIBS = -pthread
 ARFLAGS = rcs
@@ -106,7 +108,7 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data install uninstall test test-build check sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples
+.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples
 all: $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE)
 
 install: all
@@ -202,6 +204,12 @@ test: $(TEST_BIN)
 	done
 
 check: test
+
+$(TEST_BUILD_DIR)/cpp_smoke: $(TEST_DIR)/cpp_smoke.cpp $(LIB_STATIC) | $(TEST_BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $< $(LIB_STATIC) $(LDLIBS)
+
+check-cpp: $(TEST_BUILD_DIR)/cpp_smoke
+	$(TEST_BUILD_DIR)/cpp_smoke
 
 $(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(TEST_LIB_STATIC) | $(EXAMPLE_BUILD_DIR)
 	$(CC) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC) $(LDLIBS)

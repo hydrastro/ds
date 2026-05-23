@@ -7,6 +7,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct trie_node {
   size_t data_slice;
   struct trie_node *parent;
@@ -147,5 +151,10 @@ ds_trie_node_t *FUNC(trie_clone_node)(ds_trie_t *trie, ds_trie_node_t *node,
                                       ds_trie_node_t *parent_node,
                                       void *(*clone_data)(void *));
 ds_trie_t *FUNC(trie_clone)(ds_trie_t *trie, void *(*clone_data)(void *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_TRIE_H */

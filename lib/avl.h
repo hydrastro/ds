@@ -4,6 +4,10 @@
 #include "common.h"
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct avl_node {
   struct avl_node *left;
   struct avl_node *right;
@@ -71,5 +75,10 @@ ds_avl_node_t *
                               ds_avl_node_t *(*clone_node)(ds_avl_node_t *));
 ds_avl_t *FUNC(avl_clone)(ds_avl_t *tree,
                           ds_avl_node_t *(*clone_node)(ds_avl_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_AVL_H */

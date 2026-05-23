@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct dlist_node {
   struct dlist_node *next;
   struct dlist_node *prev;
@@ -49,5 +53,10 @@ bool FUNC(dlist_is_empty)(ds_dlist_t *);
 ds_dlist_t *
     FUNC(dlist_clone)(ds_dlist_t *list,
                       ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_DLIST_H */

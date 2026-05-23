@@ -7,6 +7,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef HASH_TABLE_RESIZE_FACTOR
 #define HASH_TABLE_RESIZE_FACTOR 0.75
 #endif
@@ -186,5 +190,10 @@ ds_hash_table_t *FUNC(hash_table_clone_with)(
     ds_hash_table_t *table, void *(*clone_key)(void *),
     void *(*clone_value)(void *), size_t (*hash_func)(void *),
     int (*compare)(void *, void *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_HASH_TABLE_H */

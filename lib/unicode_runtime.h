@@ -4,6 +4,10 @@
 #include "str.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct u32vec_like {
   unsigned long *p;
   size_t n, cap;
@@ -132,5 +136,10 @@ unsigned long ds__map_simple(const unsigned long *keys,
                              unsigned long cp);
 
 size_t ds__comp_find_pair(unsigned long a, unsigned long b);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_UNICODE_RUNTIME_H */

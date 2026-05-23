@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct heap_node {
   size_t index;
 } ds_heap_node_t;
@@ -40,5 +44,10 @@ bool FUNC(heap_is_empty)(ds_heap_t *heap);
 void FUNC(heap_destroy)(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *));
 ds_heap_t *FUNC(heap_clone)(ds_heap_t *heap,
                             ds_heap_node_t *(*clone_node)(ds_heap_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_HEAP_H */

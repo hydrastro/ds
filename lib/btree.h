@@ -4,6 +4,10 @@
 #include "common.h"
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct btree_node {
   struct btree_internal_node *internal;
 } ds_btree_node_t;
@@ -90,5 +94,10 @@ ds_btree_internal_node_t *FUNC(btree_clone_recursive)(
 ds_btree_t *
     FUNC(btree_clone)(ds_btree_t *tree,
                       ds_btree_node_t *(*clone_node)(ds_btree_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_BTREE_H */

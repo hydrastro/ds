@@ -7,6 +7,10 @@
 #include "unicode_runtime.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DS_U8_REJECT_SURROGATE 0x01u
 #define DS_U8_REJECT_NONCHAR 0x02u
 #define DS_U8_REJECT_OVERLONG 0x04u
@@ -142,5 +146,10 @@ int FUNC(str_u8_delete)(ds_str_t *s, size_t cursor_byte, size_t *new_cursor);
 int ds__is_c0_c1(unsigned long cp);
 
 int ds__in_ranges(unsigned long cp, const ds__range *r, size_t n);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_STR_UNICODE_H */

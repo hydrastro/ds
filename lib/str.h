@@ -8,6 +8,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct ds_str {
   char *buf;
   size_t len;
@@ -75,5 +79,10 @@ void FUNC(str_free_external)(ds_str_t *owner, void *p);
 
 int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap,
                          int has_room_for_nul);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_STR_H */

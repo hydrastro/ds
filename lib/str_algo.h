@@ -5,6 +5,10 @@
 #include "str.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int ds__in_set(unsigned char c, const unsigned char *set, size_t n);
 void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p);
 void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p);
@@ -39,4 +43,9 @@ int FUNC(str_replace_all)(ds_str_t *s, const void *from, size_t nfrom,
                           const void *to, size_t nto);
 int FUNC(str_replace_all_builder)(ds_str_t *s, const void *from, size_t nfrom,
                                   const void *to, size_t nto);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* DS_STR_ALGO_H */

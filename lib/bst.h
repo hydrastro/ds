@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct bst_node {
   struct bst_node *left;
   struct bst_node *right;
@@ -65,5 +69,10 @@ ds_bst_node_t *
                               ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
 ds_bst_t *FUNC(bst_clone)(ds_bst_t *tree,
                           ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DS_BST_H */
