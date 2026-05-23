@@ -90,6 +90,7 @@ static int btree_compare(ds_btree_node_t *a, ds_btree_node_t *b) {
 }
 
 static void btree_destroy(ds_btree_node_t *node) { free(node); }
+static void btree_walk_noop(ds_btree_node_t *node) { (void)node; }
 
 static int heap_compare(ds_heap_node_t *a, ds_heap_node_t *b) {
   return ((int_heap_node_t *)a)->key - ((int_heap_node_t *)b)->key;
@@ -231,6 +232,9 @@ static void test_btree_size(void) {
   btree_delete_node(tree, &nodes[2]->node);
   free(nodes[2]);
   assert(tree->size == 4U);
+  btree_inorder_walk_tree(tree, btree_walk_noop);
+  btree_preorder_walk_tree(tree, btree_walk_noop);
+  btree_postorder_walk_tree(tree, btree_walk_noop);
   btree_destroy_tree(tree, btree_destroy);
 }
 

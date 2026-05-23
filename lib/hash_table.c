@@ -948,8 +948,9 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
   return true;
 }
 
-ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
-                                        void *value) {
+static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
+                                                      void *key, void *value,
+                                                      int destroy_key_on_update) {
   size_t base_index;
   size_t index;
   size_t iteration;
@@ -995,6 +996,9 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
       if (table->config_destroy_value != NULL) {
         table->config_destroy_value(current->value, table->config_user);
       }
+      if (destroy_key_on_update && table->config_destroy_key != NULL) {
+        table->config_destroy_key(key, table->config_user);
+      }
       current->value = value;
 #ifdef DS_THREAD_SAFE
       UNLOCK(table);
@@ -1024,6 +1028,9 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
         if (table->config_destroy_value != NULL) {
           table->config_destroy_value(table->store.entries[index].value,
                                       table->config_user);
+        }
+        if (destroy_key_on_update && table->config_destroy_key != NULL) {
+          table->config_destroy_key(key, table->config_user);
         }
         table->store.entries[index].value = value;
 #ifdef DS_THREAD_SAFE
@@ -1055,6 +1062,16 @@ ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
   UNLOCK(table);
 #endif
   return DS_OK;
+}
+
+ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
+                                        void *value) {
+  return ds_hash_table_insert_internal(table, key, value, 0);
+}
+
+ds_status_t FUNC(ds_hash_table_insert_take_key)(ds_hash_table_t *table,
+                                                 void *key, void *value) {
+  return ds_hash_table_insert_internal(table, key, value, 1);
 }
 
 ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,

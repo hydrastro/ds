@@ -237,7 +237,7 @@ ds_avl_node_t *FUNC(avl_left_rotate)(ds_avl_t *tree, ds_avl_node_t *node) {
 #endif
   right = node->right;
   node->right = right->left;
-  if (right->left) {
+  if (right->left != tree->nil) {
     right->left->parent = node;
   }
   right->parent = node->parent;
@@ -258,7 +258,7 @@ ds_avl_node_t *FUNC(avl_right_rotate)(ds_avl_t *tree, ds_avl_node_t *node) {
 #endif
   left = node->left;
   node->left = left->right;
-  if (left->right) {
+  if (left->right != tree->nil) {
     left->right->parent = node;
   }
   left->parent = node->parent;

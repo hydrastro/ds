@@ -118,6 +118,8 @@ ds_hash_table_t *FUNC(ds_hash_table_create_config)(
     const ds_hash_table_config_t *config);
 ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
                                         void *value);
+ds_status_t FUNC(ds_hash_table_insert_take_key)(ds_hash_table_t *table,
+                                                 void *key, void *value);
 ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
                                      void **out_value);
 ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table,

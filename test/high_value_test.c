@@ -207,6 +207,8 @@ static void test_allocators(void) {
   assert(ds_pool_available(&pool) == 2U);
   ds_context_free(&context, a);
   assert(ds_pool_available(&pool) == 3U);
+  ds_context_free(&context, a);
+  assert(ds_pool_available(&pool) == 3U);
   ds_context_free(&context, b);
   assert(ds_pool_available(&pool) == 4U);
 

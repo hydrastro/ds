@@ -444,6 +444,7 @@ void FUNC(btree_destroy_tree)(ds_btree_t *tree,
   FUNC(btree_destroy_recursive)(tree, tree->root, destroy);
   tree->deallocator(tree->nil);
 #ifdef DS_THREAD_SAFE
+  UNLOCK(tree);
   LOCK_DESTROY(tree);
 #endif
   tree->deallocator(tree);
@@ -454,9 +455,6 @@ void FUNC(btree_inorder_walk_helper)(ds_btree_t *tree,
                                      void (*callback)(ds_btree_node_t *)) {
   int i;
   if (node == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return;
   }
   for (i = 0; i < node->num_keys; i++) {
@@ -497,9 +495,6 @@ void FUNC(btree_preorder_walk_helper)(ds_btree_t *tree,
                                       void (*callback)(ds_btree_node_t *)) {
   int i;
   if (node == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return;
   }
   for (i = 0; i < node->num_keys; i++) {
@@ -539,9 +534,6 @@ void FUNC(btree_postorder_walk_helper)(ds_btree_t *tree,
                                        void (*callback)(ds_btree_node_t *)) {
   int i;
   if (node == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return;
   }
   if (!node->is_leaf) {

@@ -50,7 +50,7 @@ int main(void) {
 
   dlist_walk_forward(list, list->head, print_node);
   printf("\n");
-  dlist_walk_backwards(list, list->head, print_node);
+  dlist_walk_backwards(list, list->tail, print_node);
 
   found_node =
       (my_node_t *)dlist_search(list, &search_value->node, compare_nodes);

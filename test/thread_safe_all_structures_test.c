@@ -42,6 +42,8 @@ static int btree_compare(ds_btree_node_t *a, ds_btree_node_t *b) {
 
 static void destroy_avl_payload(ds_avl_node_t *node) { free(node); }
 static void destroy_btree_payload(ds_btree_node_t *node) { free(node); }
+static void noop_avl_walk(ds_avl_node_t *node) { (void)node; }
+static void noop_btree_walk(ds_btree_node_t *node) { (void)node; }
 static void destroy_queue_payload(ds_queue_node_t *node) { (void)node; }
 static void destroy_stack_payload(ds_stack_node_t *node) { (void)node; }
 
@@ -98,6 +100,9 @@ int main(void) {
     avl_node->key = (int)((i * 7U) % 97U);
     FUNC(avl_insert)(avl, &avl_node->node, avl_compare);
   }
+  FUNC(avl_inorder_walk_tree)(avl, noop_avl_walk);
+  FUNC(avl_preorder_walk_tree)(avl, noop_avl_walk);
+  FUNC(avl_postorder_walk_tree)(avl, noop_avl_walk);
   FUNC(avl_destroy_tree)(avl, destroy_avl_payload);
 
   btree = FUNC(btree_create)(2);
@@ -109,6 +114,9 @@ int main(void) {
   }
   probe.key = 99;
   assert(FUNC(btree_search)(btree, &probe.node, btree_compare) == btree->nil);
+  FUNC(btree_inorder_walk_tree)(btree, noop_btree_walk);
+  FUNC(btree_preorder_walk_tree)(btree, noop_btree_walk);
+  FUNC(btree_postorder_walk_tree)(btree, noop_btree_walk);
   FUNC(btree_destroy_tree)(btree, destroy_btree_payload);
 
   return 0;

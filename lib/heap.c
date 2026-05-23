@@ -106,9 +106,7 @@ void FUNC(heap_insert)(ds_heap_t *heap, ds_heap_node_t *node,
       new_data[i] = heap->data[i];
     }
     if (heap->data != NULL) {
-      if (heap->data != NULL) {
-    heap->deallocator(heap->data);
-  }
+      heap->deallocator(heap->data);
     }
     heap->data = new_data;
     heap->capacity = new_capacity;

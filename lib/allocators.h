@@ -25,6 +25,7 @@ typedef struct ds_pool {
   size_t block_size;
   size_t block_count;
   ds_pool_free_node_t *free_list;
+  size_t available_count;
   int owns_buffer;
 } ds_pool_t;
 

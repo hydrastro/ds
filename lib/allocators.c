@@ -10,6 +10,10 @@ typedef struct ds_debug_header {
   size_t size;
 } ds_debug_header_t;
 
+static const ds_diagnostic_desc_t DS_DEBUG_ALLOC_BAD_FREE = {
+    "ds.allocators/debug_bad_free", DS_DIAG_ERROR, "allocators",
+    "debug allocator rejected a pointer with an invalid allocation header"};
+
 static size_t ds_align_up(size_t value, size_t alignment) {
   size_t remainder;
 
@@ -165,6 +169,7 @@ void ds_pool_init(ds_pool_t *pool, void *buffer, size_t block_size,
   pool->buffer = (unsigned char *)buffer;
   pool->block_size = block_size;
   pool->block_count = block_count;
+  pool->available_count = block_count;
   pool->owns_buffer = 0;
   pool_build_free_list(pool);
 }
@@ -207,23 +212,45 @@ void ds_pool_destroy(ds_pool_t *pool, ds_context_t *context) {
   pool->block_size = 0U;
   pool->block_count = 0U;
   pool->free_list = NULL;
+  pool->available_count = 0U;
   pool->owns_buffer = 0;
 }
 
 size_t ds_pool_available(const ds_pool_t *pool) {
-  const ds_pool_free_node_t *node;
-  size_t count;
+  return pool == NULL ? 0U : pool->available_count;
+}
 
-  if (pool == NULL) {
-    return 0U;
+static int pool_owns_pointer(const ds_pool_t *pool, const void *ptr) {
+  const unsigned char *bytes;
+  size_t offset;
+
+  if (pool == NULL || pool->buffer == NULL || ptr == NULL ||
+      pool->block_size == 0U) {
+    return 0;
   }
-  count = 0U;
+  bytes = (const unsigned char *)ptr;
+  if (bytes < pool->buffer ||
+      bytes >= pool->buffer + (pool->block_size * pool->block_count)) {
+    return 0;
+  }
+  offset = (size_t)(bytes - pool->buffer);
+  return offset % pool->block_size == 0U;
+}
+
+static int pool_is_free_pointer(const ds_pool_t *pool, const void *ptr) {
+  const ds_pool_free_node_t *node;
+
+  if (pool == NULL || ptr == NULL) {
+    return 0;
+  }
   node = pool->free_list;
   while (node != NULL) {
-    count++;
+    if ((const void *)node == ptr) {
+      return 1;
+    }
     node = node->next;
   }
-  return count;
+  return 0;
 }
 
 static void *pool_alloc(size_t size, void *user) {
@@ -236,6 +263,9 @@ static void *pool_alloc(size_t size, void *user) {
   }
   node = pool->free_list;
   pool->free_list = node->next;
+  if (pool->available_count != 0U) {
+    pool->available_count--;
+  }
   return node;
 }
 
@@ -269,9 +299,13 @@ static void pool_free(void *ptr, void *user) {
     return;
   }
   pool = (ds_pool_t *)user;
+  if (!pool_owns_pointer(pool, ptr) || pool_is_free_pointer(pool, ptr)) {
+    return;
+  }
   node = (ds_pool_free_node_t *)ptr;
   node->next = pool->free_list;
   pool->free_list = node;
+  pool->available_count++;
 }
 
 void ds_context_use_pool(ds_context_t *context, ds_pool_t *pool) {
@@ -341,6 +375,9 @@ static void debug_free(void *ptr, void *user) {
   header = ((ds_debug_header_t *)ptr) - 1;
   if (header->magic != DS_DEBUG_ALLOC_MAGIC) {
     debug->stats.failed_allocations++;
+    ds_context_emit_diagnostic(debug->backing, &DS_DEBUG_ALLOC_BAD_FREE, NULL,
+                               0U, __FILE__, (unsigned long)__LINE__,
+                               DS_FUNCTION);
     return;
   }
   header->magic = 0UL;
@@ -371,6 +408,9 @@ static void *debug_realloc(void *ptr, size_t size, void *user) {
   if (debug == NULL || old_header->magic != DS_DEBUG_ALLOC_MAGIC) {
     if (debug != NULL) {
       debug->stats.failed_allocations++;
+      ds_context_emit_diagnostic(debug->backing, &DS_DEBUG_ALLOC_BAD_FREE,
+                                 NULL, 0U, __FILE__,
+                                 (unsigned long)__LINE__, DS_FUNCTION);
     }
     return NULL;
   }
