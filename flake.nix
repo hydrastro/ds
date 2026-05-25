@@ -3,30 +3,46 @@
 
   inputs = { nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable"; };
 
-  outputs = { self, nixpkgs }: {
-    packages = nixpkgs.lib.genAttrs [ "x86_64-linux" ] (system:
-      let pkgs = import nixpkgs { inherit system; };
-      in rec {
-        ds = pkgs.stdenv.mkDerivation {
-          pname = "ds";
-          version = "0.0.0";
+  outputs = { self, nixpkgs }:
+    let
+      systems = [ "x86_64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs systems;
+    in {
+      packages = forAllSystems (system:
+        let pkgs = import nixpkgs { inherit system; };
+        in rec {
+          ds = pkgs.stdenv.mkDerivation {
+            pname = "ds";
+            version = "0.0.0";
+            src = ./.;
 
-          src = ./.;
+            nativeBuildInputs = [ pkgs.gnumake ];
 
-          buildInputs = [ pkgs.stdenv.cc ];
+            buildPhase = ''
+              make
+            '';
 
-          buildPhase = ''
-            make PREFIX=$out
-          '';
+            installPhase = ''
+              make install PREFIX=$out
+            '';
 
-          installPhase = ''
-            make install PREFIX=$out
-          '';
+            meta = with pkgs.lib; {
+              description = "Data structure library";
+              platforms = platforms.unix;
+            };
+          };
 
-          meta = with pkgs.lib; { description = "ds"; };
-        };
-      });
+          default = ds;
+        });
 
-    defaultPackage = { x86_64-linux = self.packages.x86_64-linux.ds; };
-  };
+      devShells = forAllSystems (system:
+        let pkgs = import nixpkgs { inherit system; };
+        in {
+          default = pkgs.mkShell {
+            packages = [ pkgs.gcc pkgs.gnumake pkgs.gdb pkgs.valgrind ];
+          };
+        });
+
+      defaultPackage = forAllSystems (system: self.packages.${system}.default);
+    };
 }
