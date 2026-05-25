@@ -26,6 +26,10 @@ typedef struct linked_list {
 #endif
 } ds_list_t;
 
+/* Backward compatibility for code written against earlier ds headers. */
+typedef ds_list_node_t list_node_t;
+typedef ds_list_t list_t;
+
 ds_list_t *FUNC(list_create)(void);
 ds_list_t *FUNC(list_create_alloc)(void *(*allocator)(size_t),
                                    void (*deallocator)(void *));
