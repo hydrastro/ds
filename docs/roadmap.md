@@ -12,6 +12,28 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - config-based trie API
 - `ds_`-prefixed APIs for new hash/trie surfaces
 - generic iterator shell
+- intrusive ordered skip list with search/remove/walk/clone
+- intrusive circular buffer (ring buffer) with optional overwrite mode
+- disjoint set (union-find) with path compression and union by rank
+- Fenwick tree (binary indexed tree) with point update and range sum
+- intrusive splay tree with bottom-up splaying
+- intrusive treap (randomized BST) with priority heap ordering
+- intrusive pairing heap with decrease-key and merge
+- intrusive circular singly linked list (ring list) with rotate
+- dynamic bitset with rank/popcount, find-first/next, and set algebra
+- Bloom filter sized from expected item count and target false-positive rate
+- path-compressed radix trie over byte keys (upsert insert, prune/merge remove)
+- intrusive B+ tree with linked leaves, range scans, and optional B* split policy
+- Aho-Corasick automaton for multi-pattern string matching with failure links
+- succinct bitvector with two-level rank/select index (rank0/1, select0/1)
+- wavelet tree over the bitvector with access, rank, select, and range quantile
+- order-statistic tree (size-augmented AVL) with select(k) and rank(key)
+- segment tree with lazy propagation (range add/assign, range sum/min/max)
+- hash array mapped trie (HAMT) with 32-way bitmap + popcount sparse nodes
+- intrusive Fibonacci heap with lazy insert, consolidation, and cascading cuts
+- rope (balanced tree of string chunks) with O(log n) insert/delete/concat/split
+- adaptive radix tree (ART) with Node4/16/48/256 adaptive sizing and path
+  compression (portable scalar implementation)
 - string map/string set convenience wrappers
 - `make test`, `make test-safe`, `make sanitize`, `make examples`, and
   `make valgrind`

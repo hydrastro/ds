@@ -2,6 +2,8 @@ CC ?= cc
 CXX ?= c++
 AR ?= ar
 VALGRIND ?= valgrind
+CLANG_FORMAT ?= clang-format
+CPPCHECK ?= cppcheck
 
 CFLAGS = -std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors \
          -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual \
@@ -14,7 +16,7 @@ CFLAGS = -std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors \
 TEST_CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic -O2
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -pedantic -O2
 LDFLAGS = -shared
-LDLIBS = -pthread
+LDLIBS = -pthread -lm
 ARFLAGS = rcs
 VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=definite,possible --error-exitcode=99 --track-origins=yes
 
@@ -36,9 +38,16 @@ LIB_SRC := \
   $(LIB_DIR)/avl.c \
   $(LIB_DIR)/bst.c \
   $(LIB_DIR)/btree.c \
+  $(LIB_DIR)/aho_corasick.c \
+  $(LIB_DIR)/bitset.c \
+  $(LIB_DIR)/bloom_filter.c \
+  $(LIB_DIR)/bplus_tree.c \
+  $(LIB_DIR)/circular_buffer.c \
   $(LIB_DIR)/common.c \
   $(LIB_DIR)/deque.c \
+  $(LIB_DIR)/disjoint_set.c \
   $(LIB_DIR)/dlist.c \
+  $(LIB_DIR)/fenwick_tree.c \
   $(LIB_DIR)/hash_table.c \
   $(LIB_DIR)/heap.c \
   $(LIB_DIR)/history.c \
@@ -48,10 +57,15 @@ LIB_SRC := \
   $(LIB_DIR)/error.c \
   $(LIB_DIR)/graph.c \
   $(LIB_DIR)/iter.c \
+  $(LIB_DIR)/pairing_heap.c \
   $(LIB_DIR)/persistent_rbt.c \
   $(LIB_DIR)/persistent_trie.c \
   $(LIB_DIR)/queue.c \
   $(LIB_DIR)/rbt.c \
+  $(LIB_DIR)/radix_trie.c \
+  $(LIB_DIR)/ring_list.c \
+  $(LIB_DIR)/skip_list.c \
+  $(LIB_DIR)/splay_tree.c \
   $(LIB_DIR)/stack.c \
   $(LIB_DIR)/status.c \
   $(LIB_DIR)/string_map.c \
@@ -60,11 +74,44 @@ LIB_SRC := \
   $(LIB_DIR)/str_io.c \
   $(LIB_DIR)/str_io_posix.c \
   $(LIB_DIR)/str_unicode.c \
+  $(LIB_DIR)/treap.c \
   $(LIB_DIR)/trie.c \
+  $(LIB_DIR)/art.c \
+  $(LIB_DIR)/bitvector.c \
+  $(LIB_DIR)/fibonacci_heap.c \
+  $(LIB_DIR)/hamt.c \
+  $(LIB_DIR)/order_statistic_tree.c \
+  $(LIB_DIR)/rope.c \
+  $(LIB_DIR)/segment_tree.c \
+  $(LIB_DIR)/wavelet_tree.c \
   $(LIB_DIR)/unicode_runtime.c
 
 GEN_SRC_C := $(BUILD_DIR)/unicode_tables.c
 GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
+
+# Sources maintained to the canonical clang-format style. `make format` and
+# `make format-check` operate on these. The wider legacy tree can be formatted
+# explicitly with `make format-all` when desired.
+FORMAT_SRC := \
+  $(LIB_DIR)/art.c $(LIB_DIR)/art.h \
+  $(LIB_DIR)/bitvector.c $(LIB_DIR)/bitvector.h \
+  $(LIB_DIR)/fibonacci_heap.c $(LIB_DIR)/fibonacci_heap.h \
+  $(LIB_DIR)/hamt.c $(LIB_DIR)/hamt.h \
+  $(LIB_DIR)/order_statistic_tree.c $(LIB_DIR)/order_statistic_tree.h \
+  $(LIB_DIR)/rope.c $(LIB_DIR)/rope.h \
+  $(LIB_DIR)/segment_tree.c $(LIB_DIR)/segment_tree.h \
+  $(LIB_DIR)/wavelet_tree.c $(LIB_DIR)/wavelet_tree.h \
+  $(TEST_DIR)/art_test.c $(TEST_DIR)/bitvector_test.c \
+  $(TEST_DIR)/fibonacci_heap_test.c $(TEST_DIR)/hamt_test.c \
+  $(TEST_DIR)/order_statistic_tree_test.c $(TEST_DIR)/rope_test.c \
+  $(TEST_DIR)/segment_tree_test.c $(TEST_DIR)/wavelet_tree_test.c
+
+# Every hand-written source and header, excluding generated tables.
+FORMAT_ALL_SRC := ds.h \
+  $(filter-out $(LIB_DIR)/unicode_tables.c $(LIB_DIR)/unicode_tables.h \
+               $(LIB_DIR)/unicode_tables_glue.c, \
+    $(wildcard $(LIB_DIR)/*.c) $(wildcard $(LIB_DIR)/*.h)) \
+  $(wildcard $(TEST_DIR)/*.c) $(wildcard $(TEST_DIR)/*.cpp)
 
 TEST_UCD_DIR := $(TEST_DIR)/ucd
 TEST_UCD_FILES := \
@@ -108,7 +155,7 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples
+.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples format format-all format-check lint lint-all lint-style
 all: $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE)
 
 install: all
@@ -224,7 +271,10 @@ clean:
 	rm -rf $(TEST_BUILD_DIR)
 
 distclean: clean
-	rm -rf $(DATA_DIR)
+	rm -rf $(DATA_DIR) $(GEN_DIR)
+	rm -rf $(BUILD_DIR)
+	rm -f valgrind.log *.log
+	rm -f $(LIB_DIR)/*.gch *.gch
 
 
 SAFE_TEST_BUILD_DIR := $(TEST_BUILD_DIR)/safe
@@ -253,9 +303,89 @@ test-safe: $(TEST_BIN_SAFE)
 sanitize:
 	$(MAKE) clean
 	@status=0; \
-	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' LDLIBS='-pthread -fsanitize=address,undefined' test || status=$$?; \
+	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' LDLIBS='-pthread -lm -fsanitize=address,undefined' test || status=$$?; \
 	$(MAKE) clean; \
 	exit $$status
+
+# Rewrite the maintained sources in place using clang-format.
+format:
+	@if ! command -v $(CLANG_FORMAT) >/dev/null 2>&1; then \
+	  echo "$(CLANG_FORMAT) not found; install clang-format or set CLANG_FORMAT=/path/to/clang-format"; \
+	  exit 1; \
+	fi
+	@echo "Formatting $(words $(FORMAT_SRC)) files with $$($(CLANG_FORMAT) --version)"
+	@$(CLANG_FORMAT) -i $(FORMAT_SRC)
+	@echo "Done."
+
+# Rewrite every hand-written source in the tree (legacy modules included).
+format-all:
+	@if ! command -v $(CLANG_FORMAT) >/dev/null 2>&1; then \
+	  echo "$(CLANG_FORMAT) not found; install clang-format or set CLANG_FORMAT=/path/to/clang-format"; \
+	  exit 1; \
+	fi
+	@echo "Formatting $(words $(FORMAT_ALL_SRC)) files with $$($(CLANG_FORMAT) --version)"
+	@$(CLANG_FORMAT) -i $(FORMAT_ALL_SRC)
+	@echo "Done."
+
+# Verify formatting without modifying files (suitable for CI). Fails if any
+# file would change.
+format-check:
+	@if ! command -v $(CLANG_FORMAT) >/dev/null 2>&1; then \
+	  echo "$(CLANG_FORMAT) not found; install clang-format or set CLANG_FORMAT=/path/to/clang-format"; \
+	  exit 1; \
+	fi
+	@status=0; \
+	for f in $(FORMAT_SRC); do \
+	  if ! $(CLANG_FORMAT) --dry-run --Werror "$$f" >/dev/null 2>&1; then \
+	    echo "needs formatting: $$f"; \
+	    status=1; \
+	  fi; \
+	done; \
+	if [ $$status -eq 0 ]; then echo "all files correctly formatted"; fi; \
+	exit $$status
+
+# Sources covered by the strict lint gate. These are the structures added in
+# this line of work; they are held to a no-findings standard. The wider legacy
+# tree is checked informationally via `make lint-all`.
+LINT_SRC := \
+  $(LIB_DIR)/art.c $(LIB_DIR)/bitvector.c $(LIB_DIR)/fibonacci_heap.c \
+  $(LIB_DIR)/hamt.c $(LIB_DIR)/order_statistic_tree.c $(LIB_DIR)/rope.c \
+  $(LIB_DIR)/segment_tree.c $(LIB_DIR)/wavelet_tree.c
+
+# Static analysis with cppcheck over the maintained structures. Warnings,
+# performance, and portability findings fail the build.
+lint:
+	@if ! command -v $(CPPCHECK) >/dev/null 2>&1; then \
+	  echo "$(CPPCHECK) not found; install cppcheck or set CPPCHECK=/path/to/cppcheck"; \
+	  exit 1; \
+	fi
+	$(CPPCHECK) --std=c89 --enable=warning,performance,portability \
+	  --error-exitcode=1 --quiet --inline-suppr \
+	  --suppress=missingIncludeSystem --suppress=unusedFunction \
+	  $(INCLUDES) $(LINT_SRC)
+
+# Informational static analysis across the entire library (does not fail the
+# build; legacy modules surface known macro/callback false positives).
+lint-all:
+	@if ! command -v $(CPPCHECK) >/dev/null 2>&1; then \
+	  echo "$(CPPCHECK) not found; install cppcheck or set CPPCHECK=/path/to/cppcheck"; \
+	  exit 1; \
+	fi
+	-$(CPPCHECK) --std=c89 --enable=warning,performance,portability,style \
+	  --quiet --inline-suppr \
+	  --suppress=missingIncludeSystem --suppress=unusedFunction \
+	  --suppress=va_list_usedBeforeStarted \
+	  $(INCLUDES) $(wildcard $(LIB_DIR)/*.c)
+
+# Stylistic suggestions for the maintained structures; informational only.
+lint-style:
+	@if ! command -v $(CPPCHECK) >/dev/null 2>&1; then \
+	  echo "$(CPPCHECK) not found; install cppcheck or set CPPCHECK=/path/to/cppcheck"; \
+	  exit 1; \
+	fi
+	-$(CPPCHECK) --std=c89 --enable=style --quiet --inline-suppr \
+	  --suppress=missingIncludeSystem --suppress=unusedFunction \
+	  $(INCLUDES) $(LINT_SRC)
 
 
 valgrind-test: test-build

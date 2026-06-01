@@ -14,17 +14,38 @@ algorithms, and timeline/history utilities.
 Core mutable containers:
 
 - AVL tree
+- Adaptive radix tree (ART, adaptive node sizing + path compression)
+- Aho-Corasick automaton (multi-pattern string matching)
 - Binary search tree
+- Bitset (dynamic bit array)
+- Bitvector with rank/select (succinct, two-level index)
+- Bloom filter (probabilistic membership)
 - B-tree
+- B+ tree (with optional B* split policy)
+- Circular buffer (ring buffer)
 - Deque
+- Disjoint set (union-find)
 - Doubly linked list
+- Fenwick tree (binary indexed tree)
+- Fibonacci heap (O(1) amortized insert/merge/decrease-key)
+- Hash array mapped trie (HAMT, bitmap + popcount sparse nodes)
 - Hash table
 - Heap
+- Order-statistic tree (size-augmented AVL: select/rank)
+- Pairing heap
+- Radix trie (path-compressed)
+- Rope (chunked string with O(log n) splice)
+- Segment tree (lazy propagation: range add/assign, range sum/min/max)
 - Singly linked list
+- Circular singly linked list (ring list)
 - Queue
 - Red-black tree
+- Skip list
+- Splay tree
 - Stack
+- Treap
 - Trie
+- Wavelet tree (succinct sequence: access/rank/select/quantile)
 
 Newer high-level modules:
 
@@ -102,6 +123,26 @@ You can override the tool and flags:
 make valgrind VALGRIND=/usr/bin/valgrind
 make valgrind VALGRIND_FLAGS="--leak-check=full --error-exitcode=99"
 ```
+
+## Formatting and static analysis
+
+```sh
+make format        # clang-format the maintained sources in place
+make format-check  # verify formatting without writing (CI-friendly, fails if dirty)
+make format-all    # clang-format the entire hand-written tree (legacy included)
+make lint          # cppcheck the maintained structures; warnings fail the build
+make lint-style    # cppcheck style suggestions for the maintained structures
+make lint-all      # informational cppcheck over the whole library
+```
+
+Formatting follows the `.clang-format` at the repository root (LLVM base,
+two-space indent, 80-column limit, pointers bound to the identifier). `make
+format` and `make lint` are scoped to the actively maintained structures so
+they stay green in CI; the `-all` variants cover the wider tree on demand. Both
+clang-format and cppcheck are optional: if the tool is absent, the target prints
+an install hint and exits nonzero. Override the binaries with
+`make format CLANG_FORMAT=clang-format-18` or `make lint CPPCHECK=/path/to/cppcheck`.
+
 
 ## Usage
 

@@ -1,5 +1,30 @@
+# Object files, precompiled headers, libraries
 *.o
 *.gch
 *.a
 *.so
 *.out
+
+# Build, generated, and downloaded artifacts
+/build/
+/gen/
+/data/
+
+# Generated Unicode tables (produced by `make unicode-data`)
+/build/unicode_tables.c
+/build/unicode_tables.h
+
+# Sanitizer / profiling output
+*.log
+valgrind.log
+*.gcda
+*.gcno
+*.gcov
+
+# Editor and OS noise
+*.swp
+*~
+.DS_Store
+.vscode/
+.idea/
+compile_commands.json
