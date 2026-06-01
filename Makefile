@@ -161,7 +161,7 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples format format-all format-check lint lint-all lint-style
+.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
 all: $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE)
 
 install: all
@@ -263,6 +263,93 @@ $(TEST_BUILD_DIR)/cpp_smoke: $(TEST_DIR)/cpp_smoke.cpp $(LIB_STATIC) | $(TEST_BU
 
 check-cpp: $(TEST_BUILD_DIR)/cpp_smoke
 	$(TEST_BUILD_DIR)/cpp_smoke
+
+# Line-coverage report. Builds an instrumented copy of the library, links and
+# runs every (non-thread-safe) test against it, then aggregates with gcovr.
+# Requires gcovr (pip install gcovr). The plain-symbol tests are used because
+# coverage of the _safe variants exercises the same lines plus locking.
+COV_DIR := $(BUILD_DIR)/coverage
+COV_FLAGS := -std=c99 -g -O0 --coverage $(INCLUDES)
+COV_TEST_SRC := $(filter-out $(SAFE_TEST_SRC),$(TEST_SRC))
+
+coverage: $(GEN_SRC_C)
+	@command -v gcovr >/dev/null 2>&1 || { \
+	  echo "gcovr not found; install it with: pip install gcovr"; exit 1; }
+	@rm -rf $(COV_DIR)
+	@mkdir -p $(COV_DIR)
+	@echo "Instrumenting library ($(words $(LIB_SRC)) sources)..."
+	@for src in $(LIB_SRC) $(GEN_SRC_C); do \
+	  $(CC) $(COV_FLAGS) -c $$src -o $(COV_DIR)/$$(basename $$src .c).o; \
+	done
+	@echo "Building and running $(words $(COV_TEST_SRC)) tests under coverage..."
+	@set -e; for t in $(COV_TEST_SRC); do \
+	  bin=$$(basename $$t .c); \
+	  $(CC) $(COV_FLAGS) -o $(COV_DIR)/$$bin $$t $(COV_DIR)/*.o $(LDLIBS); \
+	  ( cd $(COV_DIR) && ./$$bin >/dev/null 2>&1 ) \
+	    || echo "  WARNING: $$bin exited nonzero"; \
+	done
+	@echo ""
+	@echo "==================== COVERAGE SUMMARY ===================="
+	@gcovr --root . --filter '$(LIB_DIR)/.*' \
+	  --gcov-ignore-parse-errors=all --print-summary \
+	  --object-directory $(COV_DIR) $(COV_DIR) 2>/dev/null | tail -3
+	@echo "=========================================================="
+	@echo "Per-file detail: make coverage-detail"
+
+coverage-detail: coverage
+	@gcovr --root . --filter '$(LIB_DIR)/.*' --gcov-ignore-parse-errors=all \
+	  --sort uncovered-number --object-directory $(COV_DIR) $(COV_DIR) 2>/dev/null
+
+coverage-html: coverage
+	@gcovr --root . --filter '$(LIB_DIR)/.*' --gcov-ignore-parse-errors=all \
+	  --html-details -o $(COV_DIR)/index.html \
+	  --object-directory $(COV_DIR) $(COV_DIR) 2>/dev/null
+	@echo "HTML report: $(COV_DIR)/index.html"
+
+# One-shot health verdict: build, tests, thread-safe tests, examples, lint,
+# format, valgrind, and coverage, each reported pass/fail, with a final line
+# coverage figure. Intended as the single "is everything OK?" command.
+summary:
+	@echo "Running full health check (this takes a few minutes)..."
+	@pass="PASS"; fail="FAIL"; status=0; \
+	gate() { name="$$1"; shift; \
+	  if "$$@" >/dev/null 2>&1; then printf "  %-22s %s\n" "$$name" "$$pass"; \
+	  else printf "  %-22s %s\n" "$$name" "$$fail"; status=1; fi; }; \
+	advisory() { name="$$1"; shift; \
+	  if "$$@" >/dev/null 2>&1; then printf "  %-22s %s\n" "$$name" "$$pass"; \
+	  else printf "  %-22s %s\n" "$$name" "WARN (advisory)"; fi; }; \
+	echo "==================== ds health summary ===================="; \
+	echo "  correctness gates (determine the verdict):"; \
+	gate "build (normal+safe)" $(MAKE) all; \
+	gate "unit tests"          $(MAKE) test; \
+	gate "thread-safe tests"   $(MAKE) test-safe; \
+	gate "examples"            $(MAKE) examples; \
+	if command -v $(VALGRIND) >/dev/null 2>&1; then \
+	  gate "valgrind (tests)"  $(MAKE) valgrind-test; \
+	  gate "valgrind (safe)"   $(MAKE) valgrind-safe; \
+	else printf "  %-22s %s\n" "valgrind" "SKIP (not installed)"; fi; \
+	echo "  style gates (advisory; tool-version sensitive):"; \
+	if command -v $(CPPCHECK) >/dev/null 2>&1; then \
+	  advisory "lint (cppcheck)"  $(MAKE) lint; \
+	else printf "  %-22s %s\n" "lint (cppcheck)" "SKIP (not installed)"; fi; \
+	if command -v $(CLANG_FORMAT) >/dev/null 2>&1; then \
+	  advisory "format check"     $(MAKE) format-check; \
+	else printf "  %-22s %s\n" "format check" "SKIP (not installed)"; fi; \
+	echo "----------------------------------------------------------"; \
+	if command -v gcovr >/dev/null 2>&1; then \
+	  $(MAKE) coverage >/tmp/ds_cov.$$$$ 2>/dev/null; \
+	  grep -E "^(lines|functions|branches):" /tmp/ds_cov.$$$$ | \
+	    sed 's/^/  coverage /'; \
+	  rm -f /tmp/ds_cov.$$$$; \
+	else printf "  %-22s %s\n" "coverage" "SKIP (gcovr not installed)"; fi; \
+	echo "=========================================================="; \
+	if [ $$status -eq 0 ]; then \
+	  echo "  VERDICT: ALL CORRECTNESS CHECKS PASSED"; \
+	  echo "  (style WARNs above, if any, are advisory - see 'make lint' /"; \
+	  echo "   'make format-check' for detail; they are tool-version sensitive)"; \
+	else echo "  VERDICT: CORRECTNESS FAILURES PRESENT (see above)"; fi; \
+	echo "=========================================================="; \
+	exit $$status
 
 $(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(TEST_LIB_STATIC) | $(EXAMPLE_BUILD_DIR)
 	$(CC) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC) $(LDLIBS)
@@ -368,6 +455,7 @@ lint:
 	$(CPPCHECK) --std=c89 --enable=warning,performance,portability \
 	  --error-exitcode=1 --quiet --inline-suppr \
 	  --suppress=missingIncludeSystem --suppress=unusedFunction \
+	  --suppress=checkersReport --suppress=unmatchedSuppression \
 	  $(INCLUDES) $(LINT_SRC)
 
 # Informational static analysis across the entire library (does not fail the

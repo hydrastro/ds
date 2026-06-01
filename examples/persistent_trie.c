@@ -9,8 +9,7 @@ int main(void) {
 
   trie = ds_ptrie_create(NULL);
   root = ds_ptrie_root(trie);
-  v1 = ds_ptrie_insert(trie, root, (const unsigned char *)"cat", 3U,
-                       "animal");
+  v1 = ds_ptrie_insert(trie, root, (const unsigned char *)"cat", 3U, "animal");
 
   if (ds_ptrie_get(root, (const unsigned char *)"cat", 3U, &value) ==
       DS_NOT_FOUND) {

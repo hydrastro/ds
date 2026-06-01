@@ -48,7 +48,7 @@ ds_bitset_t *FUNC(ds_bitset_clone)(ds_bitset_t *bitset);
 void FUNC(ds_bitset_destroy)(ds_bitset_t *bitset);
 
 /* sentinel returned by find_first / find_next when no set bit exists */
-#define DS_BITSET_NPOS ((size_t) - 1)
+#define DS_BITSET_NPOS ((size_t)-1)
 
 #ifdef __cplusplus
 }

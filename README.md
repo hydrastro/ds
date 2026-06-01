@@ -124,7 +124,30 @@ make valgrind VALGRIND=/usr/bin/valgrind
 make valgrind VALGRIND_FLAGS="--leak-check=full --error-exitcode=99"
 ```
 
-## Formatting and static analysis
+## Health check and coverage
+
+```sh
+make summary         # one-shot verdict: build, tests, safe tests, examples,
+                     # lint, format, valgrind, and a coverage figure, each
+                     # reported PASS/FAIL with a final overall verdict
+make coverage        # line/function/branch coverage summary (needs gcovr)
+make coverage-detail # per-file coverage, least-covered first
+make coverage-html   # browsable HTML report under build/coverage/
+```
+
+`make summary` is the single "is everything OK?" command. It splits checks
+into **correctness gates** (build, unit tests, thread-safe tests, examples,
+valgrind) that determine the exit status, and **style gates** (lint, format)
+that are reported as advisory `WARN` because their output depends on the exact
+`clang-format` / `cppcheck` version installed. A style WARN does not fail the
+verdict or CI; run `make lint` / `make format-check` to see the detail. The
+style configuration was developed against **clang-format 18** and **cppcheck
+2.13**; other versions may format or warn slightly differently. To normalize
+formatting to your local clang-format, run `make format`. Coverage targets
+require `gcovr` (`pip install gcovr`); valgrind and the style tools are skipped
+automatically if not installed.
+
+
 
 ```sh
 make format        # clang-format the maintained sources in place
