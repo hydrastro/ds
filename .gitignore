@@ -5,10 +5,8 @@
 *.so
 *.out
 
-# Build, generated, and downloaded artifacts
+# Build artifacts
 /build/
-/gen/
-/data/
 
 # Generated Unicode tables (produced by `make unicode-data`)
 /build/unicode_tables.c

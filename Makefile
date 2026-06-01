@@ -271,7 +271,6 @@ clean:
 	rm -rf $(TEST_BUILD_DIR)
 
 distclean: clean
-	rm -rf $(DATA_DIR) $(GEN_DIR)
 	rm -rf $(BUILD_DIR)
 	rm -f valgrind.log *.log
 	rm -f $(LIB_DIR)/*.gch *.gch
