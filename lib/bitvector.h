@@ -36,7 +36,7 @@ typedef struct bitvector {
 #endif
 } ds_bitvector_t;
 
-#define DS_BITVECTOR_NPOS ((size_t) - 1)
+#define DS_BITVECTOR_NPOS ((size_t)-1)
 
 ds_bitvector_t *FUNC(bitvector_create)(size_t num_bits);
 ds_bitvector_t *FUNC(bitvector_create_alloc)(size_t num_bits,

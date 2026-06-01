@@ -40,7 +40,7 @@ typedef struct wavelet_tree {
 #endif
 } ds_wavelet_tree_t;
 
-#define DS_WAVELET_NPOS ((size_t) - 1)
+#define DS_WAVELET_NPOS ((size_t)-1)
 
 ds_wavelet_tree_t *FUNC(wavelet_tree_create)(const size_t *sequence,
                                              size_t length, size_t sigma);
