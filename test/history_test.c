@@ -5,15 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum {
-  TEST_OP_INSERT = 1,
-  TEST_OP_REMOVE = 2
-};
+enum { TEST_OP_INSERT = 1, TEST_OP_REMOVE = 2 };
 
-enum {
-  TEST_QUERY_GET = 1,
-  TEST_QUERY_SIZE = 2
-};
+enum { TEST_QUERY_GET = 1, TEST_QUERY_SIZE = 2 };
 
 struct test_kv_payload {
   char *key;
@@ -101,13 +95,13 @@ static void *test_clone_value(void *value) {
 
 static void *test_history_create_state(void *config) {
   (void)config;
-  return hash_table_create(11U, HASH_CHAINING, NULL);
+  return ds_hash_table_create(11U, HASH_CHAINING, NULL);
 }
 
 static void *test_history_clone_state(void *state, void *clone_data) {
   (void)clone_data;
-  return hash_table_clone_with((ds_hash_table_t *)state, test_clone_key,
-                               test_clone_value, test_hash, test_compare);
+  return ds_hash_table_clone_with((ds_hash_table_t *)state, test_clone_key,
+                                  test_clone_value, test_hash, test_compare);
 }
 
 static void test_history_destroy_state(void *state) {
@@ -147,8 +141,8 @@ static void *test_history_query(void *state, const ds_history_query_t *query) {
   table = (ds_hash_table_t *)state;
 
   if (query->kind == TEST_QUERY_GET) {
-    value = (char *)hash_table_lookup(table, query->payload, test_hash,
-                                      test_compare);
+    value = (char *)ds_hash_table_lookup(table, query->payload, test_hash,
+                                         test_compare);
     if (value == table->nil) {
       return NULL;
     }
@@ -258,36 +252,33 @@ int main(void) {
   assert(main_branch != NULL);
   assert(strcmp(ds_history_branch_name(main_branch), "main") == 0);
 
-  alpha_op = ds_history_branch_insert_at(
-      main_branch, 10UL, TEST_OP_INSERT, test_insert_payload("alpha", "1"));
+  alpha_op = ds_history_branch_insert_at(main_branch, 10UL, TEST_OP_INSERT,
+                                         test_insert_payload("alpha", "1"));
   assert(alpha_op != 0UL);
-  assert(ds_history_branch_insert_at(
-             main_branch, 20UL, TEST_OP_INSERT,
-             test_insert_payload("beta", "2")) != 0UL);
+  assert(ds_history_branch_insert_at(main_branch, 20UL, TEST_OP_INSERT,
+                                     test_insert_payload("beta", "2")) != 0UL);
 
   test_expect_missing(main_branch, 9UL, "alpha");
   test_expect_get(main_branch, 10UL, "alpha", "1");
   test_expect_get(main_branch, 20UL, "beta", "2");
   assert(test_query_size(main_branch, 20UL) == 2U);
 
-  feature_branch = ds_history_branch_create(history, main_branch, 15UL,
-                                            "feature");
+  feature_branch =
+      ds_history_branch_create(history, main_branch, 15UL, "feature");
   assert(feature_branch != NULL);
   assert(ds_history_branch_parent(feature_branch) == main_branch);
   assert(ds_history_branch_fork_time(feature_branch) == 15UL);
 
-  assert(ds_history_branch_insert_at(
-             feature_branch, 16UL, TEST_OP_INSERT,
-             test_insert_payload("gamma", "3")) != 0UL);
+  assert(ds_history_branch_insert_at(feature_branch, 16UL, TEST_OP_INSERT,
+                                     test_insert_payload("gamma", "3")) != 0UL);
 
   test_expect_get(feature_branch, 16UL, "alpha", "1");
   test_expect_get(feature_branch, 16UL, "gamma", "3");
   test_expect_missing(feature_branch, 16UL, "beta");
   assert(test_query_size(feature_branch, 16UL) == 2U);
 
-  assert(ds_history_branch_insert_at(
-             main_branch, 12UL, TEST_OP_INSERT,
-             test_insert_payload("retro", "9")) != 0UL);
+  assert(ds_history_branch_insert_at(main_branch, 12UL, TEST_OP_INSERT,
+                                     test_insert_payload("retro", "9")) != 0UL);
 
   test_expect_get(main_branch, 20UL, "retro", "9");
   test_expect_get(feature_branch, 16UL, "retro", "9");
@@ -300,9 +291,8 @@ int main(void) {
   test_expect_get(feature_branch, 16UL, "retro", "9");
   test_expect_get(feature_branch, 16UL, "gamma", "3");
 
-  assert(ds_history_branch_insert_at(
-             feature_branch, 15UL, TEST_OP_REMOVE,
-             test_remove_payload("retro")) != 0UL);
+  assert(ds_history_branch_insert_at(feature_branch, 15UL, TEST_OP_REMOVE,
+                                     test_remove_payload("retro")) != 0UL);
   test_expect_missing(feature_branch, 16UL, "retro");
   test_expect_get(main_branch, 20UL, "retro", "9");
 

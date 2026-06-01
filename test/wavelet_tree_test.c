@@ -25,12 +25,12 @@ int main(void) {
     state = state * 1103515245U + 12345U;
     seq[i] = (state >> 8) % sigma;
   }
-  wt = wavelet_tree_create(seq, n, sigma);
-  assert(wavelet_tree_length(wt) == n);
+  wt = ds_wavelet_tree_create(seq, n, sigma);
+  assert(ds_wavelet_tree_length(wt) == n);
 
   /* access matches the original sequence */
   for (i = 0; i < n; ++i) {
-    assert(wavelet_tree_access(wt, i) == seq[i]);
+    assert(ds_wavelet_tree_access(wt, i) == seq[i]);
   }
   printf("access verified\n");
 
@@ -45,7 +45,7 @@ int main(void) {
           naive += 1;
         }
       }
-      assert(wavelet_tree_rank(wt, c, i) == naive);
+      assert(ds_wavelet_tree_rank(wt, c, i) == naive);
     }
   }
   printf("rank verified\n");
@@ -59,14 +59,14 @@ int main(void) {
       for (j = 0; j < n; ++j) {
         if (seq[j] == c) {
           if (occ % 5 == 0) {
-            size_t sel = wavelet_tree_select(wt, c, occ);
+            size_t sel = ds_wavelet_tree_select(wt, c, occ);
             assert(sel == j);
           }
           occ += 1;
         }
       }
       /* out-of-range select returns NPOS */
-      assert(wavelet_tree_select(wt, c, occ) == DS_WAVELET_NPOS);
+      assert(ds_wavelet_tree_select(wt, c, occ) == DS_WAVELET_NPOS);
     }
   }
   printf("select verified\n");
@@ -97,14 +97,14 @@ int main(void) {
       qsort(slice, len, sizeof(size_t), cmp_size);
       state = state * 1103515245U + 12345U;
       k = (state >> 8) % len;
-      got = wavelet_tree_quantile(wt, a, b, k);
+      got = ds_wavelet_tree_quantile(wt, a, b, k);
       assert(got == slice[k]);
       free(slice);
     }
   }
   printf("quantile verified\n");
 
-  wavelet_tree_destroy(wt);
+  ds_wavelet_tree_destroy(wt);
   free(seq);
   printf("ok\n");
   return 0;

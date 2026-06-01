@@ -1,12 +1,12 @@
 #include "list.h"
 #include <stdlib.h>
 
-ds_list_t *FUNC(list_create)(void) {
-  return FUNC(list_create_alloc)(malloc, free);
+ds_list_t *FUNC(ds_list_create)(void) {
+  return FUNC(ds_list_create_alloc)(malloc, free);
 }
 
-ds_list_t *FUNC(list_create_alloc)(void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
+ds_list_t *FUNC(ds_list_create_alloc)(void *(*allocator)(size_t),
+                                      void (*deallocator)(void *)) {
   ds_list_t *list = (ds_list_t *)allocator(sizeof(ds_list_t));
   list->allocator = allocator;
   list->deallocator = deallocator;
@@ -21,7 +21,7 @@ ds_list_t *FUNC(list_create_alloc)(void *(*allocator)(size_t),
   return list;
 }
 
-void FUNC(list_append)(ds_list_t *list, ds_list_node_t *node) {
+void FUNC(ds_list_append)(ds_list_t *list, ds_list_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(list);
 #endif
@@ -37,7 +37,7 @@ void FUNC(list_append)(ds_list_t *list, ds_list_node_t *node) {
 #endif
 }
 
-void FUNC(list_prepend)(ds_list_t *list, ds_list_node_t *node) {
+void FUNC(ds_list_prepend)(ds_list_t *list, ds_list_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(list);
 #endif
@@ -52,9 +52,9 @@ void FUNC(list_prepend)(ds_list_t *list, ds_list_node_t *node) {
 #endif
 }
 
-ds_list_node_t *FUNC(list_search)(ds_list_t *list, ds_list_node_t *node,
-                                  int (*compare)(ds_list_node_t *,
-                                                 ds_list_node_t *)) {
+ds_list_node_t *FUNC(ds_list_search)(ds_list_t *list, ds_list_node_t *node,
+                                     int (*compare)(ds_list_node_t *,
+                                                    ds_list_node_t *)) {
   ds_list_node_t *head;
 #ifdef DS_THREAD_SAFE
   LOCK(list);
@@ -75,8 +75,8 @@ ds_list_node_t *FUNC(list_search)(ds_list_t *list, ds_list_node_t *node,
   return head;
 }
 
-void FUNC(list_insert_before)(ds_list_t *list, ds_list_node_t *node,
-                              ds_list_node_t *next) {
+void FUNC(ds_list_insert_before)(ds_list_t *list, ds_list_node_t *node,
+                                 ds_list_node_t *next) {
   ds_list_node_t *prev;
 #ifdef DS_THREAD_SAFE
   LOCK(list);
@@ -99,8 +99,8 @@ void FUNC(list_insert_before)(ds_list_t *list, ds_list_node_t *node,
 #endif
 }
 
-void FUNC(list_insert_after)(ds_list_t *list, ds_list_node_t *node,
-                             ds_list_node_t *prev) {
+void FUNC(ds_list_insert_after)(ds_list_t *list, ds_list_node_t *node,
+                                ds_list_node_t *prev) {
 #ifdef DS_THREAD_SAFE
   LOCK(list);
 #endif
@@ -120,7 +120,7 @@ void FUNC(list_insert_after)(ds_list_t *list, ds_list_node_t *node,
 #endif
 }
 
-void FUNC(list_delete_node)(ds_list_t *list, ds_list_node_t *node) {
+void FUNC(ds_list_delete_node)(ds_list_t *list, ds_list_node_t *node) {
   ds_list_node_t *prev;
 #ifdef DS_THREAD_SAFE
   LOCK(list);
@@ -142,7 +142,7 @@ void FUNC(list_delete_node)(ds_list_t *list, ds_list_node_t *node) {
 #endif
 }
 
-void FUNC(list_delete)(ds_list_t *list) {
+void FUNC(ds_list_delete)(ds_list_t *list) {
 #ifdef DS_THREAD_SAFE
   LOCK(list);
 #endif
@@ -153,12 +153,12 @@ void FUNC(list_delete)(ds_list_t *list) {
 #endif
 }
 
-void FUNC(list_destroy_node)(ds_list_t *list, ds_list_node_t *node,
-                             void (*destroy)(ds_list_node_t *)) {
+void FUNC(ds_list_destroy_node)(ds_list_t *list, ds_list_node_t *node,
+                                void (*destroy)(ds_list_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(list);
 #endif
-  FUNC(list_delete_node)(list, node);
+  FUNC(ds_list_delete_node)(list, node);
   if (destroy != NULL) {
     destroy(node);
   }
@@ -167,7 +167,7 @@ void FUNC(list_destroy_node)(ds_list_t *list, ds_list_node_t *node,
 #endif
 }
 
-void FUNC(list_destroy)(ds_list_t *list, void (*destroy)(ds_list_node_t *)) {
+void FUNC(ds_list_destroy)(ds_list_t *list, void (*destroy)(ds_list_node_t *)) {
   ds_list_node_t *node, *next;
   node = list->head;
   while (node != list->nil) {
@@ -184,8 +184,8 @@ void FUNC(list_destroy)(ds_list_t *list, void (*destroy)(ds_list_node_t *)) {
   list->deallocator(list);
 }
 
-void FUNC(list_walk_forward)(ds_list_t *list, ds_list_node_t *node,
-                             void (*callback)(ds_list_node_t *)) {
+void FUNC(ds_list_walk_forward)(ds_list_t *list, ds_list_node_t *node,
+                                void (*callback)(ds_list_node_t *)) {
   ds_list_node_t *cur;
 #ifdef DS_THREAD_SAFE
   LOCK(list);
@@ -200,14 +200,13 @@ void FUNC(list_walk_forward)(ds_list_t *list, ds_list_node_t *node,
 #endif
 }
 
-void FUNC(list_walk_backwards)(ds_list_t *list, ds_list_node_t *node,
-                               void (*callback)(ds_list_node_t *)) {
-
+void FUNC(ds_list_walk_backwards)(ds_list_t *list, ds_list_node_t *node,
+                                  void (*callback)(ds_list_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(list);
 #endif
   if (node != list->nil) {
-    FUNC(list_walk_backwards)(list, node->next, callback);
+    FUNC(ds_list_walk_backwards)(list, node->next, callback);
     callback(CAST(node, void));
   }
 #ifdef DS_THREAD_SAFE
@@ -215,7 +214,7 @@ void FUNC(list_walk_backwards)(ds_list_t *list, ds_list_node_t *node,
 #endif
 }
 
-bool FUNC(list_is_empty)(ds_list_t *list) {
+bool FUNC(ds_list_is_empty)(ds_list_t *list) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(list);
@@ -227,18 +226,19 @@ bool FUNC(list_is_empty)(ds_list_t *list) {
   return result;
 }
 
-ds_list_t *FUNC(list_clone)(ds_list_t *list,
-                            ds_list_node_t *(*clone_node)(ds_list_node_t *)) {
+ds_list_t *
+FUNC(ds_list_clone)(ds_list_t *list,
+                    ds_list_node_t *(*clone_node)(ds_list_node_t *)) {
   ds_list_t *new_list;
   ds_list_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(list);
 #endif
-  new_list = FUNC(list_create_alloc)(list->allocator, list->deallocator);
+  new_list = FUNC(ds_list_create_alloc)(list->allocator, list->deallocator);
   current = list->head;
   while (current != list->nil) {
     ds_list_node_t *cloned_node = clone_node(current);
-    FUNC(list_append)(new_list, cloned_node);
+    FUNC(ds_list_append)(new_list, cloned_node);
     current = current->next;
   }
 

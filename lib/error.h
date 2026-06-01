@@ -34,15 +34,14 @@ typedef struct ds_error_desc {
 } ds_error_desc_t;
 
 void ds_error_clear(ds_error_t *error);
-ds_status_t ds_error_set(ds_error_t *error, ds_status_t status,
-                         const char *id, const char *module,
-                         const char *message, const char *file,
-                         unsigned long line, const char *function);
+ds_status_t ds_error_set(ds_error_t *error, ds_status_t status, const char *id,
+                         const char *module, const char *message,
+                         const char *file, unsigned long line,
+                         const char *function);
 ds_status_t ds_error_set_desc(ds_error_t *error, const ds_error_desc_t *desc,
                               const char *file, unsigned long line,
                               const char *function);
-int ds_error_format(const ds_error_t *error, char *buffer,
-                    size_t buffer_size);
+int ds_error_format(const ds_error_t *error, char *buffer, size_t buffer_size);
 
 #ifdef __cplusplus
 }

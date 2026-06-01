@@ -56,8 +56,8 @@ static bool FUNC(hamt_slot_occupied)(unsigned long bitmap, size_t slot) {
   return (bitmap & (1UL << slot)) != 0UL;
 }
 
-ds_hamt_t *FUNC(hamt_create)(void) {
-  return FUNC(hamt_create_alloc)(malloc, free);
+ds_hamt_t *FUNC(ds_hamt_create)(void) {
+  return FUNC(ds_hamt_create_alloc)(malloc, free);
 }
 
 static ds_hamt_node_t *FUNC(hamt_new_branch)(ds_hamt_t *hamt) {
@@ -97,8 +97,8 @@ static ds_hamt_node_t *FUNC(hamt_new_leaf)(ds_hamt_t *hamt, const void *key,
   return node;
 }
 
-ds_hamt_t *FUNC(hamt_create_alloc)(void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
+ds_hamt_t *FUNC(ds_hamt_create_alloc)(void *(*allocator)(size_t),
+                                      void (*deallocator)(void *)) {
   ds_hamt_t *hamt = (ds_hamt_t *)allocator(sizeof(ds_hamt_t));
   hamt->allocator = allocator;
   hamt->deallocator = deallocator;
@@ -185,8 +185,8 @@ static ds_hamt_node_t *FUNC(hamt_split_leaf)(ds_hamt_t *hamt,
   return branch;
 }
 
-bool FUNC(hamt_insert)(ds_hamt_t *hamt, const void *key, size_t key_length,
-                       void *value) {
+bool FUNC(ds_hamt_insert)(ds_hamt_t *hamt, const void *key, size_t key_length,
+                          void *value) {
   unsigned long hash;
   ds_hamt_node_t *node;
   int level = 0;
@@ -277,7 +277,8 @@ static ds_hamt_node_t *FUNC(hamt_find_leaf)(ds_hamt_t *hamt, const void *key,
   }
 }
 
-bool FUNC(hamt_contains)(ds_hamt_t *hamt, const void *key, size_t key_length) {
+bool FUNC(ds_hamt_contains)(ds_hamt_t *hamt, const void *key,
+                            size_t key_length) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(hamt);
@@ -290,7 +291,7 @@ bool FUNC(hamt_contains)(ds_hamt_t *hamt, const void *key, size_t key_length) {
   return result;
 }
 
-void *FUNC(hamt_get)(ds_hamt_t *hamt, const void *key, size_t key_length) {
+void *FUNC(ds_hamt_get)(ds_hamt_t *hamt, const void *key, size_t key_length) {
   ds_hamt_node_t *leaf;
   void *result = NULL;
 #ifdef DS_THREAD_SAFE
@@ -307,8 +308,8 @@ void *FUNC(hamt_get)(ds_hamt_t *hamt, const void *key, size_t key_length) {
   return result;
 }
 
-bool FUNC(hamt_remove)(ds_hamt_t *hamt, const void *key, size_t key_length,
-                       void **out_value) {
+bool FUNC(ds_hamt_remove)(ds_hamt_t *hamt, const void *key, size_t key_length,
+                          void **out_value) {
   unsigned long hash;
   ds_hamt_node_t *node;
   ds_hamt_node_t *parents[DS_HAMT_MAX_LEVEL + 2];
@@ -380,7 +381,7 @@ bool FUNC(hamt_remove)(ds_hamt_t *hamt, const void *key, size_t key_length,
   return removed;
 }
 
-size_t FUNC(hamt_size)(ds_hamt_t *hamt) {
+size_t FUNC(ds_hamt_size)(ds_hamt_t *hamt) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(hamt);
@@ -392,7 +393,7 @@ size_t FUNC(hamt_size)(ds_hamt_t *hamt) {
   return result;
 }
 
-bool FUNC(hamt_is_empty)(ds_hamt_t *hamt) {
+bool FUNC(ds_hamt_is_empty)(ds_hamt_t *hamt) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(hamt);
@@ -422,9 +423,9 @@ static void FUNC(hamt_walk_node)(ds_hamt_node_t *node,
   }
 }
 
-void FUNC(hamt_walk)(ds_hamt_t *hamt,
-                     void (*callback)(const void *, size_t, void *, void *),
-                     void *user) {
+void FUNC(ds_hamt_walk)(ds_hamt_t *hamt,
+                        void (*callback)(const void *, size_t, void *, void *),
+                        void *user) {
 #ifdef DS_THREAD_SAFE
   LOCK(hamt);
 #endif
@@ -463,7 +464,7 @@ static void FUNC(hamt_destroy_node)(ds_hamt_t *hamt, ds_hamt_node_t *node,
   }
 }
 
-void FUNC(hamt_destroy)(ds_hamt_t *hamt, void (*destroy_value)(void *)) {
+void FUNC(ds_hamt_destroy)(ds_hamt_t *hamt, void (*destroy_value)(void *)) {
   FUNC(hamt_destroy_node)(hamt, hamt->root, destroy_value);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(hamt);

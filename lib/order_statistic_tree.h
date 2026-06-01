@@ -38,25 +38,26 @@ typedef struct ost {
 #endif
 } ds_ost_t;
 
-ds_ost_t *FUNC(ost_create)(int (*compare)(ds_ost_node_t *, ds_ost_node_t *));
-ds_ost_t *FUNC(ost_create_alloc)(int (*compare)(ds_ost_node_t *,
-                                                ds_ost_node_t *),
-                                 void *(*allocator)(size_t),
-                                 void (*deallocator)(void *));
-bool FUNC(ost_insert)(ds_ost_t *tree, ds_ost_node_t *node);
-ds_ost_node_t *FUNC(ost_search)(ds_ost_t *tree, ds_ost_node_t *key);
-bool FUNC(ost_remove)(ds_ost_t *tree, ds_ost_node_t *key,
-                      ds_ost_node_t **out_node);
+ds_ost_t *FUNC(ds_ost_create)(int (*compare)(ds_ost_node_t *, ds_ost_node_t *));
+ds_ost_t *FUNC(ds_ost_create_alloc)(int (*compare)(ds_ost_node_t *,
+                                                   ds_ost_node_t *),
+                                    void *(*allocator)(size_t),
+                                    void (*deallocator)(void *));
+bool FUNC(ds_ost_insert)(ds_ost_t *tree, ds_ost_node_t *node);
+ds_ost_node_t *FUNC(ds_ost_search)(ds_ost_t *tree, ds_ost_node_t *key);
+bool FUNC(ds_ost_remove)(ds_ost_t *tree, ds_ost_node_t *key,
+                         ds_ost_node_t **out_node);
 /* select(k): k-th smallest (0-based). Returns nil if k >= size. */
-ds_ost_node_t *FUNC(ost_select)(ds_ost_t *tree, size_t k);
+ds_ost_node_t *FUNC(ds_ost_select)(ds_ost_t *tree, size_t k);
 /* rank(x): number of keys strictly less than x. */
-size_t FUNC(ost_rank)(ds_ost_t *tree, ds_ost_node_t *key);
-ds_ost_node_t *FUNC(ost_minimum)(ds_ost_t *tree);
-ds_ost_node_t *FUNC(ost_maximum)(ds_ost_t *tree);
-size_t FUNC(ost_size)(ds_ost_t *tree);
-bool FUNC(ost_is_empty)(ds_ost_t *tree);
-void FUNC(ost_inorder_walk)(ds_ost_t *tree, void (*callback)(ds_ost_node_t *));
-void FUNC(ost_destroy)(ds_ost_t *tree, void (*destroy)(ds_ost_node_t *));
+size_t FUNC(ds_ost_rank)(ds_ost_t *tree, ds_ost_node_t *key);
+ds_ost_node_t *FUNC(ds_ost_minimum)(ds_ost_t *tree);
+ds_ost_node_t *FUNC(ds_ost_maximum)(ds_ost_t *tree);
+size_t FUNC(ds_ost_size)(ds_ost_t *tree);
+bool FUNC(ds_ost_is_empty)(ds_ost_t *tree);
+void FUNC(ds_ost_inorder_walk)(ds_ost_t *tree,
+                               void (*callback)(ds_ost_node_t *));
+void FUNC(ds_ost_destroy)(ds_ost_t *tree, void (*destroy)(ds_ost_node_t *));
 
 #ifdef __cplusplus
 }

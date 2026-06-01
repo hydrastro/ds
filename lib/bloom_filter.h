@@ -23,27 +23,26 @@ typedef struct bloom_filter {
 #endif
 } ds_bloom_filter_t;
 
-ds_bloom_filter_t *FUNC(bloom_filter_create)(size_t expected_items,
-                                             double false_positive_rate);
-ds_bloom_filter_t *FUNC(bloom_filter_create_alloc)(size_t expected_items,
-                                                   double false_positive_rate,
-                                                   void *(*allocator)(size_t),
-                                                   void (*deallocator)(void *));
+ds_bloom_filter_t *FUNC(ds_bloom_filter_create)(size_t expected_items,
+                                                double false_positive_rate);
+ds_bloom_filter_t *FUNC(ds_bloom_filter_create_alloc)(
+    size_t expected_items, double false_positive_rate,
+    void *(*allocator)(size_t), void (*deallocator)(void *));
 ds_bloom_filter_t *
-    FUNC(bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *));
-void FUNC(bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
-                            size_t length);
-bool FUNC(bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
-                                       const void *key, size_t length);
-void FUNC(bloom_filter_clear)(ds_bloom_filter_t *filter);
-size_t FUNC(bloom_filter_count)(ds_bloom_filter_t *filter);
-double FUNC(bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter);
-bool FUNC(bloom_filter_union)(ds_bloom_filter_t *filter,
-                              ds_bloom_filter_t *other);
-ds_bloom_filter_t *FUNC(bloom_filter_clone)(ds_bloom_filter_t *filter);
-void FUNC(bloom_filter_destroy)(ds_bloom_filter_t *filter);
+    FUNC(ds_bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
+                                             void *(*allocator)(size_t),
+                                             void (*deallocator)(void *));
+void FUNC(ds_bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
+                               size_t length);
+bool FUNC(ds_bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
+                                          const void *key, size_t length);
+void FUNC(ds_bloom_filter_clear)(ds_bloom_filter_t *filter);
+size_t FUNC(ds_bloom_filter_count)(ds_bloom_filter_t *filter);
+double FUNC(ds_bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter);
+bool FUNC(ds_bloom_filter_union)(ds_bloom_filter_t *filter,
+                                 ds_bloom_filter_t *other);
+ds_bloom_filter_t *FUNC(ds_bloom_filter_clone)(ds_bloom_filter_t *filter);
+void FUNC(ds_bloom_filter_destroy)(ds_bloom_filter_t *filter);
 
 #ifdef __cplusplus
 }

@@ -26,33 +26,33 @@ typedef struct queue {
 #endif
 } ds_queue_t;
 
-ds_queue_t *FUNC(queue_create)(void);
-ds_queue_t *FUNC(queue_create_alloc)(void *(*allocator)(size_t),
-                                     void (*deallocator)(void *));
-void FUNC(queue_enqueue)(ds_queue_t *queue, ds_queue_node_t *node);
-ds_queue_node_t *FUNC(queue_dequeue)(ds_queue_t *queue);
-ds_queue_node_t *FUNC(queue_peek)(ds_queue_t *queue);
-ds_queue_node_t *FUNC(queue_peek_tail)(ds_queue_t *queue);
-bool FUNC(queue_is_empty)(ds_queue_t *queue);
-void FUNC(queue_destroy)(ds_queue_t *queue, void (*destroy)(ds_queue_node_t *));
+ds_queue_t *FUNC(ds_queue_create)(void);
+ds_queue_t *FUNC(ds_queue_create_alloc)(void *(*allocator)(size_t),
+                                        void (*deallocator)(void *));
+void FUNC(ds_queue_enqueue)(ds_queue_t *queue, ds_queue_node_t *node);
+ds_queue_node_t *FUNC(ds_queue_dequeue)(ds_queue_t *queue);
+ds_queue_node_t *FUNC(ds_queue_peek)(ds_queue_t *queue);
+ds_queue_node_t *FUNC(ds_queue_peek_tail)(ds_queue_t *queue);
+bool FUNC(ds_queue_is_empty)(ds_queue_t *queue);
+void FUNC(ds_queue_destroy)(ds_queue_t *queue,
+                            void (*destroy)(ds_queue_node_t *));
 
-void FUNC(queue_delete)(ds_queue_t *queue);
-void FUNC(queue_delete_node)(ds_queue_t *queue, ds_queue_node_t *node);
-void FUNC(queue_destroy_node)(ds_queue_t *queue, ds_queue_node_t *node,
-                              void (*destroy)(ds_queue_node_t *));
-void FUNC(queue_pop_destroy)(ds_queue_t *queue,
-                             void (*destroy_node)(ds_queue_node_t *));
-ds_queue_node_t *FUNC(queue_search)(ds_queue_t *queue, ds_queue_node_t *node,
-                                    int (*compare)(ds_queue_node_t *,
-                                                   ds_queue_node_t *));
-void FUNC(queue_walk_forward)(ds_queue_t *queue, ds_queue_node_t *node,
-                              void (*callback)(ds_queue_node_t *));
-void FUNC(queue_walk_backwards)(ds_queue_t *queue, ds_queue_node_t *node,
-                                void (*callback)(ds_queue_node_t *));
+void FUNC(ds_queue_delete)(ds_queue_t *queue);
+void FUNC(ds_queue_delete_node)(ds_queue_t *queue, ds_queue_node_t *node);
+void FUNC(ds_queue_destroy_node)(ds_queue_t *queue, ds_queue_node_t *node,
+                                 void (*destroy)(ds_queue_node_t *));
+void FUNC(ds_queue_pop_destroy)(ds_queue_t *queue,
+                                void (*destroy_node)(ds_queue_node_t *));
+ds_queue_node_t *FUNC(ds_queue_search)(ds_queue_t *queue, ds_queue_node_t *node,
+                                       int (*compare)(ds_queue_node_t *,
+                                                      ds_queue_node_t *));
+void FUNC(ds_queue_walk_forward)(ds_queue_t *queue, ds_queue_node_t *node,
+                                 void (*callback)(ds_queue_node_t *));
+void FUNC(ds_queue_walk_backwards)(ds_queue_t *queue, ds_queue_node_t *node,
+                                   void (*callback)(ds_queue_node_t *));
 ds_queue_t *
-    FUNC(queue_clone)(ds_queue_t *queue,
-                      ds_queue_node_t *(*clone_node)(ds_queue_node_t *));
-
+    FUNC(ds_queue_clone)(ds_queue_t *queue,
+                         ds_queue_node_t *(*clone_node)(ds_queue_node_t *));
 
 #ifdef __cplusplus
 }

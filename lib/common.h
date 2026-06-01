@@ -89,7 +89,6 @@ void mutex_destroy(mutex_t *lock);
 #endif
 #endif
 
-
 #ifdef __cplusplus
 }
 #endif

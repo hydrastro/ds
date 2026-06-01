@@ -2,68 +2,67 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const size_t prime_capacities[] = {
-    5,
-    11,
-    23,
-    47,
-    97,
-    197,
-    397,
-    797,
-    1597,
-    3203,
-    6421,
-    12853,
-    25717,
-    51437,
-    102877,
-    205759,
-    411527,
-    823117,
-    1646237,
-    3292489,
-    6584983,
-    13169977,
-    26339969,
-    52679969,
-    105359939,
-    210719881,
-    421439783,
-    842879579,
-    1685759167,
-    3371518343,
-    6743036717,
-    13486073473,
-    26972146961,
-    53944293929,
-    107888587883,
-    215777175787,
-    431554351609,
-    863108703229,
-    1726217406467,
-    3452434812973,
-    6904869625999,
-    13809739252051,
-    27619478504183,
-    55238957008387,
-    110477914016779,
-    220955828033581,
-    441911656067171,
-    883823312134381,
-    1767646624268779,
-    3535293248537579,
-    7070586497075177,
-    14141172994150357,
-    28282345988300791,
-    56564691976601587,
-    113129383953203213,
-    226258767906406483,
-    452517535812813007,
-    905035071625626043,
-    1810070143251252131,
-    3620140286502504283,
-    7240280573005008577};
+static const size_t prime_capacities[] = {5,
+                                          11,
+                                          23,
+                                          47,
+                                          97,
+                                          197,
+                                          397,
+                                          797,
+                                          1597,
+                                          3203,
+                                          6421,
+                                          12853,
+                                          25717,
+                                          51437,
+                                          102877,
+                                          205759,
+                                          411527,
+                                          823117,
+                                          1646237,
+                                          3292489,
+                                          6584983,
+                                          13169977,
+                                          26339969,
+                                          52679969,
+                                          105359939,
+                                          210719881,
+                                          421439783,
+                                          842879579,
+                                          1685759167,
+                                          3371518343,
+                                          6743036717,
+                                          13486073473,
+                                          26972146961,
+                                          53944293929,
+                                          107888587883,
+                                          215777175787,
+                                          431554351609,
+                                          863108703229,
+                                          1726217406467,
+                                          3452434812973,
+                                          6904869625999,
+                                          13809739252051,
+                                          27619478504183,
+                                          55238957008387,
+                                          110477914016779,
+                                          220955828033581,
+                                          441911656067171,
+                                          883823312134381,
+                                          1767646624268779,
+                                          3535293248537579,
+                                          7070586497075177,
+                                          14141172994150357,
+                                          28282345988300791,
+                                          56564691976601587,
+                                          113129383953203213,
+                                          226258767906406483,
+                                          452517535812813007,
+                                          905035071625626043,
+                                          1810070143251252131,
+                                          3620140286502504283,
+                                          7240280573005008577};
 
 struct hash_resize_context {
   ds_hash_table_t *new_table;
@@ -126,9 +125,9 @@ static int hash_table_compare_keys(ds_hash_table_t *table, void *a, void *b,
   return a == b ? 0 : 1;
 }
 
-static ds_hash_node_t *hash_table_list_bucket_search(
-    ds_hash_table_t *table, void *bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *
+hash_table_list_bucket_search(ds_hash_table_t *table, void *bucket, void *key,
+                              int (*compare)(void *, void *)) {
   ds_hash_node_t *current;
   (void)table;
   current = (ds_hash_node_t *)bucket;
@@ -141,8 +140,7 @@ static ds_hash_node_t *hash_table_list_bucket_search(
   return NULL;
 }
 
-static void hash_table_list_bucket_insert(ds_hash_table_t *table,
-                                          void **bucket,
+static void hash_table_list_bucket_insert(ds_hash_table_t *table, void **bucket,
                                           ds_hash_node_t *node,
                                           int (*compare)(void *, void *)) {
   (void)table;
@@ -151,9 +149,9 @@ static void hash_table_list_bucket_insert(ds_hash_table_t *table,
   *bucket = node;
 }
 
-static ds_hash_node_t *hash_table_list_bucket_remove(
-    ds_hash_table_t *table, void **bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *
+hash_table_list_bucket_remove(ds_hash_table_t *table, void **bucket, void *key,
+                              int (*compare)(void *, void *)) {
   ds_hash_node_t *current;
   ds_hash_node_t *prev;
   (void)table;
@@ -175,8 +173,7 @@ static ds_hash_node_t *hash_table_list_bucket_remove(
   return NULL;
 }
 
-static void hash_table_list_bucket_destroy(ds_hash_table_t *table,
-                                           void *bucket,
+static void hash_table_list_bucket_destroy(ds_hash_table_t *table, void *bucket,
                                            void (*destroy)(ds_hash_node_t *)) {
   ds_hash_node_t *current;
   ds_hash_node_t *next;
@@ -251,11 +248,12 @@ static void hash_table_destroy_store(ds_hash_table_t *table,
   }
 }
 
-static ds_hash_table_t *hash_table_create_alloc_internal(
-    size_t capacity, ds_hash_table_mode_t mode,
-    ds_hash_probing_func_t probing_func,
-    const ds_hash_bucket_store_t *bucket_store, void *(*allocator)(size_t),
-    void (*deallocator)(void *)) {
+static ds_hash_table_t *
+hash_table_create_alloc_internal(size_t capacity, ds_hash_table_mode_t mode,
+                                 ds_hash_probing_func_t probing_func,
+                                 const ds_hash_bucket_store_t *bucket_store,
+                                 void *(*allocator)(size_t),
+                                 void (*deallocator)(void *)) {
   ds_hash_table_t *table;
   table = (ds_hash_table_t *)allocator(sizeof(ds_hash_table_t));
   table->allocator = allocator;
@@ -278,7 +276,7 @@ static ds_hash_table_t *hash_table_create_alloc_internal(
 
   if (mode == HASH_CHAINING) {
     if (bucket_store == NULL) {
-      table->bucket_store = FUNC(hash_table_linked_list_bucket_store)();
+      table->bucket_store = FUNC(ds_hash_table_linked_list_bucket_store)();
     } else {
       table->bucket_store = bucket_store;
     }
@@ -307,8 +305,9 @@ static ds_hash_table_t *hash_table_create_alloc_internal(
 static void hash_table_reinsert_node(ds_hash_node_t *node, void *args) {
   struct hash_resize_context *context;
   context = (struct hash_resize_context *)args;
-  FUNC(hash_table_insert)(context->new_table, node->key, node->value,
-                          context->hash_func, context->compare);
+  FUNC(hash_table_insert)
+  (context->new_table, node->key, node->value, context->hash_func,
+   context->compare);
 }
 
 size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity) {
@@ -355,7 +354,9 @@ size_t hash_func_size_t(void *key) {
   return num;
 }
 
-size_t hash_func_pointer(void *key) { return (size_t)key; }
+size_t hash_func_pointer(void *key) {
+  return (size_t)key;
+}
 
 size_t hash_func_double(void *key) {
   double num;
@@ -371,7 +372,9 @@ size_t hash_func_double(void *key) {
   return hash;
 }
 
-size_t hash_func_default(void *key) { return (size_t)key; }
+size_t hash_func_default(void *key) {
+  return (size_t)key;
+}
 
 ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                  void *value) {
@@ -395,37 +398,39 @@ size_t next_prime_capacity(size_t current_capacity) {
   return current_capacity * 2;
 }
 
-const ds_hash_bucket_store_t *FUNC(hash_table_linked_list_bucket_store)(void) {
+const ds_hash_bucket_store_t *
+FUNC(ds_hash_table_linked_list_bucket_store)(void) {
   return &hash_table_list_bucket_store;
 }
 
-ds_hash_table_t *FUNC(hash_table_create)(size_t capacity,
-                                         ds_hash_table_mode_t mode,
-                                         ds_hash_probing_func_t probing_func) {
-  return FUNC(hash_table_create_alloc)(capacity, mode, probing_func, malloc,
-                                       free);
+ds_hash_table_t *
+FUNC(ds_hash_table_create)(size_t capacity, ds_hash_table_mode_t mode,
+                           ds_hash_probing_func_t probing_func) {
+  return FUNC(ds_hash_table_create_alloc)(capacity, mode, probing_func, malloc,
+                                          free);
 }
 
-ds_hash_table_t *FUNC(hash_table_create_chain)(
-    size_t capacity, const ds_hash_bucket_store_t *bucket_store) {
-  return FUNC(hash_table_create_chain_alloc)(capacity, bucket_store, malloc,
-                                             free);
+ds_hash_table_t *
+FUNC(ds_hash_table_create_chain)(size_t capacity,
+                                 const ds_hash_bucket_store_t *bucket_store) {
+  return FUNC(ds_hash_table_create_chain_alloc)(capacity, bucket_store, malloc,
+                                                free);
 }
 
-ds_hash_table_t *FUNC(hash_table_create_alloc)(
-    size_t capacity, ds_hash_table_mode_t mode,
-    ds_hash_probing_func_t probing_func, void *(*allocator)(size_t),
-    void (*deallocator)(void *)) {
+ds_hash_table_t *
+FUNC(ds_hash_table_create_alloc)(size_t capacity, ds_hash_table_mode_t mode,
+                                 ds_hash_probing_func_t probing_func,
+                                 void *(*allocator)(size_t),
+                                 void (*deallocator)(void *)) {
   return hash_table_create_alloc_internal(capacity, mode, probing_func, NULL,
                                           allocator, deallocator);
 }
 
-ds_hash_table_t *FUNC(hash_table_create_chain_alloc)(
+ds_hash_table_t *FUNC(ds_hash_table_create_chain_alloc)(
     size_t capacity, const ds_hash_bucket_store_t *bucket_store,
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   return hash_table_create_alloc_internal(capacity, HASH_CHAINING, NULL,
-                                          bucket_store, allocator,
-                                          deallocator);
+                                          bucket_store, allocator, deallocator);
 }
 
 static void hash_table_resize_unlocked(ds_hash_table_t *table,
@@ -478,9 +483,9 @@ static void hash_table_resize_unlocked(ds_hash_table_t *table,
   table->deallocator(new_table);
 }
 
-void FUNC(hash_table_resize)(ds_hash_table_t *table, size_t new_capacity,
-                             size_t (*hash_func)(void *),
-                             int (*compare)(void *, void *)) {
+void FUNC(ds_hash_table_resize)(ds_hash_table_t *table, size_t new_capacity,
+                                size_t (*hash_func)(void *),
+                                int (*compare)(void *, void *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(table);
 #endif
@@ -561,9 +566,9 @@ void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
 #endif
 }
 
-void *FUNC(hash_table_lookup)(ds_hash_table_t *table, void *key,
-                              size_t (*hash_func)(void *),
-                              int (*compare)(void *, void *)) {
+void *FUNC(ds_hash_table_lookup)(ds_hash_table_t *table, void *key,
+                                 size_t (*hash_func)(void *),
+                                 int (*compare)(void *, void *)) {
   size_t base_index;
   size_t index;
   size_t iteration;
@@ -660,9 +665,9 @@ void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
 #endif
 }
 
-void FUNC(hash_table_for_each)(ds_hash_table_t *table,
-                               void (*callback)(ds_hash_node_t *, void *),
-                               void *args) {
+void FUNC(ds_hash_table_for_each)(ds_hash_table_t *table,
+                                  void (*callback)(ds_hash_node_t *, void *),
+                                  void *args) {
   ds_hash_node_t *current;
   ds_hash_node_t *prev;
 #ifdef DS_THREAD_SAFE
@@ -679,7 +684,7 @@ void FUNC(hash_table_for_each)(ds_hash_table_t *table,
 #endif
 }
 
-bool FUNC(hash_table_is_empty)(ds_hash_table_t *table) {
+bool FUNC(ds_hash_table_is_empty)(ds_hash_table_t *table) {
   return table->size == 0;
 }
 
@@ -707,7 +712,7 @@ ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
   LOCK(table);
 #endif
   if (table->mode == HASH_CHAINING &&
-      table->bucket_store != FUNC(hash_table_linked_list_bucket_store)()) {
+      table->bucket_store != FUNC(ds_hash_table_linked_list_bucket_store)()) {
 #ifdef DS_THREAD_SAFE
     UNLOCK(table);
 #endif
@@ -723,8 +728,8 @@ ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
       current = (ds_hash_node_t *)table->store.buckets[i];
       while (current != NULL) {
         key = clone_key != NULL ? clone_key(current->key) : current->key;
-        value = clone_value != NULL ? clone_value(current->value)
-                                    : current->value;
+        value =
+            clone_value != NULL ? clone_value(current->value) : current->value;
         new_node = hash_node_create(new_table, key, value);
         hash_table_link_node(new_table, new_node);
         new_table->bucket_store->insert(new_table, &new_table->store.buckets[i],
@@ -756,7 +761,7 @@ ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
   return new_table;
 }
 
-ds_hash_table_t *FUNC(hash_table_clone_with)(
+ds_hash_table_t *FUNC(ds_hash_table_clone_with)(
     ds_hash_table_t *table, void *(*clone_key)(void *),
     void *(*clone_value)(void *), size_t (*hash_func)(void *),
     int (*compare)(void *, void *)) {
@@ -789,7 +794,6 @@ ds_hash_table_t *FUNC(hash_table_clone_with)(
   return new_table;
 }
 
-
 static size_t hash_table_config_hash(ds_hash_table_t *table, void *key) {
   if (table->config_hash != NULL) {
     return table->config_hash(key, table->config_user);
@@ -797,8 +801,7 @@ static size_t hash_table_config_hash(ds_hash_table_t *table, void *key) {
   return hash_func_pointer((void *)key);
 }
 
-static int hash_table_config_compare(ds_hash_table_t *table, void *a,
-                                     void *b) {
+static int hash_table_config_compare(ds_hash_table_t *table, void *a, void *b) {
   if (table->config_compare != NULL) {
     return table->config_compare(a, b, table->config_user);
   }
@@ -837,8 +840,8 @@ void ds_hash_table_config_init(ds_hash_table_config_t *config) {
   config->context = NULL;
 }
 
-ds_hash_table_t *FUNC(ds_hash_table_create_config)(
-    const ds_hash_table_config_t *config) {
+ds_hash_table_t *
+FUNC(ds_hash_table_create_config)(const ds_hash_table_config_t *config) {
   ds_hash_table_t *table;
   ds_context_t *context;
 
@@ -895,8 +898,8 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
   current = table->last_node;
   while (current != NULL) {
     next = current->list_prev;
-    base_index = hash_table_config_hash(new_table, current->key) %
-                 new_table->capacity;
+    base_index =
+        hash_table_config_hash(new_table, current->key) % new_table->capacity;
     index = base_index;
     iteration = 0U;
     if (new_table->mode == HASH_CHAINING) {
@@ -910,14 +913,14 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
         return false;
       }
       hash_table_link_node(new_table, new_node);
-      new_table->bucket_store->insert(new_table, &new_table->store.buckets[index],
-                                      new_node, NULL);
+      new_table->bucket_store->insert(
+          new_table, &new_table->store.buckets[index], new_node, NULL);
       new_table->size++;
     } else if (hash_table_uses_probing(new_table->mode)) {
       while (new_table->store.entries[index].key != new_table->nil) {
         iteration++;
-        index = new_table->probing_func(base_index, iteration,
-                                        new_table->capacity);
+        index =
+            new_table->probing_func(base_index, iteration, new_table->capacity);
       }
       new_table->store.entries[index].key = current->key;
       new_table->store.entries[index].value = current->value;
@@ -949,8 +952,8 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
 }
 
 static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
-                                                      void *key, void *value,
-                                                      int destroy_key_on_update) {
+                                                 void *key, void *value,
+                                                 int destroy_key_on_update) {
   size_t base_index;
   size_t index;
   size_t iteration;
@@ -963,9 +966,10 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
                             "hash_table", "hash table pointer is NULL");
   }
   if (table->config_hash == NULL || table->config_compare == NULL) {
-    return DS_CONTEXT_ERROR(table->context, DS_ERR_INVALID,
-                            "ds.hash_table/missing_callbacks", "hash_table",
-                            "configured hash table requires hash and compare callbacks");
+    return DS_CONTEXT_ERROR(
+        table->context, DS_ERR_INVALID, "ds.hash_table/missing_callbacks",
+        "hash_table",
+        "configured hash table requires hash and compare callbacks");
   }
 
 #ifdef DS_THREAD_SAFE
@@ -973,8 +977,8 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
 #endif
   if ((double)table->size / (double)table->capacity >
       HASH_TABLE_RESIZE_FACTOR) {
-    if (!ds_hash_table_resize_config_unlocked(table,
-                                             next_prime_capacity(table->capacity))) {
+    if (!ds_hash_table_resize_config_unlocked(
+            table, next_prime_capacity(table->capacity))) {
 #ifdef DS_THREAD_SAFE
       UNLOCK(table);
 #endif
@@ -1023,8 +1027,8 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
         if (tombstone_index == (size_t)-1) {
           tombstone_index = index;
         }
-      } else if (hash_table_config_compare(table, table->store.entries[index].key,
-                                           key) == 0) {
+      } else if (hash_table_config_compare(
+                     table, table->store.entries[index].key, key) == 0) {
         if (table->config_destroy_value != NULL) {
           table->config_destroy_value(table->store.entries[index].value,
                                       table->config_user);
@@ -1065,17 +1069,17 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
 }
 
 ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
-                                        void *value) {
+                                       void *value) {
   return ds_hash_table_insert_internal(table, key, value, 0);
 }
 
 ds_status_t FUNC(ds_hash_table_insert_take_key)(ds_hash_table_t *table,
-                                                 void *key, void *value) {
+                                                void *key, void *value) {
   return ds_hash_table_insert_internal(table, key, value, 1);
 }
 
 ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
-                                     void **out_value) {
+                                    void **out_value) {
   size_t base_index;
   size_t index;
   size_t iteration;
@@ -1090,9 +1094,10 @@ ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
                             "hash table or output pointer is NULL");
   }
   if (table->config_hash == NULL || table->config_compare == NULL) {
-    return DS_CONTEXT_ERROR(table->context, DS_ERR_INVALID,
-                            "ds.hash_table/missing_callbacks", "hash_table",
-                            "configured hash table requires hash and compare callbacks");
+    return DS_CONTEXT_ERROR(
+        table->context, DS_ERR_INVALID, "ds.hash_table/missing_callbacks",
+        "hash_table",
+        "configured hash table requires hash and compare callbacks");
   }
 
 #ifdef DS_THREAD_SAFE
@@ -1132,14 +1137,12 @@ ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
   return DS_NOT_FOUND;
 }
 
-ds_status_t FUNC(ds_hash_table_contains)(ds_hash_table_t *table,
-                                          void *key) {
+ds_status_t FUNC(ds_hash_table_contains)(ds_hash_table_t *table, void *key) {
   void *value;
   return FUNC(ds_hash_table_get)(table, key, &value);
 }
 
-ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table,
-                                        void *key) {
+ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table, void *key) {
   size_t base_index;
   size_t index;
   size_t iteration;
@@ -1262,7 +1265,6 @@ ds_hash_table_t *FUNC(ds_hash_table_clone)(ds_hash_table_t *table) {
   return clone;
 }
 
-
 static void hash_table_iter_destroy(ds_iter_t *iter) {
 #ifdef DS_THREAD_SAFE
   ds_hash_table_t *table;
@@ -1302,7 +1304,7 @@ static ds_status_t hash_table_iter_next(ds_iter_t *iter) {
 }
 
 ds_status_t FUNC(ds_hash_table_iter_init)(ds_hash_table_t *table,
-                                           ds_iter_t *iter) {
+                                          ds_iter_t *iter) {
   if (iter == NULL) {
     return DS_ERR_NULL;
   }

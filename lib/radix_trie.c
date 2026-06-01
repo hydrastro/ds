@@ -24,12 +24,12 @@ FUNC(radix_trie_new_node)(ds_radix_trie_t *trie, const unsigned char *edge,
   return node;
 }
 
-ds_radix_trie_t *FUNC(radix_trie_create)(void) {
-  return FUNC(radix_trie_create_alloc)(malloc, free);
+ds_radix_trie_t *FUNC(ds_radix_trie_create)(void) {
+  return FUNC(ds_radix_trie_create_alloc)(malloc, free);
 }
 
-ds_radix_trie_t *FUNC(radix_trie_create_alloc)(void *(*allocator)(size_t),
-                                               void (*deallocator)(void *)) {
+ds_radix_trie_t *FUNC(ds_radix_trie_create_alloc)(void *(*allocator)(size_t),
+                                                  void (*deallocator)(void *)) {
   ds_radix_trie_t *trie = (ds_radix_trie_t *)allocator(sizeof(ds_radix_trie_t));
   trie->allocator = allocator;
   trie->deallocator = deallocator;
@@ -129,8 +129,8 @@ static void FUNC(radix_trie_set_edge)(ds_radix_trie_t *trie,
   node->edge_length = edge_length;
 }
 
-bool FUNC(radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
-                             size_t length, void *value) {
+bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
+                                size_t length, void *value) {
   const unsigned char *bytes = (const unsigned char *)key;
   ds_radix_trie_node_t *node;
   size_t offset = 0;
@@ -227,8 +227,8 @@ FUNC(radix_trie_find_node)(ds_radix_trie_t *trie, const unsigned char *bytes,
   return node;
 }
 
-bool FUNC(radix_trie_contains)(ds_radix_trie_t *trie, const void *key,
-                               size_t length) {
+bool FUNC(ds_radix_trie_contains)(ds_radix_trie_t *trie, const void *key,
+                                  size_t length) {
   ds_radix_trie_node_t *node;
   bool result;
 #ifdef DS_THREAD_SAFE
@@ -242,8 +242,8 @@ bool FUNC(radix_trie_contains)(ds_radix_trie_t *trie, const void *key,
   return result;
 }
 
-void *FUNC(radix_trie_get)(ds_radix_trie_t *trie, const void *key,
-                           size_t length) {
+void *FUNC(ds_radix_trie_get)(ds_radix_trie_t *trie, const void *key,
+                              size_t length) {
   ds_radix_trie_node_t *node;
   void *result = NULL;
 #ifdef DS_THREAD_SAFE
@@ -288,8 +288,8 @@ static void FUNC(radix_trie_merge_with_child)(ds_radix_trie_t *trie,
   trie->deallocator(child);
 }
 
-bool FUNC(radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
-                             size_t length, void **out_value) {
+bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
+                                size_t length, void **out_value) {
   const unsigned char *bytes = (const unsigned char *)key;
   ds_radix_trie_node_t *node;
   ds_radix_trie_node_t *parent;
@@ -356,7 +356,7 @@ bool FUNC(radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
   return removed;
 }
 
-size_t FUNC(radix_trie_size)(ds_radix_trie_t *trie) {
+size_t FUNC(ds_radix_trie_size)(ds_radix_trie_t *trie) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(trie);
@@ -368,7 +368,7 @@ size_t FUNC(radix_trie_size)(ds_radix_trie_t *trie) {
   return result;
 }
 
-bool FUNC(radix_trie_is_empty)(ds_radix_trie_t *trie) {
+bool FUNC(ds_radix_trie_is_empty)(ds_radix_trie_t *trie) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(trie);
@@ -417,9 +417,9 @@ static void FUNC(radix_trie_walk_recursive)(
   }
 }
 
-void FUNC(radix_trie_walk)(ds_radix_trie_t *trie,
-                           void (*callback)(const unsigned char *, size_t,
-                                            void *)) {
+void FUNC(ds_radix_trie_walk)(ds_radix_trie_t *trie,
+                              void (*callback)(const unsigned char *, size_t,
+                                               void *)) {
   unsigned char *buffer = NULL;
   size_t buffer_cap = 0;
 #ifdef DS_THREAD_SAFE
@@ -455,8 +455,8 @@ static void FUNC(radix_trie_destroy_recursive)(ds_radix_trie_t *trie,
   trie->deallocator(node);
 }
 
-void FUNC(radix_trie_destroy)(ds_radix_trie_t *trie,
-                              void (*destroy_value)(void *)) {
+void FUNC(ds_radix_trie_destroy)(ds_radix_trie_t *trie,
+                                 void (*destroy_value)(void *)) {
   FUNC(radix_trie_destroy_recursive)(trie, trie->root, destroy_value);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(trie);

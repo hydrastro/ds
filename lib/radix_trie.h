@@ -29,26 +29,26 @@ typedef struct radix_trie {
 #endif
 } ds_radix_trie_t;
 
-ds_radix_trie_t *FUNC(radix_trie_create)(void);
-ds_radix_trie_t *FUNC(radix_trie_create_alloc)(void *(*allocator)(size_t),
-                                               void (*deallocator)(void *));
+ds_radix_trie_t *FUNC(ds_radix_trie_create)(void);
+ds_radix_trie_t *FUNC(ds_radix_trie_create_alloc)(void *(*allocator)(size_t),
+                                                  void (*deallocator)(void *));
 /* Inserts key/value. If the key already exists its value is updated (upsert)
  * and false is returned; returns true only when a new key is added. */
-bool FUNC(radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
-                             size_t length, void *value);
-bool FUNC(radix_trie_contains)(ds_radix_trie_t *trie, const void *key,
-                               size_t length);
-void *FUNC(radix_trie_get)(ds_radix_trie_t *trie, const void *key,
-                           size_t length);
-bool FUNC(radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
-                             size_t length, void **out_value);
-size_t FUNC(radix_trie_size)(ds_radix_trie_t *trie);
-bool FUNC(radix_trie_is_empty)(ds_radix_trie_t *trie);
-void FUNC(radix_trie_walk)(ds_radix_trie_t *trie,
-                           void (*callback)(const unsigned char *, size_t,
-                                            void *));
-void FUNC(radix_trie_destroy)(ds_radix_trie_t *trie,
-                              void (*destroy_value)(void *));
+bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
+                                size_t length, void *value);
+bool FUNC(ds_radix_trie_contains)(ds_radix_trie_t *trie, const void *key,
+                                  size_t length);
+void *FUNC(ds_radix_trie_get)(ds_radix_trie_t *trie, const void *key,
+                              size_t length);
+bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
+                                size_t length, void **out_value);
+size_t FUNC(ds_radix_trie_size)(ds_radix_trie_t *trie);
+bool FUNC(ds_radix_trie_is_empty)(ds_radix_trie_t *trie);
+void FUNC(ds_radix_trie_walk)(ds_radix_trie_t *trie,
+                              void (*callback)(const unsigned char *, size_t,
+                                               void *));
+void FUNC(ds_radix_trie_destroy)(ds_radix_trie_t *trie,
+                                 void (*destroy_value)(void *));
 
 #ifdef __cplusplus
 }

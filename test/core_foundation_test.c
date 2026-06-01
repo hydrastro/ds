@@ -141,8 +141,7 @@ static void test_persistent_structures(void) {
   ptrie = ds_ptrie_create(NULL);
   assert(ptrie != NULL);
   pv0 = ds_ptrie_root(ptrie);
-  pv1 = ds_ptrie_insert(ptrie, pv0, (const unsigned char *)"cat", 3U,
-                        "value");
+  pv1 = ds_ptrie_insert(ptrie, pv0, (const unsigned char *)"cat", 3U, "value");
   assert(pv1 != NULL);
   assert(ds_ptrie_get(pv0, (const unsigned char *)"cat", 3U, &out) ==
          DS_NOT_FOUND);

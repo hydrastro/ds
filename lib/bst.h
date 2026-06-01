@@ -27,49 +27,50 @@ typedef struct bst {
 #endif
 } ds_bst_t;
 
-ds_bst_t *FUNC(bst_create)(void);
-ds_bst_t *FUNC(bst_create_alloc)(void *(*allocator)(size_t),
-                                 void (*deallocator)(void *));
-void FUNC(bst_insert)(ds_bst_t *tree, ds_bst_node_t *node,
-                      int (*compare)(ds_bst_node_t *, ds_bst_node_t *));
-ds_bst_node_t *FUNC(bst_search)(ds_bst_t *tree, ds_bst_node_t *data,
-                                int (*compare)(ds_bst_node_t *,
-                                               ds_bst_node_t *));
-ds_bst_node_t *FUNC(bst_minimum)(ds_bst_t *tree, ds_bst_node_t *node);
-ds_bst_node_t *FUNC(bst_maximum)(ds_bst_t *tree, ds_bst_node_t *node);
-void FUNC(bst_transplant)(ds_bst_t *tree, ds_bst_node_t *u, ds_bst_node_t *v);
-void FUNC(bst_delete_node)(ds_bst_t *tree, ds_bst_node_t *node);
-void FUNC(bst_destroy_node)(ds_bst_t *tree, ds_bst_node_t *node,
-                            void (*destroy)(ds_bst_node_t *));
-void FUNC(bst_destroy_recursive)(ds_bst_t *tree, ds_bst_node_t *root,
-                                 void (*destroy)(ds_bst_node_t *));
-void FUNC(bst_destroy_tree)(ds_bst_t *tree, void (*destroy)(ds_bst_node_t *));
-void FUNC(bst_delete_tree)(ds_bst_t *tree);
-void FUNC(bst_inorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
-                                   void (*callback)(void *));
-void FUNC(bst_inorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
-                            void (*callback)(void *));
-void FUNC(bst_inorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *));
-void FUNC(bst_preorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
-                                    void (*callback)(void *));
-void FUNC(bst_preorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
-                             void (*callback)(void *));
-void FUNC(bst_preorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *));
-void FUNC(bst_postorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
-                                     void (*callback)(void *));
-void FUNC(bst_postorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
-                              void (*callback)(void *));
-void FUNC(bst_postorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *));
-ds_bst_node_t *FUNC(bst_successor)(ds_bst_t *tree, ds_bst_node_t *node_x);
-ds_bst_node_t *FUNC(bst_predecessor)(ds_bst_t *tree, ds_bst_node_t *node_x);
+ds_bst_t *FUNC(ds_bst_create)(void);
+ds_bst_t *FUNC(ds_bst_create_alloc)(void *(*allocator)(size_t),
+                                    void (*deallocator)(void *));
+void FUNC(ds_bst_insert)(ds_bst_t *tree, ds_bst_node_t *node,
+                         int (*compare)(ds_bst_node_t *, ds_bst_node_t *));
+ds_bst_node_t *FUNC(ds_bst_search)(ds_bst_t *tree, ds_bst_node_t *data,
+                                   int (*compare)(ds_bst_node_t *,
+                                                  ds_bst_node_t *));
+ds_bst_node_t *FUNC(ds_bst_minimum)(ds_bst_t *tree, ds_bst_node_t *node);
+ds_bst_node_t *FUNC(ds_bst_maximum)(ds_bst_t *tree, ds_bst_node_t *node);
+void FUNC(ds_bst_transplant)(ds_bst_t *tree, ds_bst_node_t *u,
+                             ds_bst_node_t *v);
+void FUNC(ds_bst_delete_node)(ds_bst_t *tree, ds_bst_node_t *node);
+void FUNC(ds_bst_destroy_node)(ds_bst_t *tree, ds_bst_node_t *node,
+                               void (*destroy)(ds_bst_node_t *));
+void FUNC(ds_bst_destroy_recursive)(ds_bst_t *tree, ds_bst_node_t *root,
+                                    void (*destroy)(ds_bst_node_t *));
+void FUNC(ds_bst_destroy_tree)(ds_bst_t *tree,
+                               void (*destroy)(ds_bst_node_t *));
+void FUNC(ds_bst_delete_tree)(ds_bst_t *tree);
+void FUNC(ds_bst_inorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
+                                      void (*callback)(void *));
+void FUNC(ds_bst_inorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
+                               void (*callback)(void *));
+void FUNC(ds_bst_inorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *));
+void FUNC(ds_bst_preorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
+                                       void (*callback)(void *));
+void FUNC(ds_bst_preorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
+                                void (*callback)(void *));
+void FUNC(ds_bst_preorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *));
+void FUNC(ds_bst_postorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
+                                        void (*callback)(void *));
+void FUNC(ds_bst_postorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
+                                 void (*callback)(void *));
+void FUNC(ds_bst_postorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *));
+ds_bst_node_t *FUNC(ds_bst_successor)(ds_bst_t *tree, ds_bst_node_t *node_x);
+ds_bst_node_t *FUNC(ds_bst_predecessor)(ds_bst_t *tree, ds_bst_node_t *node_x);
 
 ds_bst_node_t *
-    FUNC(bst_clone_recursive)(ds_bst_t *tree, ds_bst_t *new_tree,
-                              ds_bst_node_t *node,
-                              ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
-ds_bst_t *FUNC(bst_clone)(ds_bst_t *tree,
-                          ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
-
+    FUNC(ds_bst_clone_recursive)(ds_bst_t *tree, ds_bst_t *new_tree,
+                                 ds_bst_node_t *node,
+                                 ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
+ds_bst_t *FUNC(ds_bst_clone)(ds_bst_t *tree,
+                             ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
 
 #ifdef __cplusplus
 }

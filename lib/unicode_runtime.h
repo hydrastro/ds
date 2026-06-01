@@ -137,7 +137,6 @@ unsigned long ds__map_simple(const unsigned long *keys,
 
 size_t ds__comp_find_pair(unsigned long a, unsigned long b);
 
-
 #ifdef __cplusplus
 }
 #endif

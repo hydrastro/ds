@@ -17,13 +17,13 @@ static size_t FUNC(bv_popcount)(unsigned long word) {
   return count;
 }
 
-ds_bitvector_t *FUNC(bitvector_create)(size_t num_bits) {
-  return FUNC(bitvector_create_alloc)(num_bits, malloc, free);
+ds_bitvector_t *FUNC(ds_bitvector_create)(size_t num_bits) {
+  return FUNC(ds_bitvector_create_alloc)(num_bits, malloc, free);
 }
 
-ds_bitvector_t *FUNC(bitvector_create_alloc)(size_t num_bits,
-                                             void *(*allocator)(size_t),
-                                             void (*deallocator)(void *)) {
+ds_bitvector_t *FUNC(ds_bitvector_create_alloc)(size_t num_bits,
+                                                void *(*allocator)(size_t),
+                                                void (*deallocator)(void *)) {
   ds_bitvector_t *bv;
   size_t num_words;
   size_t i;
@@ -54,7 +54,7 @@ ds_bitvector_t *FUNC(bitvector_create_alloc)(size_t num_bits,
   return bv;
 }
 
-void FUNC(bitvector_set)(ds_bitvector_t *bv, size_t index, bool value) {
+void FUNC(ds_bitvector_set)(ds_bitvector_t *bv, size_t index, bool value) {
 #ifdef DS_THREAD_SAFE
   LOCK(bv);
 #endif
@@ -72,7 +72,7 @@ void FUNC(bitvector_set)(ds_bitvector_t *bv, size_t index, bool value) {
 #endif
 }
 
-bool FUNC(bitvector_get)(ds_bitvector_t *bv, size_t index) {
+bool FUNC(ds_bitvector_get)(ds_bitvector_t *bv, size_t index) {
   bool result = false;
 #ifdef DS_THREAD_SAFE
   LOCK(bv);
@@ -87,7 +87,7 @@ bool FUNC(bitvector_get)(ds_bitvector_t *bv, size_t index) {
   return result;
 }
 
-void FUNC(bitvector_build)(ds_bitvector_t *bv) {
+void FUNC(ds_bitvector_build)(ds_bitvector_t *bv) {
   size_t i;
   size_t cumulative = 0;
   size_t sb;
@@ -128,7 +128,7 @@ void FUNC(bitvector_build)(ds_bitvector_t *bv) {
 #endif
 }
 
-size_t FUNC(bitvector_size)(ds_bitvector_t *bv) {
+size_t FUNC(ds_bitvector_size)(ds_bitvector_t *bv) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(bv);
@@ -140,7 +140,7 @@ size_t FUNC(bitvector_size)(ds_bitvector_t *bv) {
   return result;
 }
 
-size_t FUNC(bitvector_count_ones)(ds_bitvector_t *bv) {
+size_t FUNC(ds_bitvector_count_ones)(ds_bitvector_t *bv) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(bv);
@@ -182,7 +182,7 @@ static size_t FUNC(bv_rank1_nolock)(ds_bitvector_t *bv, size_t index) {
   return count;
 }
 
-size_t FUNC(bitvector_rank1)(ds_bitvector_t *bv, size_t index) {
+size_t FUNC(ds_bitvector_rank1)(ds_bitvector_t *bv, size_t index) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(bv);
@@ -194,7 +194,7 @@ size_t FUNC(bitvector_rank1)(ds_bitvector_t *bv, size_t index) {
   return result;
 }
 
-size_t FUNC(bitvector_rank0)(ds_bitvector_t *bv, size_t index) {
+size_t FUNC(ds_bitvector_rank0)(ds_bitvector_t *bv, size_t index) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(bv);
@@ -209,7 +209,7 @@ size_t FUNC(bitvector_rank0)(ds_bitvector_t *bv, size_t index) {
   return result;
 }
 
-size_t FUNC(bitvector_select1)(ds_bitvector_t *bv, size_t k) {
+size_t FUNC(ds_bitvector_select1)(ds_bitvector_t *bv, size_t k) {
   size_t lo;
   size_t hi;
   size_t result = DS_BITVECTOR_NPOS;
@@ -237,7 +237,7 @@ size_t FUNC(bitvector_select1)(ds_bitvector_t *bv, size_t k) {
   return result;
 }
 
-size_t FUNC(bitvector_select0)(ds_bitvector_t *bv, size_t k) {
+size_t FUNC(ds_bitvector_select0)(ds_bitvector_t *bv, size_t k) {
   size_t lo;
   size_t hi;
   size_t total_zeros;
@@ -266,7 +266,7 @@ size_t FUNC(bitvector_select0)(ds_bitvector_t *bv, size_t k) {
   return result;
 }
 
-void FUNC(bitvector_destroy)(ds_bitvector_t *bv) {
+void FUNC(ds_bitvector_destroy)(ds_bitvector_t *bv) {
   if (bv->words != NULL) {
     bv->deallocator(bv->words);
   }

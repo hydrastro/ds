@@ -16,7 +16,7 @@ bool has_char_slice(void *data, size_t slice) {
 
 bool search_word(ds_trie_t *trie, char *word) {
   ds_trie_node_t *node =
-      trie_search(trie, (void *)word, get_char_slice, has_char_slice);
+      ds_trie_search(trie, (void *)word, get_char_slice, has_char_slice);
   return node != NULL;
 }
 
@@ -85,30 +85,30 @@ int main(void) {
 
   print_trie(trie);
 
-  trie_apply(trie, trie->root, print_trie_node, " test ", NULL);
+  ds_trie_apply(trie, trie->root, print_trie_node, " test ", NULL);
 
   printf("\n--- Cloning Trie ---\n");
-  new_trie = trie_clone(trie, clone_trie_data);
+  new_trie = ds_trie_clone(trie, clone_trie_data);
   print_trie(new_trie);
   printf("\n--- End Cloning Trie ---\n");
 
-  result = trie_search(trie, "grapefruit", get_char_slice, has_char_slice);
+  result = ds_trie_search(trie, "grapefruit", get_char_slice, has_char_slice);
   if (result != NULL) {
     printf("\n--- Destroying 'grapefruit' ---\n");
     fflush(stdout);
-    trie_delete_node(trie, result);
+    ds_trie_delete_node(trie, result);
     print_trie(trie);
   }
 
-  result = trie_search(trie, "banana", get_char_slice, has_char_slice);
+  result = ds_trie_search(trie, "banana", get_char_slice, has_char_slice);
   if (result != NULL) {
     printf("\n--- Removing 'banana' ---\n");
-    trie_delete_node(trie, result);
+    ds_trie_delete_node(trie, result);
     print_trie(trie);
   }
 
-  trie_destroy_trie(trie, NULL);
-  trie_destroy_trie(new_trie, destroy_new_trie_data);
+  ds_trie_destroy_trie(trie, NULL);
+  ds_trie_destroy_trie(new_trie, destroy_new_trie_data);
 
   return 0;
 }

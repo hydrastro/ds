@@ -41,13 +41,13 @@ static void order_cb(const unsigned char *key, size_t len, void *value,
 }
 
 int main(void) {
-  ds_art_t *art = art_create();
+  ds_art_t *art = ds_art_create();
   int n = 4000;
   int i;
   long *values = (long *)malloc(sizeof(long) * (size_t)n);
   int count = 0;
 
-  assert(art_is_empty(art));
+  assert(ds_art_is_empty(art));
 
   /* variable-length keys with shared prefixes to exercise all node types,
    * path compression, and prefix splits */
@@ -63,31 +63,31 @@ int main(void) {
       }
     }
     values[count] = (long)i;
-    if (art_insert(art, key, len, &values[count])) {
+    if (ds_art_insert(art, key, len, &values[count])) {
       memcpy(saved[count], key, len);
       saved_len[count] = len;
       count += 1;
     }
   }
   printf("inserted %d unique keys, size=%lu\n", count,
-         (unsigned long)art_size(art));
-  assert(art_size(art) == (size_t)count);
+         (unsigned long)ds_art_size(art));
+  assert(ds_art_size(art) == (size_t)count);
 
   /* all retrievable */
   for (i = 0; i < count; ++i) {
-    assert(art_contains(art, saved[i], saved_len[i]));
-    assert(art_get(art, saved[i], saved_len[i]) == &values[i]);
+    assert(ds_art_contains(art, saved[i], saved_len[i]));
+    assert(ds_art_get(art, saved[i], saved_len[i]) == &values[i]);
   }
   printf("all keys retrievable\n");
 
   /* update returns false, changes value */
-  assert(!art_insert(art, saved[0], saved_len[0], &values[1]));
-  assert(art_get(art, saved[0], saved_len[0]) == &values[1]);
+  assert(!ds_art_insert(art, saved[0], saved_len[0], &values[1]));
+  assert(ds_art_get(art, saved[0], saved_len[0]) == &values[1]);
 
   /* walk yields lexicographic order */
   walk_count = 0;
   walk_ordered = 1;
-  art_walk(art, order_cb, NULL);
+  ds_art_walk(art, order_cb, NULL);
   assert(walk_count == count);
   assert(walk_ordered == 1);
   printf("walk visited %d keys in lexicographic order\n", walk_count);
@@ -95,35 +95,35 @@ int main(void) {
   /* remove half (exercises node shrink transitions) */
   for (i = 0; i < count; i += 2) {
     void *out = NULL;
-    assert(art_remove(art, saved[i], saved_len[i], &out));
+    assert(ds_art_remove(art, saved[i], saved_len[i], &out));
     assert(out == &values[i] || out == &values[1]); /* slot 0 was updated */
   }
   for (i = 0; i < count; ++i) {
     if (i % 2 == 0) {
-      assert(!art_contains(art, saved[i], saved_len[i]));
+      assert(!ds_art_contains(art, saved[i], saved_len[i]));
     } else {
-      assert(art_contains(art, saved[i], saved_len[i]));
+      assert(ds_art_contains(art, saved[i], saved_len[i]));
     }
   }
-  printf("after removing half, size=%lu\n", (unsigned long)art_size(art));
+  printf("after removing half, size=%lu\n", (unsigned long)ds_art_size(art));
 
   /* walk still ordered after deletions */
   walk_count = 0;
   walk_ordered = 1;
-  art_walk(art, order_cb, NULL);
+  ds_art_walk(art, order_cb, NULL);
   assert(walk_ordered == 1);
 
   /* removing absent fails */
-  assert(!art_remove(art, saved[0], saved_len[0], NULL));
+  assert(!ds_art_remove(art, saved[0], saved_len[0], NULL));
 
   /* remove the rest */
   for (i = 1; i < count; i += 2) {
-    art_remove(art, saved[i], saved_len[i], NULL);
+    ds_art_remove(art, saved[i], saved_len[i], NULL);
   }
-  printf("final size=%lu\n", (unsigned long)art_size(art));
-  assert(art_is_empty(art));
+  printf("final size=%lu\n", (unsigned long)ds_art_size(art));
+  assert(ds_art_is_empty(art));
 
-  art_destroy(art, NULL);
+  ds_art_destroy(art, NULL);
   free(values);
   printf("ok\n");
   return 0;

@@ -31,12 +31,12 @@ int main(void) {
   my_deque_node_t *node;
   srand((unsigned int)time((long int *)NULL));
 
-  deque = deque_create();
+  deque = ds_deque_create();
 
   for (i = 0; i < 10; i++) {
     node = (my_deque_node_t *)malloc(sizeof(my_deque_node_t));
     node->data = rand() % 100;
-    deque_push_back(deque, &node->node);
+    ds_deque_push_back(deque, &node->node);
   }
 
   ds_deque_node_t *current_node;
@@ -48,8 +48,8 @@ int main(void) {
   printf("\n");
 
   printf("front pop:\n");
-  while (!deque_is_empty(deque)) {
-    node = CAST(deque_pop_front(deque), my_deque_node_t);
+  while (!ds_deque_is_empty(deque)) {
+    node = CAST(ds_deque_pop_front(deque), my_deque_node_t);
     current_node = deque->head;
     while (current_node != deque->nil) {
       print_deque_node(current_node);
@@ -63,7 +63,7 @@ int main(void) {
   for (i = 0; i < 5; i++) {
     node = (my_deque_node_t *)malloc(sizeof(my_deque_node_t));
     node->data = rand() % 100;
-    deque_push_front(deque, &node->node);
+    ds_deque_push_front(deque, &node->node);
   }
   current_node = deque->head;
   while (current_node != deque->nil) {
@@ -72,8 +72,9 @@ int main(void) {
   }
   printf("\n");
 
-  my_deque_node_t *front_node = CAST(deque_peek_front(deque), my_deque_node_t);
-  my_deque_node_t *back_node = CAST(deque_peek_back(deque), my_deque_node_t);
+  my_deque_node_t *front_node =
+      CAST(ds_deque_peek_front(deque), my_deque_node_t);
+  my_deque_node_t *back_node = CAST(ds_deque_peek_back(deque), my_deque_node_t);
 
   if (front_node) {
     printf("front: %d\n", front_node->data);
@@ -88,9 +89,9 @@ int main(void) {
     current_node = current_node->next;
   }
 
-  ds_deque_t *new_deque = deque_clone(deque, clone_node);
-  deque_destroy(deque, destroy_deque_node);
-  deque_destroy(new_deque, destroy_deque_node);
+  ds_deque_t *new_deque = ds_deque_clone(deque, clone_node);
+  ds_deque_destroy(deque, destroy_deque_node);
+  ds_deque_destroy(new_deque, destroy_deque_node);
 
   return 0;
 }

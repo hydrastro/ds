@@ -79,9 +79,9 @@ void ds_diagnostic_sink_emit(ds_diagnostic_sink_t *sink,
                              const ds_diagnostic_t *diagnostic);
 void ds_diagnostic_emit_desc(ds_diagnostic_sink_t *sink,
                              const ds_diagnostic_desc_t *desc,
-                             const ds_diagnostic_arg_t *args,
-                             size_t arg_count, const char *file,
-                             unsigned long line, const char *function);
+                             const ds_diagnostic_arg_t *args, size_t arg_count,
+                             const char *file, unsigned long line,
+                             const char *function);
 int ds_diagnostic_format(const ds_diagnostic_t *diagnostic, char *buffer,
                          size_t buffer_size);
 

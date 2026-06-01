@@ -43,7 +43,9 @@ static void *clone_state(void *state, void *clone_data) {
   return copy;
 }
 
-static void destroy_state(void *state) { free(state); }
+static void destroy_state(void *state) {
+  free(state);
+}
 
 static int apply_op(void *state, const ds_history_operation_t *op) {
   struct state *s;

@@ -74,15 +74,15 @@ where available.
 Examples of legacy functions that remain compatibility-oriented:
 
 ```txt
-hash_table_lookup
-bst_search
-btree_search
-avl_search
-rbt_search
-stack_search
-queue_search
-list_search
-dlist_search
+ds_hash_table_lookup
+ds_bst_search
+ds_btree_search
+ds_avl_search
+ds_rbt_search
+ds_stack_search
+ds_queue_search
+ds_list_search
+ds_dlist_search
 ```
 
 ## Iteration

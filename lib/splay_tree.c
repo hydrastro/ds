@@ -1,12 +1,12 @@
 #include "splay_tree.h"
 #include <stdlib.h>
 
-ds_splay_tree_t *FUNC(splay_tree_create)(
+ds_splay_tree_t *FUNC(ds_splay_tree_create)(
     int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *)) {
-  return FUNC(splay_tree_create_alloc)(compare, malloc, free);
+  return FUNC(ds_splay_tree_create_alloc)(compare, malloc, free);
 }
 
-ds_splay_tree_t *FUNC(splay_tree_create_alloc)(
+ds_splay_tree_t *FUNC(ds_splay_tree_create_alloc)(
     int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   ds_splay_tree_t *tree = (ds_splay_tree_t *)allocator(sizeof(ds_splay_tree_t));
@@ -90,8 +90,8 @@ static void FUNC(splay_tree_splay)(ds_splay_tree_t *tree,
   }
 }
 
-void FUNC(splay_tree_insert)(ds_splay_tree_t *tree,
-                             ds_splay_tree_node_t *node) {
+void FUNC(ds_splay_tree_insert)(ds_splay_tree_t *tree,
+                                ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
   ds_splay_tree_node_t *parent;
   int cmp;
@@ -139,8 +139,8 @@ void FUNC(splay_tree_insert)(ds_splay_tree_t *tree,
 #endif
 }
 
-ds_splay_tree_node_t *FUNC(splay_tree_search)(ds_splay_tree_t *tree,
-                                              ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *FUNC(ds_splay_tree_search)(ds_splay_tree_t *tree,
+                                                 ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
   ds_splay_tree_node_t *last;
 #ifdef DS_THREAD_SAFE
@@ -172,8 +172,8 @@ ds_splay_tree_node_t *FUNC(splay_tree_search)(ds_splay_tree_t *tree,
   return tree->nil;
 }
 
-ds_splay_tree_node_t *FUNC(splay_tree_minimum)(ds_splay_tree_t *tree,
-                                               ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *FUNC(ds_splay_tree_minimum)(ds_splay_tree_t *tree,
+                                                  ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -194,8 +194,8 @@ ds_splay_tree_node_t *FUNC(splay_tree_minimum)(ds_splay_tree_t *tree,
   return current;
 }
 
-ds_splay_tree_node_t *FUNC(splay_tree_maximum)(ds_splay_tree_t *tree,
-                                               ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *FUNC(ds_splay_tree_maximum)(ds_splay_tree_t *tree,
+                                                  ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -216,15 +216,15 @@ ds_splay_tree_node_t *FUNC(splay_tree_maximum)(ds_splay_tree_t *tree,
   return current;
 }
 
-ds_splay_tree_node_t *FUNC(splay_tree_remove)(ds_splay_tree_t *tree,
-                                              ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *FUNC(ds_splay_tree_remove)(ds_splay_tree_t *tree,
+                                                 ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *target;
   ds_splay_tree_node_t *left_subtree;
   ds_splay_tree_node_t *right_subtree;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  target = FUNC(splay_tree_search)(tree, node);
+  target = FUNC(ds_splay_tree_search)(tree, node);
   if (target == tree->nil) {
 #ifdef DS_THREAD_SAFE
     UNLOCK(tree);
@@ -263,7 +263,7 @@ ds_splay_tree_node_t *FUNC(splay_tree_remove)(ds_splay_tree_t *tree,
   return target;
 }
 
-bool FUNC(splay_tree_is_empty)(ds_splay_tree_t *tree) {
+bool FUNC(ds_splay_tree_is_empty)(ds_splay_tree_t *tree) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -275,14 +275,14 @@ bool FUNC(splay_tree_is_empty)(ds_splay_tree_t *tree) {
   return result;
 }
 
-void FUNC(splay_tree_destroy_node)(ds_splay_tree_t *tree,
-                                   ds_splay_tree_node_t *node,
-                                   void (*destroy)(ds_splay_tree_node_t *)) {
+void FUNC(ds_splay_tree_destroy_node)(ds_splay_tree_t *tree,
+                                      ds_splay_tree_node_t *node,
+                                      void (*destroy)(ds_splay_tree_node_t *)) {
   ds_splay_tree_node_t *removed;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  removed = FUNC(splay_tree_remove)(tree, node);
+  removed = FUNC(ds_splay_tree_remove)(tree, node);
   if (removed != tree->nil && destroy != NULL) {
     destroy(removed);
   }
@@ -291,23 +291,23 @@ void FUNC(splay_tree_destroy_node)(ds_splay_tree_t *tree,
 #endif
 }
 
-void FUNC(splay_tree_inorder_walk)(ds_splay_tree_t *tree,
-                                   ds_splay_tree_node_t *node,
-                                   void (*callback)(ds_splay_tree_node_t *)) {
+void FUNC(ds_splay_tree_inorder_walk)(
+    ds_splay_tree_t *tree, ds_splay_tree_node_t *node,
+    void (*callback)(ds_splay_tree_node_t *)) {
   if (node == tree->nil) {
     return;
   }
-  FUNC(splay_tree_inorder_walk)(tree, node->left, callback);
+  FUNC(ds_splay_tree_inorder_walk)(tree, node->left, callback);
   callback(node);
-  FUNC(splay_tree_inorder_walk)(tree, node->right, callback);
+  FUNC(ds_splay_tree_inorder_walk)(tree, node->right, callback);
 }
 
-void FUNC(splay_tree_inorder_walk_tree)(
+void FUNC(ds_splay_tree_inorder_walk_tree)(
     ds_splay_tree_t *tree, void (*callback)(ds_splay_tree_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  FUNC(splay_tree_inorder_walk)(tree, tree->root, callback);
+  FUNC(ds_splay_tree_inorder_walk)(tree, tree->root, callback);
 #ifdef DS_THREAD_SAFE
   UNLOCK(tree);
 #endif
@@ -327,8 +327,8 @@ FUNC(splay_tree_destroy_recursive)(ds_splay_tree_t *tree,
   }
 }
 
-void FUNC(splay_tree_destroy)(ds_splay_tree_t *tree,
-                              void (*destroy)(ds_splay_tree_node_t *)) {
+void FUNC(ds_splay_tree_destroy)(ds_splay_tree_t *tree,
+                                 void (*destroy)(ds_splay_tree_node_t *)) {
   FUNC(splay_tree_destroy_recursive)(tree, tree->root, destroy);
   tree->deallocator(tree->nil);
 #ifdef DS_THREAD_SAFE
@@ -345,19 +345,19 @@ static void FUNC(splay_tree_clone_recursive)(
     return;
   }
   FUNC(splay_tree_clone_recursive)(tree, new_tree, node->left, clone_node);
-  FUNC(splay_tree_insert)(new_tree, clone_node(node));
+  FUNC(ds_splay_tree_insert)(new_tree, clone_node(node));
   FUNC(splay_tree_clone_recursive)(tree, new_tree, node->right, clone_node);
 }
 
-ds_splay_tree_t *FUNC(splay_tree_clone)(
+ds_splay_tree_t *FUNC(ds_splay_tree_clone)(
     ds_splay_tree_t *tree,
     ds_splay_tree_node_t *(*clone_node)(ds_splay_tree_node_t *)) {
   ds_splay_tree_t *new_tree;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  new_tree = FUNC(splay_tree_create_alloc)(tree->compare, tree->allocator,
-                                           tree->deallocator);
+  new_tree = FUNC(ds_splay_tree_create_alloc)(tree->compare, tree->allocator,
+                                              tree->deallocator);
   FUNC(splay_tree_clone_recursive)(tree, new_tree, tree->root, clone_node);
 #ifdef DS_THREAD_SAFE
   UNLOCK(tree);

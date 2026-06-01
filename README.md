@@ -177,6 +177,12 @@ gcc -o example_safe example_safe.c -lds_safe -pthread
 For concrete usage, see:
 
 ```txt
+examples/intrusive_list.c       # the embed-a-node intrusive pattern
+examples/avl_set.c              # ordered set with an in-order walk
+examples/heap_priority_queue.c  # binary heap as a min-priority-queue
+examples/art_dictionary.c       # adaptive radix tree as a string map
+examples/sequence_containers.c  # stack, queue, and deque side by side
+examples/succinct_structures.c  # bitset, rank/select bitvector, wavelet tree
 examples/hash_table_config.c
 examples/string_map.c
 examples/persistent_trie.c

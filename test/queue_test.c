@@ -31,16 +31,16 @@ int main(void) {
   my_queue_node_t *node;
   srand((unsigned int)time((long int *)NULL));
 
-  queue = queue_create();
+  queue = ds_queue_create();
 
   for (i = 0; i < 10; i++) {
     node = (my_queue_node_t *)malloc(sizeof(my_queue_node_t));
     node->data = rand() % 100;
-    queue_enqueue(queue, &node->node);
+    ds_queue_enqueue(queue, &node->node);
   }
 
-  while (!queue_is_empty(queue)) {
-    node = CAST(queue_dequeue(queue), my_queue_node_t);
+  while (!ds_queue_is_empty(queue)) {
+    node = CAST(ds_queue_dequeue(queue), my_queue_node_t);
     printf("%d ", node->data);
     free(node);
   }
@@ -49,11 +49,11 @@ int main(void) {
   for (i = 0; i < 5; i++) {
     node = (my_queue_node_t *)malloc(sizeof(my_queue_node_t));
     node->data = rand() % 100;
-    queue_enqueue(queue, &node->node);
+    ds_queue_enqueue(queue, &node->node);
   }
 
-  my_queue_node_t *front_node = CAST(queue_peek(queue), my_queue_node_t);
-  my_queue_node_t *tail_node = CAST(queue_peek_tail(queue), my_queue_node_t);
+  my_queue_node_t *front_node = CAST(ds_queue_peek(queue), my_queue_node_t);
+  my_queue_node_t *tail_node = CAST(ds_queue_peek_tail(queue), my_queue_node_t);
 
   if (front_node) {
     printf("front: %d\n", front_node->data);
@@ -71,7 +71,7 @@ int main(void) {
   }
   printf("\n");
 
-  ds_queue_t *new_queue = queue_clone(queue, clone_node);
+  ds_queue_t *new_queue = ds_queue_clone(queue, clone_node);
   current_node = new_queue->head;
   while (current_node != new_queue->nil) {
     print_queue_node(current_node);
@@ -79,8 +79,8 @@ int main(void) {
   }
   printf("\n");
 
-  queue_destroy(queue, destroy_queue_node);
-  queue_destroy(new_queue, destroy_queue_node);
+  ds_queue_destroy(queue, destroy_queue_node);
+  ds_queue_destroy(new_queue, destroy_queue_node);
 
   return 0;
 }

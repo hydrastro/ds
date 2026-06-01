@@ -23,25 +23,26 @@ extern "C" {
 
 typedef struct art ds_art_t;
 
-ds_art_t *FUNC(art_create)(void);
-ds_art_t *FUNC(art_create_alloc)(void *(*allocator)(size_t),
-                                 void (*deallocator)(void *));
+ds_art_t *FUNC(ds_art_create)(void);
+ds_art_t *FUNC(ds_art_create_alloc)(void *(*allocator)(size_t),
+                                    void (*deallocator)(void *));
 /* insert or update; returns true if a new key was added, false on update */
-bool FUNC(art_insert)(ds_art_t *art, const unsigned char *key,
-                      size_t key_length, void *value);
-bool FUNC(art_contains)(ds_art_t *art, const unsigned char *key,
-                        size_t key_length);
-void *FUNC(art_get)(ds_art_t *art, const unsigned char *key, size_t key_length);
-bool FUNC(art_remove)(ds_art_t *art, const unsigned char *key,
-                      size_t key_length, void **out_value);
-size_t FUNC(art_size)(ds_art_t *art);
-bool FUNC(art_is_empty)(ds_art_t *art);
+bool FUNC(ds_art_insert)(ds_art_t *art, const unsigned char *key,
+                         size_t key_length, void *value);
+bool FUNC(ds_art_contains)(ds_art_t *art, const unsigned char *key,
+                           size_t key_length);
+void *FUNC(ds_art_get)(ds_art_t *art, const unsigned char *key,
+                       size_t key_length);
+bool FUNC(ds_art_remove)(ds_art_t *art, const unsigned char *key,
+                         size_t key_length, void **out_value);
+size_t FUNC(ds_art_size)(ds_art_t *art);
+bool FUNC(ds_art_is_empty)(ds_art_t *art);
 /* iterate keys in lexicographic order */
-void FUNC(art_walk)(ds_art_t *art,
-                    void (*callback)(const unsigned char *, size_t, void *,
-                                     void *),
-                    void *user);
-void FUNC(art_destroy)(ds_art_t *art, void (*destroy_value)(void *));
+void FUNC(ds_art_walk)(ds_art_t *art,
+                       void (*callback)(const unsigned char *, size_t, void *,
+                                        void *),
+                       void *user);
+void FUNC(ds_art_destroy)(ds_art_t *art, void (*destroy_value)(void *));
 
 #ifdef __cplusplus
 }

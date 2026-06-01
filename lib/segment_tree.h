@@ -43,22 +43,22 @@ typedef struct segment_tree {
 #endif
 } ds_segment_tree_t;
 
-ds_segment_tree_t *FUNC(segment_tree_create)(const long *values, size_t n,
-                                             ds_segment_tree_op_t op);
-ds_segment_tree_t *FUNC(segment_tree_create_alloc)(const long *values, size_t n,
-                                                   ds_segment_tree_op_t op,
-                                                   void *(*allocator)(size_t),
-                                                   void (*deallocator)(void *));
+ds_segment_tree_t *FUNC(ds_segment_tree_create)(const long *values, size_t n,
+                                                ds_segment_tree_op_t op);
+ds_segment_tree_t *FUNC(ds_segment_tree_create_alloc)(
+    const long *values, size_t n, ds_segment_tree_op_t op,
+    void *(*allocator)(size_t), void (*deallocator)(void *));
 /* add delta to every element in [left, right] */
-void FUNC(segment_tree_update_add)(ds_segment_tree_t *st, size_t left,
-                                   size_t right, long delta);
+void FUNC(ds_segment_tree_update_add)(ds_segment_tree_t *st, size_t left,
+                                      size_t right, long delta);
 /* set every element in [left, right] to value */
-void FUNC(segment_tree_update_assign)(ds_segment_tree_t *st, size_t left,
-                                      size_t right, long value);
+void FUNC(ds_segment_tree_update_assign)(ds_segment_tree_t *st, size_t left,
+                                         size_t right, long value);
 /* aggregate query over [left, right] */
-long FUNC(segment_tree_query)(ds_segment_tree_t *st, size_t left, size_t right);
-size_t FUNC(segment_tree_size)(ds_segment_tree_t *st);
-void FUNC(segment_tree_destroy)(ds_segment_tree_t *st);
+long FUNC(ds_segment_tree_query)(ds_segment_tree_t *st, size_t left,
+                                 size_t right);
+size_t FUNC(ds_segment_tree_size)(ds_segment_tree_t *st);
+void FUNC(ds_segment_tree_destroy)(ds_segment_tree_t *st);
 
 #ifdef __cplusplus
 }

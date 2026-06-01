@@ -44,16 +44,16 @@ void ds_context_emit_diagnostic(ds_context_t *context,
                                 size_t arg_count, const char *file,
                                 unsigned long line, const char *function);
 
-#define DS_CONTEXT_ERROR(ctx, status, id, module, message)                    \
-  ds_context_set_error((ctx), (status), (id), (module), (message), __FILE__,  \
+#define DS_CONTEXT_ERROR(ctx, status, id, module, message)                     \
+  ds_context_set_error((ctx), (status), (id), (module), (message), __FILE__,   \
                        (unsigned long)__LINE__, DS_FUNCTION)
 
-#define DS_CONTEXT_ERROR_DESC(ctx, desc)                                      \
-  ds_context_set_error_desc((ctx), (desc), __FILE__,                          \
-                            (unsigned long)__LINE__, DS_FUNCTION)
+#define DS_CONTEXT_ERROR_DESC(ctx, desc)                                       \
+  ds_context_set_error_desc((ctx), (desc), __FILE__, (unsigned long)__LINE__,  \
+                            DS_FUNCTION)
 
-#define DS_CONTEXT_DIAG(ctx, desc, args, arg_count)                           \
-  ds_context_emit_diagnostic((ctx), (desc), (args), (arg_count), __FILE__,    \
+#define DS_CONTEXT_DIAG(ctx, desc, args, arg_count)                            \
+  ds_context_emit_diagnostic((ctx), (desc), (args), (arg_count), __FILE__,     \
                              (unsigned long)__LINE__, DS_FUNCTION)
 
 #ifdef __cplusplus

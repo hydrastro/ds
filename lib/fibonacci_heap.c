@@ -1,12 +1,12 @@
 #include "fibonacci_heap.h"
 #include <stdlib.h>
 
-ds_fibonacci_heap_t *FUNC(fibonacci_heap_create)(
+ds_fibonacci_heap_t *FUNC(ds_fibonacci_heap_create)(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *)) {
-  return FUNC(fibonacci_heap_create_alloc)(compare, malloc, free);
+  return FUNC(ds_fibonacci_heap_create_alloc)(compare, malloc, free);
 }
 
-ds_fibonacci_heap_t *FUNC(fibonacci_heap_create_alloc)(
+ds_fibonacci_heap_t *FUNC(ds_fibonacci_heap_create_alloc)(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   ds_fibonacci_heap_t *heap =
@@ -30,7 +30,7 @@ ds_fibonacci_heap_t *FUNC(fibonacci_heap_create_alloc)(
   return heap;
 }
 
-void FUNC(fibonacci_heap_node_init)(ds_fibonacci_heap_node_t *node) {
+void FUNC(ds_fibonacci_heap_node_init)(ds_fibonacci_heap_node_t *node) {
   node->parent = NULL;
   node->child = NULL;
   node->left = node;
@@ -56,8 +56,8 @@ static void FUNC(fib_list_remove)(ds_fibonacci_heap_node_t *node) {
   node->right = node;
 }
 
-void FUNC(fibonacci_heap_insert)(ds_fibonacci_heap_t *heap,
-                                 ds_fibonacci_heap_node_t *node) {
+void FUNC(ds_fibonacci_heap_insert)(ds_fibonacci_heap_t *heap,
+                                    ds_fibonacci_heap_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
 #endif
@@ -81,7 +81,8 @@ void FUNC(fibonacci_heap_insert)(ds_fibonacci_heap_t *heap,
 #endif
 }
 
-ds_fibonacci_heap_node_t *FUNC(fibonacci_heap_peek)(ds_fibonacci_heap_t *heap) {
+ds_fibonacci_heap_node_t *
+FUNC(ds_fibonacci_heap_peek)(ds_fibonacci_heap_t *heap) {
   ds_fibonacci_heap_node_t *result;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -191,7 +192,7 @@ static void FUNC(fib_consolidate)(ds_fibonacci_heap_t *heap) {
 }
 
 ds_fibonacci_heap_node_t *
-FUNC(fibonacci_heap_extract)(ds_fibonacci_heap_t *heap) {
+FUNC(ds_fibonacci_heap_extract)(ds_fibonacci_heap_t *heap) {
   ds_fibonacci_heap_node_t *z;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -269,8 +270,8 @@ static void FUNC(fib_cascading_cut)(ds_fibonacci_heap_t *heap,
   }
 }
 
-void FUNC(fibonacci_heap_decrease_key)(ds_fibonacci_heap_t *heap,
-                                       ds_fibonacci_heap_node_t *node) {
+void FUNC(ds_fibonacci_heap_decrease_key)(ds_fibonacci_heap_t *heap,
+                                          ds_fibonacci_heap_node_t *node) {
   ds_fibonacci_heap_node_t *parent;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -288,8 +289,8 @@ void FUNC(fibonacci_heap_decrease_key)(ds_fibonacci_heap_t *heap,
 #endif
 }
 
-void FUNC(fibonacci_heap_merge)(ds_fibonacci_heap_t *heap,
-                                ds_fibonacci_heap_t *other) {
+void FUNC(ds_fibonacci_heap_merge)(ds_fibonacci_heap_t *heap,
+                                   ds_fibonacci_heap_t *other) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
 #endif
@@ -321,7 +322,7 @@ void FUNC(fibonacci_heap_merge)(ds_fibonacci_heap_t *heap,
 #endif
 }
 
-size_t FUNC(fibonacci_heap_size)(ds_fibonacci_heap_t *heap) {
+size_t FUNC(ds_fibonacci_heap_size)(ds_fibonacci_heap_t *heap) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -333,7 +334,7 @@ size_t FUNC(fibonacci_heap_size)(ds_fibonacci_heap_t *heap) {
   return result;
 }
 
-bool FUNC(fibonacci_heap_is_empty)(ds_fibonacci_heap_t *heap) {
+bool FUNC(ds_fibonacci_heap_is_empty)(ds_fibonacci_heap_t *heap) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -366,8 +367,8 @@ FUNC(fib_destroy_tree)(ds_fibonacci_heap_t *heap,
   } while (current != start);
 }
 
-void FUNC(fibonacci_heap_destroy)(ds_fibonacci_heap_t *heap,
-                                  void (*destroy)(ds_fibonacci_heap_node_t *)) {
+void FUNC(ds_fibonacci_heap_destroy)(
+    ds_fibonacci_heap_t *heap, void (*destroy)(ds_fibonacci_heap_node_t *)) {
   if (heap->min != heap->nil) {
     FUNC(fib_destroy_tree)(heap, heap->min, destroy);
   }

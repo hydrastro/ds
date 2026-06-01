@@ -37,7 +37,9 @@ int_node_t *create_int_node(int value) {
   return node;
 }
 
-void destroy_int_node(void *node) { free(node); }
+void destroy_int_node(void *node) {
+  free(node);
+}
 
 ds_heap_node_t *clone_node(ds_heap_node_t *node) {
   int_node_t *new_node = (int_node_t *)malloc(sizeof(int_node_t));
@@ -48,13 +50,14 @@ ds_heap_node_t *clone_node(ds_heap_node_t *node) {
 int main(void) {
   srand((unsigned int)time((long int *)NULL));
   int i;
-  ds_heap_t *heap = heap_create((size_t)10);
+  ds_heap_t *heap = ds_heap_create((size_t)10);
 
   for (i = 0; i < 20; i++) {
-    heap_insert(heap, (void *)create_int_node(rand() % 100), compare_int_nodes);
+    ds_heap_insert(heap, (void *)create_int_node(rand() % 100),
+                   compare_int_nodes);
   }
 
-  int_node_t *root = (int_node_t *)heap_peek_root(heap);
+  int_node_t *root = (int_node_t *)ds_heap_peek_root(heap);
   printf("root: %d\n", root->value);
   draw_heap_tree_recursive(heap, (size_t)0, 0, "");
   for (i = 0; i < (int)heap->size; i++) {
@@ -62,25 +65,25 @@ int main(void) {
            (heap->data[i])->index);
   }
 
-  ds_heap_t *new_heap = heap_clone(heap, clone_node);
+  ds_heap_t *new_heap = ds_heap_clone(heap, clone_node);
 
-  while (!heap_is_empty(heap)) {
+  while (!ds_heap_is_empty(heap)) {
     int_node_t *min_node =
-        (int_node_t *)heap_extract_root(heap, compare_int_nodes);
+        (int_node_t *)ds_heap_extract_root(heap, compare_int_nodes);
     printf("extract: %d\n", min_node->value);
     destroy_int_node((void *)min_node);
   }
 
-  heap_destroy(heap, NULL);
+  ds_heap_destroy(heap, NULL);
 
-  while (!heap_is_empty(new_heap)) {
+  while (!ds_heap_is_empty(new_heap)) {
     int_node_t *min_node =
-        (int_node_t *)heap_extract_root(new_heap, compare_int_nodes);
+        (int_node_t *)ds_heap_extract_root(new_heap, compare_int_nodes);
     printf("extract: %d\n", min_node->value);
     destroy_int_node((void *)min_node);
   }
 
-  heap_destroy(new_heap, NULL);
+  ds_heap_destroy(new_heap, NULL);
 
   return 0;
 }

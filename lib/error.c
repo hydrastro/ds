@@ -15,10 +15,10 @@ void ds_error_clear(ds_error_t *error) {
   error->function = NULL;
 }
 
-ds_status_t ds_error_set(ds_error_t *error, ds_status_t status,
-                         const char *id, const char *module,
-                         const char *message, const char *file,
-                         unsigned long line, const char *function) {
+ds_status_t ds_error_set(ds_error_t *error, ds_status_t status, const char *id,
+                         const char *module, const char *message,
+                         const char *file, unsigned long line,
+                         const char *function) {
   if (error != NULL) {
     error->status = status;
     error->id = id;
@@ -42,8 +42,7 @@ ds_status_t ds_error_set_desc(ds_error_t *error, const ds_error_desc_t *desc,
                       desc->message, file, line, function);
 }
 
-int ds_error_format(const ds_error_t *error, char *buffer,
-                    size_t buffer_size) {
+int ds_error_format(const ds_error_t *error, char *buffer, size_t buffer_size) {
   const char *id;
   const char *module;
   const char *message;

@@ -30,8 +30,8 @@ static void *prbt_clone_key(ds_prbt_t *tree, void *key);
 static void *prbt_clone_value(ds_prbt_t *tree, void *value);
 static void prbt_destroy_key(ds_prbt_t *tree, void *key);
 static void prbt_destroy_value(ds_prbt_t *tree, void *value);
-static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key,
-                                        void *value, bool red);
+static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key, void *value,
+                                        bool red);
 static size_t prbt_node_size(ds_prbt_node_t *node);
 static void prbt_update_size(ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_node_copy(ds_prbt_t *tree, ds_prbt_node_t *node);
@@ -51,21 +51,18 @@ static ds_prbt_node_t *prbt_move_red_left(ds_prbt_t *tree,
 static ds_prbt_node_t *prbt_move_red_right(ds_prbt_t *tree,
                                            ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_insert_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
-                                       void *key, void *value,
-                                       bool *inserted, bool *failed);
-static ds_prbt_node_t *prbt_delete_min_rec(ds_prbt_t *tree,
-                                           ds_prbt_node_t *node,
-                                           bool *failed);
-static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
-                                       void *key, bool *removed,
+                                       void *key, void *value, bool *inserted,
                                        bool *failed);
+static ds_prbt_node_t *prbt_delete_min_rec(ds_prbt_t *tree,
+                                           ds_prbt_node_t *node, bool *failed);
+static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
+                                       void *key, bool *removed, bool *failed);
 static ds_prbt_node_t *prbt_min_node(ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_max_node(ds_prbt_node_t *node);
-static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree,
-                                        ds_prbt_node_t *node, void *key);
-static ds_prbt_version_t *prbt_version_create(ds_prbt_t *tree,
-                                              ds_prbt_node_t *root,
-                                              size_t size);
+static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree, ds_prbt_node_t *node,
+                                        void *key);
+static ds_prbt_version_t *
+prbt_version_create(ds_prbt_t *tree, ds_prbt_node_t *root, size_t size);
 static ds_status_t prbt_visit_node(ds_prbt_t *tree, ds_prbt_node_t *node,
                                    void *lower, void *upper,
                                    ds_prbt_visit_func_t visit, void *user);
@@ -115,17 +112,17 @@ static size_t prbt_node_size(ds_prbt_node_t *node) {
 
 static void prbt_update_size(ds_prbt_node_t *node) {
   if (node != NULL) {
-    node->subtree_size = 1U + prbt_node_size(node->left) +
-                         prbt_node_size(node->right);
+    node->subtree_size =
+        1U + prbt_node_size(node->left) + prbt_node_size(node->right);
   }
 }
 
-static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key,
-                                        void *value, bool red) {
+static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key, void *value,
+                                        bool red) {
   ds_prbt_node_t *node;
 
-  node = (ds_prbt_node_t *)ds_context_alloc(tree->config.context,
-                                             sizeof(*node));
+  node =
+      (ds_prbt_node_t *)ds_context_alloc(tree->config.context, sizeof(*node));
   if (node == NULL) {
     return NULL;
   }
@@ -141,7 +138,8 @@ static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key,
   }
   node->subtree_size = 1U;
   node->value = prbt_clone_value(tree, value);
-  if (node->value == NULL && value != NULL && tree->config.clone_value != NULL) {
+  if (node->value == NULL && value != NULL &&
+      tree->config.clone_value != NULL) {
     prbt_destroy_key(tree, node->key);
     ds_context_free(tree->config.context, node);
     return NULL;
@@ -232,7 +230,8 @@ static ds_prbt_node_t *prbt_rotate_left(ds_prbt_t *tree, ds_prbt_node_t *node) {
   return pivot;
 }
 
-static ds_prbt_node_t *prbt_rotate_right(ds_prbt_t *tree, ds_prbt_node_t *node) {
+static ds_prbt_node_t *prbt_rotate_right(ds_prbt_t *tree,
+                                         ds_prbt_node_t *node) {
   ds_prbt_node_t *pivot;
   ds_prbt_node_t *pivot_right;
 
@@ -365,8 +364,8 @@ static ds_prbt_node_t *prbt_move_red_right(ds_prbt_t *tree,
 }
 
 static ds_prbt_node_t *prbt_insert_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
-                                       void *key, void *value,
-                                       bool *inserted, bool *failed) {
+                                       void *key, void *value, bool *inserted,
+                                       bool *failed) {
   ds_prbt_node_t *copy;
   ds_prbt_node_t *child;
   int cmp;
@@ -402,7 +401,8 @@ static ds_prbt_node_t *prbt_insert_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
   } else {
     prbt_destroy_value(tree, copy->value);
     copy->value = prbt_clone_value(tree, value);
-    if (copy->value == NULL && value != NULL && tree->config.clone_value != NULL) {
+    if (copy->value == NULL && value != NULL &&
+        tree->config.clone_value != NULL) {
       prbt_node_release(tree, copy);
       *failed = true;
       return NULL;
@@ -431,8 +431,7 @@ static ds_prbt_node_t *prbt_max_node(ds_prbt_node_t *node) {
 }
 
 static ds_prbt_node_t *prbt_delete_min_rec(ds_prbt_t *tree,
-                                           ds_prbt_node_t *node,
-                                           bool *failed) {
+                                           ds_prbt_node_t *node, bool *failed) {
   ds_prbt_node_t *copy;
   ds_prbt_node_t *child;
 
@@ -470,8 +469,7 @@ static ds_prbt_node_t *prbt_delete_min_rec(ds_prbt_t *tree,
 }
 
 static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
-                                       void *key, bool *removed,
-                                       bool *failed) {
+                                       void *key, bool *removed, bool *failed) {
   ds_prbt_node_t *copy;
   ds_prbt_node_t *child;
   ds_prbt_node_t *min;
@@ -531,7 +529,8 @@ static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
       if (cmp == 0) {
         min = prbt_min_node(copy->right);
         new_key = prbt_clone_key(tree, min->key);
-        if (new_key == NULL && min->key != NULL && tree->config.clone_key != NULL) {
+        if (new_key == NULL && min->key != NULL &&
+            tree->config.clone_key != NULL) {
           prbt_node_release(tree, copy);
           *failed = true;
           return NULL;
@@ -573,8 +572,8 @@ static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
   return copy;
 }
 
-static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree,
-                                        ds_prbt_node_t *node, void *key) {
+static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree, ds_prbt_node_t *node,
+                                        void *key) {
   int cmp;
 
   while (node != NULL) {
@@ -591,13 +590,12 @@ static ds_prbt_node_t *prbt_search_node(ds_prbt_t *tree,
   return NULL;
 }
 
-static ds_prbt_version_t *prbt_version_create(ds_prbt_t *tree,
-                                              ds_prbt_node_t *root,
-                                              size_t size) {
+static ds_prbt_version_t *
+prbt_version_create(ds_prbt_t *tree, ds_prbt_node_t *root, size_t size) {
   ds_prbt_version_t *version;
 
   version = (ds_prbt_version_t *)ds_context_alloc(tree->config.context,
-                                                   sizeof(*version));
+                                                  sizeof(*version));
   if (version == NULL) {
     return NULL;
   }
@@ -618,10 +616,12 @@ static ds_status_t prbt_visit_node(ds_prbt_t *tree, ds_prbt_node_t *node,
     return DS_OK;
   }
 
-  cmp_lower = lower == NULL ? 1 : tree->config.compare(node->key, lower,
-                                                       tree->config.user);
-  cmp_upper = upper == NULL ? -1 : tree->config.compare(node->key, upper,
-                                                        tree->config.user);
+  cmp_lower = lower == NULL
+                  ? 1
+                  : tree->config.compare(node->key, lower, tree->config.user);
+  cmp_upper = upper == NULL
+                  ? -1
+                  : tree->config.compare(node->key, upper, tree->config.user);
 
   if (lower == NULL || cmp_lower > 0) {
     status = prbt_visit_node(tree, node->left, lower, upper, visit, user);
@@ -646,8 +646,8 @@ static ds_status_t prbt_visit_node(ds_prbt_t *tree, ds_prbt_node_t *node,
   return DS_OK;
 }
 
-static ds_prbt_node_t *prbt_floor_node(ds_prbt_t *tree,
-                                            ds_prbt_node_t *node, void *key) {
+static ds_prbt_node_t *prbt_floor_node(ds_prbt_t *tree, ds_prbt_node_t *node,
+                                       void *key) {
   ds_prbt_node_t *candidate;
   int cmp;
 
@@ -667,8 +667,8 @@ static ds_prbt_node_t *prbt_floor_node(ds_prbt_t *tree,
   return candidate;
 }
 
-static ds_prbt_node_t *prbt_ceiling_node(ds_prbt_t *tree,
-                                              ds_prbt_node_t *node, void *key) {
+static ds_prbt_node_t *prbt_ceiling_node(ds_prbt_t *tree, ds_prbt_node_t *node,
+                                         void *key) {
   ds_prbt_node_t *candidate;
   int cmp;
 
@@ -687,7 +687,6 @@ static ds_prbt_node_t *prbt_ceiling_node(ds_prbt_t *tree,
   }
   return candidate;
 }
-
 
 static ds_prbt_node_t *prbt_predecessor_node(ds_prbt_t *tree,
                                              ds_prbt_node_t *node, void *key) {
@@ -726,8 +725,8 @@ static ds_prbt_node_t *prbt_successor_node(ds_prbt_t *tree,
 }
 
 static bool prbt_validate_node(ds_prbt_t *tree, ds_prbt_node_t *node,
-                               void *min_key, void *max_key,
-                               size_t *out_size, size_t black_count,
+                               void *min_key, void *max_key, size_t *out_size,
+                               size_t black_count,
                                size_t *expected_black_count) {
   size_t left_size;
   size_t right_size;
@@ -751,7 +750,8 @@ static bool prbt_validate_node(ds_prbt_t *tree, ds_prbt_node_t *node,
       tree->config.compare(node->key, max_key, tree->config.user) >= 0) {
     return false;
   }
-  if (prbt_is_red(node) && (prbt_is_red(node->left) || prbt_is_red(node->right))) {
+  if (prbt_is_red(node) &&
+      (prbt_is_red(node->left) || prbt_is_red(node->right))) {
     return false;
   }
   if (prbt_is_red(node->right)) {
@@ -787,8 +787,7 @@ static bool prbt_validate_node(ds_prbt_t *tree, ds_prbt_node_t *node,
   return true;
 }
 
-static size_t prbt_rank_node(ds_prbt_t *tree, ds_prbt_node_t *node,
-                             void *key) {
+static size_t prbt_rank_node(ds_prbt_t *tree, ds_prbt_node_t *node, void *key) {
   size_t rank;
   int cmp;
 
@@ -867,8 +866,8 @@ ds_prbt_version_t *FUNC(ds_prbt_root)(ds_prbt_t *tree) {
 }
 
 ds_prbt_version_t *FUNC(ds_prbt_insert)(ds_prbt_t *tree,
-                                         ds_prbt_version_t *base, void *key,
-                                         void *value) {
+                                        ds_prbt_version_t *base, void *key,
+                                        void *value) {
   ds_prbt_version_t *version;
   ds_prbt_node_t *root;
   bool inserted;
@@ -896,7 +895,7 @@ ds_prbt_version_t *FUNC(ds_prbt_insert)(ds_prbt_t *tree,
 }
 
 ds_status_t FUNC(ds_prbt_get)(ds_prbt_t *tree, ds_prbt_version_t *version,
-                               void *key, void **out_value) {
+                              void *key, void **out_value) {
   ds_prbt_node_t *node;
 
   if (out_value != NULL) {
@@ -915,7 +914,7 @@ ds_status_t FUNC(ds_prbt_get)(ds_prbt_t *tree, ds_prbt_version_t *version,
 }
 
 ds_prbt_version_t *FUNC(ds_prbt_remove)(ds_prbt_t *tree,
-                                         ds_prbt_version_t *base, void *key) {
+                                        ds_prbt_version_t *base, void *key) {
   ds_prbt_version_t *version;
   ds_prbt_node_t *root;
   bool removed;
@@ -947,9 +946,8 @@ ds_prbt_version_t *FUNC(ds_prbt_remove)(ds_prbt_t *tree,
   return version;
 }
 
-
 ds_prbt_version_t *FUNC(ds_prbt_delete_min)(ds_prbt_t *tree,
-                                             ds_prbt_version_t *base) {
+                                            ds_prbt_version_t *base) {
   ds_prbt_node_t *node;
 
   if (tree == NULL || base == NULL || base->root == NULL) {
@@ -960,7 +958,7 @@ ds_prbt_version_t *FUNC(ds_prbt_delete_min)(ds_prbt_t *tree,
 }
 
 ds_prbt_version_t *FUNC(ds_prbt_delete_max)(ds_prbt_t *tree,
-                                             ds_prbt_version_t *base) {
+                                            ds_prbt_version_t *base) {
   ds_prbt_node_t *node;
 
   if (tree == NULL || base == NULL || base->root == NULL) {
@@ -971,7 +969,7 @@ ds_prbt_version_t *FUNC(ds_prbt_delete_max)(ds_prbt_t *tree,
 }
 
 ds_status_t FUNC(ds_prbt_visit)(ds_prbt_t *tree, ds_prbt_version_t *version,
-                                 ds_prbt_visit_func_t visit, void *user) {
+                                ds_prbt_visit_func_t visit, void *user) {
   if (tree == NULL || version == NULL || visit == NULL) {
     return DS_ERR_NULL;
   }
@@ -979,9 +977,9 @@ ds_status_t FUNC(ds_prbt_visit)(ds_prbt_t *tree, ds_prbt_version_t *version,
 }
 
 ds_status_t FUNC(ds_prbt_visit_range)(ds_prbt_t *tree,
-                                       ds_prbt_version_t *version,
-                                       void *lower, void *upper,
-                                       ds_prbt_visit_func_t visit, void *user) {
+                                      ds_prbt_version_t *version, void *lower,
+                                      void *upper, ds_prbt_visit_func_t visit,
+                                      void *user) {
   if (tree == NULL || version == NULL || visit == NULL) {
     return DS_ERR_NULL;
   }
@@ -993,8 +991,7 @@ ds_status_t FUNC(ds_prbt_visit_range)(ds_prbt_t *tree,
 }
 
 ds_status_t FUNC(ds_prbt_floor)(ds_prbt_t *tree, ds_prbt_version_t *version,
-                                 void *key, void **out_key,
-                                 void **out_value) {
+                                void *key, void **out_key, void **out_value) {
   ds_prbt_node_t *node;
 
   if (out_key != NULL) {
@@ -1020,8 +1017,7 @@ ds_status_t FUNC(ds_prbt_floor)(ds_prbt_t *tree, ds_prbt_version_t *version,
 }
 
 ds_status_t FUNC(ds_prbt_ceiling)(ds_prbt_t *tree, ds_prbt_version_t *version,
-                                   void *key, void **out_key,
-                                   void **out_value) {
+                                  void *key, void **out_key, void **out_value) {
   ds_prbt_node_t *node;
 
   if (out_key != NULL) {
@@ -1046,10 +1042,9 @@ ds_status_t FUNC(ds_prbt_ceiling)(ds_prbt_t *tree, ds_prbt_version_t *version,
   return DS_OK;
 }
 
-
 ds_status_t FUNC(ds_prbt_predecessor)(ds_prbt_t *tree,
-                                       ds_prbt_version_t *version, void *key,
-                                       void **out_key, void **out_value) {
+                                      ds_prbt_version_t *version, void *key,
+                                      void **out_key, void **out_value) {
   ds_prbt_node_t *node;
 
   if (out_key != NULL) {
@@ -1070,9 +1065,9 @@ ds_status_t FUNC(ds_prbt_predecessor)(ds_prbt_t *tree,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_prbt_successor)(ds_prbt_t *tree,
-                                     ds_prbt_version_t *version, void *key,
-                                     void **out_key, void **out_value) {
+ds_status_t FUNC(ds_prbt_successor)(ds_prbt_t *tree, ds_prbt_version_t *version,
+                                    void *key, void **out_key,
+                                    void **out_value) {
   ds_prbt_node_t *node;
 
   if (out_key != NULL) {
@@ -1094,7 +1089,7 @@ ds_status_t FUNC(ds_prbt_successor)(ds_prbt_t *tree,
 }
 
 ds_status_t FUNC(ds_prbt_rank)(ds_prbt_t *tree, ds_prbt_version_t *version,
-                                void *key, size_t *out_rank) {
+                               void *key, size_t *out_rank) {
   if (out_rank != NULL) {
     *out_rank = 0U;
   }
@@ -1106,8 +1101,8 @@ ds_status_t FUNC(ds_prbt_rank)(ds_prbt_t *tree, ds_prbt_version_t *version,
 }
 
 ds_status_t FUNC(ds_prbt_select)(ds_prbt_t *tree, ds_prbt_version_t *version,
-                                  size_t rank, void **out_key,
-                                  void **out_value) {
+                                 size_t rank, void **out_key,
+                                 void **out_value) {
   ds_prbt_node_t *node;
 
   if (out_key != NULL) {
@@ -1142,9 +1137,8 @@ size_t FUNC(ds_prbt_size)(ds_prbt_version_t *version) {
   return version->size;
 }
 
-
 ds_status_t FUNC(ds_prbt_validate)(ds_prbt_t *tree,
-                                    ds_prbt_version_t *version) {
+                                   ds_prbt_version_t *version) {
   size_t size;
   size_t black_count;
 

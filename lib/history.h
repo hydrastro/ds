@@ -22,8 +22,7 @@ typedef struct ds_history_query ds_history_query_t;
 typedef struct ds_history_ops ds_history_ops_t;
 
 typedef void *(*ds_history_create_state_func_t)(void *config);
-typedef void *(*ds_history_clone_state_func_t)(void *state,
-                                               void *clone_data);
+typedef void *(*ds_history_clone_state_func_t)(void *state, void *clone_data);
 typedef void (*ds_history_destroy_state_func_t)(void *state);
 typedef int (*ds_history_apply_func_t)(void *state,
                                        const ds_history_operation_t *op);
@@ -40,9 +39,11 @@ typedef bool (*ds_history_read_func_t)(void *data, size_t size, void *user);
 typedef bool (*ds_history_payload_write_func_t)(
     const ds_history_operation_t *operation, ds_history_write_func_t write,
     void *io_user, void *payload_user);
-typedef void *(*ds_history_payload_read_func_t)(
-    unsigned long id, unsigned long time, int kind, ds_history_read_func_t read,
-    void *io_user, void *payload_user);
+typedef void *(*ds_history_payload_read_func_t)(unsigned long id,
+                                                unsigned long time, int kind,
+                                                ds_history_read_func_t read,
+                                                void *io_user,
+                                                void *payload_user);
 typedef unsigned int (*ds_history_merge_policy_func_t)(
     ds_history_branch_t *target, ds_history_branch_t *source,
     const ds_history_operation_t *source_operation, unsigned long *in_out_time,
@@ -113,12 +114,14 @@ const char *FUNC(ds_history_branch_name)(ds_history_branch_t *branch);
 unsigned long FUNC(ds_history_branch_id)(ds_history_branch_t *branch);
 unsigned long FUNC(ds_history_branch_fork_time)(ds_history_branch_t *branch);
 unsigned long FUNC(ds_history_branch_head_time)(ds_history_branch_t *branch);
-ds_history_branch_t *FUNC(ds_history_branch_parent)(ds_history_branch_t *branch);
+ds_history_branch_t *
+    FUNC(ds_history_branch_parent)(ds_history_branch_t *branch);
 ds_history_branch_t *FUNC(ds_history_branch_find_name)(ds_history_t *history,
-                                                        const char *name);
+                                                       const char *name);
 
-ds_history_operation_t *FUNC(ds_history_branch_find_op)(
-    ds_history_branch_t *branch, unsigned long op_id);
+ds_history_operation_t *
+    FUNC(ds_history_branch_find_op)(ds_history_branch_t *branch,
+                                    unsigned long op_id);
 
 unsigned long FUNC(ds_history_branch_insert_at)(ds_history_branch_t *branch,
                                                 unsigned long time, int kind,
@@ -128,10 +131,10 @@ unsigned long FUNC(ds_history_branch_append)(ds_history_branch_t *branch,
 bool FUNC(ds_history_branch_delete_op)(ds_history_branch_t *branch,
                                        unsigned long op_id);
 size_t FUNC(ds_history_branch_merge)(ds_history_branch_t *target,
-                                      ds_history_branch_t *source,
-                                      unsigned long from_time,
-                                      unsigned long through_time,
-                                      unsigned int flags);
+                                     ds_history_branch_t *source,
+                                     unsigned long from_time,
+                                     unsigned long through_time,
+                                     unsigned int flags);
 size_t FUNC(ds_history_branch_merge_with)(
     ds_history_branch_t *target, ds_history_branch_t *source,
     unsigned long from_time, unsigned long through_time, unsigned int flags,
@@ -147,8 +150,8 @@ void *FUNC(ds_history_branch_query_at)(ds_history_branch_t *branch,
 void *FUNC(ds_history_branch_query_head)(ds_history_branch_t *branch,
                                          const ds_history_query_t *query);
 size_t FUNC(ds_history_branch_export_ops)(ds_history_branch_t *branch,
-                                           ds_history_export_op_func_t writer,
-                                           void *user);
+                                          ds_history_export_op_func_t writer,
+                                          void *user);
 size_t FUNC(ds_history_branch_serialize_ops)(
     ds_history_branch_t *branch, ds_history_write_func_t write,
     ds_history_payload_write_func_t write_payload, void *io_user,
@@ -158,34 +161,35 @@ size_t FUNC(ds_history_branch_deserialize_ops)(
     ds_history_payload_read_func_t read_payload, void *io_user,
     void *payload_user);
 bool FUNC(ds_history_write_ulong)(ds_history_write_func_t write, void *io_user,
-                                   unsigned long value);
+                                  unsigned long value);
 bool FUNC(ds_history_read_ulong)(ds_history_read_func_t read, void *io_user,
-                                  unsigned long *out_value);
+                                 unsigned long *out_value);
 bool FUNC(ds_history_write_int)(ds_history_write_func_t write, void *io_user,
-                                 int value);
+                                int value);
 bool FUNC(ds_history_read_int)(ds_history_read_func_t read, void *io_user,
-                                int *out_value);
+                               int *out_value);
 bool FUNC(ds_history_write_size)(ds_history_write_func_t write, void *io_user,
-                                  size_t value);
+                                 size_t value);
 bool FUNC(ds_history_read_size)(ds_history_read_func_t read, void *io_user,
-                                 size_t *out_value);
+                                size_t *out_value);
 bool FUNC(ds_history_serialize)(ds_history_t *history,
-                                 ds_history_write_func_t write,
-                                 ds_history_payload_write_func_t write_payload,
+                                ds_history_write_func_t write,
+                                ds_history_payload_write_func_t write_payload,
+                                void *io_user, void *payload_user);
+ds_history_t *
+    FUNC(ds_history_deserialize)(const ds_history_ops_t *ops, void *config,
+                                 ds_history_read_func_t read,
+                                 ds_history_payload_read_func_t read_payload,
                                  void *io_user, void *payload_user);
-ds_history_t *FUNC(ds_history_deserialize)(
-    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
-    ds_history_payload_read_func_t read_payload, void *io_user,
-    void *payload_user);
 void FUNC(ds_history_archive_init)(ds_history_archive_t *archive);
 void FUNC(ds_history_archive_init_alloc)(ds_history_archive_t *archive,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *));
+                                         void *(*allocator)(size_t),
+                                         void (*deallocator)(void *));
 void FUNC(ds_history_archive_destroy)(ds_history_archive_t *archive);
 void FUNC(ds_history_archive_clear)(ds_history_archive_t *archive);
 void FUNC(ds_history_archive_rewind)(ds_history_archive_t *archive);
-const unsigned char *FUNC(ds_history_archive_data)(
-    const ds_history_archive_t *archive);
+const unsigned char *
+    FUNC(ds_history_archive_data)(const ds_history_archive_t *archive);
 size_t FUNC(ds_history_archive_size)(const ds_history_archive_t *archive);
 bool FUNC(ds_history_archive_write)(const void *data, size_t size, void *user);
 bool FUNC(ds_history_archive_read)(void *data, size_t size, void *user);
@@ -198,7 +202,6 @@ ds_history_t *FUNC(ds_history_deserialize_portable)(
     const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
     ds_history_payload_read_func_t read_payload, void *io_user,
     void *payload_user);
-
 
 #ifdef __cplusplus
 }

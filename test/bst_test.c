@@ -34,21 +34,21 @@ ds_bst_node_t *clone_node(ds_bst_node_t *node) {
 }
 
 int main() {
-  ds_bst_t *tree = bst_create();
+  ds_bst_t *tree = ds_bst_create();
 
   for (int i = 0; i < 10; i++) {
     my_data_t *data = (my_data_t *)malloc(sizeof(my_data_t));
     data->value = i;
-    bst_insert(tree, &data->node, compare);
+    ds_bst_insert(tree, &data->node, compare);
   }
 
-  ds_bst_node_t *kek = bst_minimum(tree, tree->root);
+  ds_bst_node_t *kek = ds_bst_minimum(tree, tree->root);
   walk(tree, kek);
   printf("\n");
 
   my_data_t search_data;
   search_data.value = 5;
-  ds_bst_node_t *found_node = bst_search(tree, &(search_data.node), compare);
+  ds_bst_node_t *found_node = ds_bst_search(tree, &(search_data.node), compare);
 
   if (found_node != tree->nil) {
     my_data_t *found_data = (my_data_t *)found_node;
@@ -56,34 +56,34 @@ int main() {
   } else {
     printf("Node not found!\n");
   }
-  kek = bst_minimum(tree, tree->root);
+  kek = ds_bst_minimum(tree, tree->root);
   walk(tree, kek);
 
   if (found_node != tree->nil) {
     printf("deleting node\n");
     fflush(stdout);
-    bst_delete_node(tree, found_node);
+    ds_bst_delete_node(tree, found_node);
     printf("deleting node\n");
     fflush(stdout);
     destroy_bst_node(found_node);
 
     printf("Node successfully deleted!\n");
   }
-  kek = bst_minimum(tree, tree->root);
+  kek = ds_bst_minimum(tree, tree->root);
   walk(tree, kek);
   printf("\n");
 
-  ds_bst_t *new_tree = bst_clone(tree, clone_node);
+  ds_bst_t *new_tree = ds_bst_clone(tree, clone_node);
 
   printf("destroying tree...\n");
-  bst_destroy_tree(tree, destroy_bst_node);
+  ds_bst_destroy_tree(tree, destroy_bst_node);
 
-  kek = bst_minimum(new_tree, new_tree->root);
+  kek = ds_bst_minimum(new_tree, new_tree->root);
   walk(new_tree, kek);
   printf("\n");
 
   printf("destroying tree...\n");
-  bst_destroy_tree(new_tree, destroy_bst_node);
+  ds_bst_destroy_tree(new_tree, destroy_bst_node);
 
   return 0;
 }

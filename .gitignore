@@ -7,6 +7,11 @@
 
 # Build artifacts
 /build/
+/libds.a
+/libds.so
+/libds_safe.a
+/libds_safe.so
+/src.zip
 
 # Generated Unicode tables (produced by `make unicode-data`)
 /build/unicode_tables.c

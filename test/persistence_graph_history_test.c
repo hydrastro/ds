@@ -59,7 +59,7 @@ static int int_compare(void *a, void *b, void *user) {
 }
 
 static bool ptrie_visit_record(const unsigned char *key, size_t len,
-                                void *value, void *user) {
+                               void *value, void *user) {
   struct ptrie_visit_log *log;
   (void)value;
   log = (struct ptrie_visit_log *)user;
@@ -105,7 +105,9 @@ static void *h_clone(void *state, void *clone_data) {
   return copy;
 }
 
-static void h_destroy(void *state) { free(state); }
+static void h_destroy(void *state) {
+  free(state);
+}
 
 static int h_apply(void *state, const ds_history_operation_t *op) {
   struct hstate *s;
@@ -210,8 +212,8 @@ static void *payload_read(unsigned long id, unsigned long time, int kind,
 }
 
 static bool payload_write_portable(const ds_history_operation_t *op,
-                                   ds_history_write_func_t write,
-                                   void *io_user, void *payload_user) {
+                                   ds_history_write_func_t write, void *io_user,
+                                   void *payload_user) {
   struct hpayload *p;
   (void)payload_user;
   p = (struct hpayload *)op->payload;
@@ -271,23 +273,27 @@ static void test_persistent_trie_remove(void) {
   assert(v1 != NULL && v2 != NULL && v3 != NULL && v4 != NULL);
   assert(ds_ptrie_get(v1, (const unsigned char *)"cat", 3U, &out) == DS_OK);
   assert(ds_ptrie_get(v3, (const unsigned char *)"cat", 3U, &out) == DS_OK);
-  assert(ds_ptrie_get(v4, (const unsigned char *)"cat", 3U, &out) == DS_NOT_FOUND);
+  assert(ds_ptrie_get(v4, (const unsigned char *)"cat", 3U, &out) ==
+         DS_NOT_FOUND);
   assert(ds_ptrie_get(v4, (const unsigned char *)"car", 3U, &out) == DS_OK);
-  assert(ds_ptrie_contains_prefix(v4, (const unsigned char *)"ca", 2U) == DS_OK);
-  assert(ds_ptrie_contains_prefix(v4, (const unsigned char *)"cz", 2U) == DS_NOT_FOUND);
+  assert(ds_ptrie_contains_prefix(v4, (const unsigned char *)"ca", 2U) ==
+         DS_OK);
+  assert(ds_ptrie_contains_prefix(v4, (const unsigned char *)"cz", 2U) ==
+         DS_NOT_FOUND);
   assert(ds_ptrie_longest_prefix(v4, (const unsigned char *)"carpet", 6U,
-                                  &prefix_len, &out) == DS_OK);
+                                 &prefix_len, &out) == DS_OK);
   assert(prefix_len == 3U && strcmp((char *)out, "car") == 0);
   memset(&log, 0, sizeof(log));
   assert(ds_ptrie_visit_prefix(v4, (const unsigned char *)"ca", 2U,
-                                ptrie_visit_record, &log) == DS_OK);
+                               ptrie_visit_record, &log) == DS_OK);
   assert(log.count == 1U && strcmp(log.keys[0], "car") == 0);
   memset(&log, 0, sizeof(log));
   assert(ds_ptrie_visit_range(v4, (const unsigned char *)"c", 1U,
-                               (const unsigned char *)"d", 1U,
-                               ptrie_visit_record, &log) == DS_OK);
+                              (const unsigned char *)"d", 1U,
+                              ptrie_visit_record, &log) == DS_OK);
   assert(log.count == 1U && strcmp(log.keys[0], "car") == 0);
-  assert(ds_ptrie_remove(trie, v4, (const unsigned char *)"missing", 7U) == NULL);
+  assert(ds_ptrie_remove(trie, v4, (const unsigned char *)"missing", 7U) ==
+         NULL);
   {
     ds_ptrie_version_t *v5;
     ds_ptrie_version_t *v6;
@@ -362,7 +368,7 @@ static void test_persistent_rbt_many_versions(void) {
   high = 15;
   memset(&log, 0, sizeof(log));
   assert(ds_prbt_visit_range(tree, versions[32], &low, &high, prbt_visit_record,
-                              &log) == DS_OK);
+                             &log) == DS_OK);
   assert(log.count == 6U && log.keys[0] == 10 && log.keys[5] == 15);
   {
     int probe;
@@ -372,7 +378,8 @@ static void test_persistent_rbt_many_versions(void) {
     assert(ds_prbt_floor(tree, versions[32], &probe, &out_key, &out) == DS_OK);
     assert(*(int *)out_key == 14);
     probe = 14;
-    assert(ds_prbt_ceiling(tree, versions[32], &probe, &out_key, &out) == DS_OK);
+    assert(ds_prbt_ceiling(tree, versions[32], &probe, &out_key, &out) ==
+           DS_OK);
     assert(*(int *)out_key == 14);
     probe = 14;
     assert(ds_prbt_rank(tree, versions[32], &probe, &rank) == DS_OK);
@@ -455,7 +462,7 @@ static void test_graph_algorithms(void) {
     assert(ds_graph_add_edge(scc_graph, s2, s3, NULL) == DS_OK);
     assert(ds_graph_add_edge(scc_graph, s3, s2, NULL) == DS_OK);
     assert(ds_graph_strongly_connected_components(scc_graph, comps, 4U,
-                                                   &count) == DS_OK);
+                                                  &count) == DS_OK);
     assert(count == 2U);
     assert(comps[s0] == comps[s1]);
     assert(comps[s2] == comps[s3]);
@@ -487,12 +494,16 @@ static void test_history_serialization(void) {
   h1 = ds_history_create(&ops, NULL);
   assert(h1 != NULL);
   main1 = ds_history_main(h1);
-  assert(ds_history_branch_insert_at(main1, 10UL, HSET, make_payload(1U, 11)) != 0UL);
-  assert(ds_history_branch_insert_at(main1, 20UL, HSET, make_payload(2U, 22)) != 0UL);
+  assert(ds_history_branch_insert_at(main1, 10UL, HSET, make_payload(1U, 11)) !=
+         0UL);
+  assert(ds_history_branch_insert_at(main1, 20UL, HSET, make_payload(2U, 22)) !=
+         0UL);
   feature1 = ds_history_branch_create(h1, main1, 15UL, "feature");
   assert(feature1 != NULL);
-  assert(ds_history_branch_insert_at(feature1, 16UL, HSET, make_payload(3U, 33)) != 0UL);
-  assert(ds_history_branch_insert_at(feature1, 18UL, HDEL, make_payload(1U, 0)) != 0UL);
+  assert(ds_history_branch_insert_at(feature1, 16UL, HSET,
+                                     make_payload(3U, 33)) != 0UL);
+  assert(ds_history_branch_insert_at(feature1, 18UL, HDEL,
+                                     make_payload(1U, 0)) != 0UL);
   memset(&io, 0, sizeof(io));
   assert(ds_history_serialize(h1, mem_write, payload_write, &io, NULL));
   io.pos = 0U;
@@ -514,7 +525,7 @@ static void test_history_serialization(void) {
     ds_history_branch_t *merged;
     ds_history_t *h3;
     assert(ds_history_branch_merge(main1, feature1, 16UL, 18UL,
-                                    DS_HISTORY_MERGE_PRESERVE_TIME) == 2U);
+                                   DS_HISTORY_MERGE_PRESERVE_TIME) == 2U);
     assert(query_int(main1, 16UL, 3U) == 33);
     key = 1U;
     query.kind = HGET;
@@ -522,10 +533,10 @@ static void test_history_serialization(void) {
     assert(ds_history_branch_query_at(main1, 18UL, &query) == NULL);
     memset(&io, 0, sizeof(io));
     assert(ds_history_serialize_portable(h1, mem_write, payload_write_portable,
-                                          &io, NULL));
+                                         &io, NULL));
     io.pos = 0U;
     h3 = ds_history_deserialize_portable(&ops, NULL, mem_read,
-                                          payload_read_portable, &io, NULL);
+                                         payload_read_portable, &io, NULL);
     assert(h3 != NULL);
     merged = ds_history_main(h3);
     assert(query_int(merged, 16UL, 3U) == 33);

@@ -75,7 +75,7 @@ ds_string_map_t *FUNC(ds_string_map_create_ctx)(ds_context_t *context) {
 }
 
 ds_status_t FUNC(ds_string_map_put)(ds_string_map_t *map, const char *key,
-                                     void *value) {
+                                    void *value) {
   char *copy;
   ds_status_t status;
 
@@ -94,15 +94,15 @@ ds_status_t FUNC(ds_string_map_put)(ds_string_map_t *map, const char *key,
 }
 
 ds_status_t FUNC(ds_string_map_get)(ds_string_map_t *map, const char *key,
-                                     void **out_value) {
+                                    void **out_value) {
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_hash_table_get)(map->table, string_map_key_ptr(key), out_value);
+  return FUNC(ds_hash_table_get)(map->table, string_map_key_ptr(key),
+                                 out_value);
 }
 
-ds_status_t FUNC(ds_string_map_remove)(ds_string_map_t *map,
-                                        const char *key) {
+ds_status_t FUNC(ds_string_map_remove)(ds_string_map_t *map, const char *key) {
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
   }
@@ -110,7 +110,7 @@ ds_status_t FUNC(ds_string_map_remove)(ds_string_map_t *map,
 }
 
 ds_status_t FUNC(ds_string_map_contains)(ds_string_map_t *map,
-                                          const char *key) {
+                                         const char *key) {
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
   }
@@ -151,15 +151,14 @@ ds_status_t FUNC(ds_string_set_add)(ds_string_set_t *set, const char *key) {
 }
 
 ds_status_t FUNC(ds_string_set_contains)(ds_string_set_t *set,
-                                          const char *key) {
+                                         const char *key) {
   if (set == NULL) {
     return DS_ERR_NULL;
   }
   return FUNC(ds_string_map_contains)(set->map, key);
 }
 
-ds_status_t FUNC(ds_string_set_remove)(ds_string_set_t *set,
-                                        const char *key) {
+ds_status_t FUNC(ds_string_set_remove)(ds_string_set_t *set, const char *key) {
   if (set == NULL) {
     return DS_ERR_NULL;
   }

@@ -42,21 +42,21 @@ typedef struct wavelet_tree {
 
 #define DS_WAVELET_NPOS ((size_t) - 1)
 
-ds_wavelet_tree_t *FUNC(wavelet_tree_create)(const size_t *sequence,
-                                             size_t length, size_t sigma);
-ds_wavelet_tree_t *FUNC(wavelet_tree_create_alloc)(const size_t *sequence,
-                                                   size_t length, size_t sigma,
-                                                   void *(*allocator)(size_t),
-                                                   void (*deallocator)(void *));
-size_t FUNC(wavelet_tree_access)(ds_wavelet_tree_t *wt, size_t index);
-size_t FUNC(wavelet_tree_rank)(ds_wavelet_tree_t *wt, size_t symbol,
-                               size_t index);
-size_t FUNC(wavelet_tree_select)(ds_wavelet_tree_t *wt, size_t symbol,
-                                 size_t k);
-size_t FUNC(wavelet_tree_quantile)(ds_wavelet_tree_t *wt, size_t left,
-                                   size_t right, size_t k);
-size_t FUNC(wavelet_tree_length)(ds_wavelet_tree_t *wt);
-void FUNC(wavelet_tree_destroy)(ds_wavelet_tree_t *wt);
+ds_wavelet_tree_t *FUNC(ds_wavelet_tree_create)(const size_t *sequence,
+                                                size_t length, size_t sigma);
+ds_wavelet_tree_t *
+    FUNC(ds_wavelet_tree_create_alloc)(const size_t *sequence, size_t length,
+                                       size_t sigma, void *(*allocator)(size_t),
+                                       void (*deallocator)(void *));
+size_t FUNC(ds_wavelet_tree_access)(ds_wavelet_tree_t *wt, size_t index);
+size_t FUNC(ds_wavelet_tree_rank)(ds_wavelet_tree_t *wt, size_t symbol,
+                                  size_t index);
+size_t FUNC(ds_wavelet_tree_select)(ds_wavelet_tree_t *wt, size_t symbol,
+                                    size_t k);
+size_t FUNC(ds_wavelet_tree_quantile)(ds_wavelet_tree_t *wt, size_t left,
+                                      size_t right, size_t k);
+size_t FUNC(ds_wavelet_tree_length)(ds_wavelet_tree_t *wt);
+void FUNC(ds_wavelet_tree_destroy)(ds_wavelet_tree_t *wt);
 
 #ifdef __cplusplus
 }

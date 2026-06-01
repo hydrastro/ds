@@ -18,7 +18,6 @@ typedef struct ds_result_size {
   size_t value;
 } ds_result_size_t;
 
-
 #ifdef __cplusplus
 }
 #endif

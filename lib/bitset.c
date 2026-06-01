@@ -21,13 +21,13 @@ static size_t FUNC(bitset_popcount_word)(unsigned long word) {
   return count;
 }
 
-ds_bitset_t *FUNC(bitset_create)(size_t num_bits) {
-  return FUNC(bitset_create_alloc)(num_bits, malloc, free);
+ds_bitset_t *FUNC(ds_bitset_create)(size_t num_bits) {
+  return FUNC(ds_bitset_create_alloc)(num_bits, malloc, free);
 }
 
-ds_bitset_t *FUNC(bitset_create_alloc)(size_t num_bits,
-                                       void *(*allocator)(size_t),
-                                       void (*deallocator)(void *)) {
+ds_bitset_t *FUNC(ds_bitset_create_alloc)(size_t num_bits,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *)) {
   ds_bitset_t *bitset;
   size_t num_words;
   size_t i;
@@ -52,7 +52,7 @@ ds_bitset_t *FUNC(bitset_create_alloc)(size_t num_bits,
   return bitset;
 }
 
-void FUNC(bitset_set)(ds_bitset_t *bitset, size_t index) {
+void FUNC(ds_bitset_set)(ds_bitset_t *bitset, size_t index) {
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
 #endif
@@ -65,7 +65,7 @@ void FUNC(bitset_set)(ds_bitset_t *bitset, size_t index) {
 #endif
 }
 
-void FUNC(bitset_clear)(ds_bitset_t *bitset, size_t index) {
+void FUNC(ds_bitset_clear)(ds_bitset_t *bitset, size_t index) {
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
 #endif
@@ -78,7 +78,7 @@ void FUNC(bitset_clear)(ds_bitset_t *bitset, size_t index) {
 #endif
 }
 
-void FUNC(bitset_flip)(ds_bitset_t *bitset, size_t index) {
+void FUNC(ds_bitset_flip)(ds_bitset_t *bitset, size_t index) {
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
 #endif
@@ -91,15 +91,15 @@ void FUNC(bitset_flip)(ds_bitset_t *bitset, size_t index) {
 #endif
 }
 
-void FUNC(bitset_set_value)(ds_bitset_t *bitset, size_t index, bool value) {
+void FUNC(ds_bitset_set_value)(ds_bitset_t *bitset, size_t index, bool value) {
   if (value) {
-    FUNC(bitset_set)(bitset, index);
+    FUNC(ds_bitset_set)(bitset, index);
   } else {
-    FUNC(bitset_clear)(bitset, index);
+    FUNC(ds_bitset_clear)(bitset, index);
   }
 }
 
-bool FUNC(bitset_test)(ds_bitset_t *bitset, size_t index) {
+bool FUNC(ds_bitset_test)(ds_bitset_t *bitset, size_t index) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -124,7 +124,7 @@ static void FUNC(bitset_trim_tail)(ds_bitset_t *bitset) {
   }
 }
 
-void FUNC(bitset_set_all)(ds_bitset_t *bitset) {
+void FUNC(ds_bitset_set_all)(ds_bitset_t *bitset) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -138,7 +138,7 @@ void FUNC(bitset_set_all)(ds_bitset_t *bitset) {
 #endif
 }
 
-void FUNC(bitset_clear_all)(ds_bitset_t *bitset) {
+void FUNC(ds_bitset_clear_all)(ds_bitset_t *bitset) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -151,7 +151,7 @@ void FUNC(bitset_clear_all)(ds_bitset_t *bitset) {
 #endif
 }
 
-size_t FUNC(bitset_count)(ds_bitset_t *bitset) {
+size_t FUNC(ds_bitset_count)(ds_bitset_t *bitset) {
   size_t count = 0;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -166,7 +166,7 @@ size_t FUNC(bitset_count)(ds_bitset_t *bitset) {
   return count;
 }
 
-size_t FUNC(bitset_size)(ds_bitset_t *bitset) {
+size_t FUNC(ds_bitset_size)(ds_bitset_t *bitset) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -178,7 +178,7 @@ size_t FUNC(bitset_size)(ds_bitset_t *bitset) {
   return result;
 }
 
-bool FUNC(bitset_any)(ds_bitset_t *bitset) {
+bool FUNC(ds_bitset_any)(ds_bitset_t *bitset) {
   bool result = false;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -196,11 +196,11 @@ bool FUNC(bitset_any)(ds_bitset_t *bitset) {
   return result;
 }
 
-bool FUNC(bitset_none)(ds_bitset_t *bitset) {
-  return !FUNC(bitset_any)(bitset);
+bool FUNC(ds_bitset_none)(ds_bitset_t *bitset) {
+  return !FUNC(ds_bitset_any)(bitset);
 }
 
-bool FUNC(bitset_all)(ds_bitset_t *bitset) {
+bool FUNC(ds_bitset_all)(ds_bitset_t *bitset) {
   bool result = true;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -225,11 +225,11 @@ bool FUNC(bitset_all)(ds_bitset_t *bitset) {
   return result;
 }
 
-size_t FUNC(bitset_find_first)(ds_bitset_t *bitset) {
-  return FUNC(bitset_find_next)(bitset, DS_BITSET_NPOS);
+size_t FUNC(ds_bitset_find_first)(ds_bitset_t *bitset) {
+  return FUNC(ds_bitset_find_next)(bitset, DS_BITSET_NPOS);
 }
 
-size_t FUNC(bitset_find_next)(ds_bitset_t *bitset, size_t index) {
+size_t FUNC(ds_bitset_find_next)(ds_bitset_t *bitset, size_t index) {
   size_t start;
   size_t i;
   size_t result = DS_BITSET_NPOS;
@@ -250,7 +250,7 @@ size_t FUNC(bitset_find_next)(ds_bitset_t *bitset, size_t index) {
   return result;
 }
 
-bool FUNC(bitset_and)(ds_bitset_t *bitset, ds_bitset_t *other) {
+bool FUNC(ds_bitset_and)(ds_bitset_t *bitset, ds_bitset_t *other) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -270,7 +270,7 @@ bool FUNC(bitset_and)(ds_bitset_t *bitset, ds_bitset_t *other) {
   return true;
 }
 
-bool FUNC(bitset_or)(ds_bitset_t *bitset, ds_bitset_t *other) {
+bool FUNC(ds_bitset_or)(ds_bitset_t *bitset, ds_bitset_t *other) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -290,7 +290,7 @@ bool FUNC(bitset_or)(ds_bitset_t *bitset, ds_bitset_t *other) {
   return true;
 }
 
-bool FUNC(bitset_xor)(ds_bitset_t *bitset, ds_bitset_t *other) {
+bool FUNC(ds_bitset_xor)(ds_bitset_t *bitset, ds_bitset_t *other) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -310,7 +310,7 @@ bool FUNC(bitset_xor)(ds_bitset_t *bitset, ds_bitset_t *other) {
   return true;
 }
 
-void FUNC(bitset_not)(ds_bitset_t *bitset) {
+void FUNC(ds_bitset_not)(ds_bitset_t *bitset) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
@@ -324,7 +324,7 @@ void FUNC(bitset_not)(ds_bitset_t *bitset) {
 #endif
 }
 
-bool FUNC(bitset_equals)(ds_bitset_t *bitset, ds_bitset_t *other) {
+bool FUNC(ds_bitset_equals)(ds_bitset_t *bitset, ds_bitset_t *other) {
   bool result = true;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -348,14 +348,14 @@ bool FUNC(bitset_equals)(ds_bitset_t *bitset, ds_bitset_t *other) {
   return result;
 }
 
-ds_bitset_t *FUNC(bitset_clone)(ds_bitset_t *bitset) {
+ds_bitset_t *FUNC(ds_bitset_clone)(ds_bitset_t *bitset) {
   ds_bitset_t *new_bitset;
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(bitset);
 #endif
-  new_bitset = FUNC(bitset_create_alloc)(bitset->num_bits, bitset->allocator,
-                                         bitset->deallocator);
+  new_bitset = FUNC(ds_bitset_create_alloc)(bitset->num_bits, bitset->allocator,
+                                            bitset->deallocator);
   for (i = 0; i < bitset->num_words; i++) {
     new_bitset->words[i] = bitset->words[i];
   }
@@ -365,7 +365,7 @@ ds_bitset_t *FUNC(bitset_clone)(ds_bitset_t *bitset) {
   return new_bitset;
 }
 
-void FUNC(bitset_destroy)(ds_bitset_t *bitset) {
+void FUNC(ds_bitset_destroy)(ds_bitset_t *bitset) {
   if (bitset->words != NULL) {
     bitset->deallocator(bitset->words);
   }

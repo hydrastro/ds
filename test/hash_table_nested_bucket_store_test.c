@@ -141,7 +141,7 @@ static ds_rbt_node_t *rbt_bucket_find_tree_node(
   probe_node.tree_node.right = NULL;
   rbt_bucket_set_key(&probe_node, key, key_kind);
   probe_node.hash_node = &probe_hash_node;
-  found = rbt_search(tree, tree->root, &probe_node.tree_node, compare_nodes);
+  found = ds_rbt_search(tree, tree->root, &probe_node.tree_node, compare_nodes);
   if (found == tree->nil) {
     return NULL;
   }
@@ -167,8 +167,8 @@ static void rbt_bucket_insert_with_compare(
   rbt_bucket_node_t *bucket_node;
   tree = (ds_rbt_t *)*bucket;
   ds_rbt_node_t *existing;
-  existing = rbt_bucket_find_tree_node(*bucket, node->key, key_kind,
-                                       compare_nodes);
+  existing =
+      rbt_bucket_find_tree_node(*bucket, node->key, key_kind, compare_nodes);
   if (existing != NULL) {
     bucket_node = rbt_bucket_node_from_tree_node(existing);
     rbt_bucket_set_key(bucket_node, node->key, key_kind);
@@ -181,7 +181,7 @@ static void rbt_bucket_insert_with_compare(
   bucket_node->tree_node.right = tree->nil;
   rbt_bucket_set_key(bucket_node, node->key, key_kind);
   bucket_node->hash_node = node;
-  rbt_insert(tree, &bucket_node->tree_node, compare_nodes);
+  ds_rbt_insert(tree, &bucket_node->tree_node, compare_nodes);
 }
 
 static ds_hash_node_t *rbt_bucket_remove_with_compare(
@@ -199,13 +199,12 @@ static ds_hash_node_t *rbt_bucket_remove_with_compare(
   }
   bucket_node = rbt_bucket_node_from_tree_node(found);
   hash_node = bucket_node->hash_node;
-  rbt_delete_node(tree, found);
+  ds_rbt_delete_node(tree, found);
   table->deallocator(bucket_node);
   return hash_node;
 }
 
-static void rbt_bucket_destroy_recursive(ds_hash_table_t *table,
-                                         ds_rbt_t *tree,
+static void rbt_bucket_destroy_recursive(ds_hash_table_t *table, ds_rbt_t *tree,
                                          ds_rbt_node_t *node,
                                          void (*destroy)(ds_hash_node_t *)) {
   rbt_bucket_node_t *bucket_node;
@@ -239,7 +238,7 @@ static void rbt_bucket_apply_recursive(ds_rbt_t *tree, ds_rbt_node_t *node,
 }
 
 static void *rbt_bucket_create(ds_hash_table_t *table) {
-  return rbt_create_alloc(table->allocator, table->deallocator);
+  return ds_rbt_create_alloc(table->allocator, table->deallocator);
 }
 
 static ds_hash_node_t *rbt_int_bucket_search(ds_hash_table_t *table,
@@ -251,9 +250,9 @@ static ds_hash_node_t *rbt_int_bucket_search(ds_hash_table_t *table,
                                         rbt_int_compare_nodes);
 }
 
-static ds_hash_node_t *rbt_slice_bucket_search(
-    ds_hash_table_t *table, void *bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *rbt_slice_bucket_search(ds_hash_table_t *table,
+                                               void *bucket, void *key,
+                                               int (*compare)(void *, void *)) {
   (void)table;
   (void)compare;
   return rbt_bucket_search_with_compare(bucket, key, RBT_BUCKET_SLICE_KEY,
@@ -276,22 +275,20 @@ static void rbt_slice_bucket_insert(ds_hash_table_t *table, void **bucket,
                                  rbt_slice_compare_nodes);
 }
 
-static ds_hash_node_t *rbt_int_bucket_remove(
-    ds_hash_table_t *table, void **bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *rbt_int_bucket_remove(ds_hash_table_t *table,
+                                             void **bucket, void *key,
+                                             int (*compare)(void *, void *)) {
   (void)compare;
-  return rbt_bucket_remove_with_compare(table, bucket, key,
-                                        RBT_BUCKET_INT_KEY,
+  return rbt_bucket_remove_with_compare(table, bucket, key, RBT_BUCKET_INT_KEY,
                                         rbt_int_compare_nodes);
 }
 
-static ds_hash_node_t *rbt_slice_bucket_remove(
-    ds_hash_table_t *table, void **bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *rbt_slice_bucket_remove(ds_hash_table_t *table,
+                                               void **bucket, void *key,
+                                               int (*compare)(void *, void *)) {
   (void)compare;
-  return rbt_bucket_remove_with_compare(table, bucket, key,
-                                        RBT_BUCKET_SLICE_KEY,
-                                        rbt_slice_compare_nodes);
+  return rbt_bucket_remove_with_compare(
+      table, bucket, key, RBT_BUCKET_SLICE_KEY, rbt_slice_compare_nodes);
 }
 
 static void rbt_bucket_destroy(ds_hash_table_t *table, void *bucket,
@@ -313,39 +310,39 @@ static void rbt_bucket_apply(ds_hash_table_t *table, void *bucket,
 }
 
 static void *hash_table_int_bucket_create(ds_hash_table_t *table) {
-  return hash_table_create_chain_alloc(3, &rbt_int_bucket_store,
-                                       table->allocator, table->deallocator);
+  return ds_hash_table_create_chain_alloc(3, &rbt_int_bucket_store,
+                                          table->allocator, table->deallocator);
 }
 
 static void *hash_table_slice_bucket_create(ds_hash_table_t *table) {
-  return hash_table_create_chain_alloc(3, &rbt_slice_bucket_store,
-                                       table->allocator, table->deallocator);
+  return ds_hash_table_create_chain_alloc(3, &rbt_slice_bucket_store,
+                                          table->allocator, table->deallocator);
 }
 
-static ds_hash_node_t *hash_table_int_bucket_search(
-    ds_hash_table_t *table, void *bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *
+hash_table_int_bucket_search(ds_hash_table_t *table, void *bucket, void *key,
+                             int (*compare)(void *, void *)) {
   ds_hash_table_t *inner;
   void *result;
   (void)table;
   (void)compare;
   inner = (ds_hash_table_t *)bucket;
-  result = hash_table_lookup(inner, key, constant_hash, compare_int);
+  result = ds_hash_table_lookup(inner, key, constant_hash, compare_int);
   if (result == inner->nil) {
     return NULL;
   }
   return (ds_hash_node_t *)result;
 }
 
-static ds_hash_node_t *hash_table_slice_bucket_search(
-    ds_hash_table_t *table, void *bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *
+hash_table_slice_bucket_search(ds_hash_table_t *table, void *bucket, void *key,
+                               int (*compare)(void *, void *)) {
   ds_hash_table_t *inner;
   void *result;
   (void)table;
   (void)compare;
   inner = (ds_hash_table_t *)bucket;
-  result = hash_table_lookup(inner, key, constant_hash, compare_slice);
+  result = ds_hash_table_lookup(inner, key, constant_hash, compare_slice);
   if (result == inner->nil) {
     return NULL;
   }
@@ -372,9 +369,9 @@ static void hash_table_slice_bucket_insert(ds_hash_table_t *table,
   hash_table_insert(inner, node->key, node, constant_hash, compare_slice);
 }
 
-static ds_hash_node_t *hash_table_int_bucket_remove(
-    ds_hash_table_t *table, void **bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *
+hash_table_int_bucket_remove(ds_hash_table_t *table, void **bucket, void *key,
+                             int (*compare)(void *, void *)) {
   ds_hash_table_t *inner;
   ds_hash_node_t *outer_node;
   (void)table;
@@ -388,9 +385,9 @@ static ds_hash_node_t *hash_table_int_bucket_remove(
   return outer_node;
 }
 
-static ds_hash_node_t *hash_table_slice_bucket_remove(
-    ds_hash_table_t *table, void **bucket, void *key,
-    int (*compare)(void *, void *)) {
+static ds_hash_node_t *
+hash_table_slice_bucket_remove(ds_hash_table_t *table, void **bucket, void *key,
+                               int (*compare)(void *, void *)) {
   ds_hash_table_t *inner;
   ds_hash_node_t *outer_node;
   (void)table;
@@ -423,7 +420,7 @@ static void hash_table_bucket_destroy(ds_hash_table_t *table, void *bucket,
   inner = (ds_hash_table_t *)bucket;
   context.owner = table;
   context.destroy = destroy;
-  hash_table_for_each(inner, hash_table_bucket_destroy_outer_node, &context);
+  ds_hash_table_for_each(inner, hash_table_bucket_destroy_outer_node, &context);
   hash_table_destroy(inner, NULL);
 }
 
@@ -443,32 +440,26 @@ static void hash_table_bucket_apply(ds_hash_table_t *table, void *bucket,
   inner = (ds_hash_table_t *)bucket;
   context.callback = callback;
   context.args = args;
-  hash_table_for_each(inner, hash_table_bucket_apply_inner_node, &context);
+  ds_hash_table_for_each(inner, hash_table_bucket_apply_inner_node, &context);
 }
 
 static const ds_hash_bucket_store_t rbt_int_bucket_store = {
-    rbt_bucket_create, rbt_int_bucket_search, rbt_int_bucket_insert,
-    rbt_int_bucket_remove, rbt_bucket_destroy, rbt_bucket_apply};
+    rbt_bucket_create,     rbt_int_bucket_search, rbt_int_bucket_insert,
+    rbt_int_bucket_remove, rbt_bucket_destroy,    rbt_bucket_apply};
 
 static const ds_hash_bucket_store_t rbt_slice_bucket_store = {
-    rbt_bucket_create, rbt_slice_bucket_search, rbt_slice_bucket_insert,
-    rbt_slice_bucket_remove, rbt_bucket_destroy, rbt_bucket_apply};
+    rbt_bucket_create,       rbt_slice_bucket_search, rbt_slice_bucket_insert,
+    rbt_slice_bucket_remove, rbt_bucket_destroy,      rbt_bucket_apply};
 
 static const ds_hash_bucket_store_t hash_table_int_bucket_store = {
-    hash_table_int_bucket_create,
-    hash_table_int_bucket_search,
-    hash_table_int_bucket_insert,
-    hash_table_int_bucket_remove,
-    hash_table_bucket_destroy,
-    hash_table_bucket_apply};
+    hash_table_int_bucket_create, hash_table_int_bucket_search,
+    hash_table_int_bucket_insert, hash_table_int_bucket_remove,
+    hash_table_bucket_destroy,    hash_table_bucket_apply};
 
 static const ds_hash_bucket_store_t hash_table_slice_bucket_store = {
-    hash_table_slice_bucket_create,
-    hash_table_slice_bucket_search,
-    hash_table_slice_bucket_insert,
-    hash_table_slice_bucket_remove,
-    hash_table_bucket_destroy,
-    hash_table_bucket_apply};
+    hash_table_slice_bucket_create, hash_table_slice_bucket_search,
+    hash_table_slice_bucket_insert, hash_table_slice_bucket_remove,
+    hash_table_bucket_destroy,      hash_table_bucket_apply};
 
 static size_t get_char_slice(void *data, size_t slice) {
   char *word;
@@ -486,8 +477,8 @@ static ds_trie_node_t *trie_nested_store_search(void *store, size_t slice) {
   ds_hash_table_t *table;
   void *result;
   table = (ds_hash_table_t *)store;
-  result = hash_table_lookup(table, (void *)slice, constant_hash,
-                             compare_slice);
+  result =
+      ds_hash_table_lookup(table, (void *)slice, constant_hash, compare_slice);
   if (result == table->nil) {
     return NULL;
   }
@@ -495,8 +486,8 @@ static ds_trie_node_t *trie_nested_store_search(void *store, size_t slice) {
 }
 
 static void *trie_nested_store_create(ds_trie_t *trie, size_t size) {
-  return hash_table_create_chain_alloc(size, &hash_table_slice_bucket_store,
-                                       trie->allocator, trie->deallocator);
+  return ds_hash_table_create_chain_alloc(size, &hash_table_slice_bucket_store,
+                                          trie->allocator, trie->deallocator);
 }
 
 static void trie_nested_store_insert(void *store, ds_trie_node_t *node) {
@@ -536,14 +527,14 @@ static void trie_nested_store_apply_node(ds_hash_node_t *hash_node,
     va_list args_copy2;
     DS_VA_COPY(args_copy1, *context->args);
     DS_VA_COPY(args_copy2, *context->args);
-    context->trie->store_apply(context->trie, node->children,
-                               context->callback, &args_copy1);
+    context->trie->store_apply(context->trie, node->children, context->callback,
+                               &args_copy1);
     context->callback(context->trie, node, &args_copy2);
     va_end(args_copy1);
     va_end(args_copy2);
   } else {
-    context->trie->store_apply(context->trie, node->children,
-                               context->callback, NULL);
+    context->trie->store_apply(context->trie, node->children, context->callback,
+                               NULL);
     context->callback(context->trie, node, NULL);
   }
 }
@@ -555,8 +546,8 @@ static void trie_nested_store_apply(
   context.trie = trie;
   context.callback = callback;
   context.args = args;
-  hash_table_for_each((ds_hash_table_t *)store, trie_nested_store_apply_node,
-                      &context);
+  ds_hash_table_for_each((ds_hash_table_t *)store, trie_nested_store_apply_node,
+                         &context);
 }
 
 static void *trie_nested_store_clone(ds_trie_t *trie, void *store,
@@ -569,15 +560,14 @@ static void *trie_nested_store_clone(ds_trie_t *trie, void *store,
   ds_trie_node_t *node;
   ds_trie_node_t *new_node;
   table = (ds_hash_table_t *)store;
-  new_table = hash_table_create_chain_alloc(table->capacity,
-                                            &hash_table_slice_bucket_store,
-                                            table->allocator,
-                                            table->deallocator);
+  new_table = ds_hash_table_create_chain_alloc(
+      table->capacity, &hash_table_slice_bucket_store, table->allocator,
+      table->deallocator);
   cur = table->last_node;
   while (cur != NULL) {
     temp = cur->list_prev;
     node = (ds_trie_node_t *)cur->value;
-    new_node = trie_clone_node(trie, node, parent_node, clone_data);
+    new_node = ds_trie_clone_node(trie, node, parent_node, clone_data);
     trie_nested_store_insert(new_table, new_node);
     cur = temp;
   }
@@ -585,18 +575,16 @@ static void *trie_nested_store_clone(ds_trie_t *trie, void *store,
 }
 
 static ds_trie_t *trie_create_hash_hash_rbt(size_t num_splits) {
-  return trie_create(num_splits, trie_nested_store_search,
-                     trie_nested_store_create, trie_nested_store_insert,
-                     trie_nested_store_remove,
-                     trie_nested_store_destroy_entry,
-                     trie_nested_store_destroy,
-                     trie_nested_store_get_size,
-                     trie_nested_store_apply,
-                     trie_nested_store_clone);
+  return ds_trie_create(num_splits, trie_nested_store_search,
+                        trie_nested_store_create, trie_nested_store_insert,
+                        trie_nested_store_remove,
+                        trie_nested_store_destroy_entry,
+                        trie_nested_store_destroy, trie_nested_store_get_size,
+                        trie_nested_store_apply, trie_nested_store_clone);
 }
 
 static bool trie_contains(ds_trie_t *trie, const char *word) {
-  return trie_search(trie, (void *)word, get_char_slice, has_char_slice) !=
+  return ds_trie_search(trie, (void *)word, get_char_slice, has_char_slice) !=
          NULL;
 }
 
@@ -642,7 +630,7 @@ static int test_nested_hash_table(void) {
   int *value;
   int *result;
 
-  table = hash_table_create_chain(3, &hash_table_int_bucket_store);
+  table = ds_hash_table_create_chain(3, &hash_table_int_bucket_store);
   for (i = 0; i < 256; i++) {
     key = (int *)malloc(sizeof(*key));
     value = (int *)malloc(sizeof(*value));
@@ -656,8 +644,8 @@ static int test_nested_hash_table(void) {
 
   for (i = 0; i < 256; i++) {
     lookup_key = i;
-    result = (int *)hash_table_lookup(table, &lookup_key, constant_hash,
-                                      compare_int);
+    result = (int *)ds_hash_table_lookup(table, &lookup_key, constant_hash,
+                                         compare_int);
     if (result == table->nil || *result != i * 100) {
       return 2;
     }
@@ -671,8 +659,8 @@ static int test_nested_hash_table(void) {
 
   for (i = 0; i < 128; i++) {
     lookup_key = i;
-    result = (int *)hash_table_lookup(table, &lookup_key, constant_hash,
-                                      compare_int);
+    result = (int *)ds_hash_table_lookup(table, &lookup_key, constant_hash,
+                                         compare_int);
     if (i % 2 == 0) {
       if (result != table->nil) {
         return 3;
@@ -682,13 +670,14 @@ static int test_nested_hash_table(void) {
     }
   }
 
-  clone = hash_table_clone_with(table, NULL, NULL, constant_hash, compare_int);
+  clone =
+      ds_hash_table_clone_with(table, NULL, NULL, constant_hash, compare_int);
   if (clone == NULL || clone->size != table->size) {
     return 5;
   }
   lookup_key = 255;
-  result = (int *)hash_table_lookup(clone, &lookup_key, constant_hash,
-                                    compare_int);
+  result = (int *)ds_hash_table_lookup(clone, &lookup_key, constant_hash,
+                                       compare_int);
   if (result == clone->nil || *result != 25500) {
     return 6;
   }
@@ -699,10 +688,9 @@ static int test_nested_hash_table(void) {
 }
 
 static int test_trie_hash_hash_rbt(void) {
-  const char *words[WORD_COUNT] = {"apple",      "app",      "ape",
-                                   "banana",     "band",     "bandana",
-                                   "grape",      "grapefruit", "graph",
-                                   "orange",     "ornament", "orbit"};
+  const char *words[WORD_COUNT] = {"apple", "app",     "ape",      "banana",
+                                   "band",  "bandana", "grape",    "grapefruit",
+                                   "graph", "orange",  "ornament", "orbit"};
   ds_trie_t *trie;
   ds_trie_t *clone;
   ds_trie_node_t *node;
@@ -724,24 +712,24 @@ static int test_trie_hash_hash_rbt(void) {
   }
 
   count = 0;
-  trie_apply(trie, trie->root, count_terminal_node, &count);
+  ds_trie_apply(trie, trie->root, count_terminal_node, &count);
   if (count != WORD_COUNT) {
     return 12;
   }
 
-  clone = trie_clone(trie, clone_string_data);
+  clone = ds_trie_clone(trie, clone_string_data);
   for (i = 0; i < WORD_COUNT; i++) {
     if (!trie_contains(clone, words[i])) {
       return 13;
     }
   }
 
-  node = trie_search(trie, (void *)"grapefruit", get_char_slice,
-                     has_char_slice);
+  node = ds_trie_search(trie, (void *)"grapefruit", get_char_slice,
+                        has_char_slice);
   if (node == NULL) {
     return 14;
   }
-  trie_delete_node(trie, node);
+  ds_trie_delete_node(trie, node);
   if (trie_contains(trie, "grapefruit") || !trie_contains(trie, "grape") ||
       !trie_contains(trie, "graph")) {
     return 15;
@@ -750,8 +738,8 @@ static int test_trie_hash_hash_rbt(void) {
     return 16;
   }
 
-  trie_destroy_trie(trie, NULL);
-  trie_destroy_trie(clone, destroy_cloned_terminal);
+  ds_trie_destroy_trie(trie, NULL);
+  ds_trie_destroy_trie(clone, destroy_cloned_terminal);
   return 0;
 }
 

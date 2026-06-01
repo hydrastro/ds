@@ -25,31 +25,32 @@ typedef struct ring_list {
 #endif
 } ds_ring_list_t;
 
-ds_ring_list_t *FUNC(ring_list_create)(void);
-ds_ring_list_t *FUNC(ring_list_create_alloc)(void *(*allocator)(size_t),
-                                             void (*deallocator)(void *));
-void FUNC(ring_list_push_front)(ds_ring_list_t *list,
-                                ds_ring_list_node_t *node);
-void FUNC(ring_list_push_back)(ds_ring_list_t *list, ds_ring_list_node_t *node);
-ds_ring_list_node_t *FUNC(ring_list_pop_front)(ds_ring_list_t *list);
-ds_ring_list_node_t *FUNC(ring_list_front)(ds_ring_list_t *list);
-ds_ring_list_node_t *FUNC(ring_list_back)(ds_ring_list_t *list);
-void FUNC(ring_list_rotate)(ds_ring_list_t *list);
-bool FUNC(ring_list_is_empty)(ds_ring_list_t *list);
-ds_ring_list_node_t *FUNC(ring_list_search)(
+ds_ring_list_t *FUNC(ds_ring_list_create)(void);
+ds_ring_list_t *FUNC(ds_ring_list_create_alloc)(void *(*allocator)(size_t),
+                                                void (*deallocator)(void *));
+void FUNC(ds_ring_list_push_front)(ds_ring_list_t *list,
+                                   ds_ring_list_node_t *node);
+void FUNC(ds_ring_list_push_back)(ds_ring_list_t *list,
+                                  ds_ring_list_node_t *node);
+ds_ring_list_node_t *FUNC(ds_ring_list_pop_front)(ds_ring_list_t *list);
+ds_ring_list_node_t *FUNC(ds_ring_list_front)(ds_ring_list_t *list);
+ds_ring_list_node_t *FUNC(ds_ring_list_back)(ds_ring_list_t *list);
+void FUNC(ds_ring_list_rotate)(ds_ring_list_t *list);
+bool FUNC(ds_ring_list_is_empty)(ds_ring_list_t *list);
+ds_ring_list_node_t *FUNC(ds_ring_list_search)(
     ds_ring_list_t *list, ds_ring_list_node_t *node,
     int (*compare)(ds_ring_list_node_t *, ds_ring_list_node_t *));
-void FUNC(ring_list_delete_node)(ds_ring_list_t *list,
-                                 ds_ring_list_node_t *node);
-void FUNC(ring_list_destroy_node)(ds_ring_list_t *list,
-                                  ds_ring_list_node_t *node,
-                                  void (*destroy)(ds_ring_list_node_t *));
-void FUNC(ring_list_walk_forward)(ds_ring_list_t *list,
-                                  ds_ring_list_node_t *node,
-                                  void (*callback)(ds_ring_list_node_t *));
-void FUNC(ring_list_destroy)(ds_ring_list_t *list,
-                             void (*destroy)(ds_ring_list_node_t *));
-ds_ring_list_t *FUNC(ring_list_clone)(
+void FUNC(ds_ring_list_delete_node)(ds_ring_list_t *list,
+                                    ds_ring_list_node_t *node);
+void FUNC(ds_ring_list_destroy_node)(ds_ring_list_t *list,
+                                     ds_ring_list_node_t *node,
+                                     void (*destroy)(ds_ring_list_node_t *));
+void FUNC(ds_ring_list_walk_forward)(ds_ring_list_t *list,
+                                     ds_ring_list_node_t *node,
+                                     void (*callback)(ds_ring_list_node_t *));
+void FUNC(ds_ring_list_destroy)(ds_ring_list_t *list,
+                                void (*destroy)(ds_ring_list_node_t *));
+ds_ring_list_t *FUNC(ds_ring_list_clone)(
     ds_ring_list_t *list,
     ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *));
 

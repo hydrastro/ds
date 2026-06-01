@@ -30,6 +30,7 @@ GEN_DIR   := gen
 TEST_DIR  := test
 BUILD_DIR := build
 DATA_DIR  := data
+EXAMPLE_DIR := examples
 TEST_BUILD_DIR := $(BUILD_DIR)/test
 INCLUDES  := -I. -I$(LIB_DIR) -I$(BUILD_DIR)
 
@@ -104,14 +105,20 @@ FORMAT_SRC := \
   $(TEST_DIR)/art_test.c $(TEST_DIR)/bitvector_test.c \
   $(TEST_DIR)/fibonacci_heap_test.c $(TEST_DIR)/hamt_test.c \
   $(TEST_DIR)/order_statistic_tree_test.c $(TEST_DIR)/rope_test.c \
-  $(TEST_DIR)/segment_tree_test.c $(TEST_DIR)/wavelet_tree_test.c
+  $(TEST_DIR)/segment_tree_test.c $(TEST_DIR)/wavelet_tree_test.c \
+  $(TEST_DIR)/graph_test.c $(TEST_DIR)/persistent_rbt_test.c \
+  $(TEST_DIR)/persistent_trie_test.c \
+  $(EXAMPLE_DIR)/intrusive_list.c $(EXAMPLE_DIR)/avl_set.c \
+  $(EXAMPLE_DIR)/heap_priority_queue.c $(EXAMPLE_DIR)/art_dictionary.c \
+  $(EXAMPLE_DIR)/sequence_containers.c $(EXAMPLE_DIR)/succinct_structures.c
 
 # Every hand-written source and header, excluding generated tables.
 FORMAT_ALL_SRC := ds.h \
   $(filter-out $(LIB_DIR)/unicode_tables.c $(LIB_DIR)/unicode_tables.h \
                $(LIB_DIR)/unicode_tables_glue.c, \
     $(wildcard $(LIB_DIR)/*.c) $(wildcard $(LIB_DIR)/*.h)) \
-  $(wildcard $(TEST_DIR)/*.c) $(wildcard $(TEST_DIR)/*.cpp)
+  $(wildcard $(TEST_DIR)/*.c) $(wildcard $(TEST_DIR)/*.cpp) \
+  $(wildcard $(EXAMPLE_DIR)/*.c)
 
 TEST_UCD_DIR := $(TEST_DIR)/ucd
 TEST_UCD_FILES := \
@@ -136,7 +143,6 @@ TEST_LIB_STATIC := $(TEST_BUILD_DIR)/libds_test.a
 
 TEST_SRC := $(wildcard $(TEST_DIR)/*_test.c)
 TEST_BIN := $(patsubst $(TEST_DIR)/%.c,$(TEST_BUILD_DIR)/%,$(TEST_SRC))
-EXAMPLE_DIR := examples
 EXAMPLE_BUILD_DIR := $(BUILD_DIR)/examples
 EXAMPLE_SRC := $(wildcard $(EXAMPLE_DIR)/*.c)
 EXAMPLE_BIN := $(patsubst $(EXAMPLE_DIR)/%.c,$(EXAMPLE_BUILD_DIR)/%,$(EXAMPLE_SRC))
@@ -349,7 +355,8 @@ format-check:
 LINT_SRC := \
   $(LIB_DIR)/art.c $(LIB_DIR)/bitvector.c $(LIB_DIR)/fibonacci_heap.c \
   $(LIB_DIR)/hamt.c $(LIB_DIR)/order_statistic_tree.c $(LIB_DIR)/rope.c \
-  $(LIB_DIR)/segment_tree.c $(LIB_DIR)/wavelet_tree.c
+  $(LIB_DIR)/segment_tree.c $(LIB_DIR)/wavelet_tree.c \
+  $(LIB_DIR)/graph.c $(LIB_DIR)/persistent_rbt.c $(LIB_DIR)/persistent_trie.c
 
 # Static analysis with cppcheck over the maintained structures. Warnings,
 # performance, and portability findings fail the build.

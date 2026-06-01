@@ -30,28 +30,33 @@ typedef struct treap {
 #endif
 } ds_treap_t;
 
-ds_treap_t *FUNC(treap_create)(int (*compare)(ds_treap_node_t *,
-                                              ds_treap_node_t *));
-ds_treap_t *FUNC(treap_create_alloc)(
+ds_treap_t *FUNC(ds_treap_create)(int (*compare)(ds_treap_node_t *,
+                                                 ds_treap_node_t *));
+ds_treap_t *FUNC(ds_treap_create_alloc)(
     int (*compare)(ds_treap_node_t *, ds_treap_node_t *), unsigned long seed,
     void *(*allocator)(size_t), void (*deallocator)(void *));
-void FUNC(treap_node_init)(ds_treap_node_t *node);
-void FUNC(treap_insert)(ds_treap_t *treap, ds_treap_node_t *node);
-ds_treap_node_t *FUNC(treap_search)(ds_treap_t *treap, ds_treap_node_t *node);
-ds_treap_node_t *FUNC(treap_remove)(ds_treap_t *treap, ds_treap_node_t *node);
-ds_treap_node_t *FUNC(treap_minimum)(ds_treap_t *treap, ds_treap_node_t *node);
-ds_treap_node_t *FUNC(treap_maximum)(ds_treap_t *treap, ds_treap_node_t *node);
-bool FUNC(treap_is_empty)(ds_treap_t *treap);
-void FUNC(treap_destroy_node)(ds_treap_t *treap, ds_treap_node_t *node,
-                              void (*destroy)(ds_treap_node_t *));
-void FUNC(treap_inorder_walk)(ds_treap_t *treap, ds_treap_node_t *node,
-                              void (*callback)(ds_treap_node_t *));
-void FUNC(treap_inorder_walk_tree)(ds_treap_t *treap,
-                                   void (*callback)(ds_treap_node_t *));
-void FUNC(treap_destroy)(ds_treap_t *treap, void (*destroy)(ds_treap_node_t *));
+void FUNC(ds_treap_node_init)(ds_treap_node_t *node);
+void FUNC(ds_treap_insert)(ds_treap_t *treap, ds_treap_node_t *node);
+ds_treap_node_t *FUNC(ds_treap_search)(ds_treap_t *treap,
+                                       ds_treap_node_t *node);
+ds_treap_node_t *FUNC(ds_treap_remove)(ds_treap_t *treap,
+                                       ds_treap_node_t *node);
+ds_treap_node_t *FUNC(ds_treap_minimum)(ds_treap_t *treap,
+                                        ds_treap_node_t *node);
+ds_treap_node_t *FUNC(ds_treap_maximum)(ds_treap_t *treap,
+                                        ds_treap_node_t *node);
+bool FUNC(ds_treap_is_empty)(ds_treap_t *treap);
+void FUNC(ds_treap_destroy_node)(ds_treap_t *treap, ds_treap_node_t *node,
+                                 void (*destroy)(ds_treap_node_t *));
+void FUNC(ds_treap_inorder_walk)(ds_treap_t *treap, ds_treap_node_t *node,
+                                 void (*callback)(ds_treap_node_t *));
+void FUNC(ds_treap_inorder_walk_tree)(ds_treap_t *treap,
+                                      void (*callback)(ds_treap_node_t *));
+void FUNC(ds_treap_destroy)(ds_treap_t *treap,
+                            void (*destroy)(ds_treap_node_t *));
 ds_treap_t *
-    FUNC(treap_clone)(ds_treap_t *treap,
-                      ds_treap_node_t *(*clone_node)(ds_treap_node_t *));
+    FUNC(ds_treap_clone)(ds_treap_t *treap,
+                         ds_treap_node_t *(*clone_node)(ds_treap_node_t *));
 
 #ifdef __cplusplus
 }

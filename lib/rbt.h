@@ -59,65 +59,66 @@ typedef struct rbt {
 #endif
 } __attribute__((aligned(sizeof(long)))) ds_rbt_t;
 
-void FUNC(rbt_set_parent)(ds_rbt_node_t *node, ds_rbt_node_t *parent);
-void FUNC(rbt_set_parent_color)(ds_rbt_node_t *node, ds_rbt_node_t *parent,
-                                int color);
-ds_rbt_t *FUNC(rbt_create)(void);
-ds_rbt_t *FUNC(rbt_create_alloc)(void *(*allocator)(size_t),
-                                 void (*deallocator)(void *));
-ds_rbt_node_t *FUNC(rbt_minimum)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
-ds_rbt_node_t *FUNC(rbt_maximum)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
-ds_rbt_node_t *FUNC(rbt_successor)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
-ds_rbt_node_t *FUNC(rbt_predecessor)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
-ds_rbt_node_t *
-    FUNC(rbt_search)(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *data,
-                     int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *));
+void FUNC(ds_rbt_set_parent)(ds_rbt_node_t *node, ds_rbt_node_t *parent);
+void FUNC(ds_rbt_set_parent_color)(ds_rbt_node_t *node, ds_rbt_node_t *parent,
+                                   int color);
+ds_rbt_t *FUNC(ds_rbt_create)(void);
+ds_rbt_t *FUNC(ds_rbt_create_alloc)(void *(*allocator)(size_t),
+                                    void (*deallocator)(void *));
+ds_rbt_node_t *FUNC(ds_rbt_minimum)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
+ds_rbt_node_t *FUNC(ds_rbt_maximum)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
+ds_rbt_node_t *FUNC(ds_rbt_successor)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
+ds_rbt_node_t *FUNC(ds_rbt_predecessor)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
+ds_rbt_node_t *FUNC(ds_rbt_search)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
+                                   ds_rbt_node_t *data,
+                                   int (*compare)(ds_rbt_node_t *,
+                                                  ds_rbt_node_t *));
 
-ds_rbt_node_t *FUNC(rbt_bigger_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
-                                     ds_rbt_node_t *key,
-                                     int (*compare)(ds_rbt_node_t *,
-                                                    ds_rbt_node_t *));
-ds_rbt_node_t *FUNC(rbt_smaller_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
-                                      ds_rbt_node_t *key,
-                                      int (*compare)(ds_rbt_node_t *,
-                                                     ds_rbt_node_t *));
-void FUNC(rbt_left_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
-void FUNC(rbt_right_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
-void FUNC(rbt_insert_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_z);
-void FUNC(rbt_insert)(ds_rbt_t *tree, ds_rbt_node_t *node_z,
-                      int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *));
-void FUNC(rbt_inorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                                   void (*callback)(void *));
-void FUNC(rbt_inorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                            void (*callback)(void *));
-void FUNC(rbt_inorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *));
-void FUNC(rbt_preorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                                    void (*callback)(void *));
-void FUNC(rbt_preorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                             void (*callback)(void *));
-void FUNC(rbt_preorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *));
-void FUNC(rbt_postorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                                     void (*callback)(void *));
-void FUNC(rbt_postorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                              void (*callback)(void *));
-void FUNC(rbt_postorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *));
-void FUNC(rbt_transplant)(ds_rbt_t *tree, ds_rbt_node_t *node_u,
-                          ds_rbt_node_t *node_v);
-void FUNC(rbt_delete_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
-void FUNC(rbt_delete_node)(ds_rbt_t *tree, ds_rbt_node_t *node_z);
-void FUNC(rbt_delete_tree)(ds_rbt_t *tree);
-void FUNC(rbt_destroy_node)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                            void (*destroy)(ds_rbt_node_t *));
-void FUNC(rbt_destroy_recursive)(ds_rbt_t *tree, ds_rbt_node_t *node,
-                                 void (*destroy)(ds_rbt_node_t *));
-void FUNC(rbt_destroy_tree)(ds_rbt_t *tree, void (*destroy)(ds_rbt_node_t *));
+ds_rbt_node_t *FUNC(ds_rbt_bigger_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
+                                        ds_rbt_node_t *key,
+                                        int (*compare)(ds_rbt_node_t *,
+                                                       ds_rbt_node_t *));
+ds_rbt_node_t *FUNC(ds_rbt_smaller_than)(ds_rbt_t *tree, ds_rbt_node_t *node_x,
+                                         ds_rbt_node_t *key,
+                                         int (*compare)(ds_rbt_node_t *,
+                                                        ds_rbt_node_t *));
+void FUNC(ds_rbt_left_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
+void FUNC(ds_rbt_right_rotate)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
+void FUNC(ds_rbt_insert_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_z);
+void FUNC(ds_rbt_insert)(ds_rbt_t *tree, ds_rbt_node_t *node_z,
+                         int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *));
+void FUNC(ds_rbt_inorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                                      void (*callback)(void *));
+void FUNC(ds_rbt_inorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                               void (*callback)(void *));
+void FUNC(ds_rbt_inorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *));
+void FUNC(ds_rbt_preorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                                       void (*callback)(void *));
+void FUNC(ds_rbt_preorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                                void (*callback)(void *));
+void FUNC(ds_rbt_preorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *));
+void FUNC(ds_rbt_postorder_walk_helper)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                                        void (*callback)(void *));
+void FUNC(ds_rbt_postorder_walk)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                                 void (*callback)(void *));
+void FUNC(ds_rbt_postorder_walk_tree)(ds_rbt_t *tree, void (*callback)(void *));
+void FUNC(ds_rbt_transplant)(ds_rbt_t *tree, ds_rbt_node_t *node_u,
+                             ds_rbt_node_t *node_v);
+void FUNC(ds_rbt_delete_fixup)(ds_rbt_t *tree, ds_rbt_node_t *node_x);
+void FUNC(ds_rbt_delete_node)(ds_rbt_t *tree, ds_rbt_node_t *node_z);
+void FUNC(ds_rbt_delete_tree)(ds_rbt_t *tree);
+void FUNC(ds_rbt_destroy_node)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                               void (*destroy)(ds_rbt_node_t *));
+void FUNC(ds_rbt_destroy_recursive)(ds_rbt_t *tree, ds_rbt_node_t *node,
+                                    void (*destroy)(ds_rbt_node_t *));
+void FUNC(ds_rbt_destroy_tree)(ds_rbt_t *tree,
+                               void (*destroy)(ds_rbt_node_t *));
 ds_rbt_node_t *
-    FUNC(rbt_clone_recursive)(ds_rbt_t *tree, ds_rbt_t *new_tree,
-                              ds_rbt_node_t *node,
-                              ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *));
-ds_rbt_t *FUNC(rbt_clone)(ds_rbt_t *tree,
-                          ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *));
-
+    FUNC(ds_rbt_clone_recursive)(ds_rbt_t *tree, ds_rbt_t *new_tree,
+                                 ds_rbt_node_t *node,
+                                 ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *));
+ds_rbt_t *FUNC(ds_rbt_clone)(ds_rbt_t *tree,
+                             ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *));
 
 #ifdef __cplusplus
 }

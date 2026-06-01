@@ -27,13 +27,13 @@ static size_t FUNC(bloom_compute_words)(size_t num_bits) {
   return (num_bits + DS_BLOOM_BITS_PER_WORD - 1) / DS_BLOOM_BITS_PER_WORD;
 }
 
-ds_bloom_filter_t *FUNC(bloom_filter_create)(size_t expected_items,
-                                             double false_positive_rate) {
-  return FUNC(bloom_filter_create_alloc)(expected_items, false_positive_rate,
-                                         malloc, free);
+ds_bloom_filter_t *FUNC(ds_bloom_filter_create)(size_t expected_items,
+                                                double false_positive_rate) {
+  return FUNC(ds_bloom_filter_create_alloc)(expected_items, false_positive_rate,
+                                            malloc, free);
 }
 
-ds_bloom_filter_t *FUNC(bloom_filter_create_alloc)(
+ds_bloom_filter_t *FUNC(ds_bloom_filter_create_alloc)(
     size_t expected_items, double false_positive_rate,
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   size_t num_bits;
@@ -60,14 +60,14 @@ ds_bloom_filter_t *FUNC(bloom_filter_create_alloc)(
   if (num_hashes < 1) {
     num_hashes = 1;
   }
-  return FUNC(bloom_filter_create_with_params)(num_bits, num_hashes, allocator,
-                                               deallocator);
+  return FUNC(ds_bloom_filter_create_with_params)(num_bits, num_hashes,
+                                                  allocator, deallocator);
 }
 
 ds_bloom_filter_t *
-FUNC(bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
-                                      void *(*allocator)(size_t),
-                                      void (*deallocator)(void *)) {
+FUNC(ds_bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
+                                         void *(*allocator)(size_t),
+                                         void (*deallocator)(void *)) {
   ds_bloom_filter_t *filter;
   size_t num_words;
   size_t i;
@@ -109,8 +109,8 @@ static void FUNC(bloom_each_index)(ds_bloom_filter_t *filter, const void *key,
   }
 }
 
-void FUNC(bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
-                            size_t length) {
+void FUNC(ds_bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
+                               size_t length) {
   size_t *indices;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -130,8 +130,8 @@ void FUNC(bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
 #endif
 }
 
-bool FUNC(bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
-                                       const void *key, size_t length) {
+bool FUNC(ds_bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
+                                          const void *key, size_t length) {
   size_t *indices;
   size_t i;
   bool result = true;
@@ -155,7 +155,7 @@ bool FUNC(bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
   return result;
 }
 
-void FUNC(bloom_filter_clear)(ds_bloom_filter_t *filter) {
+void FUNC(ds_bloom_filter_clear)(ds_bloom_filter_t *filter) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(filter);
@@ -169,7 +169,7 @@ void FUNC(bloom_filter_clear)(ds_bloom_filter_t *filter) {
 #endif
 }
 
-size_t FUNC(bloom_filter_count)(ds_bloom_filter_t *filter) {
+size_t FUNC(ds_bloom_filter_count)(ds_bloom_filter_t *filter) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(filter);
@@ -181,7 +181,7 @@ size_t FUNC(bloom_filter_count)(ds_bloom_filter_t *filter) {
   return result;
 }
 
-double FUNC(bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter) {
+double FUNC(ds_bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter) {
   double k;
   double n;
   double m;
@@ -200,8 +200,8 @@ double FUNC(bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter) {
   return result;
 }
 
-bool FUNC(bloom_filter_union)(ds_bloom_filter_t *filter,
-                              ds_bloom_filter_t *other) {
+bool FUNC(ds_bloom_filter_union)(ds_bloom_filter_t *filter,
+                                 ds_bloom_filter_t *other) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(filter);
@@ -223,13 +223,13 @@ bool FUNC(bloom_filter_union)(ds_bloom_filter_t *filter,
   return true;
 }
 
-ds_bloom_filter_t *FUNC(bloom_filter_clone)(ds_bloom_filter_t *filter) {
+ds_bloom_filter_t *FUNC(ds_bloom_filter_clone)(ds_bloom_filter_t *filter) {
   ds_bloom_filter_t *new_filter;
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(filter);
 #endif
-  new_filter = FUNC(bloom_filter_create_with_params)(
+  new_filter = FUNC(ds_bloom_filter_create_with_params)(
       filter->num_bits, filter->num_hashes, filter->allocator,
       filter->deallocator);
   for (i = 0; i < filter->num_words; i++) {
@@ -242,7 +242,7 @@ ds_bloom_filter_t *FUNC(bloom_filter_clone)(ds_bloom_filter_t *filter) {
   return new_filter;
 }
 
-void FUNC(bloom_filter_destroy)(ds_bloom_filter_t *filter) {
+void FUNC(ds_bloom_filter_destroy)(ds_bloom_filter_t *filter) {
   filter->deallocator(filter->words);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(filter);

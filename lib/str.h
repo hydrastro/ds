@@ -39,47 +39,47 @@ void ds__unlock2(ds_str_t *a, ds_str_t *b);
 
 size_t ds__grow_cap(size_t cur, size_t need);
 
-ds_str_t *FUNC(str_create)(void);
-ds_str_t *FUNC(str_create_alloc)(void *(*allocator)(size_t),
-                                 void (*deallocator)(void *));
-ds_str_t *FUNC(str_with_capacity)(size_t cap);
-ds_str_t *FUNC(str_from)(const void *data, size_t n);
-void FUNC(str_destroy)(ds_str_t *s);
-void FUNC(str_clear)(ds_str_t *s);
-void FUNC(str_delete)(ds_str_t *s);
-int FUNC(str_reserve)(ds_str_t *s, size_t need);
-int FUNC(str_shrink_to_fit)(ds_str_t *s);
-int FUNC(str_append)(ds_str_t *s, const void *data, size_t n);
-int FUNC(str_append_cstr)(ds_str_t *s, const char *cstr);
-int FUNC(str_pushc)(ds_str_t *s, int c);
-int FUNC(str_insert)(ds_str_t *s, size_t pos, const void *data, size_t n);
-int FUNC(str_erase)(ds_str_t *s, size_t pos, size_t n);
-ds_str_t *FUNC(str_clone)(ds_str_t *s);
-ds_str_t *FUNC(str_clone_cap)(ds_str_t *s);
-int FUNC(str_cmp)(ds_str_t *a, ds_str_t *b);
-int FUNC(str_eq)(ds_str_t *a, ds_str_t *b);
-long FUNC(str_find)(ds_str_t *s, const void *needle, size_t n, size_t start);
-long FUNC(str_rfind)(ds_str_t *s, const void *needle, size_t n, size_t start);
-void FUNC(str_to_upper)(ds_str_t *s);
-void FUNC(str_to_lower)(ds_str_t *s);
-void FUNC(str_swap)(ds_str_t *a, ds_str_t *b);
-int FUNC(str_clear_freebuf)(ds_str_t *s);
+ds_str_t *FUNC(ds_str_create)(void);
+ds_str_t *FUNC(ds_str_create_alloc)(void *(*allocator)(size_t),
+                                    void (*deallocator)(void *));
+ds_str_t *FUNC(ds_str_with_capacity)(size_t cap);
+ds_str_t *FUNC(ds_str_from)(const void *data, size_t n);
+void FUNC(ds_str_destroy)(ds_str_t *s);
+void FUNC(ds_str_clear)(ds_str_t *s);
+void FUNC(ds_str_delete)(ds_str_t *s);
+int FUNC(ds_str_reserve)(ds_str_t *s, size_t need);
+int FUNC(ds_str_shrink_to_fit)(ds_str_t *s);
+int FUNC(ds_str_append)(ds_str_t *s, const void *data, size_t n);
+int FUNC(ds_str_append_cstr)(ds_str_t *s, const char *cstr);
+int FUNC(ds_str_pushc)(ds_str_t *s, int c);
+int FUNC(ds_str_insert)(ds_str_t *s, size_t pos, const void *data, size_t n);
+int FUNC(ds_str_erase)(ds_str_t *s, size_t pos, size_t n);
+ds_str_t *FUNC(ds_str_clone)(ds_str_t *s);
+ds_str_t *FUNC(ds_str_clone_cap)(ds_str_t *s);
+int FUNC(ds_str_cmp)(ds_str_t *a, ds_str_t *b);
+int FUNC(ds_str_eq)(ds_str_t *a, ds_str_t *b);
+long FUNC(ds_str_find)(ds_str_t *s, const void *needle, size_t n, size_t start);
+long FUNC(ds_str_rfind)(ds_str_t *s, const void *needle, size_t n,
+                        size_t start);
+void FUNC(ds_str_to_upper)(ds_str_t *s);
+void FUNC(ds_str_to_lower)(ds_str_t *s);
+void FUNC(ds_str_swap)(ds_str_t *a, ds_str_t *b);
+int FUNC(ds_str_clear_freebuf)(ds_str_t *s);
 
-int FUNC(str_append_vfmt)(ds_str_t *s, const char *fmt, va_list ap);
-int FUNC(str_append_fmt)(ds_str_t *s, const char *fmt, ...);
+int FUNC(ds_str_append_vfmt)(ds_str_t *s, const char *fmt, va_list ap);
+int FUNC(ds_str_append_fmt)(ds_str_t *s, const char *fmt, ...);
 
-int FUNC(str_reserve_exact)(ds_str_t *s, size_t cap);
-int FUNC(str_assign)(ds_str_t *s, const void *data, size_t n);
-int FUNC(str_pop)(ds_str_t *s, int *out_ch);
-ds_str_t *FUNC(str_slice)(ds_str_t *s, size_t pos, size_t n);
+int FUNC(ds_str_reserve_exact)(ds_str_t *s, size_t cap);
+int FUNC(ds_str_assign)(ds_str_t *s, const void *data, size_t n);
+int FUNC(ds_str_pop)(ds_str_t *s, int *out_ch);
+ds_str_t *FUNC(ds_str_slice)(ds_str_t *s, size_t pos, size_t n);
 
-char *FUNC(str_detach)(ds_str_t *s, size_t *len_out, size_t *cap_out);
-int FUNC(str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap);
-void FUNC(str_free_external)(ds_str_t *owner, void *p);
+char *FUNC(ds_str_detach)(ds_str_t *s, size_t *len_out, size_t *cap_out);
+int FUNC(ds_str_adopt)(ds_str_t *s, char *buf, size_t len, size_t cap);
+void FUNC(ds_str_free_external)(ds_str_t *owner, void *p);
 
-int FUNC(str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap,
-                         int has_room_for_nul);
-
+int FUNC(ds_str_adopt_safe)(ds_str_t *s, char *buf, size_t len, size_t cap,
+                            int has_room_for_nul);
 
 #ifdef __cplusplus
 }

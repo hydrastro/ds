@@ -94,12 +94,12 @@ static void FUNC(seg_build)(ds_segment_tree_t *st, const long *values,
   }
 }
 
-ds_segment_tree_t *FUNC(segment_tree_create)(const long *values, size_t n,
-                                             ds_segment_tree_op_t op) {
-  return FUNC(segment_tree_create_alloc)(values, n, op, malloc, free);
+ds_segment_tree_t *FUNC(ds_segment_tree_create)(const long *values, size_t n,
+                                                ds_segment_tree_op_t op) {
+  return FUNC(ds_segment_tree_create_alloc)(values, n, op, malloc, free);
 }
 
-ds_segment_tree_t *FUNC(segment_tree_create_alloc)(
+ds_segment_tree_t *FUNC(ds_segment_tree_create_alloc)(
     const long *values, size_t n, ds_segment_tree_op_t op,
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   ds_segment_tree_t *st =
@@ -149,8 +149,8 @@ static void FUNC(seg_update_add)(ds_segment_tree_t *st, size_t node,
       FUNC(seg_combine)(st, st->tree[2 * node], st->tree[2 * node + 1]);
 }
 
-void FUNC(segment_tree_update_add)(ds_segment_tree_t *st, size_t left,
-                                   size_t right, long delta) {
+void FUNC(ds_segment_tree_update_add)(ds_segment_tree_t *st, size_t left,
+                                      size_t right, long delta) {
 #ifdef DS_THREAD_SAFE
   LOCK(st);
 #endif
@@ -181,8 +181,8 @@ static void FUNC(seg_update_assign)(ds_segment_tree_t *st, size_t node,
       FUNC(seg_combine)(st, st->tree[2 * node], st->tree[2 * node + 1]);
 }
 
-void FUNC(segment_tree_update_assign)(ds_segment_tree_t *st, size_t left,
-                                      size_t right, long value) {
+void FUNC(ds_segment_tree_update_assign)(ds_segment_tree_t *st, size_t left,
+                                         size_t right, long value) {
 #ifdef DS_THREAD_SAFE
   LOCK(st);
 #endif
@@ -212,8 +212,8 @@ static long FUNC(seg_query)(ds_segment_tree_t *st, size_t node, size_t left,
   return FUNC(seg_combine)(st, left_result, right_result);
 }
 
-long FUNC(segment_tree_query)(ds_segment_tree_t *st, size_t left,
-                              size_t right) {
+long FUNC(ds_segment_tree_query)(ds_segment_tree_t *st, size_t left,
+                                 size_t right) {
   long result;
 #ifdef DS_THREAD_SAFE
   LOCK(st);
@@ -229,7 +229,7 @@ long FUNC(segment_tree_query)(ds_segment_tree_t *st, size_t left,
   return result;
 }
 
-size_t FUNC(segment_tree_size)(ds_segment_tree_t *st) {
+size_t FUNC(ds_segment_tree_size)(ds_segment_tree_t *st) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(st);
@@ -241,7 +241,7 @@ size_t FUNC(segment_tree_size)(ds_segment_tree_t *st) {
   return result;
 }
 
-void FUNC(segment_tree_destroy)(ds_segment_tree_t *st) {
+void FUNC(ds_segment_tree_destroy)(ds_segment_tree_t *st) {
   st->deallocator(st->tree);
   st->deallocator(st->lazy_add);
   st->deallocator(st->lazy_set);

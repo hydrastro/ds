@@ -37,12 +37,12 @@ static ds_rope_node_t *FUNC(rope_new_internal)(ds_rope_t *rope,
   return node;
 }
 
-ds_rope_t *FUNC(rope_create)(void) {
-  return FUNC(rope_create_alloc)(malloc, free);
+ds_rope_t *FUNC(ds_rope_create)(void) {
+  return FUNC(ds_rope_create_alloc)(malloc, free);
 }
 
-ds_rope_t *FUNC(rope_create_alloc)(void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
+ds_rope_t *FUNC(ds_rope_create_alloc)(void *(*allocator)(size_t),
+                                      void (*deallocator)(void *)) {
   ds_rope_t *rope = (ds_rope_t *)allocator(sizeof(ds_rope_t));
   rope->root = NULL;
   rope->allocator = allocator;
@@ -67,15 +67,15 @@ static ds_rope_node_t *FUNC(rope_build)(ds_rope_t *rope, const char *str,
   }
 }
 
-ds_rope_t *FUNC(rope_from_string)(const char *str, size_t length) {
-  ds_rope_t *rope = FUNC(rope_create)();
+ds_rope_t *FUNC(ds_rope_from_string)(const char *str, size_t length) {
+  ds_rope_t *rope = FUNC(ds_rope_create)();
   if (length > 0) {
     rope->root = FUNC(rope_build)(rope, str, length);
   }
   return rope;
 }
 
-size_t FUNC(rope_length)(ds_rope_t *rope) {
+size_t FUNC(ds_rope_length)(ds_rope_t *rope) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
@@ -105,7 +105,7 @@ static char FUNC(rope_char_at_node)(ds_rope_node_t *node, size_t index) {
   return '\0';
 }
 
-char FUNC(rope_char_at)(ds_rope_t *rope, size_t index) {
+char FUNC(ds_rope_char_at)(ds_rope_t *rope, size_t index) {
   char result = '\0';
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
@@ -172,7 +172,7 @@ static void FUNC(rope_free_internal)(ds_rope_t *rope, ds_rope_node_t *node) {
   rope->deallocator(node);
 }
 
-void FUNC(rope_rebalance)(ds_rope_t *rope) {
+void FUNC(ds_rope_rebalance)(ds_rope_t *rope) {
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
 #endif
@@ -239,7 +239,7 @@ static void FUNC(rope_maybe_rebalance)(ds_rope_t *rope) {
   }
 }
 
-void FUNC(rope_append)(ds_rope_t *rope, const char *str, size_t length) {
+void FUNC(ds_rope_append)(ds_rope_t *rope, const char *str, size_t length) {
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
 #endif
@@ -302,8 +302,8 @@ static void FUNC(rope_split_node)(ds_rope_t *rope, ds_rope_node_t *node,
   }
 }
 
-void FUNC(rope_insert)(ds_rope_t *rope, size_t index, const char *str,
-                       size_t length) {
+void FUNC(ds_rope_insert)(ds_rope_t *rope, size_t index, const char *str,
+                          size_t length) {
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
 #endif
@@ -340,7 +340,7 @@ static void FUNC(rope_destroy_node)(ds_rope_t *rope, ds_rope_node_t *node) {
   rope->deallocator(node);
 }
 
-void FUNC(rope_delete)(ds_rope_t *rope, size_t index, size_t count) {
+void FUNC(ds_rope_delete)(ds_rope_t *rope, size_t index, size_t count) {
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
 #endif
@@ -393,8 +393,8 @@ static size_t FUNC(rope_substring_node)(ds_rope_node_t *node, size_t index,
   return written;
 }
 
-size_t FUNC(rope_substring)(ds_rope_t *rope, size_t index, size_t count,
-                            char *out) {
+size_t FUNC(ds_rope_substring)(ds_rope_t *rope, size_t index, size_t count,
+                               char *out) {
   size_t written = 0;
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
@@ -411,7 +411,7 @@ size_t FUNC(rope_substring)(ds_rope_t *rope, size_t index, size_t count,
   return written;
 }
 
-char *FUNC(rope_to_string)(ds_rope_t *rope) {
+char *FUNC(ds_rope_to_string)(ds_rope_t *rope) {
   char *buffer;
   size_t length;
 #ifdef DS_THREAD_SAFE
@@ -429,7 +429,7 @@ char *FUNC(rope_to_string)(ds_rope_t *rope) {
   return buffer;
 }
 
-void FUNC(rope_concat)(ds_rope_t *rope, ds_rope_t *other) {
+void FUNC(ds_rope_concat)(ds_rope_t *rope, ds_rope_t *other) {
 #ifdef DS_THREAD_SAFE
   LOCK(rope);
 #endif
@@ -443,7 +443,7 @@ void FUNC(rope_concat)(ds_rope_t *rope, ds_rope_t *other) {
 #endif
 }
 
-void FUNC(rope_destroy)(ds_rope_t *rope) {
+void FUNC(ds_rope_destroy)(ds_rope_t *rope) {
   FUNC(rope_destroy_node)(rope, rope->root);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(rope);

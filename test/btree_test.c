@@ -13,7 +13,9 @@ int compare_int(ds_btree_node_t *a, ds_btree_node_t *b) {
   return CAST(a, my_node_t)->data - CAST(b, my_node_t)->data;
 }
 
-void destroy_int(ds_btree_node_t *data) { free(data); }
+void destroy_int(ds_btree_node_t *data) {
+  free(data);
+}
 
 void print_btree_node(ds_btree_internal_node_t *node, int level,
                       void (*print_data)(ds_btree_node_t *)) {
@@ -47,32 +49,32 @@ ds_btree_node_t *clone_node(ds_btree_node_t *node) {
 }
 
 void test_btree_operations() {
-  ds_btree_t *tree = btree_create(2);
+  ds_btree_t *tree = ds_btree_create(2);
   int values[] = {10, 20, 5, 6, 15, 30, 25, 35};
   for (size_t i = 0u; i < sizeof(values) / sizeof(values[0]); i++) {
     my_node_t *data = (my_node_t *)malloc(sizeof(my_node_t));
     data->data = values[i];
-    btree_insert(tree, &data->node, compare_int);
+    ds_btree_insert(tree, &data->node, compare_int);
   }
 
   printf("after inserts:\n");
   print_btree_node(tree->root, 0, print_int);
   printf("\nIn-order traversal:\n");
-  btree_inorder_walk(tree, tree->root, print_int);
+  ds_btree_inorder_walk(tree, tree->root, print_int);
   printf("\n");
 
   printf("Pre-order traversal:\n");
-  btree_preorder_walk(tree, tree->root, print_int);
+  ds_btree_preorder_walk(tree, tree->root, print_int);
   printf("\n");
 
   printf("Post-order traversal:\n");
-  btree_postorder_walk(tree, tree->root, print_int);
+  ds_btree_postorder_walk(tree, tree->root, print_int);
   printf("\n");
 
   my_node_t *wkey = (my_node_t *)malloc(sizeof(my_node_t));
   for (int i = 0; i < 35; i++) {
     wkey->data = i;
-    ds_btree_node_t *result = btree_search(tree, &wkey->node, compare_int);
+    ds_btree_node_t *result = ds_btree_search(tree, &wkey->node, compare_int);
     if (result != tree->nil) {
       printf("found: %d check: %d\n", CAST(result, my_node_t)->data, i);
     } else {
@@ -83,13 +85,14 @@ void test_btree_operations() {
   print_btree_node(tree->root, 0, print_int);
 
   int delete_values[] = {10, 20, 5, 6, 15, 35};
-  for (size_t i = 0u; i < sizeof(delete_values) / sizeof(delete_values[0]); i++) {
+  for (size_t i = 0u; i < sizeof(delete_values) / sizeof(delete_values[0]);
+       i++) {
     printf("deleting %d\n", delete_values[i]);
     fflush(stdout);
     wkey->data = delete_values[i];
     printf("searching...\n");
     fflush(stdout);
-    ds_btree_node_t *result = btree_search(tree, &wkey->node, compare_int);
+    ds_btree_node_t *result = ds_btree_search(tree, &wkey->node, compare_int);
     printf("search OK\n");
     fflush(stdout);
     if (result == tree->nil) {
@@ -98,7 +101,7 @@ void test_btree_operations() {
       printf("result defined:");
       print_int(result);
       printf("\n");
-      btree_delete_node(tree, result);
+      ds_btree_delete_node(tree, result);
       printf("deleted %d\n", delete_values[i]);
       fflush(stdout);
       print_btree_node(tree->root, 0, print_int);
@@ -108,18 +111,18 @@ void test_btree_operations() {
     }
   }
 
-  ds_btree_t *new_tree = btree_clone(tree, clone_node);
+  ds_btree_t *new_tree = ds_btree_clone(tree, clone_node);
 
   printf("after deletions:\n");
   print_btree_node(tree->root, 0, print_int);
   printf("destroying whole tree\n");
-  btree_destroy_tree(tree, destroy_int);
+  ds_btree_destroy_tree(tree, destroy_int);
   printf("destroyed whole tree\n");
   free(wkey);
 
   printf("clone:\n");
   print_btree_node(new_tree->root, 0, print_int);
-  btree_destroy_tree(new_tree, destroy_int);
+  ds_btree_destroy_tree(new_tree, destroy_int);
 }
 
 void *thread_function(void *arg) {
@@ -129,7 +132,7 @@ void *thread_function(void *arg) {
     my_node_t *data = (my_node_t *)malloc(sizeof(my_node_t));
     data->data = rand() % 1000;
     printf("thread insert..\n");
-    btree_insert(tree, &data->node, compare_int);
+    ds_btree_insert(tree, &data->node, compare_int);
     printf("thread inserted\n");
   }
 
@@ -137,7 +140,7 @@ void *thread_function(void *arg) {
 }
 
 void test_thread_safety() {
-  ds_btree_t *tree = btree_create(2);
+  ds_btree_t *tree = ds_btree_create(2);
 
   pthread_t threads[5];
   for (int i = 0; i < 5; i++) {
@@ -151,7 +154,7 @@ void test_thread_safety() {
   printf("after inserts:\n");
   print_btree_node(tree->root, 0, print_int);
 
-  btree_destroy_tree(tree, destroy_int);
+  ds_btree_destroy_tree(tree, destroy_int);
 }
 
 int main() {

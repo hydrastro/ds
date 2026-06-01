@@ -33,7 +33,7 @@ int main(void) {
   int n = 2000;
   item_t *items = (item_t *)malloc(sizeof(item_t) * (size_t)n);
   int *sorted = (int *)malloc(sizeof(int) * (size_t)n);
-  ds_ost_t *tree = ost_create(compare_items);
+  ds_ost_t *tree = ds_ost_create(compare_items);
   int count = 0;
   int i;
   item_t probe;
@@ -42,25 +42,25 @@ int main(void) {
   for (i = 0; i < n; ++i) {
     int k = (int)(((unsigned)i * 2654435761U) >> 8) % 100000;
     items[count].key = k;
-    if (ost_insert(tree, &items[count].node)) {
+    if (ds_ost_insert(tree, &items[count].node)) {
       sorted[count] = k;
       count += 1;
     }
   }
   qsort(sorted, (size_t)count, sizeof(int), cmp_int);
   printf("inserted %d unique keys\n", count);
-  assert(ost_size(tree) == (size_t)count);
+  assert(ds_ost_size(tree) == (size_t)count);
 
   /* in-order walk is sorted */
   walk_count = 0;
   walk_ordered = 1;
-  ost_inorder_walk(tree, check_order);
+  ds_ost_inorder_walk(tree, check_order);
   assert(walk_ordered == 1);
   assert(walk_count == count);
 
   /* select(k) must equal sorted[k] */
   for (i = 0; i < count; i += 13) {
-    ds_ost_node_t *s = ost_select(tree, (size_t)i);
+    ds_ost_node_t *s = ds_ost_select(tree, (size_t)i);
     assert(s != tree->nil);
     assert(CAST(s, item_t)->key == sorted[i]);
   }
@@ -69,37 +69,37 @@ int main(void) {
   /* rank(x) must equal index in sorted order */
   for (i = 0; i < count; i += 13) {
     probe.key = sorted[i];
-    assert(ost_rank(tree, &probe.node) == (size_t)i);
+    assert(ds_ost_rank(tree, &probe.node) == (size_t)i);
   }
   printf("rank verified\n");
 
   /* select out of range -> nil */
-  assert(ost_select(tree, (size_t)count) == tree->nil);
+  assert(ds_ost_select(tree, (size_t)count) == tree->nil);
 
   /* min/max */
-  assert(CAST(ost_minimum(tree), item_t)->key == sorted[0]);
-  assert(CAST(ost_maximum(tree), item_t)->key == sorted[count - 1]);
+  assert(CAST(ds_ost_minimum(tree), item_t)->key == sorted[0]);
+  assert(CAST(ds_ost_maximum(tree), item_t)->key == sorted[count - 1]);
 
   /* remove a quarter, re-verify select/rank consistency */
   for (i = 0; i < count; i += 4) {
     probe.key = sorted[i];
-    ost_remove(tree, &probe.node, NULL);
+    ds_ost_remove(tree, &probe.node, NULL);
   }
   walk_count = 0;
   walk_ordered = 1;
-  ost_inorder_walk(tree, check_order);
+  ds_ost_inorder_walk(tree, check_order);
   assert(walk_ordered == 1);
-  assert((size_t)walk_count == ost_size(tree));
+  assert((size_t)walk_count == ds_ost_size(tree));
   printf("after deletions size=%lu, still ordered\n",
-         (unsigned long)ost_size(tree));
+         (unsigned long)ds_ost_size(tree));
 
   /* select(0) should be the smallest surviving element */
   {
-    ds_ost_node_t *first = ost_select(tree, 0);
-    assert(first == ost_minimum(tree));
+    ds_ost_node_t *first = ds_ost_select(tree, 0);
+    assert(first == ds_ost_minimum(tree));
   }
 
-  ost_destroy(tree, NULL);
+  ds_ost_destroy(tree, NULL);
   free(items);
   free(sorted);
   printf("ok\n");

@@ -88,3 +88,41 @@ pool allocators have stricter behavior than `malloc`:
 
 Use the default context or a debug allocator when a module requires general
 `realloc` behavior.
+
+## Allocation failure
+
+The library treats allocator results as infallible: `*_create`,
+`*_create_alloc`, and every operation that grows a structure assume the supplied
+allocator returns a valid, non-NULL pointer. There are deliberately no
+out-of-memory error returns to thread through call sites. A program that must
+survive memory exhaustion supplies an allocator that does not return NULL — one
+that aborts, `longjmp`s to a recovery point, or otherwise handles the failure
+itself. The default `malloc`/`free` pair follows the platform's behavior; wrap
+it if you need a stricter policy. This choice keeps intrusive return values
+unambiguous: a returned node pointer is always a real node, never an
+allocation-failure sentinel.
+
+## Persistent structure versions
+
+Persistent containers (`persistent_rbt`, `persistent_trie`) are immutable:
+`insert`, `remove`, and similar operations do not modify their input version,
+they return a brand-new version that structurally shares unchanged subtrees with
+the old one. Versions are reference counted. Every version handed back to the
+caller carries a reference the caller owns and must hand back with
+`*_version_release` once it is no longer needed; `*_version_retain` adds a
+reference when a version is stored in more than one place. Destroying the
+container releases only the references the container itself holds (such as its
+initial empty root), so leaking intermediate versions is a caller bug, not a
+library one. A typical loop that keeps only the latest version releases each
+previous one as soon as the next is produced.
+
+## Lookup return values
+
+- Intrusive containers with a `nil` sentinel return that sentinel for an absent
+  result from search/min/max/peek queries. Test against the container's `nil`
+  field rather than `NULL`.
+- Value-mapping APIs (`hash_table`, `trie`, `radix_trie`, `hamt`, `art`,
+  `string_map`) return the stored `void *` value, or `NULL` when the key is
+  absent — `NULL` is the value's natural "not present" marker here.
+- Index-returning succinct structures (`bitset`, `bitvector`, `wavelet_tree`)
+  return a published `DS_*_NPOS` constant when no position satisfies the query.

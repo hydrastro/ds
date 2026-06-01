@@ -18,9 +18,13 @@ int string_compare(void *key1, void *key2) {
   return strcmp((char *)key1, (char *)key2);
 }
 
-void *clone_key(void *key) { return (void *)strdup(key); }
+void *clone_key(void *key) {
+  return (void *)strdup(key);
+}
 
-void *clone_value(void *value) { return (void *)strdup(value); }
+void *clone_value(void *value) {
+  return (void *)strdup(value);
+}
 
 void destroy_node(ds_hash_node_t *node) {
   free(node->key);
@@ -28,11 +32,12 @@ void destroy_node(ds_hash_node_t *node) {
 }
 
 int main(void) {
-  ds_hash_table_t *table = hash_table_create((size_t)4000, HASH_CHAINING, NULL);
+  ds_hash_table_t *table =
+      ds_hash_table_create((size_t)4000, HASH_CHAINING, NULL);
   ds_hash_node_t *node;
   ds_hash_table_t *new_table;
   char *value;
-  node = hash_table_lookup(table, "key2", string_hash, string_compare);
+  node = ds_hash_table_lookup(table, "key2", string_hash, string_compare);
   value = CAST(node, char);
 
   if (value == table->nil) {
@@ -48,7 +53,7 @@ int main(void) {
   hash_table_insert(table, "key5", "hmmm", string_hash, string_compare);
   hash_table_insert(table, "key6", "hmmm", string_hash, string_compare);
 
-  node = hash_table_lookup(table, "key2", string_hash, string_compare);
+  node = ds_hash_table_lookup(table, "key2", string_hash, string_compare);
   value = CAST(node, char);
   if (value == table->nil) {
     printf("Key 'key2' not found\n");
@@ -62,7 +67,7 @@ int main(void) {
 
   hash_table_remove(table, "key2", string_hash, string_compare, NULL);
 
-  node = hash_table_lookup(table, "key2", string_hash, string_compare);
+  node = ds_hash_table_lookup(table, "key2", string_hash, string_compare);
   value = CAST(node, char);
   if (value == table->nil) {
     printf("Key 'key2' not found\n");
@@ -73,7 +78,7 @@ int main(void) {
 
   printf("Destroyed first hash table\n\n");
 
-  node = hash_table_lookup(new_table, "key", string_hash, string_compare);
+  node = ds_hash_table_lookup(new_table, "key", string_hash, string_compare);
   value = CAST(node, char);
   if (value == new_table->nil) {
     printf("Key 'key2' not found\n");
@@ -81,9 +86,10 @@ int main(void) {
     printf("Found value for key2: %s\n", value);
   }
 
-  hash_table_remove(new_table, "key2", string_hash, string_compare, destroy_node);
+  hash_table_remove(new_table, "key2", string_hash, string_compare,
+                    destroy_node);
 
-  node = hash_table_lookup(new_table, "key2", string_hash, string_compare);
+  node = ds_hash_table_lookup(new_table, "key2", string_hash, string_compare);
   value = CAST(node, char);
   if (value == new_table->nil) {
     printf("Key 'key2' not found\n");

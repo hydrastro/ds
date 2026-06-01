@@ -4,8 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void *diag_default_alloc(size_t size) { return malloc(size); }
-static void diag_default_free(void *ptr) { free(ptr); }
+static void *diag_default_alloc(size_t size) {
+  return malloc(size);
+}
+static void diag_default_free(void *ptr) {
+  free(ptr);
+}
 static void diagnostics_collector_emit(ds_diagnostic_sink_t *sink,
                                        const ds_diagnostic_t *diagnostic);
 
@@ -42,9 +46,9 @@ void ds_diagnostic_sink_emit(ds_diagnostic_sink_t *sink,
 
 void ds_diagnostic_emit_desc(ds_diagnostic_sink_t *sink,
                              const ds_diagnostic_desc_t *desc,
-                             const ds_diagnostic_arg_t *args,
-                             size_t arg_count, const char *file,
-                             unsigned long line, const char *function) {
+                             const ds_diagnostic_arg_t *args, size_t arg_count,
+                             const char *file, unsigned long line,
+                             const char *function) {
   ds_diagnostic_t diagnostic;
 
   if (desc == NULL) {
@@ -101,7 +105,8 @@ void ds_diagnostics_init_alloc(ds_diagnostics_t *diagnostics,
   diagnostics->size = 0U;
   diagnostics->capacity = 0U;
   diagnostics->allocator = allocator != NULL ? allocator : diag_default_alloc;
-  diagnostics->deallocator = deallocator != NULL ? deallocator : diag_default_free;
+  diagnostics->deallocator =
+      deallocator != NULL ? deallocator : diag_default_free;
   diagnostics->sink.emit = diagnostics_collector_emit;
   diagnostics->sink.user = diagnostics;
 }
@@ -147,8 +152,10 @@ static void diagnostics_collector_emit(ds_diagnostic_sink_t *sink,
   }
 
   if (diagnostics->size == diagnostics->capacity) {
-    new_capacity = diagnostics->capacity == 0U ? 8U : diagnostics->capacity * 2U;
-    new_items = (ds_diagnostic_t *)diagnostics->allocator(new_capacity * sizeof(*new_items));
+    new_capacity =
+        diagnostics->capacity == 0U ? 8U : diagnostics->capacity * 2U;
+    new_items = (ds_diagnostic_t *)diagnostics->allocator(new_capacity *
+                                                          sizeof(*new_items));
     if (new_items == NULL) {
       return;
     }

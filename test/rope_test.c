@@ -46,20 +46,20 @@ static void ref_delete(size_t index, size_t count) {
 static void check_equal(ds_rope_t *rope, const char *label) {
   char *s;
   size_t i;
-  assert(rope_length(rope) == ref_len);
-  s = rope_to_string(rope);
+  assert(ds_rope_length(rope) == ref_len);
+  s = ds_rope_to_string(rope);
   if (strcmp(s, ref) != 0) {
     printf("[%s] MISMATCH\n rope=%s\n ref =%s\n", label, s, ref);
     assert(0);
   }
   for (i = 0; i < ref_len; i += (ref_len / 50 + 1)) {
-    assert(rope_char_at(rope, i) == ref[i]);
+    assert(ds_rope_char_at(rope, i) == ref[i]);
   }
   free(s);
 }
 
 int main(void) {
-  ds_rope_t *rope = rope_from_string("Hello, world!", 13);
+  ds_rope_t *rope = ds_rope_from_string("Hello, world!", 13);
   unsigned state = 7777U;
   int round;
   char buf[128];
@@ -69,7 +69,7 @@ int main(void) {
   ref_len = 13;
   ref[13] = '\0';
   check_equal(rope, "init");
-  printf("init ok, len=%lu\n", (unsigned long)rope_length(rope));
+  printf("init ok, len=%lu\n", (unsigned long)ds_rope_length(rope));
 
   for (round = 0; round < 4000; ++round) {
     size_t op, idx, n, i;
@@ -85,18 +85,18 @@ int main(void) {
       for (i = 0; i < n; ++i) {
         buf[i] = (char)('a' + (int)((state >> i) % 26U));
       }
-      rope_insert(rope, idx, buf, n);
+      ds_rope_insert(rope, idx, buf, n);
       ref_insert(idx, buf, n);
     } else if (op == 1) {
       /* append */
       for (i = 0; i < n; ++i) {
         buf[i] = (char)('A' + (int)((state >> i) % 26U));
       }
-      rope_append(rope, buf, n);
+      ds_rope_append(rope, buf, n);
       ref_insert(ref_len, buf, n);
     } else {
       /* delete */
-      rope_delete(rope, idx, n);
+      ds_rope_delete(rope, idx, n);
       ref_delete(idx, n);
     }
 
@@ -106,10 +106,10 @@ int main(void) {
   }
   check_equal(rope, "after-ops");
   printf("4000 mixed ops verified, len=%lu\n",
-         (unsigned long)rope_length(rope));
+         (unsigned long)ds_rope_length(rope));
 
   /* explicit rebalance preserves content */
-  rope_rebalance(rope);
+  ds_rope_rebalance(rope);
   check_equal(rope, "after-rebalance");
   printf("rebalance preserved content\n");
 
@@ -118,7 +118,7 @@ int main(void) {
     size_t start = ref_len / 4;
     size_t count = ref_len / 4;
     char *out = (char *)malloc(count + 1);
-    size_t got = rope_substring(rope, start, count, out);
+    size_t got = ds_rope_substring(rope, start, count, out);
     out[got] = '\0';
     assert(got == count);
     assert(strncmp(out, ref + start, count) == 0);
@@ -128,16 +128,16 @@ int main(void) {
 
   /* concat */
   {
-    ds_rope_t *other = rope_from_string("XYZ-tail", 8);
-    rope_concat(rope, other);
+    ds_rope_t *other = ds_rope_from_string("XYZ-tail", 8);
+    ds_rope_concat(rope, other);
     ref_insert(ref_len, "XYZ-tail", 8);
     check_equal(rope, "after-concat");
-    assert(rope_length(other) == 0);
-    rope_destroy(other);
+    assert(ds_rope_length(other) == 0);
+    ds_rope_destroy(other);
     printf("concat verified\n");
   }
 
-  rope_destroy(rope);
+  ds_rope_destroy(rope);
   free(ref);
   printf("ok\n");
   return 0;

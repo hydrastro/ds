@@ -147,7 +147,7 @@ int main(void) {
   bucket_store.destroy = vector_bucket_destroy;
   bucket_store.apply = vector_bucket_apply;
 
-  table = hash_table_create_chain(3, &bucket_store);
+  table = ds_hash_table_create_chain(3, &bucket_store);
 
   for (i = 0; i < 64; i++) {
     key = (int *)malloc(sizeof(int));
@@ -158,15 +158,15 @@ int main(void) {
   }
 
   lookup_key = 42;
-  result = (int *)hash_table_lookup(table, &lookup_key, hash_func_int,
-                                    compare_int);
+  result = (int *)ds_hash_table_lookup(table, &lookup_key, hash_func_int,
+                                       compare_int);
   if (result == table->nil || *result != 420) {
     return 1;
   }
 
   hash_table_remove(table, &lookup_key, hash_func_int, compare_int,
                     destroy_node);
-  if (hash_table_lookup(table, &lookup_key, hash_func_int, compare_int) !=
+  if (ds_hash_table_lookup(table, &lookup_key, hash_func_int, compare_int) !=
       table->nil) {
     return 2;
   }

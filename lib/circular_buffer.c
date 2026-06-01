@@ -1,14 +1,14 @@
 #include "circular_buffer.h"
 #include <stdlib.h>
 
-ds_circular_buffer_t *FUNC(circular_buffer_create)(size_t capacity) {
-  return FUNC(circular_buffer_create_alloc)(capacity, false, malloc, free);
+ds_circular_buffer_t *FUNC(ds_circular_buffer_create)(size_t capacity) {
+  return FUNC(ds_circular_buffer_create_alloc)(capacity, false, malloc, free);
 }
 
 ds_circular_buffer_t *
-FUNC(circular_buffer_create_alloc)(size_t capacity, bool overwrite,
-                                   void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
+FUNC(ds_circular_buffer_create_alloc)(size_t capacity, bool overwrite,
+                                      void *(*allocator)(size_t),
+                                      void (*deallocator)(void *)) {
   ds_circular_buffer_t *buffer;
   size_t slots = capacity > 0 ? capacity : 1;
   buffer = (ds_circular_buffer_t *)allocator(sizeof(ds_circular_buffer_t));
@@ -30,7 +30,7 @@ FUNC(circular_buffer_create_alloc)(size_t capacity, bool overwrite,
   return buffer;
 }
 
-bool FUNC(circular_buffer_is_empty)(ds_circular_buffer_t *buffer) {
+bool FUNC(ds_circular_buffer_is_empty)(ds_circular_buffer_t *buffer) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
@@ -42,7 +42,7 @@ bool FUNC(circular_buffer_is_empty)(ds_circular_buffer_t *buffer) {
   return result;
 }
 
-bool FUNC(circular_buffer_is_full)(ds_circular_buffer_t *buffer) {
+bool FUNC(ds_circular_buffer_is_full)(ds_circular_buffer_t *buffer) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
@@ -54,8 +54,8 @@ bool FUNC(circular_buffer_is_full)(ds_circular_buffer_t *buffer) {
   return result;
 }
 
-bool FUNC(circular_buffer_push)(ds_circular_buffer_t *buffer,
-                                ds_circular_buffer_node_t *node) {
+bool FUNC(ds_circular_buffer_push)(ds_circular_buffer_t *buffer,
+                                   ds_circular_buffer_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
 #endif
@@ -85,7 +85,7 @@ bool FUNC(circular_buffer_push)(ds_circular_buffer_t *buffer,
 }
 
 ds_circular_buffer_node_t *
-FUNC(circular_buffer_pop)(ds_circular_buffer_t *buffer) {
+FUNC(ds_circular_buffer_pop)(ds_circular_buffer_t *buffer) {
   ds_circular_buffer_node_t *node;
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
@@ -106,7 +106,7 @@ FUNC(circular_buffer_pop)(ds_circular_buffer_t *buffer) {
 }
 
 ds_circular_buffer_node_t *
-FUNC(circular_buffer_peek)(ds_circular_buffer_t *buffer) {
+FUNC(ds_circular_buffer_peek)(ds_circular_buffer_t *buffer) {
   ds_circular_buffer_node_t *node;
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
@@ -125,7 +125,7 @@ FUNC(circular_buffer_peek)(ds_circular_buffer_t *buffer) {
 }
 
 ds_circular_buffer_node_t *
-FUNC(circular_buffer_peek_tail)(ds_circular_buffer_t *buffer) {
+FUNC(ds_circular_buffer_peek_tail)(ds_circular_buffer_t *buffer) {
   ds_circular_buffer_node_t *node;
   size_t index;
 #ifdef DS_THREAD_SAFE
@@ -146,7 +146,7 @@ FUNC(circular_buffer_peek_tail)(ds_circular_buffer_t *buffer) {
 }
 
 ds_circular_buffer_node_t *
-FUNC(circular_buffer_at)(ds_circular_buffer_t *buffer, size_t index) {
+FUNC(ds_circular_buffer_at)(ds_circular_buffer_t *buffer, size_t index) {
   ds_circular_buffer_node_t *node;
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
@@ -164,7 +164,7 @@ FUNC(circular_buffer_at)(ds_circular_buffer_t *buffer, size_t index) {
   return node;
 }
 
-void FUNC(circular_buffer_walk_forward)(
+void FUNC(ds_circular_buffer_walk_forward)(
     ds_circular_buffer_t *buffer,
     void (*callback)(ds_circular_buffer_node_t *)) {
   size_t i;
@@ -179,7 +179,7 @@ void FUNC(circular_buffer_walk_forward)(
 #endif
 }
 
-void FUNC(circular_buffer_clear)(ds_circular_buffer_t *buffer) {
+void FUNC(ds_circular_buffer_clear)(ds_circular_buffer_t *buffer) {
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
 #endif
@@ -191,7 +191,7 @@ void FUNC(circular_buffer_clear)(ds_circular_buffer_t *buffer) {
 #endif
 }
 
-void FUNC(circular_buffer_destroy)(
+void FUNC(ds_circular_buffer_destroy)(
     ds_circular_buffer_t *buffer,
     void (*destroy)(ds_circular_buffer_node_t *)) {
   size_t i;
@@ -208,7 +208,7 @@ void FUNC(circular_buffer_destroy)(
   buffer->deallocator(buffer);
 }
 
-ds_circular_buffer_t *FUNC(circular_buffer_clone)(
+ds_circular_buffer_t *FUNC(ds_circular_buffer_clone)(
     ds_circular_buffer_t *buffer,
     ds_circular_buffer_node_t *(*clone_node)(ds_circular_buffer_node_t *)) {
   ds_circular_buffer_t *new_buffer;
@@ -216,13 +216,13 @@ ds_circular_buffer_t *FUNC(circular_buffer_clone)(
 #ifdef DS_THREAD_SAFE
   LOCK(buffer);
 #endif
-  new_buffer = FUNC(circular_buffer_create_alloc)(
+  new_buffer = FUNC(ds_circular_buffer_create_alloc)(
       buffer->capacity, buffer->overwrite, buffer->allocator,
       buffer->deallocator);
   for (i = 0; i < buffer->size; i++) {
     ds_circular_buffer_node_t *cloned =
         clone_node(buffer->data[(buffer->head + i) % buffer->capacity]);
-    FUNC(circular_buffer_push)(new_buffer, cloned);
+    FUNC(ds_circular_buffer_push)(new_buffer, cloned);
   }
 #ifdef DS_THREAD_SAFE
   UNLOCK(buffer);

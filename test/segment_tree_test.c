@@ -38,7 +38,7 @@ static void run(ds_segment_tree_op_t op, const char *label) {
   for (i = 0; i < n; ++i) {
     arr[i] = (long)((i * 7U) % 50U);
   }
-  st = segment_tree_create(arr, n, op);
+  st = ds_segment_tree_create(arr, n, op);
 
   for (round = 0; round < 2000; ++round) {
     size_t a, b, tmp;
@@ -57,7 +57,7 @@ static void run(ds_segment_tree_op_t op, const char *label) {
       /* range assign */
       long v = (long)((state >> 4) % 100U);
       size_t j;
-      segment_tree_update_assign(st, a, b, v);
+      ds_segment_tree_update_assign(st, a, b, v);
       for (j = a; j <= b; ++j) {
         arr[j] = v;
       }
@@ -65,13 +65,13 @@ static void run(ds_segment_tree_op_t op, const char *label) {
       /* range add */
       long d = (long)((state >> 4) % 20U) - 10L;
       size_t j;
-      segment_tree_update_add(st, a, b, d);
+      ds_segment_tree_update_add(st, a, b, d);
       for (j = a; j <= b; ++j) {
         arr[j] += d;
       }
     } else {
       /* query */
-      long got = segment_tree_query(st, a, b);
+      long got = ds_segment_tree_query(st, a, b);
       long want = brute_query(arr, a, b, op);
       if (got != want) {
         printf("[%s] MISMATCH [%lu,%lu] got=%ld want=%ld\n", label,
@@ -81,7 +81,7 @@ static void run(ds_segment_tree_op_t op, const char *label) {
     }
   }
   printf("[%s] 2000 mixed ops verified against brute force\n", label);
-  segment_tree_destroy(st);
+  ds_segment_tree_destroy(st);
   free(arr);
 }
 

@@ -29,31 +29,30 @@ typedef struct circular_buffer {
 #endif
 } ds_circular_buffer_t;
 
-ds_circular_buffer_t *FUNC(circular_buffer_create)(size_t capacity);
+ds_circular_buffer_t *FUNC(ds_circular_buffer_create)(size_t capacity);
 ds_circular_buffer_t *
-    FUNC(circular_buffer_create_alloc)(size_t capacity, bool overwrite,
-                                       void *(*allocator)(size_t),
-                                       void (*deallocator)(void *));
-bool FUNC(circular_buffer_is_empty)(ds_circular_buffer_t *buffer);
-bool FUNC(circular_buffer_is_full)(ds_circular_buffer_t *buffer);
-bool FUNC(circular_buffer_push)(ds_circular_buffer_t *buffer,
-                                ds_circular_buffer_node_t *node);
+    FUNC(ds_circular_buffer_create_alloc)(size_t capacity, bool overwrite,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *));
+bool FUNC(ds_circular_buffer_is_empty)(ds_circular_buffer_t *buffer);
+bool FUNC(ds_circular_buffer_is_full)(ds_circular_buffer_t *buffer);
+bool FUNC(ds_circular_buffer_push)(ds_circular_buffer_t *buffer,
+                                   ds_circular_buffer_node_t *node);
 ds_circular_buffer_node_t *
-    FUNC(circular_buffer_pop)(ds_circular_buffer_t *buffer);
+    FUNC(ds_circular_buffer_pop)(ds_circular_buffer_t *buffer);
 ds_circular_buffer_node_t *
-    FUNC(circular_buffer_peek)(ds_circular_buffer_t *buffer);
+    FUNC(ds_circular_buffer_peek)(ds_circular_buffer_t *buffer);
 ds_circular_buffer_node_t *
-    FUNC(circular_buffer_peek_tail)(ds_circular_buffer_t *buffer);
+    FUNC(ds_circular_buffer_peek_tail)(ds_circular_buffer_t *buffer);
 ds_circular_buffer_node_t *
-    FUNC(circular_buffer_at)(ds_circular_buffer_t *buffer, size_t index);
-void FUNC(circular_buffer_walk_forward)(
+    FUNC(ds_circular_buffer_at)(ds_circular_buffer_t *buffer, size_t index);
+void FUNC(ds_circular_buffer_walk_forward)(
     ds_circular_buffer_t *buffer,
     void (*callback)(ds_circular_buffer_node_t *));
-void FUNC(circular_buffer_clear)(ds_circular_buffer_t *buffer);
-void
-    FUNC(circular_buffer_destroy)(ds_circular_buffer_t *buffer,
-                                  void (*destroy)(ds_circular_buffer_node_t *));
-ds_circular_buffer_t *FUNC(circular_buffer_clone)(
+void FUNC(ds_circular_buffer_clear)(ds_circular_buffer_t *buffer);
+void FUNC(ds_circular_buffer_destroy)(
+    ds_circular_buffer_t *buffer, void (*destroy)(ds_circular_buffer_node_t *));
+ds_circular_buffer_t *FUNC(ds_circular_buffer_clone)(
     ds_circular_buffer_t *buffer,
     ds_circular_buffer_node_t *(*clone_node)(ds_circular_buffer_node_t *));
 

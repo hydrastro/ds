@@ -61,12 +61,12 @@ static bool FUNC(art_is_leaf)(ds_art_node_t *node) {
   return node != NULL && node->type == DS_ART_LEAF;
 }
 
-ds_art_t *FUNC(art_create)(void) {
-  return FUNC(art_create_alloc)(malloc, free);
+ds_art_t *FUNC(ds_art_create)(void) {
+  return FUNC(ds_art_create_alloc)(malloc, free);
 }
 
-ds_art_t *FUNC(art_create_alloc)(void *(*allocator)(size_t),
-                                 void (*deallocator)(void *)) {
+ds_art_t *FUNC(ds_art_create_alloc)(void *(*allocator)(size_t),
+                                    void (*deallocator)(void *)) {
   ds_art_t *art = (ds_art_t *)allocator(sizeof(ds_art_t));
   art->root = NULL;
   art->size = 0;
@@ -311,8 +311,8 @@ static size_t FUNC(art_min_size)(size_t la, size_t lb) {
   return m;
 }
 
-bool FUNC(art_insert)(ds_art_t *art, const unsigned char *key,
-                      size_t key_length, void *value) {
+bool FUNC(ds_art_insert)(ds_art_t *art, const unsigned char *key,
+                         size_t key_length, void *value) {
   ds_art_node_t **ref;
   size_t depth = 0;
   bool added = true;
@@ -468,8 +468,8 @@ static ds_art_leaf_t *FUNC(art_search)(ds_art_t *art, const unsigned char *key,
   return NULL;
 }
 
-bool FUNC(art_contains)(ds_art_t *art, const unsigned char *key,
-                        size_t key_length) {
+bool FUNC(ds_art_contains)(ds_art_t *art, const unsigned char *key,
+                           size_t key_length) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(art);
@@ -481,8 +481,8 @@ bool FUNC(art_contains)(ds_art_t *art, const unsigned char *key,
   return result;
 }
 
-void *FUNC(art_get)(ds_art_t *art, const unsigned char *key,
-                    size_t key_length) {
+void *FUNC(ds_art_get)(ds_art_t *art, const unsigned char *key,
+                       size_t key_length) {
   ds_art_leaf_t *leaf;
   void *result = NULL;
 #ifdef DS_THREAD_SAFE
@@ -628,8 +628,8 @@ static void FUNC(art_remove_child)(ds_art_t *art, ds_art_node_t *node,
   }
 }
 
-bool FUNC(art_remove)(ds_art_t *art, const unsigned char *key,
-                      size_t key_length, void **out_value) {
+bool FUNC(ds_art_remove)(ds_art_t *art, const unsigned char *key,
+                         size_t key_length, void **out_value) {
   ds_art_node_t **ref;
   ds_art_node_t **parent_ref = NULL;
   ds_art_node_t *parent = NULL;
@@ -690,7 +690,7 @@ bool FUNC(art_remove)(ds_art_t *art, const unsigned char *key,
   return removed;
 }
 
-size_t FUNC(art_size)(ds_art_t *art) {
+size_t FUNC(ds_art_size)(ds_art_t *art) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(art);
@@ -702,7 +702,7 @@ size_t FUNC(art_size)(ds_art_t *art) {
   return result;
 }
 
-bool FUNC(art_is_empty)(ds_art_t *art) {
+bool FUNC(ds_art_is_empty)(ds_art_t *art) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(art);
@@ -763,10 +763,10 @@ static void FUNC(art_walk_node)(ds_art_node_t *node,
   }
 }
 
-void FUNC(art_walk)(ds_art_t *art,
-                    void (*callback)(const unsigned char *, size_t, void *,
-                                     void *),
-                    void *user) {
+void FUNC(ds_art_walk)(ds_art_t *art,
+                       void (*callback)(const unsigned char *, size_t, void *,
+                                        void *),
+                       void *user) {
 #ifdef DS_THREAD_SAFE
   LOCK(art);
 #endif
@@ -828,7 +828,7 @@ static void FUNC(art_destroy_node)(ds_art_t *art, ds_art_node_t *node,
   art->deallocator(node);
 }
 
-void FUNC(art_destroy)(ds_art_t *art, void (*destroy_value)(void *)) {
+void FUNC(ds_art_destroy)(ds_art_t *art, void (*destroy_value)(void *)) {
   FUNC(art_destroy_node)(art, art->root, destroy_value);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(art);

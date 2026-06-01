@@ -1,13 +1,13 @@
 #include "fenwick_tree.h"
 #include <stdlib.h>
 
-ds_fenwick_tree_t *FUNC(fenwick_tree_create)(size_t size) {
-  return FUNC(fenwick_tree_create_alloc)(size, malloc, free);
+ds_fenwick_tree_t *FUNC(ds_fenwick_tree_create)(size_t size) {
+  return FUNC(ds_fenwick_tree_create_alloc)(size, malloc, free);
 }
 
 ds_fenwick_tree_t *
-FUNC(fenwick_tree_create_alloc)(size_t size, void *(*allocator)(size_t),
-                                void (*deallocator)(void *)) {
+FUNC(ds_fenwick_tree_create_alloc)(size_t size, void *(*allocator)(size_t),
+                                   void (*deallocator)(void *)) {
   ds_fenwick_tree_t *tree;
   size_t i;
   tree = (ds_fenwick_tree_t *)allocator(sizeof(ds_fenwick_tree_t));
@@ -24,8 +24,8 @@ FUNC(fenwick_tree_create_alloc)(size_t size, void *(*allocator)(size_t),
   return tree;
 }
 
-void FUNC(fenwick_tree_update)(ds_fenwick_tree_t *tree, size_t index,
-                               long delta) {
+void FUNC(ds_fenwick_tree_update)(ds_fenwick_tree_t *tree, size_t index,
+                                  long delta) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -46,7 +46,8 @@ void FUNC(fenwick_tree_update)(ds_fenwick_tree_t *tree, size_t index,
 #endif
 }
 
-void FUNC(fenwick_tree_set)(ds_fenwick_tree_t *tree, size_t index, long value) {
+void FUNC(ds_fenwick_tree_set)(ds_fenwick_tree_t *tree, size_t index,
+                               long value) {
   long current;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -57,14 +58,14 @@ void FUNC(fenwick_tree_set)(ds_fenwick_tree_t *tree, size_t index, long value) {
 #endif
     return;
   }
-  current = FUNC(fenwick_tree_at)(tree, index);
-  FUNC(fenwick_tree_update)(tree, index, value - current);
+  current = FUNC(ds_fenwick_tree_at)(tree, index);
+  FUNC(ds_fenwick_tree_update)(tree, index, value - current);
 #ifdef DS_THREAD_SAFE
   UNLOCK(tree);
 #endif
 }
 
-long FUNC(fenwick_tree_prefix_sum)(ds_fenwick_tree_t *tree, size_t index) {
+long FUNC(ds_fenwick_tree_prefix_sum)(ds_fenwick_tree_t *tree, size_t index) {
   long sum = 0;
   size_t i;
 #ifdef DS_THREAD_SAFE
@@ -87,8 +88,8 @@ long FUNC(fenwick_tree_prefix_sum)(ds_fenwick_tree_t *tree, size_t index) {
   return sum;
 }
 
-long FUNC(fenwick_tree_range_sum)(ds_fenwick_tree_t *tree, size_t left,
-                                  size_t right) {
+long FUNC(ds_fenwick_tree_range_sum)(ds_fenwick_tree_t *tree, size_t left,
+                                     size_t right) {
   long result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -100,10 +101,10 @@ long FUNC(fenwick_tree_range_sum)(ds_fenwick_tree_t *tree, size_t left,
     return 0;
   }
   if (left == 0) {
-    result = FUNC(fenwick_tree_prefix_sum)(tree, right);
+    result = FUNC(ds_fenwick_tree_prefix_sum)(tree, right);
   } else {
-    result = FUNC(fenwick_tree_prefix_sum)(tree, right) -
-             FUNC(fenwick_tree_prefix_sum)(tree, left - 1);
+    result = FUNC(ds_fenwick_tree_prefix_sum)(tree, right) -
+             FUNC(ds_fenwick_tree_prefix_sum)(tree, left - 1);
   }
 #ifdef DS_THREAD_SAFE
   UNLOCK(tree);
@@ -111,7 +112,7 @@ long FUNC(fenwick_tree_range_sum)(ds_fenwick_tree_t *tree, size_t left,
   return result;
 }
 
-long FUNC(fenwick_tree_at)(ds_fenwick_tree_t *tree, size_t index) {
+long FUNC(ds_fenwick_tree_at)(ds_fenwick_tree_t *tree, size_t index) {
   long result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -123,10 +124,10 @@ long FUNC(fenwick_tree_at)(ds_fenwick_tree_t *tree, size_t index) {
     return 0;
   }
   if (index == 0) {
-    result = FUNC(fenwick_tree_prefix_sum)(tree, 0);
+    result = FUNC(ds_fenwick_tree_prefix_sum)(tree, 0);
   } else {
-    result = FUNC(fenwick_tree_prefix_sum)(tree, index) -
-             FUNC(fenwick_tree_prefix_sum)(tree, index - 1);
+    result = FUNC(ds_fenwick_tree_prefix_sum)(tree, index) -
+             FUNC(ds_fenwick_tree_prefix_sum)(tree, index - 1);
   }
 #ifdef DS_THREAD_SAFE
   UNLOCK(tree);
@@ -134,7 +135,7 @@ long FUNC(fenwick_tree_at)(ds_fenwick_tree_t *tree, size_t index) {
   return result;
 }
 
-size_t FUNC(fenwick_tree_size)(ds_fenwick_tree_t *tree) {
+size_t FUNC(ds_fenwick_tree_size)(ds_fenwick_tree_t *tree) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -146,7 +147,7 @@ size_t FUNC(fenwick_tree_size)(ds_fenwick_tree_t *tree) {
   return result;
 }
 
-void FUNC(fenwick_tree_clear)(ds_fenwick_tree_t *tree) {
+void FUNC(ds_fenwick_tree_clear)(ds_fenwick_tree_t *tree) {
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
@@ -159,14 +160,14 @@ void FUNC(fenwick_tree_clear)(ds_fenwick_tree_t *tree) {
 #endif
 }
 
-ds_fenwick_tree_t *FUNC(fenwick_tree_clone)(ds_fenwick_tree_t *tree) {
+ds_fenwick_tree_t *FUNC(ds_fenwick_tree_clone)(ds_fenwick_tree_t *tree) {
   ds_fenwick_tree_t *new_tree;
   size_t i;
 #ifdef DS_THREAD_SAFE
   LOCK(tree);
 #endif
-  new_tree = FUNC(fenwick_tree_create_alloc)(tree->size, tree->allocator,
-                                             tree->deallocator);
+  new_tree = FUNC(ds_fenwick_tree_create_alloc)(tree->size, tree->allocator,
+                                                tree->deallocator);
   for (i = 0; i <= tree->size; i++) {
     new_tree->data[i] = tree->data[i];
   }
@@ -176,7 +177,7 @@ ds_fenwick_tree_t *FUNC(fenwick_tree_clone)(ds_fenwick_tree_t *tree) {
   return new_tree;
 }
 
-void FUNC(fenwick_tree_destroy)(ds_fenwick_tree_t *tree) {
+void FUNC(ds_fenwick_tree_destroy)(ds_fenwick_tree_t *tree) {
   tree->deallocator(tree->data);
 #ifdef DS_THREAD_SAFE
   LOCK_DESTROY(tree);

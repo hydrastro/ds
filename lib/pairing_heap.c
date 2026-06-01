@@ -1,12 +1,12 @@
 #include "pairing_heap.h"
 #include <stdlib.h>
 
-ds_pairing_heap_t *FUNC(pairing_heap_create)(
+ds_pairing_heap_t *FUNC(ds_pairing_heap_create)(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *)) {
-  return FUNC(pairing_heap_create_alloc)(compare, malloc, free);
+  return FUNC(ds_pairing_heap_create_alloc)(compare, malloc, free);
 }
 
-ds_pairing_heap_t *FUNC(pairing_heap_create_alloc)(
+ds_pairing_heap_t *FUNC(ds_pairing_heap_create_alloc)(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   ds_pairing_heap_t *heap =
@@ -27,7 +27,7 @@ ds_pairing_heap_t *FUNC(pairing_heap_create_alloc)(
   return heap;
 }
 
-void FUNC(pairing_heap_node_init)(ds_pairing_heap_node_t *node) {
+void FUNC(ds_pairing_heap_node_init)(ds_pairing_heap_node_t *node) {
   node->child = NULL;
   node->sibling = NULL;
   node->prev = NULL;
@@ -63,8 +63,8 @@ FUNC(pairing_heap_link)(ds_pairing_heap_t *heap, ds_pairing_heap_node_t *a,
   return a;
 }
 
-void FUNC(pairing_heap_insert)(ds_pairing_heap_t *heap,
-                               ds_pairing_heap_node_t *node) {
+void FUNC(ds_pairing_heap_insert)(ds_pairing_heap_t *heap,
+                                  ds_pairing_heap_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
 #endif
@@ -84,7 +84,7 @@ void FUNC(pairing_heap_insert)(ds_pairing_heap_t *heap,
 #endif
 }
 
-ds_pairing_heap_node_t *FUNC(pairing_heap_peek)(ds_pairing_heap_t *heap) {
+ds_pairing_heap_node_t *FUNC(ds_pairing_heap_peek)(ds_pairing_heap_t *heap) {
   ds_pairing_heap_node_t *result;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -140,7 +140,7 @@ FUNC(pairing_heap_combine_siblings)(ds_pairing_heap_t *heap,
   return result;
 }
 
-ds_pairing_heap_node_t *FUNC(pairing_heap_extract)(ds_pairing_heap_t *heap) {
+ds_pairing_heap_node_t *FUNC(ds_pairing_heap_extract)(ds_pairing_heap_t *heap) {
   ds_pairing_heap_node_t *root;
   ds_pairing_heap_node_t *child;
 #ifdef DS_THREAD_SAFE
@@ -172,8 +172,8 @@ ds_pairing_heap_node_t *FUNC(pairing_heap_extract)(ds_pairing_heap_t *heap) {
   return root;
 }
 
-void FUNC(pairing_heap_decrease_key)(ds_pairing_heap_t *heap,
-                                     ds_pairing_heap_node_t *node) {
+void FUNC(ds_pairing_heap_decrease_key)(ds_pairing_heap_t *heap,
+                                        ds_pairing_heap_node_t *node) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
 #endif
@@ -202,7 +202,7 @@ void FUNC(pairing_heap_decrease_key)(ds_pairing_heap_t *heap,
 #endif
 }
 
-bool FUNC(pairing_heap_is_empty)(ds_pairing_heap_t *heap) {
+bool FUNC(ds_pairing_heap_is_empty)(ds_pairing_heap_t *heap) {
   bool result;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -214,7 +214,7 @@ bool FUNC(pairing_heap_is_empty)(ds_pairing_heap_t *heap) {
   return result;
 }
 
-size_t FUNC(pairing_heap_size)(ds_pairing_heap_t *heap) {
+size_t FUNC(ds_pairing_heap_size)(ds_pairing_heap_t *heap) {
   size_t result;
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
@@ -226,8 +226,8 @@ size_t FUNC(pairing_heap_size)(ds_pairing_heap_t *heap) {
   return result;
 }
 
-void FUNC(pairing_heap_merge)(ds_pairing_heap_t *heap,
-                              ds_pairing_heap_t *other) {
+void FUNC(ds_pairing_heap_merge)(ds_pairing_heap_t *heap,
+                                 ds_pairing_heap_t *other) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
 #endif
@@ -257,8 +257,8 @@ FUNC(pairing_heap_walk_recursive)(ds_pairing_heap_node_t *node,
   }
 }
 
-void FUNC(pairing_heap_walk)(ds_pairing_heap_t *heap,
-                             void (*callback)(ds_pairing_heap_node_t *)) {
+void FUNC(ds_pairing_heap_walk)(ds_pairing_heap_t *heap,
+                                void (*callback)(ds_pairing_heap_node_t *)) {
 #ifdef DS_THREAD_SAFE
   LOCK(heap);
 #endif
@@ -280,8 +280,8 @@ static void FUNC(pairing_heap_destroy_recursive)(
   }
 }
 
-void FUNC(pairing_heap_destroy)(ds_pairing_heap_t *heap,
-                                void (*destroy)(ds_pairing_heap_node_t *)) {
+void FUNC(ds_pairing_heap_destroy)(ds_pairing_heap_t *heap,
+                                   void (*destroy)(ds_pairing_heap_node_t *)) {
   FUNC(pairing_heap_destroy_recursive)(heap->root, destroy);
   heap->deallocator(heap->nil);
 #ifdef DS_THREAD_SAFE
