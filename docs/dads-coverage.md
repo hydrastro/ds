@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 466 |
-| todo | 239 |
+| done | 471 |
+| todo | 234 |
 | def | 593 |
 | total | 1298 |
 
@@ -50,7 +50,6 @@ Families ordered by how many DADS entries they close.
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
-| `algo/random (extensions)` | 5 | linear congruential generator, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
@@ -808,7 +807,7 @@ Families ordered by how many DADS entries they close.
 | lexicographical order | done | `algo/sequence` (ds_lexicographic_compare) |
 | LIFO | done | `lib/stack` |
 | linear | def |  |
-| linear congruential generator | todo | `algo/random` (extensions) |
+| linear congruential generator | done | `algo/random` |
 | linear hash | done | `algo/hash_family` |
 | linear hashing | done | `lib/linear_hash_map` |
 | linear insertion sort | done | `algo/sort` |
@@ -1162,7 +1161,7 @@ Families ordered by how many DADS entries they close.
 | randomized search tree | done | `lib/treap` |
 | Randomized-Select | done | `algo/select` |
 | random number generator | done | `algo/random` (xoshiro128**) |
-| random sampling | todo | `algo/random` (extensions) |
+| random sampling | done | `algo/random` |
 | random search | def |  |
 | range | def |  |
 | range sort | done | `algo/sort_dist` |
@@ -1203,7 +1202,7 @@ Families ordered by how many DADS entries they close.
 | relaxed balance | def |  |
 | repeated squaring | done | `algo/numeric` (ds_powmod) |
 | rescalable | def |  |
-| reservoir sampling | todo | `algo/random` (extensions) |
+| reservoir sampling | done | `algo/random` |
 | restricted universe sort | done | `algo/sort_dist` |
 | Reverse Colussi | todo | `algo/string_search` |
 | Reverse Factor | todo | `algo/string_search` |
@@ -1318,7 +1317,7 @@ Families ordered by how many DADS entries they close.
 | sparsification | def |  |
 | sparsity † | def |  |
 | spatial access method † | todo | `lib/rtree` |
-| spectral test † | todo | `algo/random` (extensions) |
+| spectral test † | done | `algo/random` |
 | splay tree † | done | `lib/splay_tree` |
 | SPMD | def |  |
 | square matrix | def |  |
@@ -1501,7 +1500,7 @@ Families ordered by how many DADS entries they close.
 | UB-tree † | todo | `lib/ub_tree` |
 | UKP | done | `algo/knapsack` |
 | unary function | def |  |
-| unbiased coin flipping algorithm | todo | `algo/random` (extensions) |
+| unbiased coin flipping algorithm | done | `algo/random` |
 | unbounded knapsack problem | done | `algo/knapsack` |
 | uncomputable function † | def |  |
 | uncomputable problem † | def |  |

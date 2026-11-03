@@ -97,6 +97,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - sort_dist: distribution sorts over pluggable key callbacks, byte-string radix sorts, blind sort
 - sort_heap: smoothsort, adaptive heap sort, dominance tree, tournament and tree sorts, JSort
 - external sort: pluggable tapes, balanced/polyphase/cascade/oscillating merging, replacement selection, external radix sort and quicksort
+- random extensions: linear congruential generators with the Hull-Dobell test, 2D spectral test, reservoir sampling (R, L), selection sampling, von Neumann unbiased coin
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

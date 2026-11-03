@@ -15,6 +15,27 @@
  *
  * ds_alias_table_t (Vose's alias method) samples index i with probability
  * weight[i] / sum(weights) in O(1) after O(n) setup.
+ *
+ * Classic generators and sampling:
+ *   ds_lcg_t                 linear congruential generator
+ *                            x' = (a x + c) mod m with any parameters (m 0
+ *                            means 2^bits of unsigned long), overflow-free
+ *                            multiplication; presets for MINSTD and the
+ *                            Numerical Recipes generator; Hull-Dobell
+ *                            full-period test
+ *   ds_spectral_test_2d      the spectral test in two dimensions: nu_2, the
+ *                            largest distance between the parallel lines
+ *                            covering the points (x_n, x_n+1), inverted to
+ *                            the length of the shortest dual lattice vector,
+ *                            and the figure of merit mu_2
+ *   ds_reservoir_sample      k items uniformly from a stream of unknown
+ *                            length: Algorithm R, or Algorithm L, which
+ *                            draws geometric skips (O(k (1 + log(n / k)))
+ *                            random numbers)
+ *   ds_selection_sample      random sampling of k of n indices, in
+ *                            increasing order (Knuth's Algorithm S)
+ *   ds_von_neumann_bit       unbiased coin flipping from a biased coin:
+ *                            flip twice, keep the first of an unequal pair
  */
 
 #include "../lib/context.h"
@@ -57,6 +78,56 @@ ds_status_t ds_alias_table_init_buffer(ds_alias_table_t *table,
                                        size_t *work);
 size_t ds_alias_table_sample(const ds_alias_table_t *table, ds_rng_t *rng);
 void ds_alias_table_destroy(ds_alias_table_t *table);
+
+typedef struct ds_lcg {
+  unsigned long state;
+  unsigned long a;
+  unsigned long c;
+  unsigned long m; /* 0: modulus 2^(bits of unsigned long) */
+} ds_lcg_t;
+
+/* DS_ERR_INVALID if m != 0 and (a >= m or c >= m); the seed is reduced
+ * mod m. */
+ds_status_t ds_lcg_init(ds_lcg_t *lcg, unsigned long a, unsigned long c,
+                        unsigned long m, unsigned long seed);
+/* Park-Miller MINSTD (a = 48271, c = 0, m = 2^31 - 1; seed 0 becomes 1). */
+void ds_lcg_init_minstd(ds_lcg_t *lcg, unsigned long seed);
+/* a = 1664525, c = 1013904223, m = 2^32. */
+void ds_lcg_init_numerical_recipes(ds_lcg_t *lcg, unsigned long seed);
+unsigned long ds_lcg_next(ds_lcg_t *lcg);
+/* Period m for every seed (Hull-Dobell: c coprime to m, a - 1 divisible by
+ * every prime factor of m, and by 4 when 4 divides m). m >= 2. */
+bool ds_lcg_full_period(unsigned long a, unsigned long c, unsigned long m);
+/* Spectral test for x' = a x + c mod m in two dimensions (c does not
+ * matter; 2 <= m < 2^31; squared lengths compared in double, exact for
+ * m < 2^26): out_nu = nu_2, out_mu = pi nu_2^2 / m (may be NULL). */
+ds_status_t ds_spectral_test_2d(unsigned long a, unsigned long m,
+                                double *out_nu, double *out_mu);
+
+typedef enum ds_reservoir_algorithm {
+  DS_RESERVOIR_R = 0,
+  DS_RESERVOIR_L = 1
+} ds_reservoir_algorithm_t;
+
+/* Reads the stream through next (DS_NOT_FOUND at its end; other statuses
+ * are returned) into reservoir (k elements). The number of stream items
+ * goes to *out_seen; when it is below k only that many are filled.
+ * Elements above 64 bytes need one scratch element from the context. */
+typedef ds_status_t (*ds_stream_next_func_t)(void *out_elem, void *user);
+ds_status_t ds_reservoir_sample(ds_stream_next_func_t next, void *user,
+                                size_t elem_size, size_t k, void *reservoir,
+                                ds_reservoir_algorithm_t algorithm,
+                                ds_rng_t *rng, size_t *out_seen,
+                                ds_context_t *context);
+/* k distinct indices of [0, n) in increasing order (k <= n). */
+ds_status_t ds_selection_sample(size_t n, size_t k, size_t *out_indices,
+                                ds_rng_t *rng);
+
+/* biased() returns 0 or 1 with a fixed unknown probability p in (0, 1);
+ * the result is 0 or 1 with probability exactly 1/2, after an expected
+ * 1 / (p (1 - p)) flips. */
+typedef int (*ds_coin_func_t)(void *state);
+int ds_von_neumann_bit(ds_coin_func_t biased, void *state);
 
 #ifdef __cplusplus
 }
