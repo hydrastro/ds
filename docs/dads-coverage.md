@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 358 |
-| todo | 347 |
+| done | 383 |
+| todo | 322 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,13 +37,13 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/string_search` | 36 | Alpha Skip Search algorithm, Apostolico-Crochemore, Apostolico-Giancarlo algorithm, Boyer-Moore, Boyer-Moore-Horspool, brute force string search, brute force string search with mismatches, Colussi, Commentz-Walter, deterministic finite automata string search, exact string matching, Galil-Giancarlo, Galil-Seiferas, Horspool, KmpSkip Search, Maximal Shift, Morris-Pratt algorithm, naive string search, Not So Naive, optimal mismatch, quick search, Raita, Reverse Colussi, Reverse Factor, Shift-Or, skip search, Smith algorithm, string matching, string matching on ordered alphabets, string matching with mismatches, string searching, text searching, Turbo-BM, Turbo Reverse Factor, Two Way algorithm, Zhu-Takaoka |
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
 | `algo/sort_misc` | 32 | adaptive sort, balanced k-way merge sort, balanced merge sort, balanced quicksort, balanced two-way merge sort, bingo sort, blind sort, bogosort, bozo sort, dual-pivot quicksort, k-way merge sort, linear insertion sort, lucky sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, p-way merge sort, qm sort, q sort, quicksort, rapid sort, shadow merge, shadow merge insert, simple merge, sinking sort, strand sort, three-way merge sort, two-way merge sort |
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/sequence (extensions)` | 11 | balanced multiway merge, Dutch national flag, ideal merge, inversion list, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
+| `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
@@ -155,7 +155,7 @@ Families ordered by how many DADS entries they close.
 | all pairs shortest path | done | `algo/graph_view` (Floyd-Warshall) |
 | all simple paths | done | `algo/graph_path` |
 | alphabet | def |  |
-| Alpha Skip Search algorithm | todo | `algo/string_search` |
+| Alpha Skip Search algorithm | done | `algo/string_search` |
 | alternating path | done | `algo/matching` |
 | alternating Turing machine | def |  |
 | alternation | def |  |
@@ -166,8 +166,8 @@ Families ordered by how many DADS entries they close.
 | ANSI | def |  |
 | antichain | def |  |
 | antisymmetric | def |  |
-| Apostolico-Crochemore | todo | `algo/string_search` |
-| Apostolico-Giancarlo algorithm | todo | `algo/string_search` |
+| Apostolico-Crochemore | done | `algo/string_search` |
+| Apostolico-Giancarlo algorithm | done | `algo/string_search` |
 | approximate string matching | todo | `algo/string_approx` |
 | approximation algorithm | def |  |
 | arborescence | done | `algo/graph_path` |
@@ -269,8 +269,8 @@ Families ordered by how many DADS entries they close.
 | bounded error probability in polynomial time | def |  |
 | bounded queue | done | `lib/circular_buffer, lib/array_deque` (fixed buffer) |
 | bounded stack | done | `lib/vec` (fixed buffer) |
-| Boyer-Moore | todo | `algo/string_search` |
-| Boyer-Moore-Horspool | todo | `algo/string_search` |
+| Boyer-Moore | done | `algo/string_search` |
+| Boyer-Moore-Horspool | done | `algo/string_search` |
 | bozo sort | todo | `algo/sort_misc` |
 | B+-tree | done | `lib/bplus_tree` |
 | BPP | def |  |
@@ -281,8 +281,8 @@ Families ordered by how many DADS entries they close.
 | bridge | done | `algo/graph_struct` |
 | British Museum technique | def |  |
 | brute force | def |  |
-| brute force string search | todo | `algo/string_search` |
-| brute force string search with mismatches | todo | `algo/string_search` |
+| brute force string search | done | `algo/string_search` |
+| brute force string search with mismatches | done | `algo/string_search` |
 | BSP-tree | todo | `lib/bsp_tree` |
 | B*-tree | done | `lib/bplus_tree` (B* split policy) |
 | B-tree | done | `lib/btree` |
@@ -426,7 +426,7 @@ Families ordered by how many DADS entries they close.
 | descendant | def |  |
 | deterministic | def |  |
 | deterministic algorithm | def |  |
-| deterministic finite automata string search | todo | `algo/string_search` |
+| deterministic finite automata string search | done | `algo/string_search` |
 | deterministic finite automaton | todo | `lib/automaton` |
 | deterministic finite state machine | def |  |
 | deterministic finite tree automaton | def |  |
@@ -532,7 +532,7 @@ Families ordered by how many DADS entries they close.
 | Eulerian graph | done | `algo/graph_struct` |
 | Eulerian path | done | `algo/graph_struct` |
 | Euler's formula | def |  |
-| exact string matching | todo | `algo/string_search` |
+| exact string matching | done | `algo/string_search` |
 | EXCELL | todo | `lib/grid_file` |
 | exchange sort | done | `algo/sort_classic` (bubble) |
 | exclusive or | def |  |
@@ -684,7 +684,7 @@ Families ordered by how many DADS entries they close.
 | homeomorphic | def |  |
 | horizontal visibility map | def |  |
 | Horner's rule | done | `algo/numerical` |
-| Horspool | todo | `algo/string_search` |
+| Horspool | done | `algo/string_search` |
 | hsadelta | def |  |
 | Huffman coding | todo | `algo/compress` |
 | huge sparse array | todo | `lib/sparse_matrix` |
@@ -903,7 +903,7 @@ Families ordered by how many DADS entries they close.
 | monotonically increasing | def |  |
 | Monte Carlo algorithm | def |  |
 | Moore machine | todo | `lib/automaton` |
-| Morris-Pratt algorithm | todo | `algo/string_search` |
+| Morris-Pratt algorithm | done | `algo/string_search` |
 | move | todo | `algo/compress` |
 | move-to-front heuristic | todo | `lib/self_org_list` |
 | move-to-root heuristic | todo | `lib/self_org_list` |
@@ -927,7 +927,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| naive string search | todo | `algo/string_search` |
+| naive string search | done | `algo/string_search` |
 | nand | def |  |
 | n-ary function | def |  |
 | NC many-one reducibility | def |  |
@@ -953,7 +953,7 @@ Families ordered by how many DADS entries they close.
 | nonterminal node | def |  |
 | nor | def |  |
 | not | def |  |
-| Not So Naive | todo | `algo/string_search` |
+| Not So Naive | done | `algo/string_search` |
 | NP | def |  |
 | NP-complete | def |  |
 | NP-complete language | def |  |
@@ -1146,7 +1146,7 @@ Families ordered by how many DADS entries they close.
 | quad trie | todo | `lib/quadtree` |
 | quantum computation | def |  |
 | queue | done | `lib/queue` |
-| quick search | todo | `algo/string_search` |
+| quick search | done | `algo/string_search` |
 | quicksort | todo | `algo/sort_misc` |
 
 ### R
@@ -1157,7 +1157,7 @@ Families ordered by how many DADS entries they close.
 | radix sort | done | `algo/sort` (LSD radix) |
 | radix tree | done | `lib/radix_trie` |
 | ragged matrix | todo | `lib/sparse_matrix` |
-| Raita | todo | `algo/string_search` |
+| Raita | done | `algo/string_search` |
 | random access machine | def |  |
 | randomization | def |  |
 | randomized algorithm | def |  |
@@ -1273,7 +1273,7 @@ Families ordered by how many DADS entries they close.
 | shaker sort | done | `algo/sort_classic` (cocktail) |
 | Shannon-Fano coding | todo | `algo/compress` |
 | Shell sort † | done | `algo/sort` |
-| Shift-Or | todo | `algo/string_search` |
+| Shift-Or | done | `algo/string_search` |
 | Shor's algorithm | def |  |
 | shortcutting | todo | `algo/parallel_sim` |
 | shortest common supersequence | todo | `algo/string_approx` |
@@ -1305,9 +1305,9 @@ Families ordered by how many DADS entries they close.
 | skew heap † | done | `lib/meldable_heap` |
 | skew symmetry | def |  |
 | skip list | done | `lib/skip_list` |
-| skip search | todo | `algo/string_search` |
+| skip search | done | `algo/string_search` |
 | slope selection | done | `algo/geometry` |
-| Smith algorithm † | todo | `algo/string_search` |
+| Smith algorithm † | done | `algo/string_search` |
 | Smith-Waterman algorithm † | todo | `algo/string_approx` |
 | smoothsort † | todo | `algo/sort_heap` |
 | solvable † | def |  |
@@ -1360,11 +1360,11 @@ Families ordered by how many DADS entries they close.
 | strictly upper triangular matrix | todo | `algo/matrix` |
 | string | done | `lib/str` |
 | string editing problem | done | `algo/stringology` (edit distances) |
-| string matching † | todo | `algo/string_search` |
+| string matching † | done | `algo/string_search` |
 | string matching on ordered alphabets † | todo | `algo/string_search` |
 | string matching with errors † | todo | `algo/string_approx` |
-| string matching with mismatches † | todo | `algo/string_search` |
-| string searching † | todo | `algo/string_search` |
+| string matching with mismatches † | done | `algo/string_search` |
+| string searching † | done | `algo/string_search` |
 | strip packing | done | `algo/knapsack` |
 | strongly connected component | done | `algo/graph_view` (Tarjan), lib/graph |
 | strongly connected graph | def |  |
@@ -1406,7 +1406,7 @@ Families ordered by how many DADS entries they close.
 | ternary search † | todo | `algo/search` (extensions) |
 | ternary search tree † | todo | `lib/tst` |
 | text | done | `lib/str, lib/rope, lib/gap_buffer` |
-| text searching † | todo | `algo/string_search` |
+| text searching † | done | `algo/string_search` |
 | theta | def |  |
 | threaded binary tree † | todo | `lib/threaded_tree` |
 | threaded tree † | todo | `lib/threaded_tree` |
@@ -1454,7 +1454,7 @@ Families ordered by how many DADS entries they close.
 | Trotter-Johnson | done | `algo/combinatorics` |
 | TSP | todo | `algo/graph_hard` |
 | TST † | todo | `lib/tst` |
-| Turbo-BM † | todo | `algo/string_search` |
+| Turbo-BM † | done | `algo/string_search` |
 | Turbo Reverse Factor † | todo | `algo/string_search` |
 | Turing machine | def |  |
 | Turing reduction † | def |  |
@@ -1496,7 +1496,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| Two Way algorithm † | todo | `algo/string_search` |
+| Two Way algorithm † | done | `algo/string_search` |
 | two-way linked list | done | `lib/dlist` |
 | two-way merge sort † | todo | `algo/sort_misc` |
 
@@ -1601,7 +1601,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| Zhu-Takaoka † | todo | `algo/string_search` |
+| Zhu-Takaoka † | done | `algo/string_search` |
 | Zipfian distribution | def |  |
 | Zipf's law | def |  |
 | ZPP † | def |  |

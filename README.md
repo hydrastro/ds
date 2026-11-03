@@ -112,6 +112,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - knapsack and packing: 0/1, unbounded and fractional knapsack, bin packing policies (NF, FF, BF, WF, FFD, BFD), cutting stock, strip packing (NFDH, FFDH), matrix chain
 - number theory: Chinese remainder theorem (any moduli), Fibonacci and k-bonacci, Ackermann and inverse Ackermann, Doomsday rule, Zeller's congruence
 - numerical methods: Horner, bisection/secant/Newton roots, square and cube roots, CORDIC, Gamma (Lanczos), Stirling, BBP pi digits, mode, midrange
+- exact string matching: brute force, Morris-Pratt, Boyer-Moore, Horspool, Raita, Quick Search, Smith, Zhu-Takaoka, Turbo-BM, Apostolico-Giancarlo, Apostolico-Crochemore, Not So Naive, Two Way, Shift-Or, DFA, Skip and Alpha Skip Search, k-mismatch search
 
 Newer high-level modules:
 
