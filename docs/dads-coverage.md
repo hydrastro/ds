@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 266 |
-| todo | 439 |
+| done | 282 |
+| todo | 423 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,11 +38,11 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/string_search` | 36 | Alpha Skip Search algorithm, Apostolico-Crochemore, Apostolico-Giancarlo algorithm, Boyer-Moore, Boyer-Moore-Horspool, brute force string search, brute force string search with mismatches, Colussi, Commentz-Walter, deterministic finite automata string search, exact string matching, Galil-Giancarlo, Galil-Seiferas, Horspool, KmpSkip Search, Maximal Shift, Morris-Pratt algorithm, naive string search, Not So Naive, optimal mismatch, quick search, Raita, Reverse Colussi, Reverse Factor, Shift-Or, skip search, Smith algorithm, string matching, string matching on ordered alphabets, string matching with mismatches, string searching, text searching, Turbo-BM, Turbo Reverse Factor, Two Way algorithm, Zhu-Takaoka |
-| `algo/graph_alg` | 35 | all simple paths, arborescence, articulation point, best-first search, biconnected component, biconnected graph, Boruvka's algorithm, bridge, centroid, Chinese postman problem, critical path problem, cut vertex, DAG shortest paths, DFS forest, diameter, Euler cycle, Eulerian graph, Eulerian path, feedback edge set, Johnson's algorithm, Königsberg bridges problem, Kruskal's algorithm, kth shortest path, lowest common ancestor, reduced digraph, shortest path, shortest spanning tree, single-destination shortest-path problem, single-pair shortest-path problem, single-source shortest-path problem, spanning tree, SST, transitive closure, transitive reduction, triconnected graph |
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
 | `algo/sort_misc` | 32 | adaptive sort, balanced k-way merge sort, balanced merge sort, balanced quicksort, balanced two-way merge sort, bingo sort, blind sort, bogosort, bozo sort, dual-pivot quicksort, k-way merge sort, linear insertion sort, lucky sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, p-way merge sort, qm sort, q sort, quicksort, rapid sort, shadow merge, shadow merge insert, simple merge, sinking sort, strand sort, three-way merge sort, two-way merge sort |
 | `algo/numeric (extensions)` | 23 | Ackermann's function, BBP algorithm, Chinese remainder theorem, CORDIC, cube root, Doomsday rule, factorial, Ferguson-Forcade algorithm, Fibonacci number, gamma function, Horner's rule, inverse Ackermann function, kth order Fibonacci numbers, midrange, mode, pth order Fibonacci numbers, reduced basis, Rice's method, secant search, square root, Stirling's approximation, Stirling's formula, Zeller's congruence |
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
+| `algo/graph_alg` | 19 | all simple paths, arborescence, best-first search, Boruvka's algorithm, Chinese postman problem, critical path problem, DAG shortest paths, Johnson's algorithm, Kruskal's algorithm, kth shortest path, lowest common ancestor, shortest path, shortest spanning tree, single-destination shortest-path problem, single-pair shortest-path problem, single-source shortest-path problem, spanning tree, SST, triconnected graph |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
 | `algo/geometry` | 16 | bisector, Bresenham's algorithm, Euclidean distance, extreme point, geometric optimization problem, Hausdorff distance, Lm distance, Manhattan distance, Minkowski distance, nearest neighbor, optimal polygon triangulation problem, optimal triangulation problem, orthogonally convex rectilinear polygon, slope selection, star-shaped polygon, Wu's line algorithm |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
@@ -178,7 +178,7 @@ Families ordered by how many DADS entries they close.
 | array index | def |  |
 | array merging | done | `algo/sequence` (ds_merge) |
 | array search | done | `algo/search` |
-| articulation point | todo | `algo/graph_alg` |
+| articulation point | done | `algo/graph_struct` |
 | assignment problem | done | `algo/matching` |
 | association list | todo | `lib/association_list` |
 | associative | def |  |
@@ -223,8 +223,8 @@ Families ordered by how many DADS entries they close.
 | best case | def |  |
 | best-case cost | def |  |
 | best-first search | todo | `algo/graph_alg` |
-| biconnected component | todo | `algo/graph_alg` |
-| biconnected graph | todo | `algo/graph_alg` |
+| biconnected component | done | `algo/graph_struct` |
+| biconnected graph | done | `algo/graph_struct` |
 | bidirectional bubble sort | done | `algo/sort_classic` (cocktail) |
 | big-O notation | def |  |
 | binary function | def |  |
@@ -279,7 +279,7 @@ Families ordered by how many DADS entries they close.
 | branch and bound | def |  |
 | breadth-first search | done | `algo/graph_view, lib/graph` |
 | Bresenham's algorithm | todo | `algo/geometry` |
-| bridge | todo | `algo/graph_alg` |
+| bridge | done | `algo/graph_struct` |
 | British Museum technique | def |  |
 | brute force | def |  |
 | brute force string search | todo | `algo/string_search` |
@@ -321,7 +321,7 @@ Families ordered by how many DADS entries they close.
 | cell probe model | def |  |
 | cell tree | todo | `lib/hb_tree` |
 | cellular automaton | def |  |
-| centroid | todo | `algo/graph_alg` |
+| centroid | done | `algo/graph_struct` |
 | certificate | def |  |
 | chain | def |  |
 | chaining | done | `lib/hash_table` (chaining mode) |
@@ -399,7 +399,7 @@ Families ordered by how many DADS entries they close.
 | cutting plane | todo | `algo/lp` |
 | cutting stock problem | todo | `algo/knapsack` |
 | cutting theorem | def |  |
-| cut vertex | todo | `algo/graph_alg` |
+| cut vertex | done | `algo/graph_struct` |
 | cycle | def |  |
 | cyclic redundancy check | done | `algo/hash` |
 
@@ -437,10 +437,10 @@ Families ordered by how many DADS entries they close.
 | Deutsch-Jozsa algorithm | def |  |
 | DFA | todo | `lib/automaton` |
 | DFS | done | `lib/graph` |
-| DFS forest | todo | `algo/graph_alg` |
+| DFS forest | done | `algo/graph_struct` |
 | DFTA | def |  |
 | diagonalization | def |  |
-| diameter | todo | `algo/graph_alg` |
+| diameter | done | `algo/graph_struct` |
 | Dianna | def |  |
 | dichotomic search | done | `algo/search` |
 | dictionary | done | `lib/hash_table, lib/rh_map, lib/avl, ...` |
@@ -529,9 +529,9 @@ Families ordered by how many DADS entries they close.
 | Euclidean Steiner tree | todo | `algo/graph_hard` |
 | Euclidean traveling salesman problem | todo | `algo/graph_hard` |
 | Euclid's algorithm | done | `algo/numeric` |
-| Euler cycle | todo | `algo/graph_alg` |
-| Eulerian graph | todo | `algo/graph_alg` |
-| Eulerian path | todo | `algo/graph_alg` |
+| Euler cycle | done | `algo/graph_struct` |
+| Eulerian graph | done | `algo/graph_struct` |
+| Eulerian path | done | `algo/graph_struct` |
 | Euler's formula | def |  |
 | exact string matching | todo | `algo/string_search` |
 | EXCELL | todo | `lib/grid_file` |
@@ -572,7 +572,7 @@ Families ordered by how many DADS entries they close.
 | fathoming | def |  |
 | feasible region | def |  |
 | feasible solution | def |  |
-| feedback edge set | todo | `algo/graph_alg` |
+| feedback edge set | done | `algo/graph_struct` |
 | feedback vertex set | todo | `algo/graph_hard` |
 | Ferguson-Forcade algorithm | todo | `algo/numeric` (extensions) |
 | FFT | todo | `algo/fft` |
@@ -776,7 +776,7 @@ Families ordered by how many DADS entries they close.
 | knapsack problem | todo | `algo/knapsack` |
 | knight's tour | todo | `algo/combinatorics` |
 | Knuth-Morris-Pratt algorithm | done | `algo/stringology` |
-| Königsberg bridges problem | todo | `algo/graph_alg` |
+| Königsberg bridges problem | done | `algo/graph_struct` |
 | Kolmogorov complexity | def |  |
 | Kraft's inequality | def |  |
 | Kripke structure | def |  |
@@ -1197,7 +1197,7 @@ Families ordered by how many DADS entries they close.
 | recursively solvable | def |  |
 | red-black tree | done | `lib/rbt, lib/persistent_rbt` |
 | reduced basis | todo | `algo/numeric` (extensions) |
-| reduced digraph | todo | `algo/graph_alg` |
+| reduced digraph | done | `algo/graph_struct` |
 | reduced ordered binary decision diagram | todo | `lib/bdd` |
 | reduction | def |  |
 | reflexive | def |  |
@@ -1435,8 +1435,8 @@ Families ordered by how many DADS entries they close.
 | transition | def |  |
 | transition function | def |  |
 | transitive | def |  |
-| transitive closure | todo | `algo/graph_alg` |
-| transitive reduction | todo | `algo/graph_alg` |
+| transitive closure | done | `algo/graph_struct` |
+| transitive reduction | done | `algo/graph_struct` |
 | transpose sequential search † | todo | `lib/self_org_list` |
 | traveling salesman | todo | `algo/graph_hard` |
 | treap † | done | `lib/treap` |

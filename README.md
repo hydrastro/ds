@@ -105,6 +105,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - locality-sensitive hashing: MinHash, banding, SimHash
 - network flow: residual networks; Edmonds-Karp, Dinic, Malhotra-Kumar-Maheshwari and push-relabel max flow; min cut; min-cost flow; edge/vertex connectivity
 - matching: Hopcroft-Karp, Hungarian (assignment), Edmonds blossom, Gale-Shapley stable marriage
+- graph structure: DFS forest and edge classes, articulation points, bridges, biconnected components, Euler trails, condensation, transitive closure and reduction, feedback edge set, tree diameter and centroid
 
 Newer high-level modules:
 

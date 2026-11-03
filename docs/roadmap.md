@@ -80,6 +80,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/lsh`: MinHash, banding and SimHash
 - `algo/flow`: max flow (four algorithms), min cut, min-cost flow, connectivity
 - `algo/matching`: bipartite, assignment, general and stable matchings
+- `algo/graph_struct`: articulation/bridges/blocks, Euler, condensation, closure/reduction
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -20,5 +20,6 @@
 #include "algo/lsh.h"
 #include "algo/flow.h"
 #include "algo/matching.h"
+#include "algo/graph_struct.h"
 
 #endif /* DS_ALGO_H */

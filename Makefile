@@ -143,7 +143,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/perfect_hash.c \
   $(ALGO_DIR)/lsh.c \
   $(ALGO_DIR)/flow.c \
-  $(ALGO_DIR)/matching.c
+  $(ALGO_DIR)/matching.c \
+  $(ALGO_DIR)/graph_struct.c
 
 LIB_SRC += $(ALGO_SRC)
 
