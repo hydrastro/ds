@@ -71,6 +71,7 @@ Core mutable containers:
 - Trie
 - Trie child stores: Robin Hood map and sorted vector (pluggable via ds_trie_store_ops_t)
 - Union-find with rollback (snapshot/undo of unions)
+- van Emde Boas tree (O(log log U) ordered integer set and priority queue, lazy clusters)
 - Vector (by value; growable or fixed caller buffer, heapsort, binary search)
 - Wavelet tree (succinct sequence: access/rank/select/quantile)
 - Weak heap (by value, fixed-buffer mode) and weak-heap sort

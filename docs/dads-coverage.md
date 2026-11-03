@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 213 |
-| todo | 511 |
+| done | 214 |
+| todo | 510 |
 | def | 574 |
 | total | 1298 |
 
@@ -113,7 +113,6 @@ Families ordered by how many DADS entries they close.
 | `lib/scapegoat_tree` | 1 | scapegoat tree |
 | `lib/shadow_heap` | 1 | shadow heap |
 | `lib/ub_tree` | 1 | UB-tree |
-| `lib/veb_tree` | 1 | van Emde Boas priority queue |
 
 ## Index A-Z
 
@@ -1547,7 +1546,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| van Emde Boas priority queue † | todo | `lib/veb_tree` |
+| van Emde Boas priority queue † | done | `lib/veb_tree` |
 | vehicle routing problem | todo | `algo/graph_hard` |
 | Veitch diagram | def |  |
 | Venn diagram † | def |  |

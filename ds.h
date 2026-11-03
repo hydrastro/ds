@@ -73,6 +73,7 @@
 #include "lib/treap.h"
 #include "lib/trie.h"
 #include "lib/trie_stores.h"
+#include "lib/veb_tree.h"
 #include "lib/vec.h"
 #include "lib/wavelet_tree.h"
 #include "lib/weak_heap.h"
