@@ -98,6 +98,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - sort_heap: smoothsort, adaptive heap sort, dominance tree, tournament and tree sorts, JSort
 - external sort: pluggable tapes, balanced/polyphase/cascade/oscillating merging, replacement selection, external radix sort and quicksort
 - random extensions: linear congruential generators with the Hull-Dobell test, 2D spectral test, reservoir sampling (R, L), selection sampling, von Neumann unbiased coin
+- shadow heap: binary heap with a lazily merged shadow table; shadow merge and shadow merge insert
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

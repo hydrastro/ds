@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 471 |
-| todo | 234 |
+| done | 474 |
+| todo | 231 |
 | def | 593 |
 | total | 1298 |
 
@@ -66,7 +66,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
-| `algo/sort_misc` | 2 | shadow merge, shadow merge insert |
 | `lib/association_list` | 2 | association list, property list |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
@@ -91,7 +90,6 @@ Families ordered by how many DADS entries they close.
 | `lib/octree` | 1 | octree |
 | `lib/pagoda` | 1 | pagoda |
 | `lib/scapegoat_tree` | 1 | scapegoat tree |
-| `lib/shadow_heap` | 1 | shadow heap |
 | `lib/ub_tree` | 1 | UB-tree |
 
 ## Index A-Z
@@ -1260,9 +1258,9 @@ Families ordered by how many DADS entries they close.
 | set | done | `lib/bitset, lib/sparse_set, lib/string_map` (string set) |
 | set cover | todo | `algo/graph_hard` |
 | set packing | todo | `algo/knapsack` |
-| shadow heap | todo | `lib/shadow_heap` |
-| shadow merge | todo | `algo/sort_misc` |
-| shadow merge insert | todo | `algo/sort_misc` |
+| shadow heap | done | `lib/shadow_heap` |
+| shadow merge | done | `lib/shadow_heap` |
+| shadow merge insert | done | `lib/shadow_heap` |
 | shaker sort | done | `algo/sort_classic` (cocktail) |
 | Shannon-Fano coding | todo | `algo/compress` |
 | Shell sort † | done | `algo/sort` |
