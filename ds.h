@@ -47,6 +47,7 @@
 #include "lib/skip_list.h"
 #include "lib/slot_map.h"
 #include "lib/sparse_set.h"
+#include "lib/sparse_table.h"
 #include "lib/splay_tree.h"
 #include "lib/stack.h"
 #include "lib/string_map.h"

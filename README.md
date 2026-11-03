@@ -46,6 +46,7 @@ Core mutable containers:
 - Skip list
 - Slot map (generational handles that detect stale references, dense values)
 - Sparse set (O(1) insert/remove/contains/clear over small integers)
+- Sparse table (O(1) static range queries; idempotent and disjoint variants)
 - Splay tree
 - Stack
 - Treap
