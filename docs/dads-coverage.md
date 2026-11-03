@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 398 |
-| todo | 307 |
+| done | 404 |
+| todo | 301 |
 | def | 593 |
 | total | 1298 |
 
@@ -49,7 +49,6 @@ Families ordered by how many DADS entries they close.
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `algo/phonetic` | 6 | Caverphone, double metaphone, metaphone, NYSIIS, phonetic coding, soundex |
-| `algo/search (extensions)` | 6 | block search, Bond Sequential Search, Fibonaccian search, interpolation-sequential search, jump search, ternary search |
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
@@ -253,11 +252,11 @@ Families ordered by how many DADS entries they close.
 | block | def |  |
 | block addressing index | def |  |
 | blocking flow | done | `algo/flow` |
-| block search | todo | `algo/search` (extensions) |
+| block search | done | `algo/search` |
 | Bloom filter | done | `lib/bloom_filter` |
 | blossom | done | `algo/matching` |
 | bogosort | todo | `algo/sort_misc` |
-| Bond Sequential Search | todo | `algo/search` (extensions) |
+| Bond Sequential Search | done | `algo/search` |
 | boolean | def |  |
 | boolean expression | def |  |
 | boolean function | def |  |
@@ -574,7 +573,7 @@ Families ordered by how many DADS entries they close.
 | feedback vertex set | todo | `algo/graph_hard` |
 | Ferguson-Forcade algorithm | todo | `algo/numeric` (extensions) |
 | FFT | todo | `algo/fft` |
-| Fibonaccian search | todo | `algo/search` (extensions) |
+| Fibonaccian search | done | `algo/search` |
 | Fibonacci heap | done | `lib/fibonacci_heap` |
 | Fibonacci number | done | `algo/number_theory` |
 | Fibonacci tree | def |  |
@@ -721,7 +720,7 @@ Families ordered by how many DADS entries they close.
 | internal node | def |  |
 | internal sort | def |  |
 | interpolation search | done | `algo/search` |
-| interpolation-sequential search | todo | `algo/search` (extensions) |
+| interpolation-sequential search | done | `algo/search` |
 | interpolation sort | todo | `algo/sort_dist` |
 | intersection | done | `algo/sequence` (ds_set_intersection) |
 | interval tree | done | `lib/interval_tree` |
@@ -749,7 +748,7 @@ Families ordered by how many DADS entries they close.
 | JSort | todo | `algo/sort_dist` |
 | J sort | todo | `algo/sort_dist` |
 | jump list | todo | `lib/jump_list` |
-| jump search | todo | `algo/search` (extensions) |
+| jump search | done | `algo/search` |
 
 ### K
 
@@ -1402,7 +1401,7 @@ Families ordered by how many DADS entries they close.
 | temporal logic † | def |  |
 | terminal | def |  |
 | terminal node † | def |  |
-| ternary search † | todo | `algo/search` (extensions) |
+| ternary search † | done | `algo/search` |
 | ternary search tree † | todo | `lib/tst` |
 | text | done | `lib/str, lib/rope, lib/gap_buffer` |
 | text searching † | done | `algo/string_search` |

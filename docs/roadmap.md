@@ -92,6 +92,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - k-way merge: tournament trees, five selection policies, optimal merge plans
 - scan: prefix computations over a pluggable (non-commutative) monoid, parallel prefix algorithms, multiprefix
 - select: FIND, MODIFIND, Floyd-Rivest, BFPRT and randomized selection, mode
+- search extensions: jump/block, Fibonaccian, ternary (sorted, peak, real minimum), interpolation-sequential and Bond sequential search
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
