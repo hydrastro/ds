@@ -53,6 +53,7 @@
 #include "lib/rollback_union_find.h"
 #include "lib/rope.h"
 #include "lib/segment_tree.h"
+#include "lib/sieve_cache.h"
 #include "lib/skip_list.h"
 #include "lib/slot_map.h"
 #include "lib/sparse_set.h"

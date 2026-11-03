@@ -47,6 +47,7 @@ Core mutable containers:
 - Robin Hood hash map (by-value keys/values, backward-shift deletion, fixed-buffer mode)
 - Rope (chunked string with O(log n) splice)
 - Segment tree (lazy propagation: range add/assign, range sum/min/max)
+- SIEVE cache (FIFO with visited bits and a sweeping hand; no allocation after init)
 - Singly linked list
 - Circular singly linked list (ring list)
 - Queue
