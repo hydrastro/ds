@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 216 |
-| todo | 503 |
+| done | 220 |
+| todo | 499 |
 | def | 579 |
 | total | 1298 |
 
@@ -75,7 +75,6 @@ Families ordered by how many DADS entries they close.
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
-| `lib/open_map (probe policies)` | 4 | double hashing, LCFS hashing, probe sequence, rehashing |
 | `lib/sorted_list` | 4 | ordered linked list, sorted array, sorted list, unsorted list |
 | `lib/sparse_matrix` | 4 | huge sparse array, orthogonal lists, ragged matrix, sparse matrix |
 | `lib/suffix_automaton` | 4 | compact DAWG, DAWG, directed acyclic word graph, suffix automaton |
@@ -481,7 +480,7 @@ Families ordered by how many DADS entries they close.
 | Doomsday rule | todo | `algo/numeric` (extensions) |
 | double-direction bubble sort | done | `algo/sort_classic` (cocktail) |
 | double-ended priority queue | done | `lib/min_max_heap` |
-| double hashing | todo | `lib/open_map` (probe policies) |
+| double hashing | done | `lib/open_map` |
 | double left rotation | done | `lib/avl` |
 | double metaphone | todo | `algo/phonetic` |
 | double right rotation | done | `lib/avl` |
@@ -810,7 +809,7 @@ Families ordered by how many DADS entries they close.
 | Las Vegas algorithm | def |  |
 | lattice | def |  |
 | layered graph | todo | `algo/flow` |
-| LCFS hashing | todo | `lib/open_map` (probe policies) |
+| LCFS hashing | done | `lib/open_map` |
 | LCM | done | `algo/numeric` |
 | LCS | done | `algo/stringology` |
 | LDS | def |  |
@@ -1127,7 +1126,7 @@ Families ordered by how many DADS entries they close.
 | probabilistic algorithm | def |  |
 | probabilistically checkable proof | def |  |
 | probabilistic Turing machine | def |  |
-| probe sequence | todo | `lib/open_map` (probe policies) |
+| probe sequence | done | `lib/open_map` |
 | procedure | def |  |
 | process algebra | def |  |
 | proper | def |  |
@@ -1212,7 +1211,7 @@ Families ordered by how many DADS entries they close.
 | reduction | def |  |
 | reflexive | def |  |
 | regular decomposition | todo | `lib/quadtree` |
-| rehashing | todo | `lib/open_map` (probe policies) |
+| rehashing | done | `lib/open_map` |
 | relation | def |  |
 | relational structure | def |  |
 | relative performance guarantee | def |  |

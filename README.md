@@ -49,6 +49,7 @@ Core mutable containers:
 - Meldable heaps with pluggable shape policy: leftist, weight-biased leftist, skew, randomized (intrusive)
 - Min-max heap (double-ended priority queue by value)
 - Monotonic queue (sliding-window min/max in amortized O(1))
+- Open-addressing map with pluggable probe sequence (linear, quadratic, double hashing) and discipline (FCFS, LCFS, Robin Hood)
 - Order-statistic tree (size-augmented AVL: select/rank)
 - Packed integer array (k-bit values packed into words)
 - Pairing heap

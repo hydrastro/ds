@@ -49,6 +49,7 @@
 #include "lib/meldable_heap.h"
 #include "lib/min_max_heap.h"
 #include "lib/monotonic_queue.h"
+#include "lib/open_map.h"
 #include "lib/order_statistic_tree.h"
 #include "lib/packed_array.h"
 #include "lib/pairing_heap.h"

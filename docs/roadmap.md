@@ -68,6 +68,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - radix heap (monotone priority queue)
 - calendar queue with pluggable width estimation
 - Swiss-table hash map
+- open addressing with pluggable probe sequences and FCFS/LCFS/Robin Hood disciplines
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
