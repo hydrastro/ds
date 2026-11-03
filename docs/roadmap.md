@@ -53,6 +53,9 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - SIEVE cache, monotonic queue, crit-bit tree, implicit k-d tree
 - trie child stores over rh_map and sorted vectors (pluggable store ops)
 - implicit treap with pluggable monoid summaries and lazy tags
+- augmented treap (pluggable subtree summaries, guided descent) and the
+  interval tree built on it
+- `algo/graph_view`: graph algorithms over a pluggable graph view
 - `algo/`: sorting and selection, searching, sequence and sorted-set
   operations, hashes and checksums, bit manipulation, xoshiro128** RNG and
   alias sampling, number theory and compensated numerics
