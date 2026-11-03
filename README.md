@@ -32,6 +32,7 @@ Core mutable containers:
 - Doubly linked list
 - Fenwick tree (binary indexed tree)
 - Fibonacci heap (O(1) amortized insert/merge/decrease-key)
+- Gap buffer (text buffer with O(1) edits at the cursor)
 - Hash array mapped trie (HAMT, bitmap + popcount sparse nodes)
 - Hash table
 - Heap

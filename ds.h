@@ -29,6 +29,7 @@
 #include "lib/dlist.h"
 #include "lib/fenwick_tree.h"
 #include "lib/fibonacci_heap.h"
+#include "lib/gap_buffer.h"
 #include "lib/graph.h"
 #include "lib/hamt.h"
 #include "lib/hash_table.h"
