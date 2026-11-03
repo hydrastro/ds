@@ -40,6 +40,7 @@ Core mutable containers:
 - Indexed d-ary heap (priority queue with decrease/increase-key by id)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)
 - Min-max heap (double-ended priority queue by value)
+- Monotonic queue (sliding-window min/max in amortized O(1))
 - Order-statistic tree (size-augmented AVL: select/rank)
 - Packed integer array (k-bit values packed into words)
 - Pairing heap

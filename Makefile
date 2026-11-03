@@ -103,7 +103,8 @@ LIB_SRC := \
   $(LIB_DIR)/cuckoo_filter.c \
   $(LIB_DIR)/bip_buffer.c \
   $(LIB_DIR)/gap_buffer.c \
-  $(LIB_DIR)/sieve_cache.c
+  $(LIB_DIR)/sieve_cache.c \
+  $(LIB_DIR)/monotonic_queue.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -133,6 +134,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/rope.c $(LIB_DIR)/rope.h \
   $(LIB_DIR)/segment_tree.c $(LIB_DIR)/segment_tree.h \
   $(LIB_DIR)/wavelet_tree.c $(LIB_DIR)/wavelet_tree.h \
+  $(LIB_DIR)/monotonic_queue.c $(LIB_DIR)/monotonic_queue.h \
   $(LIB_DIR)/sieve_cache.c $(LIB_DIR)/sieve_cache.h \
   $(LIB_DIR)/gap_buffer.c $(LIB_DIR)/gap_buffer.h \
   $(LIB_DIR)/bip_buffer.c $(LIB_DIR)/bip_buffer.h \
