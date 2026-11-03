@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 220 |
-| todo | 499 |
+| done | 221 |
+| todo | 498 |
 | def | 579 |
 | total | 1298 |
 
@@ -99,7 +99,6 @@ Families ordered by how many DADS entries they close.
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
 | `lib/coalesced_map` | 1 | coalesced chaining |
-| `lib/cuckoo_map` | 1 | cuckoo hashing |
 | `lib/enfilade` | 1 | enfilade |
 | `lib/extendible_hash` | 1 | extendible hashing |
 | `lib/indexed_heap (hash index)` | 1 | hash heap |
@@ -402,7 +401,7 @@ Families ordered by how many DADS entries they close.
 | CSP | def |  |
 | CTL | def |  |
 | cube root | todo | `algo/numeric` (extensions) |
-| cuckoo hashing | todo | `lib/cuckoo_map` |
+| cuckoo hashing | done | `lib/cuckoo_map` |
 | Cupif-Giannini tree traversal | todo | `lib/threaded_tree` |
 | cut | def |  |
 | cutting plane | todo | `algo/lp` |

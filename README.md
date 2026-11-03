@@ -31,6 +31,7 @@ Core mutable containers:
 - Count-Min sketch (frequency estimates, conservative update, mergeable)
 - Crit-bit tree (binary PATRICIA string map, sorted and prefix iteration)
 - Cuckoo filter (membership with deletion, 16-bit fingerprints, ~95% load)
+- Cuckoo hash map (2-4 ways, 1-8 slots per bucket, BFS displacement, stash)
 - Deque
 - Disjoint set (union-find)
 - Doubly linked list

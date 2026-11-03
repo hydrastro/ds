@@ -28,6 +28,7 @@
 #include "lib/count_min_sketch.h"
 #include "lib/critbit_tree.h"
 #include "lib/cuckoo_filter.h"
+#include "lib/cuckoo_map.h"
 #include "lib/deque.h"
 #include "lib/disjoint_set.h"
 #include "lib/dlist.h"
