@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 215 |
-| todo | 509 |
+| done | 216 |
+| todo | 508 |
 | def | 574 |
 | total | 1298 |
 
@@ -99,7 +99,6 @@ Families ordered by how many DADS entries they close.
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
-| `lib/calendar_queue` | 1 | calendar queue |
 | `lib/coalesced_map` | 1 | coalesced chaining |
 | `lib/cuckoo_map` | 1 | cuckoo hashing |
 | `lib/enfilade` | 1 | enfilade |
@@ -319,7 +318,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | cactus stack | todo | `lib/cactus_stack` |
 | Calculus of Communicating Systems | def |  |
-| calendar queue | todo | `lib/calendar_queue` |
+| calendar queue | done | `lib/calendar_queue` |
 | candidate consistency testing | def |  |
 | candidate verification | def |  |
 | canonical complexity class | def |  |

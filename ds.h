@@ -23,6 +23,7 @@
 #include "lib/bplus_tree.h"
 #include "lib/bst.h"
 #include "lib/btree.h"
+#include "lib/calendar_queue.h"
 #include "lib/circular_buffer.h"
 #include "lib/count_min_sketch.h"
 #include "lib/critbit_tree.h"

@@ -26,6 +26,7 @@ Core mutable containers:
 - Bloom filter (probabilistic membership)
 - B-tree
 - B+ tree (with optional B* split policy)
+- Calendar queue (event-time priority queue, pluggable width policy)
 - Circular buffer (ring buffer)
 - Count-Min sketch (frequency estimates, conservative update, mergeable)
 - Crit-bit tree (binary PATRICIA string map, sorted and prefix iteration)
