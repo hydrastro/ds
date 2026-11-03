@@ -15,6 +15,7 @@
 #include "lib/art.h"
 #include "lib/aug_treap.h"
 #include "lib/avl.h"
+#include "lib/binomial_heap.h"
 #include "lib/bip_buffer.h"
 #include "lib/bitset.h"
 #include "lib/bitvector.h"

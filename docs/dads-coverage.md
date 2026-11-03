@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 205 |
-| todo | 519 |
+| done | 208 |
+| todo | 516 |
 | def | 574 |
 | total | 1298 |
 
@@ -74,7 +74,6 @@ Families ordered by how many DADS entries they close.
 | `algo/perfect_hash` | 4 | minimal perfect hashing, optimal hashing, order-preserving minimal perfect hashing, perfect hashing |
 | `algo/select` | 4 | Find, MODIFIND, select and partition, select mode |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
-| `lib/binomial_heap` | 4 | binomial heap, binomial tree, Bk tree, meld |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/sorted_list` | 4 | ordered linked list, sorted array, sorted list, unsorted list |
@@ -98,6 +97,7 @@ Families ordered by how many DADS entries they close.
 | `algo/game` | 1 | minimax |
 | `algo/lsh` | 1 | locality-sensitive hashing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
+| `lib/binomial_heap` | 1 | meld |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
@@ -256,8 +256,8 @@ Families ordered by how many DADS entries they close.
 | binary tree | done | `lib/bst` |
 | binary tree representation of trees | todo | `lib/binary_tree_repr` |
 | bingo sort | todo | `algo/sort_misc` |
-| binomial heap | todo | `lib/binomial_heap` |
-| binomial tree | todo | `lib/binomial_heap` |
+| binomial heap | done | `lib/binomial_heap` |
+| binomial tree | done | `lib/binomial_heap` |
 | bin packing problem | todo | `algo/knapsack` |
 | bin sort | todo | `algo/sort_dist` |
 | bintree | todo | `lib/quadtree` |
@@ -266,7 +266,7 @@ Families ordered by how many DADS entries they close.
 | bisector | todo | `algo/geometry` |
 | bitonic sort | done | `algo/sort_classic` |
 | bit vector | done | `lib/bitset, lib/bitvector` |
-| Bk tree | todo | `lib/binomial_heap` |
+| Bk tree | done | `lib/binomial_heap` |
 | blind sort | todo | `algo/sort_misc` |
 | blind trie | todo | `lib/elastic_trie` |
 | block | def |  |

@@ -19,6 +19,7 @@ Core mutable containers:
 - Adaptive radix tree (ART, adaptive node sizing + path compression)
 - Aho-Corasick automaton (multi-pattern string matching)
 - Binary search tree
+- Binomial heap (intrusive mergeable heap; decrease, update and remove by handle)
 - Bip buffer (circular byte buffer with contiguous reserve/read regions)
 - Bitset (dynamic bit array)
 - Bitvector with rank/select (succinct, two-level index)

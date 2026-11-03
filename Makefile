@@ -110,7 +110,8 @@ LIB_SRC := \
   $(LIB_DIR)/trie_stores.c \
   $(LIB_DIR)/implicit_treap.c \
   $(LIB_DIR)/aug_treap.c \
-  $(LIB_DIR)/interval_tree.c
+  $(LIB_DIR)/interval_tree.c \
+  $(LIB_DIR)/binomial_heap.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -135,6 +136,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/binomial_heap.c $(LIB_DIR)/binomial_heap.h \
   $(LIB_DIR)/art.c $(LIB_DIR)/art.h \
   $(LIB_DIR)/bitvector.c $(LIB_DIR)/bitvector.h \
   $(LIB_DIR)/fibonacci_heap.c $(LIB_DIR)/fibonacci_heap.h \

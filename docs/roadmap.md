@@ -61,6 +61,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/`: sorting and selection, searching, sequence and sorted-set
   operations, hashes and checksums, bit manipulation, xoshiro128** RNG and
   alias sampling, number theory and compensated numerics
+- intrusive binomial heap with meld, decrease/update/remove by handle
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
