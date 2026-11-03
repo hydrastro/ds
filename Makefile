@@ -87,7 +87,8 @@ LIB_SRC := \
   $(LIB_DIR)/wavelet_tree.c \
   $(LIB_DIR)/unicode_runtime.c \
   $(LIB_DIR)/vec.c \
-  $(LIB_DIR)/array_deque.c
+  $(LIB_DIR)/array_deque.c \
+  $(LIB_DIR)/sparse_set.c
 
 GEN_SRC_C := $(BUILD_DIR)/unicode_tables.c
 GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
@@ -104,6 +105,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/rope.c $(LIB_DIR)/rope.h \
   $(LIB_DIR)/segment_tree.c $(LIB_DIR)/segment_tree.h \
   $(LIB_DIR)/wavelet_tree.c $(LIB_DIR)/wavelet_tree.h \
+  $(LIB_DIR)/sparse_set.c $(LIB_DIR)/sparse_set.h \
   $(LIB_DIR)/array_deque.c $(LIB_DIR)/array_deque.h \
   $(LIB_DIR)/vec.c $(LIB_DIR)/vec.h \
   $(TEST_DIR)/art_test.c $(TEST_DIR)/bitvector_test.c \

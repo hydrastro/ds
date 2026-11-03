@@ -42,6 +42,7 @@ Core mutable containers:
 - Queue
 - Red-black tree
 - Skip list
+- Sparse set (O(1) insert/remove/contains/clear over small integers)
 - Splay tree
 - Stack
 - Treap
