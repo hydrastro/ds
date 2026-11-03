@@ -43,6 +43,7 @@
 #include "lib/rope.h"
 #include "lib/segment_tree.h"
 #include "lib/skip_list.h"
+#include "lib/slot_map.h"
 #include "lib/sparse_set.h"
 #include "lib/splay_tree.h"
 #include "lib/stack.h"

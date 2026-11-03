@@ -42,6 +42,7 @@ Core mutable containers:
 - Queue
 - Red-black tree
 - Skip list
+- Slot map (generational handles that detect stale references, dense values)
 - Sparse set (O(1) insert/remove/contains/clear over small integers)
 - Splay tree
 - Stack
