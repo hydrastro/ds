@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 237 |
-| todo | 482 |
+| done | 239 |
+| todo | 480 |
 | def | 579 |
 | total | 1298 |
 
@@ -78,7 +78,6 @@ Families ordered by how many DADS entries they close.
 | `lib/threaded_tree` | 4 | Cupif-Giannini tree traversal, right-threaded tree, threaded binary tree, threaded tree |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
-| `lib/merkle_tree` | 3 | hash tree, linked data signature, Merkle tree |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
 | `lib/association_list` | 2 | association list, property list |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
@@ -99,6 +98,7 @@ Families ordered by how many DADS entries they close.
 | `lib/indexed_heap (hash index)` | 1 | hash heap |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
+| `lib/merkle_tree` | 1 | linked data signature |
 | `lib/octree` | 1 | octree |
 | `lib/pagoda` | 1 | pagoda |
 | `lib/scapegoat_tree` | 1 | scapegoat tree |
@@ -668,7 +668,7 @@ Families ordered by how many DADS entries they close.
 | hash heap | todo | `lib/indexed_heap` (hash index) |
 | hash table | done | `lib/hash_table, lib/rh_map` |
 | hash table delete | done | `lib/hash_table, lib/rh_map` (backward shift) |
-| hash tree | todo | `lib/merkle_tree` |
+| hash tree | done | `lib/merkle_tree` |
 | Hausdorff distance | todo | `algo/geometry` |
 | hB-tree | todo | `lib/hb_tree` |
 | head | def |  |
@@ -883,7 +883,7 @@ Families ordered by how many DADS entries they close.
 | memoization | def |  |
 | merge | done | `algo/sequence` |
 | merge sort | done | `algo/sort` |
-| Merkle tree | todo | `lib/merkle_tree` |
+| Merkle tree | done | `lib/merkle_tree` |
 | metaheuristic | def |  |
 | metaphone | todo | `algo/phonetic` |
 | midrange | todo | `algo/numeric` (extensions) |

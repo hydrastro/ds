@@ -52,6 +52,7 @@ Core mutable containers:
 - Linear hashing (Litwin; split by load or on overflow, incremental growth and shrink)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)
 - Meldable heaps with pluggable shape policy: leftist, weight-biased leftist, skew, randomized (intrusive)
+- Merkle tree (pluggable digest, RFC 6962 or Bitcoin odd-node rule, append/update, audit proofs)
 - Min-max heap (double-ended priority queue by value)
 - Monotonic queue (sliding-window min/max in amortized O(1))
 - Open-addressing map with pluggable probe sequence (linear, quadratic, double hashing) and discipline (FCFS, LCFS, Robin Hood)

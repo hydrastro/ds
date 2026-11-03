@@ -52,6 +52,7 @@
 #include "lib/list.h"
 #include "lib/lru_cache.h"
 #include "lib/meldable_heap.h"
+#include "lib/merkle_tree.h"
 #include "lib/min_max_heap.h"
 #include "lib/monotonic_queue.h"
 #include "lib/open_map.h"
