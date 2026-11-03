@@ -66,6 +66,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - sequences: rotate, next/prev permutation, shuffle, unique, (stable) partition, merge and multiset set operations, inversions, LIS, majority vote, max subarray
 - hashing: FNV-1a, MurmurHash3, xxHash32, integer mixer; checksums CRC-32, CRC-32C, Adler-32, Fletcher-16
 - bits: popcount, clz/ctz, parity, power-of-two and log2 helpers, rotations, bit reversal, Gray code, Morton (Z-order) codes
+- random: xoshiro128** generator with jump, unbiased bounded/range draws, uniform/normal/exponential/Bernoulli variates, Vose alias tables
 
 Newer high-level modules:
 
