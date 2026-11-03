@@ -64,6 +64,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - selection: nth_element (introselect), partial_sort (top k)
 - searching: lower/upper bound, equal range, binary, exponential (galloping), interpolation, find/count/min/max
 - sequences: rotate, next/prev permutation, shuffle, unique, (stable) partition, merge and multiset set operations, inversions, LIS, majority vote, max subarray
+- hashing: FNV-1a, MurmurHash3, xxHash32, integer mixer; checksums CRC-32, CRC-32C, Adler-32, Fletcher-16
 
 Newer high-level modules:
 
