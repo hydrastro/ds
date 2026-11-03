@@ -70,6 +70,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - Swiss-table hash map
 - open addressing with pluggable probe sequences and FCFS/LCFS/Robin Hood disciplines
 - bucketized d-ary cuckoo hashing with BFS insertion and a stash
+- coalesced hashing with cellar
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

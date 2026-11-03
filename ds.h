@@ -25,6 +25,7 @@
 #include "lib/btree.h"
 #include "lib/calendar_queue.h"
 #include "lib/circular_buffer.h"
+#include "lib/coalesced_map.h"
 #include "lib/count_min_sketch.h"
 #include "lib/critbit_tree.h"
 #include "lib/cuckoo_filter.h"

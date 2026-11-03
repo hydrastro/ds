@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 221 |
-| todo | 498 |
+| done | 222 |
+| todo | 497 |
 | def | 579 |
 | total | 1298 |
 
@@ -98,7 +98,6 @@ Families ordered by how many DADS entries they close.
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
-| `lib/coalesced_map` | 1 | coalesced chaining |
 | `lib/enfilade` | 1 | enfilade |
 | `lib/extendible_hash` | 1 | extendible hashing |
 | `lib/indexed_heap (hash index)` | 1 | hash heap |
@@ -348,7 +347,7 @@ Families ordered by how many DADS entries they close.
 | clique problem | todo | `algo/graph_hard` |
 | clustering | def |  |
 | clustering free | def |  |
-| coalesced chaining | todo | `lib/coalesced_map` |
+| coalesced chaining | done | `lib/coalesced_map` |
 | coarsening | def |  |
 | cocktail shaker sort | done | `algo/sort_classic` |
 | codeword | def |  |

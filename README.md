@@ -28,6 +28,7 @@ Core mutable containers:
 - B+ tree (with optional B* split policy)
 - Calendar queue (event-time priority queue, pluggable width policy)
 - Circular buffer (ring buffer)
+- Coalesced hashing (cellar, LISCH/EISCH, tombstone-free removal)
 - Count-Min sketch (frequency estimates, conservative update, mergeable)
 - Crit-bit tree (binary PATRICIA string map, sorted and prefix iteration)
 - Cuckoo filter (membership with deletion, 16-bit fingerprints, ~95% load)
