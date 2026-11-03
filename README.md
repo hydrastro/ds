@@ -26,6 +26,7 @@ Core mutable containers:
 - B+ tree (with optional B* split policy)
 - Circular buffer (ring buffer)
 - Count-Min sketch (frequency estimates, conservative update, mergeable)
+- Crit-bit tree (binary PATRICIA string map, sorted and prefix iteration)
 - Cuckoo filter (membership with deletion, 16-bit fingerprints, ~95% load)
 - Deque
 - Disjoint set (union-find)
