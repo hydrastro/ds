@@ -95,7 +95,8 @@ LIB_SRC := \
   $(LIB_DIR)/sparse_table.c \
   $(LIB_DIR)/rollback_union_find.c \
   $(LIB_DIR)/timer_wheel.c \
-  $(LIB_DIR)/packed_array.c
+  $(LIB_DIR)/packed_array.c \
+  $(LIB_DIR)/rh_map.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -125,6 +126,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/rope.c $(LIB_DIR)/rope.h \
   $(LIB_DIR)/segment_tree.c $(LIB_DIR)/segment_tree.h \
   $(LIB_DIR)/wavelet_tree.c $(LIB_DIR)/wavelet_tree.h \
+  $(LIB_DIR)/rh_map.c $(LIB_DIR)/rh_map.h \
   $(LIB_DIR)/packed_array.c $(LIB_DIR)/packed_array.h \
   $(LIB_DIR)/timer_wheel.c $(LIB_DIR)/timer_wheel.h \
   $(LIB_DIR)/rollback_union_find.c $(LIB_DIR)/rollback_union_find.h \

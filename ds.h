@@ -42,6 +42,7 @@
 #include "lib/queue.h"
 #include "lib/radix_trie.h"
 #include "lib/rbt.h"
+#include "lib/rh_map.h"
 #include "lib/ring_list.h"
 #include "lib/rollback_union_find.h"
 #include "lib/rope.h"

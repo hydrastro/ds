@@ -38,6 +38,7 @@ Core mutable containers:
 - Packed integer array (k-bit values packed into words)
 - Pairing heap
 - Radix trie (path-compressed)
+- Robin Hood hash map (by-value keys/values, backward-shift deletion, fixed-buffer mode)
 - Rope (chunked string with O(log n) splice)
 - Segment tree (lazy propagation: range add/assign, range sum/min/max)
 - Singly linked list
