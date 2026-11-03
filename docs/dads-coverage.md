@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 389 |
-| todo | 316 |
+| done | 393 |
+| todo | 312 |
 | def | 593 |
 | total | 1298 |
 
@@ -51,7 +51,6 @@ Families ordered by how many DADS entries they close.
 | `algo/phonetic` | 6 | Caverphone, double metaphone, metaphone, NYSIIS, phonetic coding, soundex |
 | `algo/random (extensions)` | 6 | linear congruential generator, Randomized-Select, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
 | `algo/search (extensions)` | 6 | block search, Bond Sequential Search, Fibonaccian search, interpolation-sequential search, jump search, ternary search |
-| `algo/sequence (extensions)` | 6 | balanced multiway merge, Dutch national flag, multiprefix, parallel prefix computation, prefix sums, scan |
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
@@ -74,6 +73,7 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
+| `algo/sequence (extensions)` | 2 | balanced multiway merge, Dutch national flag |
 | `lib/association_list` | 2 | association list, property list |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
@@ -913,7 +913,7 @@ Families ordered by how many DADS entries they close.
 | multikey Quicksort | todo | `algo/sort_dist` |
 | multilayer grid file | todo | `lib/grid_file` |
 | multiplication method | done | `algo/hash_family` |
-| multiprefix | todo | `algo/sequence` (extensions) |
+| multiprefix | done | `algo/scan` |
 | multiprocessor model | def |  |
 | multi-set | todo | `lib/multiset` |
 | multi suffix tree | todo | `lib/suffix_tree` |
@@ -1035,7 +1035,7 @@ Families ordered by how many DADS entries they close.
 | pairing heap | done | `lib/pairing_heap` |
 | PAM | todo | `lib/quadtree` |
 | parallel computation thesis | def |  |
-| parallel prefix computation | todo | `algo/sequence` (extensions) |
+| parallel prefix computation | done | `algo/scan` |
 | parallel random-access machine | def |  |
 | parametric searching | def |  |
 | parent | def |  |
@@ -1102,7 +1102,7 @@ Families ordered by how many DADS entries they close.
 | predicate | def |  |
 | prefix | def |  |
 | prefix code | todo | `algo/compress` |
-| prefix sums | todo | `algo/sequence` (extensions) |
+| prefix sums | done | `algo/scan` |
 | prefix traversal | def |  |
 | preorder traversal | done | `lib/avl, lib/bst walks` |
 | primary clustering | def |  |
@@ -1241,7 +1241,7 @@ Families ordered by how many DADS entries they close.
 | SAM | def |  |
 | saturated edge | def |  |
 | SBB tree | done | `lib/rbt` (symmetric binary B-tree = red-black tree) |
-| scan | todo | `algo/sequence` (extensions) |
+| scan | done | `algo/scan` |
 | scapegoat tree | todo | `lib/scapegoat_tree` |
 | scatter storage | def |  |
 | Schorr-Waite graph marking algorithm | todo | `algo/schorr_waite` |

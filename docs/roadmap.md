@@ -90,6 +90,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/string_search`: seventeen exact matching algorithms and k-mismatch search
 - inversion list: range sets as sorted boundaries with linear-time boolean merges and a fixed-buffer mode
 - k-way merge: tournament trees, five selection policies, optimal merge plans
+- scan: prefix computations over a pluggable (non-commutative) monoid, parallel prefix algorithms, multiprefix
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

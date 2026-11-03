@@ -115,6 +115,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - numerical methods: Horner, bisection/secant/Newton roots, square and cube roots, CORDIC, Gamma (Lanczos), Stirling, BBP pi digits, mode, midrange
 - exact string matching: brute force, Morris-Pratt, Boyer-Moore, Horspool, Raita, Quick Search, Smith, Zhu-Takaoka, Turbo-BM, Apostolico-Giancarlo, Apostolico-Crochemore, Not So Naive, Two Way, Shift-Or, DFA, Skip and Alpha Skip Search, k-mismatch search
 - `kway_merge`: tournament trees (loser/winner), k-way merge with loser-tree, winner-tree, heap, ideal and linear policies, optimal merge patterns
+- `scan`: inclusive/exclusive/suffix/segmented scans, multiprefix, Hillis-Steele and Blelloch parallel prefix over a pluggable monoid; typed prefix sums
 
 Newer high-level modules:
 
