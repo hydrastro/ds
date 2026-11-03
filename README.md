@@ -109,6 +109,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - graph paths: Johnson APSP, DAG shortest/longest (critical) paths, best-first/A*, Yen k shortest paths, all simple paths, Chu-Liu/Edmonds arborescence, Kruskal, Boruvka, Chinese postman
 - geometry: distances (L_p, Hausdorff), predicates, convex hull (Andrew, Graham, Jarvis, quickhull), rotating calipers, closest pair, polygon kernel, optimal triangulation, slope selection, Bresenham and Wu rasterization
 - combinatorics: binomials and counts, combination/permutation ranking, Johnson-Trotter, derangements, partitions, n queens, knight's tour, towers of Hanoi, Collatz
+- knapsack and packing: 0/1, unbounded and fractional knapsack, bin packing policies (NF, FF, BF, WF, FFD, BFD), cutting stock, strip packing (NFDH, FFDH), matrix chain
 
 Newer high-level modules:
 

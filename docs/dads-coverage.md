@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 328 |
-| todo | 377 |
+| done | 339 |
+| todo | 366 |
 | def | 593 |
 | total | 1298 |
 
@@ -44,7 +44,6 @@ Families ordered by how many DADS entries they close.
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
-| `algo/knapsack` | 12 | binary knapsack problem, bin packing problem, continuous knapsack problem, cutting stock problem, fractional knapsack problem, knapsack problem, matrix-chain multiplication problem, set packing, strip packing, UKP, unbounded knapsack problem, 0/1 knapsack problem |
 | `algo/sequence (extensions)` | 11 | balanced multiway merge, Dutch national flag, ideal merge, inversion list, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -86,6 +85,7 @@ Families ordered by how many DADS entries they close.
 | `algo/cartesian_tree` | 1 | cartesian tree |
 | `algo/game` | 1 | minimax |
 | `algo/geometry` | 1 | geometric optimization problem |
+| `algo/knapsack` | 1 | set packing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -230,7 +230,7 @@ Families ordered by how many DADS entries they close.
 | binary GCD | done | `algo/numeric` (ds_binary_gcd) |
 | binary heap | done | `lib/heap` |
 | binary insertion sort | done | `algo/sort_classic` |
-| binary knapsack problem | todo | `algo/knapsack` |
+| binary knapsack problem | done | `algo/knapsack` |
 | binary priority queue | done | `lib/heap` |
 | binary relation | def |  |
 | binary search | done | `algo/search` |
@@ -240,7 +240,7 @@ Families ordered by how many DADS entries they close.
 | bingo sort | todo | `algo/sort_misc` |
 | binomial heap | done | `lib/binomial_heap` |
 | binomial tree | done | `lib/binomial_heap` |
-| bin packing problem | todo | `algo/knapsack` |
+| bin packing problem | done | `algo/knapsack` |
 | bin sort | todo | `algo/sort_dist` |
 | bintree | todo | `lib/quadtree` |
 | bipartite graph | done | `algo/graph_view` (ds_gview_bipartite) |
@@ -379,7 +379,7 @@ Families ordered by how many DADS entries they close.
 | connected components | done | `lib/graph` (weak components) |
 | connected graph | def |  |
 | constant function | def |  |
-| continuous knapsack problem | todo | `algo/knapsack` |
+| continuous knapsack problem | done | `algo/knapsack` |
 | Cook reduction | def |  |
 | Cook's theorem | def |  |
 | CORDIC | todo | `algo/numeric` (extensions) |
@@ -396,7 +396,7 @@ Families ordered by how many DADS entries they close.
 | Cupif-Giannini tree traversal | todo | `lib/threaded_tree` |
 | cut | def |  |
 | cutting plane | todo | `algo/lp` |
-| cutting stock problem | todo | `algo/knapsack` |
+| cutting stock problem | done | `algo/knapsack` |
 | cutting theorem | def |  |
 | cut vertex | done | `algo/graph_struct` |
 | cycle | def |  |
@@ -608,7 +608,7 @@ Families ordered by how many DADS entries they close.
 | formal methods | def |  |
 | formal verification | def |  |
 | forward index | def |  |
-| fractional knapsack problem | todo | `algo/knapsack` |
+| fractional knapsack problem | done | `algo/knapsack` |
 | fractional solution | def |  |
 | free edge | def |  |
 | free tree | def |  |
@@ -772,7 +772,7 @@ Families ordered by how many DADS entries they close.
 | key | def |  |
 | KMP | done | `algo/stringology` |
 | KmpSkip Search | todo | `algo/string_search` |
-| knapsack problem | todo | `algo/knapsack` |
+| knapsack problem | done | `algo/knapsack` |
 | knight's tour | done | `algo/combinatorics` |
 | Knuth-Morris-Pratt algorithm | done | `algo/stringology` |
 | Königsberg bridges problem | done | `algo/graph_struct` |
@@ -863,7 +863,7 @@ Families ordered by how many DADS entries they close.
 | matched vertex | def |  |
 | matching | done | `algo/matching` |
 | matrix | def |  |
-| matrix-chain multiplication problem | todo | `algo/knapsack` |
+| matrix-chain multiplication problem | done | `algo/knapsack` |
 | matrix multiplication | todo | `algo/matrix` |
 | max-heap property | def |  |
 | maximal independent set | todo | `algo/graph_hard` |
@@ -1365,7 +1365,7 @@ Families ordered by how many DADS entries they close.
 | string matching with errors † | todo | `algo/string_approx` |
 | string matching with mismatches † | todo | `algo/string_search` |
 | string searching † | todo | `algo/string_search` |
-| strip packing | todo | `algo/knapsack` |
+| strip packing | done | `algo/knapsack` |
 | strongly connected component | done | `algo/graph_view` (Tarjan), lib/graph |
 | strongly connected graph | def |  |
 | strongly NP-hard † | def |  |
@@ -1505,10 +1505,10 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | UB-tree † | todo | `lib/ub_tree` |
-| UKP | todo | `algo/knapsack` |
+| UKP | done | `algo/knapsack` |
 | unary function | def |  |
 | unbiased coin flipping algorithm | todo | `algo/random` (extensions) |
-| unbounded knapsack problem | todo | `algo/knapsack` |
+| unbounded knapsack problem | done | `algo/knapsack` |
 | uncomputable function † | def |  |
 | uncomputable problem † | def |  |
 | undecidable language † | def |  |
@@ -1595,7 +1595,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | 0-ary function † | def |  |
 | 0-based indexing † | def |  |
-| 0/1 knapsack problem † | todo | `algo/knapsack` |
+| 0/1 knapsack problem † | done | `algo/knapsack` |
 
 ### Z
 
