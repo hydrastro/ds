@@ -32,6 +32,7 @@ Core mutable containers:
 - Hash array mapped trie (HAMT, bitmap + popcount sparse nodes)
 - Hash table
 - Heap
+- Indexed d-ary heap (priority queue with decrease/increase-key by id)
 - Order-statistic tree (size-augmented AVL: select/rank)
 - Pairing heap
 - Radix trie (path-compressed)

@@ -31,6 +31,7 @@
 #include "lib/hash_table.h"
 #include "lib/heap.h"
 #include "lib/history.h"
+#include "lib/indexed_heap.h"
 #include "lib/list.h"
 #include "lib/order_statistic_tree.h"
 #include "lib/pairing_heap.h"
