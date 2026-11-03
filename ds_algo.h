@@ -14,5 +14,6 @@
 #include "algo/numeric.h"
 #include "algo/graph_view.h"
 #include "algo/sort_classic.h"
+#include "algo/stringology.h"
 
 #endif /* DS_ALGO_H */

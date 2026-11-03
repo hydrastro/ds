@@ -123,7 +123,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/random.c \
   $(ALGO_DIR)/numeric.c \
   $(ALGO_DIR)/graph_view.c \
-  $(ALGO_DIR)/sort_classic.c
+  $(ALGO_DIR)/sort_classic.c \
+  $(ALGO_DIR)/stringology.c
 
 LIB_SRC += $(ALGO_SRC)
 
