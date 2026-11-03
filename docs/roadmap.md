@@ -35,6 +35,17 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - adaptive radix tree (ART) with Node4/16/48/256 adaptive sizing and path
   compression (portable scalar implementation)
 - string map/string set convenience wrappers
+- by-value vector with growable or fixed caller-buffer storage, heapsort and
+  binary search
+- by-value array deque (growable ring) with fixed-buffer and overwrite modes
+- sparse set (Briggs-Torczon) with O(1) insert/remove/contains/clear
+- generational slot map with stale-handle detection
+- indexed d-ary heap with update/remove by id (decrease-key)
+- min-max heap (double-ended priority queue)
+- sparse table: idempotent (min/max/gcd) and disjoint (any associative op)
+- union-find with snapshot/rollback
+- hierarchical timer wheel with intrusive timers and no allocation
+- bit-packed integer array (k-bit values)
 - `make test`, `make test-safe`, `make sanitize`, `make examples`, and
   `make valgrind`
 - `ds_safe.h`, `libds_safe.a`, and `libds_safe.so`
