@@ -33,6 +33,7 @@
 #include "lib/history.h"
 #include "lib/indexed_heap.h"
 #include "lib/list.h"
+#include "lib/lru_cache.h"
 #include "lib/min_max_heap.h"
 #include "lib/order_statistic_tree.h"
 #include "lib/packed_array.h"

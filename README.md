@@ -33,6 +33,7 @@ Core mutable containers:
 - Hash table
 - Heap
 - Indexed d-ary heap (priority queue with decrease/increase-key by id)
+- LRU cache (fixed capacity, by-value entries, no allocation after init)
 - Min-max heap (double-ended priority queue by value)
 - Order-statistic tree (size-augmented AVL: select/rank)
 - Packed integer array (k-bit values packed into words)
