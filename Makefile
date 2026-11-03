@@ -154,7 +154,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/numerical.c \
   $(ALGO_DIR)/string_search.c \
   $(ALGO_DIR)/kway_merge.c \
-  $(ALGO_DIR)/scan.c
+  $(ALGO_DIR)/scan.c \
+  $(ALGO_DIR)/select.c
 
 LIB_SRC += $(ALGO_SRC)
 

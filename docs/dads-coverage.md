@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 393 |
-| todo | 312 |
+| done | 398 |
+| todo | 307 |
 | def | 593 |
 | total | 1298 |
 
@@ -49,17 +49,16 @@ Families ordered by how many DADS entries they close.
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `algo/phonetic` | 6 | Caverphone, double metaphone, metaphone, NYSIIS, phonetic coding, soundex |
-| `algo/random (extensions)` | 6 | linear congruential generator, Randomized-Select, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
 | `algo/search (extensions)` | 6 | block search, Bond Sequential Search, Fibonaccian search, interpolation-sequential search, jump search, ternary search |
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
+| `algo/random (extensions)` | 5 | linear congruential generator, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
 | `algo/sort_heap` | 5 | adaptive heap sort, dominance tree sort, smoothsort, tournament sort, tree sort |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
 | `algo/external_sort` | 4 | external merge, external quicksort, external radix sort, external sort |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
-| `algo/select` | 4 | Find, MODIFIND, select and partition, select mode |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
@@ -581,7 +580,7 @@ Families ordered by how many DADS entries they close.
 | Fibonacci tree | def |  |
 | FIFO | done | `lib/queue` |
 | filial-heir chain | todo | `lib/binary_tree_repr` |
-| Find | todo | `algo/select` |
+| Find | done | `algo/select` |
 | find kth least element | done | `algo/sort` (nth_element) |
 | finitary tree | def |  |
 | finite Fourier transform | todo | `algo/fft` |
@@ -897,7 +896,7 @@ Families ordered by how many DADS entries they close.
 | model checking | def |  |
 | model of computation | def |  |
 | moderately exponential | def |  |
-| MODIFIND | todo | `algo/select` |
+| MODIFIND | done | `algo/select` |
 | monotone priority queue | done | `lib/radix_heap` |
 | monotonically decreasing | def |  |
 | monotonically increasing | def |  |
@@ -1166,7 +1165,7 @@ Families ordered by how many DADS entries they close.
 | randomized polynomial time | def |  |
 | randomized rounding | def |  |
 | randomized search tree | done | `lib/treap` |
-| Randomized-Select | todo | `algo/random` (extensions) |
+| Randomized-Select | done | `algo/select` |
 | random number generator | done | `algo/random` (xoshiro128**) |
 | random sampling | todo | `algo/random` (extensions) |
 | random search | def |  |
@@ -1252,11 +1251,11 @@ Families ordered by how many DADS entries they close.
 | secondary clustering | def |  |
 | segment | def |  |
 | Select | done | `algo/sort` (nth_element), lib/order_statistic_tree |
-| select and partition | todo | `algo/select` |
+| select and partition | done | `algo/select` |
 | selection problem | done | `algo/sort` (nth_element) |
 | selection sort | done | `algo/sort_classic` |
 | select kth element | done | `algo/sort` (nth_element) |
-| select mode | todo | `algo/select` |
+| select mode | done | `algo/select` |
 | self-loop | def |  |
 | self-organizing list | todo | `lib/self_org_list` |
 | self-organizing sequential search | todo | `lib/self_org_list` |

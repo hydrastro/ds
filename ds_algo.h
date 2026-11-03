@@ -30,5 +30,6 @@
 #include "algo/string_search.h"
 #include "algo/kway_merge.h"
 #include "algo/scan.h"
+#include "algo/select.h"
 
 #endif /* DS_ALGO_H */
