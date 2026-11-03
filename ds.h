@@ -11,6 +11,7 @@
 #include "lib/iter.h"
 
 #include "lib/aho_corasick.h"
+#include "lib/array_deque.h"
 #include "lib/art.h"
 #include "lib/avl.h"
 #include "lib/bitset.h"
