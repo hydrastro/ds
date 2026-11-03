@@ -117,6 +117,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `kway_merge`: tournament trees (loser/winner), k-way merge with loser-tree, winner-tree, heap, ideal and linear policies, optimal merge patterns
 - `scan`: inclusive/exclusive/suffix/segmented scans, multiprefix, Hillis-Steele and Blelloch parallel prefix over a pluggable monoid; typed prefix sums
 - `select`: FIND, MODIFIND, Floyd-Rivest, median of medians, Randomized-Select and introselect behind one dispatcher; median and mode
+- `sort_misc`: configurable quicksort (pivot, partition, cutoff, introspection; q sort, qm sort, balanced), dual-pivot quicksort, two-/three-/k-way and adaptive merge sorts, strand, bingo, Dutch national flag, joke sorts
 
 Newer high-level modules:
 

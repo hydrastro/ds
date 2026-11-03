@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 404 |
-| todo | 301 |
+| done | 424 |
+| todo | 281 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,9 +38,9 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
-| `algo/sort_misc` | 32 | adaptive sort, balanced k-way merge sort, balanced merge sort, balanced quicksort, balanced two-way merge sort, bingo sort, blind sort, bogosort, bozo sort, dual-pivot quicksort, k-way merge sort, linear insertion sort, lucky sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, p-way merge sort, qm sort, q sort, quicksort, rapid sort, shadow merge, shadow merge insert, simple merge, sinking sort, strand sort, three-way merge sort, two-way merge sort |
-| `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
+| `algo/sort_dist` | 20 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
+| `algo/sort_misc` | 14 | balanced k-way merge sort, balanced merge sort, balanced two-way merge sort, blind sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, rapid sort, shadow merge, shadow merge insert |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
@@ -71,7 +71,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
-| `algo/sequence (extensions)` | 2 | balanced multiway merge, Dutch national flag |
 | `lib/association_list` | 2 | association list, property list |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
@@ -85,6 +84,7 @@ Families ordered by how many DADS entries they close.
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
+| `algo/sequence (extensions)` | 1 | balanced multiway merge |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
@@ -137,7 +137,7 @@ Families ordered by how many DADS entries they close.
 | adaptive heap sort | todo | `algo/sort_heap` |
 | adaptive Huffman coding | todo | `algo/compress` |
 | adaptive k-d tree | todo | `lib/kdb_tree` |
-| adaptive sort | todo | `algo/sort_misc` |
+| adaptive sort | done | `algo/sort_misc` |
 | address-calculation sort | todo | `algo/sort_dist` |
 | adjacency-list representation | done | `lib/graph, algo/graph_view` (CSR) |
 | adjacency-matrix representation | def |  |
@@ -205,7 +205,7 @@ Families ordered by how many DADS entries they close.
 | balanced merge sort | todo | `algo/sort_misc` |
 | balanced multiway merge | todo | `algo/sequence` (extensions) |
 | balanced multiway tree | done | `lib/btree` |
-| balanced quicksort | todo | `algo/sort_misc` |
+| balanced quicksort | done | `algo/sort_misc` |
 | balanced tree | done | `lib/avl, lib/rbt, lib/btree` |
 | balanced two-way merge sort | todo | `algo/sort_misc` |
 | BANG file | todo | `lib/grid_file` |
@@ -235,7 +235,7 @@ Families ordered by how many DADS entries they close.
 | binary search tree | done | `lib/bst` |
 | binary tree | done | `lib/bst` |
 | binary tree representation of trees | todo | `lib/binary_tree_repr` |
-| bingo sort | todo | `algo/sort_misc` |
+| bingo sort | done | `algo/sort_misc` |
 | binomial heap | done | `lib/binomial_heap` |
 | binomial tree | done | `lib/binomial_heap` |
 | bin packing problem | done | `algo/knapsack` |
@@ -255,7 +255,7 @@ Families ordered by how many DADS entries they close.
 | block search | done | `algo/search` |
 | Bloom filter | done | `lib/bloom_filter` |
 | blossom | done | `algo/matching` |
-| bogosort | todo | `algo/sort_misc` |
+| bogosort | done | `algo/sort_misc` |
 | Bond Sequential Search | done | `algo/search` |
 | boolean | def |  |
 | boolean expression | def |  |
@@ -269,7 +269,7 @@ Families ordered by how many DADS entries they close.
 | bounded stack | done | `lib/vec` (fixed buffer) |
 | Boyer-Moore | done | `algo/string_search` |
 | Boyer-Moore-Horspool | done | `algo/string_search` |
-| bozo sort | todo | `algo/sort_misc` |
+| bozo sort | done | `algo/sort_misc` |
 | B+-tree | done | `lib/bplus_tree` |
 | BPP | def |  |
 | Bradford's law | def |  |
@@ -480,8 +480,8 @@ Families ordered by how many DADS entries they close.
 | D-tree | todo | `lib/hb_tree` |
 | dual | def |  |
 | dual linear program | todo | `algo/lp` |
-| dual-pivot quicksort | todo | `algo/sort_misc` |
-| Dutch national flag | todo | `algo/sequence` (extensions) |
+| dual-pivot quicksort | done | `algo/sort_misc` |
+| Dutch national flag | done | `algo/sort_misc` |
 | dyadic tree | def |  |
 | dynamic | def |  |
 | dynamic array | done | `lib/vec` |
@@ -784,7 +784,7 @@ Families ordered by how many DADS entries they close.
 | k²-tree | todo | `lib/k2_tree` |
 | KV diagram | def |  |
 | k-way merge | done | `algo/kway_merge` |
-| k-way merge sort | todo | `algo/sort_misc` |
+| k-way merge sort | done | `algo/sort_misc` |
 | k-way tree | def |  |
 
 ### L
@@ -815,7 +815,7 @@ Families ordered by how many DADS entries they close.
 | linear congruential generator | todo | `algo/random` (extensions) |
 | linear hash | done | `algo/hash_family` |
 | linear hashing | done | `lib/linear_hash_map` |
-| linear insertion sort | todo | `algo/sort_misc` |
+| linear insertion sort | done | `algo/sort` |
 | linear order | def |  |
 | linear probing | done | `lib/hash_table, lib/rh_map` |
 | linear probing sort | todo | `algo/sort_dist` |
@@ -842,7 +842,7 @@ Families ordered by how many DADS entries they close.
 | lower triangular matrix | todo | `algo/matrix` |
 | lowest common ancestor | todo | `algo/graph_alg` |
 | l-reduction | def |  |
-| lucky sort | todo | `algo/sort_misc` |
+| lucky sort | done | `algo/sort_misc` |
 | LZW compression | todo | `algo/compress` |
 
 ### M
@@ -1064,7 +1064,7 @@ Families ordered by how many DADS entries they close.
 | performance guarantee | def |  |
 | performance ratio | def |  |
 | permutation | done | `algo/sequence` (next/prev permutation) |
-| permutation sort | todo | `algo/sort_dist` |
+| permutation sort | done | `algo/sort_misc` |
 | persistent data structure | done | `lib/persistent_rbt, lib/persistent_trie` |
 | phonetic coding | todo | `algo/phonetic` |
 | pigeonhole sort | todo | `algo/sort_dist` |
@@ -1130,14 +1130,14 @@ Families ordered by how many DADS entries they close.
 | purely functional language | def |  |
 | pushdown automaton | def |  |
 | pushdown transducer | def |  |
-| p-way merge sort | todo | `algo/sort_misc` |
+| p-way merge sort | done | `algo/sort_misc` |
 
 ### Q
 
 | entry | status | module |
 |---|---|---|
-| qm sort | todo | `algo/sort_misc` |
-| q sort | todo | `algo/sort_misc` |
+| qm sort | done | `algo/sort_misc` |
+| q sort | done | `algo/sort_misc` |
 | quadratic probing | done | `lib/hash_table` |
 | quadtree | todo | `lib/quadtree` |
 | quadtree complexity theorem | def |  |
@@ -1145,7 +1145,7 @@ Families ordered by how many DADS entries they close.
 | quantum computation | def |  |
 | queue | done | `lib/queue` |
 | quick search | done | `algo/string_search` |
-| quicksort | todo | `algo/sort_misc` |
+| quicksort | done | `algo/sort_misc` |
 
 ### R
 
@@ -1285,7 +1285,7 @@ Families ordered by how many DADS entries they close.
 | sift up † | def |  |
 | signature | def |  |
 | Simon's algorithm | def |  |
-| simple merge † | todo | `algo/sort_misc` |
+| simple merge † | done | `algo/sequence` |
 | simple path | def |  |
 | simple uniform hashing | def |  |
 | simplex | todo | `algo/lp` |
@@ -1298,7 +1298,7 @@ Families ordered by how many DADS entries they close.
 | singly linked list | done | `lib/list` |
 | singularity analysis † | def |  |
 | sink | def |  |
-| sinking sort † | todo | `algo/sort_misc` |
+| sinking sort † | done | `algo/sort_classic` |
 | skd-tree † | todo | `lib/kdb_tree` |
 | skew heap † | done | `lib/meldable_heap` |
 | skew symmetry | def |  |
@@ -1351,7 +1351,7 @@ Families ordered by how many DADS entries they close.
 | Stirling's formula | done | `algo/numerical` |
 | stooge sort † | done | `algo/sort_classic` |
 | straight-line drawing | def |  |
-| strand sort † | todo | `algo/sort_misc` |
+| strand sort † | done | `algo/sort_misc` |
 | strictly decreasing | def |  |
 | strictly increasing | def |  |
 | strictly lower triangular matrix | todo | `algo/matrix` |
@@ -1409,7 +1409,7 @@ Families ordered by how many DADS entries they close.
 | threaded binary tree † | todo | `lib/threaded_tree` |
 | threaded tree † | todo | `lib/threaded_tree` |
 | three-dimensional | def |  |
-| three-way merge sort † | todo | `algo/sort_misc` |
+| three-way merge sort † | done | `algo/sort_misc` |
 | three-way radix quicksort † | todo | `algo/sort_dist` |
 | time-constructible function † | def |  |
 | time/space complexity † | def |  |
@@ -1496,7 +1496,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | Two Way algorithm † | done | `algo/string_search` |
 | two-way linked list | done | `lib/dlist` |
-| two-way merge sort † | todo | `algo/sort_misc` |
+| two-way merge sort † | done | `algo/sort_misc` |
 
 ### U
 
