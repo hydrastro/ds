@@ -34,5 +34,6 @@
 #include "algo/sort_misc.h"
 #include "algo/sort_dist.h"
 #include "algo/sort_heap.h"
+#include "algo/external_sort.h"
 
 #endif /* DS_ALGO_H */

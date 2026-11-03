@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 451 |
-| todo | 254 |
+| done | 466 |
+| todo | 239 |
 | def | 593 |
 | total | 1298 |
 
@@ -40,7 +40,6 @@ Families ordered by how many DADS entries they close.
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
-| `algo/sort_misc` | 12 | balanced k-way merge sort, balanced merge sort, balanced two-way merge sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, shadow merge, shadow merge insert |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -54,7 +53,6 @@ Families ordered by how many DADS entries they close.
 | `algo/random (extensions)` | 5 | linear congruential generator, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
-| `algo/external_sort` | 4 | external merge, external quicksort, external radix sort, external sort |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
@@ -69,6 +67,7 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
+| `algo/sort_misc` | 2 | shadow merge, shadow merge insert |
 | `lib/association_list` | 2 | association list, property list |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
@@ -82,7 +81,6 @@ Families ordered by how many DADS entries they close.
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
-| `algo/sequence (extensions)` | 1 | balanced multiway merge |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
@@ -199,13 +197,13 @@ Families ordered by how many DADS entries they close.
 | balance | def |  |
 | balanced binary search tree | done | `lib/avl, lib/rbt, lib/treap` |
 | balanced binary tree | done | `lib/avl, lib/rbt` |
-| balanced k-way merge sort | todo | `algo/sort_misc` |
-| balanced merge sort | todo | `algo/sort_misc` |
-| balanced multiway merge | todo | `algo/sequence` (extensions) |
+| balanced k-way merge sort | done | `algo/external_sort` |
+| balanced merge sort | done | `algo/external_sort` |
+| balanced multiway merge | done | `algo/external_sort` |
 | balanced multiway tree | done | `lib/btree` |
 | balanced quicksort | done | `algo/sort_misc` |
 | balanced tree | done | `lib/avl, lib/rbt, lib/btree` |
-| balanced two-way merge sort | todo | `algo/sort_misc` |
+| balanced two-way merge sort | done | `algo/external_sort` |
 | BANG file | todo | `lib/grid_file` |
 | Batcher sort | done | `algo/sort_classic` (bitonic) |
 | Baum Welch algorithm | todo | `algo/hmm` |
@@ -547,11 +545,11 @@ Families ordered by how many DADS entries they close.
 | external index | def |  |
 | external memory algorithm | def |  |
 | external memory data structure | def |  |
-| external merge | todo | `algo/external_sort` |
+| external merge | done | `algo/external_sort` |
 | external node | def |  |
-| external quicksort | todo | `algo/external_sort` |
-| external radix sort | todo | `algo/external_sort` |
-| external sort | todo | `algo/external_sort` |
+| external quicksort | done | `algo/external_sort` |
+| external radix sort | done | `algo/external_sort` |
+| external sort | done | `algo/external_sort` |
 | extrapolation search | done | `algo/search` (interpolation) |
 | extremal | def |  |
 | extreme point | done | `algo/geometry` |
@@ -936,8 +934,8 @@ Families ordered by how many DADS entries they close.
 | NFTA | def |  |
 | NIST | def |  |
 | node | def |  |
-| nonbalanced merge | todo | `algo/sort_misc` |
-| nonbalanced merge sort | todo | `algo/sort_misc` |
+| nonbalanced merge | done | `algo/external_sort` |
+| nonbalanced merge sort | done | `algo/external_sort` |
 | nondeterministic | def |  |
 | nondeterministic algorithm | def |  |
 | nondeterministic finite automaton | todo | `lib/automaton` |
@@ -993,8 +991,8 @@ Families ordered by how many DADS entries they close.
 | optimal merge | done | `algo/kway_merge` |
 | optimal mismatch | todo | `algo/string_search` |
 | optimal polygon triangulation problem | done | `algo/geometry` |
-| optimal polyphase merge | todo | `algo/sort_misc` |
-| optimal polyphase merge sort | todo | `algo/sort_misc` |
+| optimal polyphase merge | done | `algo/external_sort` |
+| optimal polyphase merge sort | done | `algo/external_sort` |
 | optimal solution | def |  |
 | optimal triangulation problem | done | `algo/geometry` |
 | optimal value | def |  |
@@ -1017,7 +1015,7 @@ Families ordered by how many DADS entries they close.
 | orthogonal drawing | def |  |
 | orthogonal lists | todo | `lib/sparse_matrix` |
 | orthogonally convex rectilinear polygon | done | `algo/geometry` |
-| oscillating merge sort | todo | `algo/sort_misc` |
+| oscillating merge sort | done | `algo/external_sort` |
 | out-degree | def |  |
 
 ### P
@@ -1084,8 +1082,8 @@ Families ordered by how many DADS entries they close.
 | polynomial hierarchy | def |  |
 | polynomial time | def |  |
 | polynomial-time reduction | def |  |
-| polyphase merge | todo | `algo/sort_misc` |
-| polyphase merge sort | todo | `algo/sort_misc` |
+| polyphase merge | done | `algo/external_sort` |
+| polyphase merge sort | done | `algo/external_sort` |
 | polytope | def |  |
 | poset | def |  |
 | postfix traversal | def |  |

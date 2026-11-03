@@ -96,6 +96,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - sort_misc: pluggable quicksort, dual-pivot, k-way and adaptive merge sorts, strand/bingo sorts, Dutch national flag
 - sort_dist: distribution sorts over pluggable key callbacks, byte-string radix sorts, blind sort
 - sort_heap: smoothsort, adaptive heap sort, dominance tree, tournament and tree sorts, JSort
+- external sort: pluggable tapes, balanced/polyphase/cascade/oscillating merging, replacement selection, external radix sort and quicksort
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
