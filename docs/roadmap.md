@@ -51,6 +51,8 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - HyperLogLog, Count-Min sketch and cuckoo filter (caller-supplied hashes)
 - bip buffer and gap buffer
 - SIEVE cache, monotonic queue, crit-bit tree, implicit k-d tree
+- trie child stores over rh_map and sorted vectors (pluggable store ops)
+- implicit treap with pluggable monoid summaries and lazy tags
 - `algo/`: sorting and selection, searching, sequence and sorted-set
   operations, hashes and checksums, bit manipulation, xoshiro128** RNG and
   alias sampling, number theory and compensated numerics
