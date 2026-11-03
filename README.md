@@ -41,6 +41,7 @@ Core mutable containers:
 - HyperLogLog (distinct counting in 2^p bytes, mergeable)
 - Implicit treap (sequence with pluggable monoid aggregates and lazy tags; split, append, reverse)
 - Indexed d-ary heap (priority queue with decrease/increase-key by id)
+- Interval tree (closed intervals of any endpoint type, overlap and stabbing queries)
 - k-d tree (implicit static tree; nearest, k-nearest, box and radius queries)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)
 - Min-max heap (double-ended priority queue by value)

@@ -40,6 +40,7 @@
 #include "lib/hyperloglog.h"
 #include "lib/implicit_treap.h"
 #include "lib/indexed_heap.h"
+#include "lib/interval_tree.h"
 #include "lib/kd_tree.h"
 #include "lib/list.h"
 #include "lib/lru_cache.h"

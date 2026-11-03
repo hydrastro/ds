@@ -109,7 +109,8 @@ LIB_SRC := \
   $(LIB_DIR)/kd_tree.c \
   $(LIB_DIR)/trie_stores.c \
   $(LIB_DIR)/implicit_treap.c \
-  $(LIB_DIR)/aug_treap.c
+  $(LIB_DIR)/aug_treap.c \
+  $(LIB_DIR)/interval_tree.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -140,6 +141,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/rope.c $(LIB_DIR)/rope.h \
   $(LIB_DIR)/segment_tree.c $(LIB_DIR)/segment_tree.h \
   $(LIB_DIR)/wavelet_tree.c $(LIB_DIR)/wavelet_tree.h \
+  $(LIB_DIR)/interval_tree.c $(LIB_DIR)/interval_tree.h \
   $(LIB_DIR)/aug_treap.c $(LIB_DIR)/aug_treap.h \
   $(LIB_DIR)/implicit_treap.c $(LIB_DIR)/implicit_treap.h \
   $(LIB_DIR)/trie_stores.c $(LIB_DIR)/trie_stores.h \
