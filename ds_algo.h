@@ -7,5 +7,6 @@
 #include "algo/elem.h"
 #include "algo/sort.h"
 #include "algo/search.h"
+#include "algo/sequence.h"
 
 #endif /* DS_ALGO_H */

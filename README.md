@@ -63,6 +63,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
   buffer), in-place stable (SymMerge), LSD radix by key
 - selection: nth_element (introselect), partial_sort (top k)
 - searching: lower/upper bound, equal range, binary, exponential (galloping), interpolation, find/count/min/max
+- sequences: rotate, next/prev permutation, shuffle, unique, (stable) partition, merge and multiset set operations, inversions, LIS, majority vote, max subarray
 
 Newer high-level modules:
 
