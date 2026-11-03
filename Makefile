@@ -92,7 +92,8 @@ LIB_SRC := \
   $(LIB_DIR)/slot_map.c \
   $(LIB_DIR)/indexed_heap.c \
   $(LIB_DIR)/min_max_heap.c \
-  $(LIB_DIR)/sparse_table.c
+  $(LIB_DIR)/sparse_table.c \
+  $(LIB_DIR)/rollback_union_find.c
 
 GEN_SRC_C := $(BUILD_DIR)/unicode_tables.c
 GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
@@ -109,6 +110,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/rope.c $(LIB_DIR)/rope.h \
   $(LIB_DIR)/segment_tree.c $(LIB_DIR)/segment_tree.h \
   $(LIB_DIR)/wavelet_tree.c $(LIB_DIR)/wavelet_tree.h \
+  $(LIB_DIR)/rollback_union_find.c $(LIB_DIR)/rollback_union_find.h \
   $(LIB_DIR)/sparse_table.c $(LIB_DIR)/sparse_table.h \
   $(LIB_DIR)/min_max_heap.c $(LIB_DIR)/min_max_heap.h \
   $(LIB_DIR)/indexed_heap.c $(LIB_DIR)/indexed_heap.h \

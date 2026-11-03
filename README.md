@@ -51,6 +51,7 @@ Core mutable containers:
 - Stack
 - Treap
 - Trie
+- Union-find with rollback (snapshot/undo of unions)
 - Vector (by value; growable or fixed caller buffer, heapsort, binary search)
 - Wavelet tree (succinct sequence: access/rank/select/quantile)
 
