@@ -36,6 +36,7 @@ Core mutable containers:
 - Deque
 - Disjoint set (union-find)
 - Doubly linked list
+- Extendible hashing (directory doubling/halving, bucket split/merge)
 - Fenwick tree (binary indexed tree)
 - Fibonacci heap (O(1) amortized insert/merge/decrease-key)
 - Gap buffer (text buffer with O(1) edits at the cursor)

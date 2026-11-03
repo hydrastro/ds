@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 224 |
-| todo | 495 |
+| done | 225 |
+| todo | 494 |
 | def | 579 |
 | total | 1298 |
 
@@ -99,7 +99,6 @@ Families ordered by how many DADS entries they close.
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
 | `lib/enfilade` | 1 | enfilade |
-| `lib/extendible_hash` | 1 | extendible hashing |
 | `lib/indexed_heap (hash index)` | 1 | hash heap |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
@@ -554,7 +553,7 @@ Families ordered by how many DADS entries they close.
 | extended binary tree | def |  |
 | extended Euclid's algorithm | done | `algo/numeric` (ds_ext_gcd) |
 | extended k-d tree | todo | `lib/kdb_tree` |
-| extendible hashing | todo | `lib/extendible_hash` |
+| extendible hashing | done | `lib/extendible_hash` |
 | external chaining | done | `lib/hash_table` |
 | external index | def |  |
 | external memory algorithm | def |  |

@@ -72,6 +72,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - bucketized d-ary cuckoo hashing with BFS insertion and a stash
 - coalesced hashing with cellar
 - Litwin linear hashing
+- extendible hashing
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
