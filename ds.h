@@ -38,6 +38,7 @@
 #include "lib/history.h"
 #include "lib/hyperloglog.h"
 #include "lib/indexed_heap.h"
+#include "lib/kd_tree.h"
 #include "lib/list.h"
 #include "lib/lru_cache.h"
 #include "lib/min_max_heap.h"
