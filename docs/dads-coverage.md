@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 282 |
-| todo | 423 |
+| done | 298 |
+| todo | 407 |
 | def | 593 |
 | total | 1298 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `algo/sort_misc` | 32 | adaptive sort, balanced k-way merge sort, balanced merge sort, balanced quicksort, balanced two-way merge sort, bingo sort, blind sort, bogosort, bozo sort, dual-pivot quicksort, k-way merge sort, linear insertion sort, lucky sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, p-way merge sort, qm sort, q sort, quicksort, rapid sort, shadow merge, shadow merge insert, simple merge, sinking sort, strand sort, three-way merge sort, two-way merge sort |
 | `algo/numeric (extensions)` | 23 | Ackermann's function, BBP algorithm, Chinese remainder theorem, CORDIC, cube root, Doomsday rule, factorial, Ferguson-Forcade algorithm, Fibonacci number, gamma function, Horner's rule, inverse Ackermann function, kth order Fibonacci numbers, midrange, mode, pth order Fibonacci numbers, reduced basis, Rice's method, secant search, square root, Stirling's approximation, Stirling's formula, Zeller's congruence |
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
-| `algo/graph_alg` | 19 | all simple paths, arborescence, best-first search, Boruvka's algorithm, Chinese postman problem, critical path problem, DAG shortest paths, Johnson's algorithm, Kruskal's algorithm, kth shortest path, lowest common ancestor, shortest path, shortest spanning tree, single-destination shortest-path problem, single-pair shortest-path problem, single-source shortest-path problem, spanning tree, SST, triconnected graph |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
 | `algo/geometry` | 16 | bisector, Bresenham's algorithm, Euclidean distance, extreme point, geometric optimization problem, Hausdorff distance, Lm distance, Manhattan distance, Minkowski distance, nearest neighbor, optimal polygon triangulation problem, optimal triangulation problem, orthogonally convex rectilinear polygon, slope selection, star-shaped polygon, Wu's line algorithm |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
@@ -75,6 +74,7 @@ Families ordered by how many DADS entries they close.
 | `lib/suffix_automaton` | 4 | compact DAWG, DAWG, directed acyclic word graph, suffix automaton |
 | `lib/threaded_tree` | 4 | Cupif-Giannini tree traversal, right-threaded tree, threaded binary tree, threaded tree |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
+| `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
 | `lib/association_list` | 2 | association list, property list |
@@ -154,7 +154,7 @@ Families ordered by how many DADS entries they close.
 | algorithm FGK | todo | `algo/compress` |
 | algorithmically solvable | def |  |
 | all pairs shortest path | done | `algo/graph_view` (Floyd-Warshall) |
-| all simple paths | todo | `algo/graph_alg` |
+| all simple paths | done | `algo/graph_path` |
 | alphabet | def |  |
 | Alpha Skip Search algorithm | todo | `algo/string_search` |
 | alternating path | done | `algo/matching` |
@@ -171,7 +171,7 @@ Families ordered by how many DADS entries they close.
 | Apostolico-Giancarlo algorithm | todo | `algo/string_search` |
 | approximate string matching | todo | `algo/string_approx` |
 | approximation algorithm | def |  |
-| arborescence | todo | `algo/graph_alg` |
+| arborescence | done | `algo/graph_path` |
 | arc | def |  |
 | arithmetic coding | todo | `algo/compress` |
 | array | done | `lib/vec` |
@@ -222,7 +222,7 @@ Families ordered by how many DADS entries they close.
 | Benford's law | def |  |
 | best case | def |  |
 | best-case cost | def |  |
-| best-first search | todo | `algo/graph_alg` |
+| best-first search | done | `algo/graph_path` |
 | biconnected component | done | `algo/graph_struct` |
 | biconnected graph | done | `algo/graph_struct` |
 | bidirectional bubble sort | done | `algo/sort_classic` (cocktail) |
@@ -264,7 +264,7 @@ Families ordered by how many DADS entries they close.
 | boolean expression | def |  |
 | boolean function | def |  |
 | border | def |  |
-| Boruvka's algorithm | todo | `algo/graph_alg` |
+| Boruvka's algorithm | done | `algo/graph_path` |
 | bottleneck traveling salesman | todo | `algo/graph_hard` |
 | boundary-based representation | def |  |
 | bounded error probability in polynomial time | def |  |
@@ -326,7 +326,7 @@ Families ordered by how many DADS entries they close.
 | chain | def |  |
 | chaining | done | `lib/hash_table` (chaining mode) |
 | child | def |  |
-| Chinese postman problem | todo | `algo/graph_alg` |
+| Chinese postman problem | done | `algo/graph_path` |
 | Chinese remainder theorem | todo | `algo/numeric` (extensions) |
 | Christofides algorithm | todo | `algo/graph_hard` |
 | chromatic index | todo | `algo/graph_hard` |
@@ -389,7 +389,7 @@ Families ordered by how many DADS entries they close.
 | CRC | done | `algo/hash` (CRC-32, CRC-32C) |
 | CRCW | def |  |
 | CREW | def |  |
-| critical path problem | todo | `algo/graph_alg` |
+| critical path problem | done | `algo/graph_path` |
 | CSP | def |  |
 | CTL | def |  |
 | cube root | todo | `algo/numeric` (extensions) |
@@ -409,7 +409,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | D-adjacent | def |  |
 | DAG | def |  |
-| DAG shortest paths | todo | `algo/graph_alg` |
+| DAG shortest paths | done | `algo/graph_path` |
 | data structure | def |  |
 | DAWG | todo | `lib/suffix_automaton` |
 | decidable language | def |  |
@@ -746,7 +746,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | Jaro-Winkler | todo | `algo/string_approx` |
 | jelly-fish | def |  |
-| Johnson's algorithm | todo | `algo/graph_alg` |
+| Johnson's algorithm | done | `algo/graph_path` |
 | Johnson-Trotter | todo | `algo/combinatorics` |
 | JSort | todo | `algo/sort_dist` |
 | J sort | todo | `algo/sort_dist` |
@@ -780,9 +780,9 @@ Families ordered by how many DADS entries they close.
 | Kolmogorov complexity | def |  |
 | Kraft's inequality | def |  |
 | Kripke structure | def |  |
-| Kruskal's algorithm | todo | `algo/graph_alg` |
+| Kruskal's algorithm | done | `algo/graph_path` |
 | kth order Fibonacci numbers | todo | `algo/numeric` (extensions) |
-| kth shortest path | todo | `algo/graph_alg` |
+| kth shortest path | done | `algo/graph_path` |
 | kth smallest element | done | `algo/sort` (nth_element) |
 | k²-tree | todo | `lib/k2_tree` |
 | KV diagram | def |  |
@@ -1279,8 +1279,8 @@ Families ordered by how many DADS entries they close.
 | shortcutting | todo | `algo/parallel_sim` |
 | shortest common supersequence | todo | `algo/string_approx` |
 | shortest common superstring | todo | `algo/string_approx` |
-| shortest path | todo | `algo/graph_alg` |
-| shortest spanning tree | todo | `algo/graph_alg` |
+| shortest path | done | `algo/graph_path` |
+| shortest spanning tree | done | `algo/graph_path` |
 | shuffle | done | `algo/sequence` |
 | shuffle sort † | todo | `algo/sort_dist` |
 | sibling † | def |  |
@@ -1295,9 +1295,9 @@ Families ordered by how many DADS entries they close.
 | simulated annealing | def |  |
 | simulation theorem † | def |  |
 | single-destination shortest-path problem | todo | `algo/graph_alg` |
-| single-pair shortest-path problem | todo | `algo/graph_alg` |
+| single-pair shortest-path problem | done | `algo/graph_path` |
 | single program multiple data | def |  |
-| single-source shortest-path problem | todo | `algo/graph_alg` |
+| single-source shortest-path problem | done | `algo/graph_path` |
 | singly linked list | done | `lib/list` |
 | singularity analysis † | def |  |
 | sink | def |  |
@@ -1319,7 +1319,7 @@ Families ordered by how many DADS entries they close.
 | soundex † | todo | `algo/phonetic` |
 | source | def |  |
 | space-constrained Lempel-Ziv-Welch † | todo | `algo/compress` |
-| spanning tree † | todo | `algo/graph_alg` |
+| spanning tree † | done | `algo/graph_path` |
 | sparse graph | def |  |
 | sparse matrix | todo | `lib/sparse_matrix` |
 | sparsification | def |  |
@@ -1330,7 +1330,7 @@ Families ordered by how many DADS entries they close.
 | SPMD | def |  |
 | square matrix | def |  |
 | square root | todo | `algo/numeric` (extensions) |
-| SST | todo | `algo/graph_alg` |
+| SST | done | `algo/graph_path` |
 | stable | def |  |
 | stable marriage problem † | done | `algo/matching` |
 | stack | done | `lib/stack` |

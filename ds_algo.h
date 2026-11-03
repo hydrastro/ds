@@ -21,5 +21,6 @@
 #include "algo/flow.h"
 #include "algo/matching.h"
 #include "algo/graph_struct.h"
+#include "algo/graph_path.h"
 
 #endif /* DS_ALGO_H */

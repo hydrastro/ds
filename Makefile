@@ -144,7 +144,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/lsh.c \
   $(ALGO_DIR)/flow.c \
   $(ALGO_DIR)/matching.c \
-  $(ALGO_DIR)/graph_struct.c
+  $(ALGO_DIR)/graph_struct.c \
+  $(ALGO_DIR)/graph_path.c
 
 LIB_SRC += $(ALGO_SRC)
 
