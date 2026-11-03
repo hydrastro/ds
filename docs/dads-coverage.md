@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 347 |
-| todo | 358 |
+| done | 358 |
+| todo | 347 |
 | def | 593 |
 | total | 1298 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `algo/sort_misc` | 32 | adaptive sort, balanced k-way merge sort, balanced merge sort, balanced quicksort, balanced two-way merge sort, bingo sort, blind sort, bogosort, bozo sort, dual-pivot quicksort, k-way merge sort, linear insertion sort, lucky sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, p-way merge sort, qm sort, q sort, quicksort, rapid sort, shadow merge, shadow merge insert, simple merge, sinking sort, strand sort, three-way merge sort, two-way merge sort |
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
-| `algo/numeric (extensions)` | 14 | BBP algorithm, CORDIC, cube root, Ferguson-Forcade algorithm, gamma function, Horner's rule, midrange, mode, reduced basis, Rice's method, secant search, square root, Stirling's approximation, Stirling's formula |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/sequence (extensions)` | 11 | balanced multiway merge, Dutch national flag, ideal merge, inversion list, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
@@ -72,6 +71,7 @@ Families ordered by how many DADS entries they close.
 | `lib/threaded_tree` | 4 | Cupif-Giannini tree traversal, right-threaded tree, threaded binary tree, threaded tree |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
+| `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
 | `lib/association_list` | 2 | association list, property list |
@@ -214,7 +214,7 @@ Families ordered by how many DADS entries they close.
 | Batcher sort | done | `algo/sort_classic` (bitonic) |
 | Baum Welch algorithm | todo | `algo/hmm` |
 | BB(α) tree | todo | `lib/wb_tree` |
-| BBP algorithm | todo | `algo/numeric` (extensions) |
+| BBP algorithm | done | `algo/numerical` |
 | BDD | todo | `lib/bdd` |
 | BD-tree | todo | `lib/hb_tree` |
 | Bellman-Ford algorithm | done | `algo/graph_view, lib/graph` |
@@ -382,7 +382,7 @@ Families ordered by how many DADS entries they close.
 | continuous knapsack problem | done | `algo/knapsack` |
 | Cook reduction | def |  |
 | Cook's theorem | def |  |
-| CORDIC | todo | `algo/numeric` (extensions) |
+| CORDIC | done | `algo/numerical` |
 | counting sort | done | `algo/sort_classic` (ds_counting_sort_keyed) |
 | covering | def |  |
 | CRC | done | `algo/hash` (CRC-32, CRC-32C) |
@@ -391,7 +391,7 @@ Families ordered by how many DADS entries they close.
 | critical path problem | done | `algo/graph_path` |
 | CSP | def |  |
 | CTL | def |  |
-| cube root | todo | `algo/numeric` (extensions) |
+| cube root | done | `algo/numerical` |
 | cuckoo hashing | done | `lib/cuckoo_map` |
 | Cupif-Giannini tree traversal | todo | `lib/threaded_tree` |
 | cut | def |  |
@@ -629,7 +629,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | Galil-Giancarlo | todo | `algo/string_search` |
 | Galil-Seiferas | todo | `algo/string_search` |
-| gamma function | todo | `algo/numeric` (extensions) |
+| gamma function | done | `algo/numerical` |
 | GBD-tree | todo | `lib/hb_tree` |
 | GCD | done | `algo/numeric` |
 | geometric optimization problem | todo | `algo/geometry` |
@@ -683,7 +683,7 @@ Families ordered by how many DADS entries they close.
 | HMM | todo | `algo/hmm` |
 | homeomorphic | def |  |
 | horizontal visibility map | def |  |
-| Horner's rule | todo | `algo/numeric` (extensions) |
+| Horner's rule | done | `algo/numerical` |
 | Horspool | todo | `algo/string_search` |
 | hsadelta | def |  |
 | Huffman coding | todo | `algo/compress` |
@@ -882,7 +882,7 @@ Families ordered by how many DADS entries they close.
 | Merkle tree | done | `lib/merkle_tree` |
 | metaheuristic | def |  |
 | metaphone | todo | `algo/phonetic` |
-| midrange | todo | `algo/numeric` (extensions) |
+| midrange | done | `algo/numerical` |
 | Miller-Rabin | done | `algo/numeric` |
 | min-heap property | def |  |
 | minimal perfect hashing | done | `algo/perfect_hash` |
@@ -893,7 +893,7 @@ Families ordered by how many DADS entries they close.
 | minimum vertex cut | done | `algo/flow` |
 | Minkowski distance | done | `algo/geometry` |
 | mixed integer linear program | todo | `algo/lp` |
-| mode | todo | `algo/numeric` (extensions) |
+| mode | done | `algo/numerical` |
 | model checking | def |  |
 | model of computation | def |  |
 | moderately exponential | def |  |
@@ -1248,7 +1248,7 @@ Families ordered by how many DADS entries they close.
 | search | def |  |
 | search tree | def |  |
 | search tree property | def |  |
-| secant search | todo | `algo/numeric` (extensions) |
+| secant search | done | `algo/numerical` |
 | secondary clustering | def |  |
 | segment | def |  |
 | Select | done | `algo/sort` (nth_element), lib/order_statistic_tree |
@@ -1328,7 +1328,7 @@ Families ordered by how many DADS entries they close.
 | splay tree † | done | `lib/splay_tree` |
 | SPMD | def |  |
 | square matrix | def |  |
-| square root | todo | `algo/numeric` (extensions) |
+| square root | done | `algo/numerical` |
 | SST | done | `algo/graph_path` |
 | stable | def |  |
 | stable marriage problem † | done | `algo/matching` |
@@ -1349,8 +1349,8 @@ Families ordered by how many DADS entries they close.
 | Steiner tree | todo | `algo/graph_hard` |
 | Steiner vertex | def |  |
 | Steinhaus-Johnson-Trotter | done | `algo/combinatorics` |
-| Stirling's approximation | todo | `algo/numeric` (extensions) |
-| Stirling's formula | todo | `algo/numeric` (extensions) |
+| Stirling's approximation | done | `algo/numerical` |
+| Stirling's formula | done | `algo/numerical` |
 | stooge sort † | done | `algo/sort_classic` |
 | straight-line drawing | def |  |
 | strand sort † | todo | `algo/sort_misc` |

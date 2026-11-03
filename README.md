@@ -111,6 +111,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - combinatorics: binomials and counts, combination/permutation ranking, Johnson-Trotter, derangements, partitions, n queens, knight's tour, towers of Hanoi, Collatz
 - knapsack and packing: 0/1, unbounded and fractional knapsack, bin packing policies (NF, FF, BF, WF, FFD, BFD), cutting stock, strip packing (NFDH, FFDH), matrix chain
 - number theory: Chinese remainder theorem (any moduli), Fibonacci and k-bonacci, Ackermann and inverse Ackermann, Doomsday rule, Zeller's congruence
+- numerical methods: Horner, bisection/secant/Newton roots, square and cube roots, CORDIC, Gamma (Lanczos), Stirling, BBP pi digits, mode, midrange
 
 Newer high-level modules:
 
