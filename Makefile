@@ -98,7 +98,8 @@ LIB_SRC := \
   $(LIB_DIR)/packed_array.c \
   $(LIB_DIR)/rh_map.c \
   $(LIB_DIR)/lru_cache.c \
-  $(LIB_DIR)/hyperloglog.c
+  $(LIB_DIR)/hyperloglog.c \
+  $(LIB_DIR)/count_min_sketch.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -128,6 +129,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/rope.c $(LIB_DIR)/rope.h \
   $(LIB_DIR)/segment_tree.c $(LIB_DIR)/segment_tree.h \
   $(LIB_DIR)/wavelet_tree.c $(LIB_DIR)/wavelet_tree.h \
+  $(LIB_DIR)/count_min_sketch.c $(LIB_DIR)/count_min_sketch.h \
   $(LIB_DIR)/hyperloglog.c $(LIB_DIR)/hyperloglog.h \
   $(LIB_DIR)/lru_cache.c $(LIB_DIR)/lru_cache.h \
   $(LIB_DIR)/rh_map.c $(LIB_DIR)/rh_map.h \

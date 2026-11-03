@@ -24,6 +24,7 @@ Core mutable containers:
 - B-tree
 - B+ tree (with optional B* split policy)
 - Circular buffer (ring buffer)
+- Count-Min sketch (frequency estimates, conservative update, mergeable)
 - Deque
 - Disjoint set (union-find)
 - Doubly linked list
