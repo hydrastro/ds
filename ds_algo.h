@@ -12,5 +12,6 @@
 #include "algo/bits.h"
 #include "algo/random.h"
 #include "algo/numeric.h"
+#include "algo/graph_view.h"
 
 #endif /* DS_ALGO_H */

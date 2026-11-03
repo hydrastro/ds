@@ -81,6 +81,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - bits: popcount, clz/ctz, parity, power-of-two and log2 helpers, rotations, bit reversal, Gray code, Morton (Z-order) codes
 - random: xoshiro128** generator with jump, unbiased bounded/range draws, uniform/normal/exponential/Bernoulli variates, Vose alias tables
 - numeric: gcd (Euclid, binary), lcm, extended gcd, overflow-free mulmod/powmod/modinv, isqrt, deterministic Miller-Rabin, sieve, Kahan-Neumaier sum, Welford mean/variance
+- graphs over any representation (ds_gview_t view, CSR helper): BFS, Dijkstra, Bellman-Ford with negative-cycle detection, topological sort, Tarjan SCC (iterative), bipartite check, Prim MST forest, Floyd-Warshall with paths
 
 Newer high-level modules:
 

@@ -119,7 +119,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/hash.c \
   $(ALGO_DIR)/bits.c \
   $(ALGO_DIR)/random.c \
-  $(ALGO_DIR)/numeric.c
+  $(ALGO_DIR)/numeric.c \
+  $(ALGO_DIR)/graph_view.c
 
 LIB_SRC += $(ALGO_SRC)
 
