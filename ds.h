@@ -47,6 +47,7 @@
 #include "lib/string_map.h"
 #include "lib/treap.h"
 #include "lib/trie.h"
+#include "lib/vec.h"
 #include "lib/wavelet_tree.h"
 
 #include "lib/str.h"
