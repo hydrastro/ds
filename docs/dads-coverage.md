@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 222 |
-| todo | 497 |
+| done | 224 |
+| todo | 495 |
 | def | 579 |
 | total | 1298 |
 
@@ -66,7 +66,6 @@ Families ordered by how many DADS entries they close.
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
-| `lib/linear_hash_map` | 5 | dynamic hashing, expandable hashing, hashbelt, linear hashing, virtual hashing |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
 | `algo/external_sort` | 4 | external merge, external quicksort, external radix sort, external sort |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
@@ -80,6 +79,7 @@ Families ordered by how many DADS entries they close.
 | `lib/suffix_automaton` | 4 | compact DAWG, DAWG, directed acyclic word graph, suffix automaton |
 | `lib/threaded_tree` | 4 | Cupif-Giannini tree traversal, right-threaded tree, threaded binary tree, threaded tree |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
+| `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/merkle_tree` | 3 | hash tree, linked data signature, Merkle tree |
 | `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
 | `lib/association_list` | 2 | association list, property list |
@@ -495,7 +495,7 @@ Families ordered by how many DADS entries they close.
 | dyadic tree | def |  |
 | dynamic | def |  |
 | dynamic array | done | `lib/vec` |
-| dynamic hashing | todo | `lib/linear_hash_map` |
+| dynamic hashing | done | `lib/linear_hash_map` |
 | dynamic Huffman coding | todo | `algo/compress` |
 | dynamic programming | def |  |
 | dynamization transformation | def |  |
@@ -824,7 +824,7 @@ Families ordered by how many DADS entries they close.
 | linear | def |  |
 | linear congruential generator | todo | `algo/random` (extensions) |
 | linear hash | todo | `algo/hash` (new functions) |
-| linear hashing | todo | `lib/linear_hash_map` |
+| linear hashing | done | `lib/linear_hash_map` |
 | linear insertion sort | todo | `algo/sort_misc` |
 | linear order | def |  |
 | linear probing | done | `lib/hash_table, lib/rh_map` |

@@ -47,6 +47,7 @@ Core mutable containers:
 - Indexed d-ary heap (priority queue with decrease/increase-key by id)
 - Interval tree (closed intervals of any endpoint type, overlap and stabbing queries)
 - k-d tree (implicit static tree; nearest, k-nearest, box and radius queries)
+- Linear hashing (Litwin; split by load or on overflow, incremental growth and shrink)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)
 - Meldable heaps with pluggable shape policy: leftist, weight-biased leftist, skew, randomized (intrusive)
 - Min-max heap (double-ended priority queue by value)
