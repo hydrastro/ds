@@ -67,6 +67,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - van Emde Boas tree with lazily allocated clusters
 - radix heap (monotone priority queue)
 - calendar queue with pluggable width estimation
+- Swiss-table hash map
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

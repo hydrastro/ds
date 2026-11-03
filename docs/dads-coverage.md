@@ -27,8 +27,8 @@ live index.
 | status | entries |
 |---|---|
 | done | 216 |
-| todo | 508 |
-| def | 574 |
+| todo | 503 |
+| def | 579 |
 | total | 1298 |
 
 ## Todo by target module
@@ -52,7 +52,6 @@ Families ordered by how many DADS entries they close.
 | `algo/knapsack` | 12 | binary knapsack problem, bin packing problem, continuous knapsack problem, cutting stock problem, fractional knapsack problem, knapsack problem, matrix-chain multiplication problem, set packing, strip packing, UKP, unbounded knapsack problem, 0/1 knapsack problem |
 | `algo/sequence (extensions)` | 11 | balanced multiway merge, Dutch national flag, ideal merge, inversion list, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
-| `lib/open_map (probe policies)` | 9 | clustering free, double hashing, LCFS hashing, primary clustering, probe sequence, rehashing, secondary clustering, simple uniform hashing, uniform hashing |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
@@ -76,6 +75,7 @@ Families ordered by how many DADS entries they close.
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
+| `lib/open_map (probe policies)` | 4 | double hashing, LCFS hashing, probe sequence, rehashing |
 | `lib/sorted_list` | 4 | ordered linked list, sorted array, sorted list, unsorted list |
 | `lib/sparse_matrix` | 4 | huge sparse array, orthogonal lists, ragged matrix, sparse matrix |
 | `lib/suffix_automaton` | 4 | compact DAWG, DAWG, directed acyclic word graph, suffix automaton |
@@ -349,7 +349,7 @@ Families ordered by how many DADS entries they close.
 | clique | todo | `algo/graph_hard` |
 | clique problem | todo | `algo/graph_hard` |
 | clustering | def |  |
-| clustering free | todo | `lib/open_map` (probe policies) |
+| clustering free | def |  |
 | coalesced chaining | todo | `lib/coalesced_map` |
 | coarsening | def |  |
 | cocktail shaker sort | done | `algo/sort_classic` |
@@ -1116,7 +1116,7 @@ Families ordered by how many DADS entries they close.
 | prefix sums | todo | `algo/sequence` (extensions) |
 | prefix traversal | def |  |
 | preorder traversal | done | `lib/avl, lib/bst walks` |
-| primary clustering | todo | `lib/open_map` (probe policies) |
+| primary clustering | def |  |
 | primitive algorithm | def |  |
 | primitive recursive | def |  |
 | Prim-Jarnik algorithm | done | `algo/graph_view` |
@@ -1260,7 +1260,7 @@ Families ordered by how many DADS entries they close.
 | search tree | def |  |
 | search tree property | def |  |
 | secant search | todo | `algo/numeric` (extensions) |
-| secondary clustering | todo | `lib/open_map` (probe policies) |
+| secondary clustering | def |  |
 | segment | def |  |
 | Select | done | `algo/sort` (nth_element), lib/order_statistic_tree |
 | select and partition | todo | `algo/select` |
@@ -1300,7 +1300,7 @@ Families ordered by how many DADS entries they close.
 | Simon's algorithm | def |  |
 | simple merge † | todo | `algo/sort_misc` |
 | simple path | def |  |
-| simple uniform hashing | todo | `lib/open_map` (probe policies) |
+| simple uniform hashing | def |  |
 | simplex | todo | `algo/lp` |
 | simulated annealing | def |  |
 | simulation theorem † | def |  |
@@ -1527,7 +1527,7 @@ Families ordered by how many DADS entries they close.
 | undirected graph | def |  |
 | uniform circuit complexity † | def |  |
 | uniform circuit family † | def |  |
-| uniform hashing † | todo | `lib/open_map` (probe policies) |
+| uniform hashing † | def |  |
 | uniform matrix | def |  |
 | union | done | `algo/sequence` (ds_set_union) |
 | union of automata | todo | `lib/automaton` |
