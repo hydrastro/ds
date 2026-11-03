@@ -45,6 +45,7 @@
 #include "lib/kd_tree.h"
 #include "lib/list.h"
 #include "lib/lru_cache.h"
+#include "lib/meldable_heap.h"
 #include "lib/min_max_heap.h"
 #include "lib/monotonic_queue.h"
 #include "lib/order_statistic_tree.h"

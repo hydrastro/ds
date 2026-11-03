@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 208 |
-| todo | 516 |
+| done | 211 |
+| todo | 513 |
 | def | 574 |
 | total | 1298 |
 
@@ -97,7 +97,6 @@ Families ordered by how many DADS entries they close.
 | `algo/game` | 1 | minimax |
 | `algo/lsh` | 1 | locality-sensitive hashing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
-| `lib/binomial_heap` | 1 | meld |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
@@ -109,13 +108,11 @@ Families ordered by how many DADS entries they close.
 | `lib/indexed_heap (hash index)` | 1 | hash heap |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
-| `lib/leftist_heap` | 1 | leftist tree |
 | `lib/octree` | 1 | octree |
 | `lib/pagoda` | 1 | pagoda |
 | `lib/radix_heap` | 1 | monotone priority queue |
 | `lib/scapegoat_tree` | 1 | scapegoat tree |
 | `lib/shadow_heap` | 1 | shadow heap |
-| `lib/skew_heap` | 1 | skew heap |
 | `lib/ub_tree` | 1 | UB-tree |
 | `lib/veb_tree` | 1 | van Emde Boas priority queue |
 
@@ -823,7 +820,7 @@ Families ordered by how many DADS entries they close.
 | LDS | def |  |
 | leaf | def |  |
 | least common multiple | done | `algo/numeric` |
-| leftist tree | todo | `lib/leftist_heap` |
+| leftist tree | done | `lib/meldable_heap` |
 | left rotation | done | `lib/avl, lib/rbt` |
 | Lempel-Ziv-Welch | todo | `algo/compress` |
 | level | def |  |
@@ -893,7 +890,7 @@ Families ordered by how many DADS entries they close.
 | Mealy machine | todo | `lib/automaton` |
 | mean | done | `algo/numeric` (Welford) |
 | median | done | `algo/sort` (nth_element) |
-| meld | todo | `lib/binomial_heap` |
+| meld | done | `lib/meldable_heap` |
 | memoization | def |  |
 | merge | done | `algo/sequence` |
 | merge sort | done | `algo/sort` |
@@ -1320,7 +1317,7 @@ Families ordered by how many DADS entries they close.
 | sink | def |  |
 | sinking sort † | todo | `algo/sort_misc` |
 | skd-tree † | todo | `lib/kdb_tree` |
-| skew heap † | todo | `lib/skew_heap` |
+| skew heap † | done | `lib/meldable_heap` |
 | skew symmetry | todo | `algo/flow` |
 | skip list | done | `lib/skip_list` |
 | skip search | todo | `algo/string_search` |

@@ -45,6 +45,7 @@ Core mutable containers:
 - Interval tree (closed intervals of any endpoint type, overlap and stabbing queries)
 - k-d tree (implicit static tree; nearest, k-nearest, box and radius queries)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)
+- Meldable heaps with pluggable shape policy: leftist, weight-biased leftist, skew, randomized (intrusive)
 - Min-max heap (double-ended priority queue by value)
 - Monotonic queue (sliding-window min/max in amortized O(1))
 - Order-statistic tree (size-augmented AVL: select/rank)
