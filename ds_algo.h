@@ -13,5 +13,6 @@
 #include "algo/random.h"
 #include "algo/numeric.h"
 #include "algo/graph_view.h"
+#include "algo/sort_classic.h"
 
 #endif /* DS_ALGO_H */
