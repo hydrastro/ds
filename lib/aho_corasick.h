@@ -32,20 +32,19 @@ typedef struct aho_corasick {
   void (*deallocator)(void *);
 } ds_aho_corasick_t;
 
-ds_aho_corasick_t *FUNC(ds_aho_corasick_create)(void);
-ds_aho_corasick_t *
-    FUNC(ds_aho_corasick_create_alloc)(void *(*allocator)(size_t),
-                                       void (*deallocator)(void *));
-int FUNC(ds_aho_corasick_add)(ds_aho_corasick_t *ac, const void *pattern,
-                              size_t length);
-void FUNC(ds_aho_corasick_compile)(ds_aho_corasick_t *ac);
-size_t FUNC(ds_aho_corasick_search)(
+ds_aho_corasick_t *ds_aho_corasick_create(void);
+ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
+                                                void (*deallocator)(void *));
+int ds_aho_corasick_add(ds_aho_corasick_t *ac, const void *pattern,
+                        size_t length);
+void ds_aho_corasick_compile(ds_aho_corasick_t *ac);
+size_t ds_aho_corasick_search(
     ds_aho_corasick_t *ac, const void *haystack, size_t length,
     void (*callback)(const ds_aho_corasick_match_t *, void *), void *user);
-bool FUNC(ds_aho_corasick_contains_any)(ds_aho_corasick_t *ac,
-                                        const void *haystack, size_t length);
-size_t FUNC(ds_aho_corasick_pattern_count)(ds_aho_corasick_t *ac);
-void FUNC(ds_aho_corasick_destroy)(ds_aho_corasick_t *ac);
+bool ds_aho_corasick_contains_any(ds_aho_corasick_t *ac, const void *haystack,
+                                  size_t length);
+size_t ds_aho_corasick_pattern_count(ds_aho_corasick_t *ac);
+void ds_aho_corasick_destroy(ds_aho_corasick_t *ac);
 
 #ifdef __cplusplus
 }

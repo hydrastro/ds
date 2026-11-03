@@ -34,22 +34,22 @@ typedef struct bitvector {
 
 #define DS_BITVECTOR_NPOS ((size_t) - 1)
 
-ds_bitvector_t *FUNC(ds_bitvector_create)(size_t num_bits);
-ds_bitvector_t *FUNC(ds_bitvector_create_alloc)(size_t num_bits,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *));
-void FUNC(ds_bitvector_set)(ds_bitvector_t *bv, size_t index, bool value);
-bool FUNC(ds_bitvector_get)(ds_bitvector_t *bv, size_t index);
-void FUNC(ds_bitvector_build)(ds_bitvector_t *bv);
-size_t FUNC(ds_bitvector_size)(ds_bitvector_t *bv);
-size_t FUNC(ds_bitvector_count_ones)(ds_bitvector_t *bv);
+ds_bitvector_t *ds_bitvector_create(size_t num_bits);
+ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *));
+void ds_bitvector_set(ds_bitvector_t *bv, size_t index, bool value);
+bool ds_bitvector_get(ds_bitvector_t *bv, size_t index);
+void ds_bitvector_build(ds_bitvector_t *bv);
+size_t ds_bitvector_size(ds_bitvector_t *bv);
+size_t ds_bitvector_count_ones(ds_bitvector_t *bv);
 /* rank1(i): number of set bits in [0, i). rank0(i) = i - rank1(i). */
-size_t FUNC(ds_bitvector_rank1)(ds_bitvector_t *bv, size_t index);
-size_t FUNC(ds_bitvector_rank0)(ds_bitvector_t *bv, size_t index);
+size_t ds_bitvector_rank1(ds_bitvector_t *bv, size_t index);
+size_t ds_bitvector_rank0(ds_bitvector_t *bv, size_t index);
 /* select1(k): position of the k-th set bit (0-based). NPOS if out of range. */
-size_t FUNC(ds_bitvector_select1)(ds_bitvector_t *bv, size_t k);
-size_t FUNC(ds_bitvector_select0)(ds_bitvector_t *bv, size_t k);
-void FUNC(ds_bitvector_destroy)(ds_bitvector_t *bv);
+size_t ds_bitvector_select1(ds_bitvector_t *bv, size_t k);
+size_t ds_bitvector_select0(ds_bitvector_t *bv, size_t k);
+void ds_bitvector_destroy(ds_bitvector_t *bv);
 
 #ifdef __cplusplus
 }

@@ -17,10 +17,10 @@ int ucd_init_once(void) {
 void ensure_ucd_once_lock(void) {}
 
 int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp) {
-  return FUNC(ds_str_u8_next)(buf, len, ioff, out_cp, DS_U8_STRICT);
+  return ds_str_u8_next(buf, len, ioff, out_cp, DS_U8_STRICT);
 }
 int u8_push(ds_str_t *s, unsigned long cp) {
-  return FUNC(ds_str_u8_push_cp)(s, cp);
+  return ds_str_u8_push_cp(s, cp);
 }
 
 int is_Hangul_S(unsigned long cp) {
@@ -351,7 +351,7 @@ int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat,
   if (compose)
     compose_vec(&tmp);
 
-  FUNC(ds_str_clear)(dst);
+  ds_str_clear(dst);
   for (i = 0; i < tmp.n; ++i)
     if (u8_push(dst, tmp.p[i]) != 0) {
       u32vec_free(&tmp);
@@ -381,7 +381,7 @@ int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src) {
       return -1;
     }
   }
-  FUNC(ds_str_clear)(dst);
+  ds_str_clear(dst);
   for (i = 0; i < out.n; ++i)
     if (u8_push(dst, out.p[i]) != 0) {
       u32vec_free(&out);
@@ -398,7 +398,7 @@ int ds__ucd_tolower(ds_str_t *dst, const ds_str_t *src) {
   if (!dst || !src)
     return -1;
 
-  FUNC(ds_str_clear)(dst);
+  ds_str_clear(dst);
   while (u8_next(src->buf, src->len, &i, &cp) == 1) {
     cp = ds__map_simple(U_TOLOWER_KEYS, U_TOLOWER_VALS, U_TOLOWER_LEN, cp);
     if (u8_push(dst, cp) != 0)
@@ -414,7 +414,7 @@ int ds__ucd_toupper(ds_str_t *dst, const ds_str_t *src) {
   if (!dst || !src)
     return -1;
 
-  FUNC(ds_str_clear)(dst);
+  ds_str_clear(dst);
   while (u8_next(src->buf, src->len, &i, &cp) == 1) {
     cp = ds__map_simple(U_TOUPPER_KEYS, U_TOUPPER_VALS, U_TOUPPER_LEN, cp);
     if (u8_push(dst, cp) != 0)
@@ -645,17 +645,17 @@ int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
   unsigned long target = to_ls ? 0x2028ul : (to_ps ? 0x2029ul : 0x0Aul);
 
   if (!(to_lf || to_ls || to_ps)) {
-    return FUNC(ds_str_assign)(out, src->buf, src->len);
+    return ds_str_assign(out, src->buf, src->len);
   }
 
   i = 0;
   rc = 0;
-  FUNC(ds_str_clear)(out);
+  ds_str_clear(out);
 
   while (1) {
     size_t prev_i = i;
     unsigned long cp = 0;
-    int r = FUNC(ds_str_u8_next)(src->buf, src->len, &i, &cp, DS_U8_STRICT);
+    int r = ds_str_u8_next(src->buf, src->len, &i, &cp, DS_U8_STRICT);
     if (r < 0)
       return -1;
     if (r == 0)
@@ -667,15 +667,15 @@ int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
       unsigned char enc[4];
       size_t k;
 
-      (void)FUNC(ds_str_u8_next)(src->buf, src->len, &j, &next, DS_U8_STRICT);
+      (void)ds_str_u8_next(src->buf, src->len, &j, &next, DS_U8_STRICT);
       k = ds__encode_one(target, enc);
       if (next == 0x0Aul) {
-        if (FUNC(ds_str_append)(out, enc, k) != 0)
+        if (ds_str_append(out, enc, k) != 0)
           return -1;
         i = j;
         continue;
       } else {
-        if (FUNC(ds_str_append)(out, enc, k) != 0)
+        if (ds_str_append(out, enc, k) != 0)
           return -1;
         continue;
       }
@@ -684,13 +684,13 @@ int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
     if (cp == 0x0085ul || cp == 0x2028ul || cp == 0x2029ul) {
       unsigned char enc2[4];
       size_t k2 = ds__encode_one(target, enc2);
-      if (FUNC(ds_str_append)(out, enc2, k2) != 0)
+      if (ds_str_append(out, enc2, k2) != 0)
         return -1;
       continue;
     }
 
     if (prev_i < i) {
-      if (FUNC(ds_str_append)(out, src->buf + prev_i, i - prev_i) != 0)
+      if (ds_str_append(out, src->buf + prev_i, i - prev_i) != 0)
         return -1;
     }
   }
@@ -704,7 +704,7 @@ int ds__is_mark(unsigned long cp) {
 int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src,
                         unsigned int flags) {
   size_t j = 0;
-  FUNC(ds_str_clear)(out);
+  ds_str_clear(out);
 
   while (j < src->len) {
     size_t adv;
@@ -713,7 +713,7 @@ int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src,
                        &cp, DS_U8_STRICT) <= 0) {
       unsigned char enc[4];
       size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, enc);
-      if (FUNC(ds_str_append)(out, enc, k) != 0)
+      if (ds_str_append(out, enc, k) != 0)
         return -1;
       j += 1;
       continue;
@@ -738,7 +738,7 @@ int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src,
     {
       unsigned char enc2[4];
       size_t k2 = ds__encode_one(cp, enc2);
-      if (FUNC(ds_str_append)(out, enc2, k2) != 0)
+      if (ds_str_append(out, enc2, k2) != 0)
         return -1;
     }
     j += adv;
@@ -750,15 +750,15 @@ int ds__insert_charbound(ds_str_t *out, const ds_str_t *src) {
   ds_u8_grapheme_iter_t git;
   size_t a, n;
   int r;
-  FUNC(ds_str_clear)(out);
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&git, src) != 0)
+  ds_str_clear(out);
+  if (ds_str_u8_grapheme_iter_init(&git, src) != 0)
     return -1;
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&git, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&git, &a, &n)) == 1) {
     unsigned char enc[4];
     size_t k = ds__encode_one(0xFFul, enc);
-    if (FUNC(ds_str_append)(out, enc, k) != 0)
+    if (ds_str_append(out, enc, k) != 0)
       return -1;
-    if (FUNC(ds_str_append)(out, src->buf + a, n) != 0)
+    if (ds_str_append(out, src->buf + a, n) != 0)
       return -1;
   }
   return (r < 0) ? -1 : 0;

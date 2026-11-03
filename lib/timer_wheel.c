@@ -100,7 +100,7 @@ static size_t tw_tick(ds_timer_wheel_t *wheel) {
   return fired;
 }
 
-void FUNC(ds_timer_wheel_init)(ds_timer_wheel_t *wheel, unsigned long now) {
+void ds_timer_wheel_init(ds_timer_wheel_t *wheel, unsigned long now) {
   unsigned int level;
   unsigned int slot;
   for (level = 0; level < DS_TIMER_WHEEL_LEVELS; level++) {
@@ -112,8 +112,8 @@ void FUNC(ds_timer_wheel_init)(ds_timer_wheel_t *wheel, unsigned long now) {
   wheel->pending = 0;
 }
 
-void FUNC(ds_timer_init)(ds_timer_t *timer, ds_timer_callback_func_t callback,
-                         void *user) {
+void ds_timer_init(ds_timer_t *timer, ds_timer_callback_func_t callback,
+                   void *user) {
   timer->next = NULL;
   timer->pprev = NULL;
   timer->expires = 0;
@@ -121,9 +121,8 @@ void FUNC(ds_timer_init)(ds_timer_t *timer, ds_timer_callback_func_t callback,
   timer->user = user;
 }
 
-ds_status_t FUNC(ds_timer_wheel_start)(ds_timer_wheel_t *wheel,
-                                       ds_timer_t *timer,
-                                       unsigned long expires) {
+ds_status_t ds_timer_wheel_start(ds_timer_wheel_t *wheel, ds_timer_t *timer,
+                                 unsigned long expires) {
   if (wheel == NULL || timer == NULL) {
     return DS_ERR_NULL;
   }
@@ -137,16 +136,15 @@ ds_status_t FUNC(ds_timer_wheel_start)(ds_timer_wheel_t *wheel,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_timer_wheel_start_after)(ds_timer_wheel_t *wheel,
-                                             ds_timer_t *timer,
-                                             unsigned long delay) {
+ds_status_t ds_timer_wheel_start_after(ds_timer_wheel_t *wheel,
+                                       ds_timer_t *timer, unsigned long delay) {
   if (wheel == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_timer_wheel_start)(wheel, timer, wheel->now + delay);
+  return ds_timer_wheel_start(wheel, timer, wheel->now + delay);
 }
 
-bool FUNC(ds_timer_wheel_cancel)(ds_timer_wheel_t *wheel, ds_timer_t *timer) {
+bool ds_timer_wheel_cancel(ds_timer_wheel_t *wheel, ds_timer_t *timer) {
   if (timer == NULL || timer->pprev == NULL) {
     return false;
   }
@@ -155,12 +153,11 @@ bool FUNC(ds_timer_wheel_cancel)(ds_timer_wheel_t *wheel, ds_timer_t *timer) {
   return true;
 }
 
-bool FUNC(ds_timer_is_pending)(const ds_timer_t *timer) {
+bool ds_timer_is_pending(const ds_timer_t *timer) {
   return timer->pprev != NULL;
 }
 
-size_t FUNC(ds_timer_wheel_advance)(ds_timer_wheel_t *wheel,
-                                    unsigned long ticks) {
+size_t ds_timer_wheel_advance(ds_timer_wheel_t *wheel, unsigned long ticks) {
   size_t fired = 0;
   while (ticks > 0) {
     if (wheel->pending == 0) {
@@ -173,19 +170,18 @@ size_t FUNC(ds_timer_wheel_advance)(ds_timer_wheel_t *wheel,
   return fired;
 }
 
-size_t FUNC(ds_timer_wheel_advance_to)(ds_timer_wheel_t *wheel,
-                                       unsigned long time) {
+size_t ds_timer_wheel_advance_to(ds_timer_wheel_t *wheel, unsigned long time) {
   unsigned long ticks = time - wheel->now;
   if (ticks > ULONG_MAX / 2) {
     return 0; /* `time` is in the past */
   }
-  return FUNC(ds_timer_wheel_advance)(wheel, ticks);
+  return ds_timer_wheel_advance(wheel, ticks);
 }
 
-unsigned long FUNC(ds_timer_wheel_now)(const ds_timer_wheel_t *wheel) {
+unsigned long ds_timer_wheel_now(const ds_timer_wheel_t *wheel) {
   return wheel->now;
 }
 
-size_t FUNC(ds_timer_wheel_pending)(const ds_timer_wheel_t *wheel) {
+size_t ds_timer_wheel_pending(const ds_timer_wheel_t *wheel) {
   return wheel->pending;
 }

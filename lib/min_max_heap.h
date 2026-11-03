@@ -37,26 +37,24 @@ typedef struct ds_min_max_heap {
   void *user;
 } ds_min_max_heap_t;
 
-ds_status_t FUNC(ds_min_max_heap_init)(ds_min_max_heap_t *heap,
-                                       size_t elem_size,
-                                       ds_min_max_heap_compare_func_t compare,
-                                       void *user, ds_context_t *context);
-ds_status_t
-    FUNC(ds_min_max_heap_init_buffer)(ds_min_max_heap_t *heap, size_t elem_size,
-                                      ds_min_max_heap_compare_func_t compare,
-                                      void *user, void *buffer,
-                                      size_t capacity);
-void FUNC(ds_min_max_heap_destroy)(ds_min_max_heap_t *heap);
+ds_status_t ds_min_max_heap_init(ds_min_max_heap_t *heap, size_t elem_size,
+                                 ds_min_max_heap_compare_func_t compare,
+                                 void *user, ds_context_t *context);
+ds_status_t ds_min_max_heap_init_buffer(ds_min_max_heap_t *heap,
+                                        size_t elem_size,
+                                        ds_min_max_heap_compare_func_t compare,
+                                        void *user, void *buffer,
+                                        size_t capacity);
+void ds_min_max_heap_destroy(ds_min_max_heap_t *heap);
 
-ds_status_t FUNC(ds_min_max_heap_push)(ds_min_max_heap_t *heap,
-                                       const void *elem);
-const void *FUNC(ds_min_max_heap_peek_min)(const ds_min_max_heap_t *heap);
-const void *FUNC(ds_min_max_heap_peek_max)(const ds_min_max_heap_t *heap);
-ds_status_t FUNC(ds_min_max_heap_pop_min)(ds_min_max_heap_t *heap, void *out);
-ds_status_t FUNC(ds_min_max_heap_pop_max)(ds_min_max_heap_t *heap, void *out);
-size_t FUNC(ds_min_max_heap_size)(const ds_min_max_heap_t *heap);
-bool FUNC(ds_min_max_heap_is_empty)(const ds_min_max_heap_t *heap);
-void FUNC(ds_min_max_heap_clear)(ds_min_max_heap_t *heap);
+ds_status_t ds_min_max_heap_push(ds_min_max_heap_t *heap, const void *elem);
+const void *ds_min_max_heap_peek_min(const ds_min_max_heap_t *heap);
+const void *ds_min_max_heap_peek_max(const ds_min_max_heap_t *heap);
+ds_status_t ds_min_max_heap_pop_min(ds_min_max_heap_t *heap, void *out);
+ds_status_t ds_min_max_heap_pop_max(ds_min_max_heap_t *heap, void *out);
+size_t ds_min_max_heap_size(const ds_min_max_heap_t *heap);
+bool ds_min_max_heap_is_empty(const ds_min_max_heap_t *heap);
+void ds_min_max_heap_clear(ds_min_max_heap_t *heap);
 
 #ifdef __cplusplus
 }

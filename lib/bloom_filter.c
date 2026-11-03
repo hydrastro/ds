@@ -7,8 +7,8 @@
 
 /* FNV-1a hash using 32-bit parameters so the constants fit in any
  * conforming unsigned long (which is at least 32 bits wide). */
-static unsigned long FUNC(bloom_hash_fnv)(const void *key, size_t length,
-                                          unsigned long basis) {
+static unsigned long bloom_hash_fnv(const void *key, size_t length,
+                                    unsigned long basis) {
   const unsigned char *bytes = (const unsigned char *)key;
   unsigned long hash = basis;
   size_t i;
@@ -20,22 +20,23 @@ static unsigned long FUNC(bloom_hash_fnv)(const void *key, size_t length,
   return hash;
 }
 
-static size_t FUNC(bloom_compute_words)(size_t num_bits) {
+static size_t bloom_compute_words(size_t num_bits) {
   if (num_bits == 0) {
     return 1;
   }
   return (num_bits + DS_BLOOM_BITS_PER_WORD - 1) / DS_BLOOM_BITS_PER_WORD;
 }
 
-ds_bloom_filter_t *FUNC(ds_bloom_filter_create)(size_t expected_items,
-                                                double false_positive_rate) {
-  return FUNC(ds_bloom_filter_create_alloc)(expected_items, false_positive_rate,
-                                            malloc, free);
+ds_bloom_filter_t *ds_bloom_filter_create(size_t expected_items,
+                                          double false_positive_rate) {
+  return ds_bloom_filter_create_alloc(expected_items, false_positive_rate,
+                                      malloc, free);
 }
 
-ds_bloom_filter_t *FUNC(ds_bloom_filter_create_alloc)(
-    size_t expected_items, double false_positive_rate,
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
+ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
+                                                double false_positive_rate,
+                                                void *(*allocator)(size_t),
+                                                void (*deallocator)(void *)) {
   size_t num_bits;
   size_t num_hashes;
   double n;
@@ -60,14 +61,14 @@ ds_bloom_filter_t *FUNC(ds_bloom_filter_create_alloc)(
   if (num_hashes < 1) {
     num_hashes = 1;
   }
-  return FUNC(ds_bloom_filter_create_with_params)(num_bits, num_hashes,
-                                                  allocator, deallocator);
+  return ds_bloom_filter_create_with_params(num_bits, num_hashes, allocator,
+                                            deallocator);
 }
 
 ds_bloom_filter_t *
-FUNC(ds_bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
-                                         void *(*allocator)(size_t),
-                                         void (*deallocator)(void *)) {
+ds_bloom_filter_create_with_params(size_t num_bits, size_t num_hashes,
+                                   void *(*allocator)(size_t),
+                                   void (*deallocator)(void *)) {
   ds_bloom_filter_t *filter;
   size_t num_words;
   size_t i;
@@ -77,7 +78,7 @@ FUNC(ds_bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
   if (num_hashes < 1) {
     num_hashes = 1;
   }
-  num_words = FUNC(bloom_compute_words)(num_bits);
+  num_words = bloom_compute_words(num_bits);
   filter = (ds_bloom_filter_t *)allocator(sizeof(ds_bloom_filter_t));
   filter->allocator = allocator;
   filter->deallocator = deallocator;
@@ -92,10 +93,10 @@ FUNC(ds_bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
   return filter;
 }
 
-static void FUNC(bloom_each_index)(ds_bloom_filter_t *filter, const void *key,
-                                   size_t length, size_t *out) {
-  unsigned long h1 = FUNC(bloom_hash_fnv)(key, length, 2166136261UL);
-  unsigned long h2 = FUNC(bloom_hash_fnv)(key, length, 2166136333UL);
+static void bloom_each_index(ds_bloom_filter_t *filter, const void *key,
+                             size_t length, size_t *out) {
+  unsigned long h1 = bloom_hash_fnv(key, length, 2166136261UL);
+  unsigned long h2 = bloom_hash_fnv(key, length, 2166136333UL);
   size_t i;
   if ((h2 % filter->num_bits) == 0) {
     h2 += 1;
@@ -106,12 +107,12 @@ static void FUNC(bloom_each_index)(ds_bloom_filter_t *filter, const void *key,
   }
 }
 
-void FUNC(ds_bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
-                               size_t length) {
+void ds_bloom_filter_add(ds_bloom_filter_t *filter, const void *key,
+                         size_t length) {
   size_t *indices;
   size_t i;
   indices = (size_t *)filter->allocator(filter->num_hashes * sizeof(size_t));
-  FUNC(bloom_each_index)(filter, key, length, indices);
+  bloom_each_index(filter, key, length, indices);
   for (i = 0; i < filter->num_hashes; i++) {
     size_t bit = indices[i];
     filter->words[bit / DS_BLOOM_BITS_PER_WORD] |=
@@ -121,13 +122,13 @@ void FUNC(ds_bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
   filter->deallocator(indices);
 }
 
-bool FUNC(ds_bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
-                                          const void *key, size_t length) {
+bool ds_bloom_filter_maybe_contains(ds_bloom_filter_t *filter, const void *key,
+                                    size_t length) {
   size_t *indices;
   size_t i;
   bool result = true;
   indices = (size_t *)filter->allocator(filter->num_hashes * sizeof(size_t));
-  FUNC(bloom_each_index)(filter, key, length, indices);
+  bloom_each_index(filter, key, length, indices);
   for (i = 0; i < filter->num_hashes; i++) {
     size_t bit = indices[i];
     if ((filter->words[bit / DS_BLOOM_BITS_PER_WORD] &
@@ -140,7 +141,7 @@ bool FUNC(ds_bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
   return result;
 }
 
-void FUNC(ds_bloom_filter_clear)(ds_bloom_filter_t *filter) {
+void ds_bloom_filter_clear(ds_bloom_filter_t *filter) {
   size_t i;
   for (i = 0; i < filter->num_words; i++) {
     filter->words[i] = 0UL;
@@ -148,13 +149,13 @@ void FUNC(ds_bloom_filter_clear)(ds_bloom_filter_t *filter) {
   filter->num_items = 0;
 }
 
-size_t FUNC(ds_bloom_filter_count)(ds_bloom_filter_t *filter) {
+size_t ds_bloom_filter_count(ds_bloom_filter_t *filter) {
   size_t result;
   result = filter->num_items;
   return result;
 }
 
-double FUNC(ds_bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter) {
+double ds_bloom_filter_estimated_fpr(ds_bloom_filter_t *filter) {
   double k;
   double n;
   double m;
@@ -167,8 +168,8 @@ double FUNC(ds_bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter) {
   return result;
 }
 
-bool FUNC(ds_bloom_filter_union)(ds_bloom_filter_t *filter,
-                                 ds_bloom_filter_t *other) {
+bool ds_bloom_filter_union(ds_bloom_filter_t *filter,
+                           ds_bloom_filter_t *other) {
   size_t i;
   if (filter->num_bits != other->num_bits ||
       filter->num_hashes != other->num_hashes) {
@@ -181,10 +182,10 @@ bool FUNC(ds_bloom_filter_union)(ds_bloom_filter_t *filter,
   return true;
 }
 
-ds_bloom_filter_t *FUNC(ds_bloom_filter_clone)(ds_bloom_filter_t *filter) {
+ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter) {
   ds_bloom_filter_t *new_filter;
   size_t i;
-  new_filter = FUNC(ds_bloom_filter_create_with_params)(
+  new_filter = ds_bloom_filter_create_with_params(
       filter->num_bits, filter->num_hashes, filter->allocator,
       filter->deallocator);
   for (i = 0; i < filter->num_words; i++) {
@@ -194,7 +195,7 @@ ds_bloom_filter_t *FUNC(ds_bloom_filter_clone)(ds_bloom_filter_t *filter) {
   return new_filter;
 }
 
-void FUNC(ds_bloom_filter_destroy)(ds_bloom_filter_t *filter) {
+void ds_bloom_filter_destroy(ds_bloom_filter_t *filter) {
   filter->deallocator(filter->words);
   filter->deallocator(filter);
 }

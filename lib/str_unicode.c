@@ -91,7 +91,7 @@ size_t ds__encode_one(unsigned long cp, unsigned char out[4]) {
   return 4;
 }
 
-int FUNC(ds_str_u8_push_cp)(ds_str_t *s, unsigned long cp) {
+int ds_str_u8_push_cp(ds_str_t *s, unsigned long cp) {
   unsigned char buf[4];
   size_t k;
   if (!s)
@@ -99,10 +99,10 @@ int FUNC(ds_str_u8_push_cp)(ds_str_t *s, unsigned long cp) {
   if (cp > 0x10FFFFul || (cp >= 0xD800ul && cp <= 0xDFFFul))
     cp = DS_U8_REPLACEMENT_CHAR;
   k = ds__encode_one(cp, buf);
-  return FUNC(ds_str_append)(s, buf, k);
+  return ds_str_append(s, buf, k);
 }
 
-int FUNC(ds_str_u8_pop_cp)(ds_str_t *s, unsigned long *out_cp) {
+int ds_str_u8_pop_cp(ds_str_t *s, unsigned long *out_cp) {
   size_t len;
   const unsigned char *p;
   size_t i = 0;
@@ -123,7 +123,7 @@ int FUNC(ds_str_u8_pop_cp)(ds_str_t *s, unsigned long *out_cp) {
         return -1;
       if (out_cp)
         *out_cp = cp;
-      return FUNC(ds_str_erase)(s, i - 1, adv);
+      return ds_str_erase(s, i - 1, adv);
     }
     --i;
     if (len - i > 4)
@@ -132,8 +132,7 @@ int FUNC(ds_str_u8_pop_cp)(ds_str_t *s, unsigned long *out_cp) {
   return -1;
 }
 
-size_t FUNC(ds_str_u8_count)(const ds_str_t *s, unsigned int flags,
-                             int *valid_out) {
+size_t ds_str_u8_count(const ds_str_t *s, unsigned int flags, int *valid_out) {
   size_t i = 0, n;
   size_t count = 0;
   const unsigned char *p;
@@ -160,8 +159,8 @@ size_t FUNC(ds_str_u8_count)(const ds_str_t *s, unsigned int flags,
   return ok ? count : 0;
 }
 
-size_t FUNC(ds_str_view_u8_count)(ds_str_view_t v, unsigned int flags,
-                                  int *valid_out) {
+size_t ds_str_view_u8_count(ds_str_view_t v, unsigned int flags,
+                            int *valid_out) {
   const unsigned char *p = (const unsigned char *)v.data;
   size_t i = 0, n = v.len, count = 0;
   int ok = 1;
@@ -181,20 +180,20 @@ size_t FUNC(ds_str_view_u8_count)(ds_str_view_t v, unsigned int flags,
   return ok ? count : 0;
 }
 
-int FUNC(ds_str_u8_validate)(const ds_str_t *s, unsigned int flags) {
+int ds_str_u8_validate(const ds_str_t *s, unsigned int flags) {
   int ok;
-  (void)FUNC(ds_str_u8_count)(s, flags, &ok);
+  (void)ds_str_u8_count(s, flags, &ok);
   return ok;
 }
 
-int FUNC(ds_str_view_u8_validate)(ds_str_view_t v, unsigned int flags) {
+int ds_str_view_u8_validate(ds_str_view_t v, unsigned int flags) {
   int ok;
-  (void)FUNC(ds_str_view_u8_count)(v, flags, &ok);
+  (void)ds_str_view_u8_count(v, flags, &ok);
   return ok;
 }
 
-int FUNC(ds_str_u8_next)(const char *buf, size_t len, size_t *ioff,
-                         unsigned long *out_cp, unsigned int flags) {
+int ds_str_u8_next(const char *buf, size_t len, size_t *ioff,
+                   unsigned long *out_cp, unsigned int flags) {
   size_t i = ioff ? *ioff : 0;
   size_t adv;
   int r;
@@ -211,8 +210,8 @@ int FUNC(ds_str_u8_next)(const char *buf, size_t len, size_t *ioff,
   return 1;
 }
 
-int FUNC(ds_str_u8_prev)(const char *buf, size_t len, size_t *ioff,
-                         unsigned long *out_cp, unsigned int flags) {
+int ds_str_u8_prev(const char *buf, size_t len, size_t *ioff,
+                   unsigned long *out_cp, unsigned int flags) {
   size_t i = ioff ? *ioff : len;
   const unsigned char *p = (const unsigned char *)buf;
   if (!buf)
@@ -243,8 +242,8 @@ int FUNC(ds_str_u8_prev)(const char *buf, size_t len, size_t *ioff,
   return 1;
 }
 
-size_t FUNC(ds_str_u8_cp_to_byte)(const ds_str_t *s, size_t cp_index,
-                                  unsigned int flags) {
+size_t ds_str_u8_cp_to_byte(const ds_str_t *s, size_t cp_index,
+                            unsigned int flags) {
   size_t i = 0, n;
   size_t cp = 0;
   const unsigned char *p;
@@ -265,11 +264,10 @@ size_t FUNC(ds_str_u8_cp_to_byte)(const ds_str_t *s, size_t cp_index,
   return (cp_index == cp) ? i : SIZE_MAX;
 }
 
-int FUNC(ds_str_u8_slice_cp)(ds_str_t *dst, const ds_str_t *src,
-                             size_t start_cp, size_t count_cp,
-                             unsigned int flags) {
+int ds_str_u8_slice_cp(ds_str_t *dst, const ds_str_t *src, size_t start_cp,
+                       size_t count_cp, unsigned int flags) {
   size_t a, b;
-  size_t start_byte = FUNC(ds_str_u8_cp_to_byte)(src, start_cp, flags);
+  size_t start_byte = ds_str_u8_cp_to_byte(src, start_cp, flags);
   if (start_byte == SIZE_MAX)
     return -1;
 
@@ -278,7 +276,7 @@ int FUNC(ds_str_u8_slice_cp)(ds_str_t *dst, const ds_str_t *src,
     b = src->len;
   } else {
     size_t end_cp = start_cp + count_cp;
-    size_t end_byte = FUNC(ds_str_u8_cp_to_byte)(src, end_cp, flags);
+    size_t end_byte = ds_str_u8_cp_to_byte(src, end_cp, flags);
     if (end_byte == SIZE_MAX)
       return -1;
     a = start_byte;
@@ -286,19 +284,18 @@ int FUNC(ds_str_u8_slice_cp)(ds_str_t *dst, const ds_str_t *src,
   }
 
   if (dst == src) {
-    ds_str_t *tmp = FUNC(ds_str_from)(src->buf + a, b - a);
+    ds_str_t *tmp = ds_str_from(src->buf + a, b - a);
     if (!tmp)
       return -1;
-    FUNC(ds_str_clear)(dst);
-    (void)FUNC(ds_str_append)(dst, tmp->buf, tmp->len);
-    FUNC(ds_str_destroy)(tmp);
+    ds_str_clear(dst);
+    (void)ds_str_append(dst, tmp->buf, tmp->len);
+    ds_str_destroy(tmp);
     return 0;
   }
-  return FUNC(ds_str_assign)(dst, src->buf + a, b - a);
+  return ds_str_assign(dst, src->buf + a, b - a);
 }
 
-int FUNC(ds_str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src,
-                             unsigned int flags) {
+int ds_str_u8_sanitize(ds_str_t *dst, const ds_str_t *src, unsigned int flags) {
   size_t i = 0, n;
   const unsigned char *p;
   unsigned char enc[4];
@@ -307,18 +304,18 @@ int FUNC(ds_str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src,
     return -1;
 
   if (dst == src) {
-    ds_str_t *tmp = FUNC(ds_str_create)();
+    ds_str_t *tmp = ds_str_create();
     int rc;
     if (!tmp)
       return -1;
-    rc = FUNC(ds_str_u8_sanitize)(tmp, src, flags);
+    rc = ds_str_u8_sanitize(tmp, src, flags);
     if (rc == 0)
-      rc = FUNC(ds_str_assign)(dst, tmp->buf, tmp->len);
-    FUNC(ds_str_destroy)(tmp);
+      rc = ds_str_assign(dst, tmp->buf, tmp->len);
+    ds_str_destroy(tmp);
     return rc;
   }
 
-  FUNC(ds_str_clear)(dst);
+  ds_str_clear(dst);
 
   n = src->len;
   p = (const unsigned char *)src->buf;
@@ -329,13 +326,13 @@ int FUNC(ds_str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src,
     int r = ds__decode_one(p + i, n - i, &adv, &cp, flags);
     if (r <= 0) {
       size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, enc);
-      if (FUNC(ds_str_append)(dst, enc, k) != 0) {
+      if (ds_str_append(dst, enc, k) != 0) {
         return -1;
       }
       i += 1;
     } else {
       size_t k = ds__encode_one(cp, enc);
-      if (FUNC(ds_str_append)(dst, enc, k) != 0) {
+      if (ds_str_append(dst, enc, k) != 0) {
         return -1;
       }
       i += adv;
@@ -344,14 +341,14 @@ int FUNC(ds_str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src,
   return 0;
 }
 
-int FUNC(ds_str_u8_strip_bom)(ds_str_t *s) {
+int ds_str_u8_strip_bom(ds_str_t *s) {
   const unsigned char bom[3] = {0xEFu, 0xBBu, 0xBFu};
   if (!s || s->len < 3)
     return 0;
   if ((unsigned char)s->buf[0] == bom[0] &&
       (unsigned char)s->buf[1] == bom[1] &&
       (unsigned char)s->buf[2] == bom[2]) {
-    (void)FUNC(ds_str_erase)(s, 0u, 3u);
+    (void)ds_str_erase(s, 0u, 3u);
     return 1;
   }
   return 0;
@@ -364,11 +361,11 @@ unsigned char ds__ascii_upper(unsigned char c) {
   return (c >= 'a' && c <= 'z') ? (unsigned char)(c - 32u) : c;
 }
 
-int FUNC(ds_str_u8_ascii_tolower)(ds_str_t *dst, const ds_str_t *src) {
+int ds_str_u8_ascii_tolower(ds_str_t *dst, const ds_str_t *src) {
   size_t i, n;
   if (!dst || !src)
     return -1;
-  if (FUNC(ds_str_reserve)(dst, src->len) != 0) {
+  if (ds_str_reserve(dst, src->len) != 0) {
     return -1;
   }
   for (i = 0, n = src->len; i < n; ++i)
@@ -378,11 +375,11 @@ int FUNC(ds_str_u8_ascii_tolower)(ds_str_t *dst, const ds_str_t *src) {
   return 0;
 }
 
-int FUNC(ds_str_u8_ascii_toupper)(ds_str_t *dst, const ds_str_t *src) {
+int ds_str_u8_ascii_toupper(ds_str_t *dst, const ds_str_t *src) {
   size_t i, n;
   if (!dst || !src)
     return -1;
-  if (FUNC(ds_str_reserve)(dst, src->len) != 0) {
+  if (ds_str_reserve(dst, src->len) != 0) {
     return -1;
   }
   for (i = 0, n = src->len; i < n; ++i)
@@ -392,16 +389,16 @@ int FUNC(ds_str_u8_ascii_toupper)(ds_str_t *dst, const ds_str_t *src) {
   return 0;
 }
 
-int FUNC(ds_str_u8_ascii_casefold)(ds_str_t *dst, const ds_str_t *src) {
-  return FUNC(ds_str_u8_ascii_tolower)(dst, src);
+int ds_str_u8_ascii_casefold(ds_str_t *dst, const ds_str_t *src) {
+  return ds_str_u8_ascii_tolower(dst, src);
 }
 
 unsigned char ds__ascii_fold(unsigned char c) {
   return ds__ascii_lower(c);
 }
 
-long FUNC(ds_str_find_ascii_folded)(ds_str_t *s, const void *needle, size_t n,
-                                    size_t start) {
+long ds_str_find_ascii_folded(ds_str_t *s, const void *needle, size_t n,
+                              size_t start) {
   const unsigned char *h, *nd = (const unsigned char *)needle;
   size_t i, len;
   if (!s || !needle || n == 0u)
@@ -427,8 +424,8 @@ long FUNC(ds_str_find_ascii_folded)(ds_str_t *s, const void *needle, size_t n,
   return -1;
 }
 
-int FUNC(ds_str_u8_normalize)(ds_str_t *dst, const ds_str_t *src,
-                              ds_u8_norm_form form) {
+int ds_str_u8_normalize(ds_str_t *dst, const ds_str_t *src,
+                        ds_u8_norm_form form) {
   int compat, compose;
   (void)form;
   compat = (form == DS_U8_NFKC || form == DS_U8_NFKD);
@@ -436,24 +433,24 @@ int FUNC(ds_str_u8_normalize)(ds_str_t *dst, const ds_str_t *src,
   return ds__ucd_normalize(dst, src, compat, compose);
 }
 
-int FUNC(ds_str_u8_casefold)(ds_str_t *dst, const ds_str_t *src) {
+int ds_str_u8_casefold(ds_str_t *dst, const ds_str_t *src) {
   return ds__ucd_casefold(dst, src);
 }
 
-int FUNC(ds_str_u8_tolower)(ds_str_t *dst, const ds_str_t *src) {
+int ds_str_u8_tolower(ds_str_t *dst, const ds_str_t *src) {
   return ds__ucd_tolower(dst, src);
 }
 
-int FUNC(ds_str_u8_toupper)(ds_str_t *dst, const ds_str_t *src) {
+int ds_str_u8_toupper(ds_str_t *dst, const ds_str_t *src) {
   return ds__ucd_toupper(dst, src);
 }
 
-long FUNC(ds_str_u8_len_graphemes)(const ds_str_t *s) {
+long ds_str_u8_len_graphemes(const ds_str_t *s) {
   return ds__ucd_grapheme_len(s);
 }
 
-int FUNC(ds_str_view_u8_next)(ds_str_view_t v, size_t *ioff,
-                              unsigned long *out_cp, unsigned int flags) {
+int ds_str_view_u8_next(ds_str_view_t v, size_t *ioff, unsigned long *out_cp,
+                        unsigned int flags) {
   size_t i = ioff ? *ioff : 0, adv;
   int r;
   if (i >= v.len)
@@ -467,8 +464,8 @@ int FUNC(ds_str_view_u8_next)(ds_str_view_t v, size_t *ioff,
   return 1;
 }
 
-int FUNC(ds_str_view_u8_prev)(ds_str_view_t v, size_t *ioff,
-                              unsigned long *out_cp, unsigned int flags) {
+int ds_str_view_u8_prev(ds_str_view_t v, size_t *ioff, unsigned long *out_cp,
+                        unsigned int flags) {
   size_t i = ioff ? *ioff : v.len;
   const unsigned char *p = (const unsigned char *)v.data;
   if (i == 0)
@@ -493,8 +490,7 @@ int FUNC(ds_str_view_u8_prev)(ds_str_view_t v, size_t *ioff,
   return 1;
 }
 
-int FUNC(ds_str_u8_grapheme_iter_init)(ds_u8_grapheme_iter_t *it,
-                                       const ds_str_t *s) {
+int ds_str_u8_grapheme_iter_init(ds_u8_grapheme_iter_t *it, const ds_str_t *s) {
   if (!it || !s)
     return -1;
   if (ucd_init_once() != 0)
@@ -502,15 +498,15 @@ int FUNC(ds_str_u8_grapheme_iter_init)(ds_u8_grapheme_iter_t *it,
   return ds__grapheme_iter_init(&it->_it, s->buf, s->len);
 }
 
-int FUNC(ds_str_u8_grapheme_next)(ds_u8_grapheme_iter_t *it, size_t *out_start,
-                                  size_t *out_len) {
+int ds_str_u8_grapheme_next(ds_u8_grapheme_iter_t *it, size_t *out_start,
+                            size_t *out_len) {
   if (!it)
     return -1;
   return ds__grapheme_iter_next(&it->_it, out_start, out_len);
 }
 
-int FUNC(ds_str_view_u8_grapheme_next)(ds_u8_grapheme_iter_t *it,
-                                       ds_str_view_t *out_view) {
+int ds_str_view_u8_grapheme_next(ds_u8_grapheme_iter_t *it,
+                                 ds_str_view_t *out_view) {
   size_t a, n;
   int r;
   if (!it || !out_view)
@@ -523,8 +519,8 @@ int FUNC(ds_str_view_u8_grapheme_next)(ds_u8_grapheme_iter_t *it,
   return r;
 }
 
-int FUNC(ds_str_u8_slice_graphemes)(ds_str_t *dst, const ds_str_t *src,
-                                    size_t start_gc, size_t count_gc) {
+int ds_str_u8_slice_graphemes(ds_str_t *dst, const ds_str_t *src,
+                              size_t start_gc, size_t count_gc) {
   ds_u8_grapheme_iter_t it;
   size_t a = 0, b = 0;
   size_t gc = 0;
@@ -535,42 +531,41 @@ int FUNC(ds_str_u8_slice_graphemes)(ds_str_t *dst, const ds_str_t *src,
   if (ucd_init_once() != 0)
     return -1;
 
-  r = FUNC(ds_str_u8_grapheme_iter_init)(&it, src);
+  r = ds_str_u8_grapheme_iter_init(&it, src);
   if (r != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &b)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &b)) == 1) {
     if (gc == start_gc) {
       size_t start_byte = a;
       size_t end_byte = a + b;
 
       if (count_gc == (size_t)-1) {
         end_byte = src->len;
-        return FUNC(ds_str_assign)(dst, src->buf + start_byte,
-                                   end_byte - start_byte);
+        return ds_str_assign(dst, src->buf + start_byte, end_byte - start_byte);
       }
 
       {
         size_t left = (count_gc > 0) ? (count_gc - 1) : 0;
         while (left > 0) {
-          r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &b);
+          r = ds_str_u8_grapheme_next(&it, &a, &b);
           if (r != 1)
             break;
           end_byte = a + b;
           --left;
         }
       }
-      return FUNC(ds_str_assign)(
-          dst, src->buf + start_byte,
-          (end_byte > start_byte) ? (end_byte - start_byte) : 0);
+      return ds_str_assign(dst, src->buf + start_byte,
+                           (end_byte > start_byte) ? (end_byte - start_byte)
+                                                   : 0);
     }
     ++gc;
   }
 
-  return FUNC(ds_str_assign)(dst, "", 0u);
+  return ds_str_assign(dst, "", 0u);
 }
 
-int FUNC(ds_str_u8_backspace_one_egc)(ds_str_t *s) {
+int ds_str_u8_backspace_one_egc(ds_str_t *s) {
   ds_u8_grapheme_iter_t it;
   size_t a = 0, n = 0;
   size_t last_a = 0, last_n = 0;
@@ -583,10 +578,10 @@ int FUNC(ds_str_u8_backspace_one_egc)(ds_str_t *s) {
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     last_a = a;
     last_n = n;
     saw_any = 1;
@@ -596,10 +591,10 @@ int FUNC(ds_str_u8_backspace_one_egc)(ds_str_t *s) {
   if (!saw_any)
     return 0;
 
-  return FUNC(ds_str_erase)(s, last_a, last_n) == 0 ? 1 : -1;
+  return ds_str_erase(s, last_a, last_n) == 0 ? 1 : -1;
 }
 
-int FUNC(ds_str_u8_truncate_graphemes)(ds_str_t *s, size_t max_gc) {
+int ds_str_u8_truncate_graphemes(ds_str_t *s, size_t max_gc) {
   ds_u8_grapheme_iter_t it;
   size_t a = 0, n = 0;
   size_t gc = 0;
@@ -611,10 +606,10 @@ int FUNC(ds_str_u8_truncate_graphemes)(ds_str_t *s, size_t max_gc) {
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (gc == max_gc) {
       cut_byte = a;
       break;
@@ -627,11 +622,10 @@ int FUNC(ds_str_u8_truncate_graphemes)(ds_str_t *s, size_t max_gc) {
   if (gc <= max_gc)
     return 0;
 
-  return FUNC(ds_str_erase)(s, cut_byte, s->len - cut_byte);
+  return ds_str_erase(s, cut_byte, s->len - cut_byte);
 }
 
-int FUNC(ds_str_u8_grapheme_to_byte)(const ds_str_t *s, size_t gi,
-                                     size_t *byte_out) {
+int ds_str_u8_grapheme_to_byte(const ds_str_t *s, size_t gi, size_t *byte_out) {
   ds_u8_grapheme_iter_t it;
   size_t a, n, idx = 0;
   int r;
@@ -641,10 +635,10 @@ int FUNC(ds_str_u8_grapheme_to_byte)(const ds_str_t *s, size_t gi,
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (idx == gi) {
       *byte_out = a;
       return 0;
@@ -662,8 +656,7 @@ int FUNC(ds_str_u8_grapheme_to_byte)(const ds_str_t *s, size_t gi,
   return -1;
 }
 
-int FUNC(ds_str_u8_byte_to_grapheme)(const ds_str_t *s, size_t byte,
-                                     size_t *gi_out) {
+int ds_str_u8_byte_to_grapheme(const ds_str_t *s, size_t byte, size_t *gi_out) {
   ds_u8_grapheme_iter_t it;
   size_t a, n, idx = 0;
   int r;
@@ -675,10 +668,10 @@ int FUNC(ds_str_u8_byte_to_grapheme)(const ds_str_t *s, size_t byte,
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (byte < a + n) {
       *gi_out = idx;
       return 0;
@@ -692,7 +685,7 @@ int FUNC(ds_str_u8_byte_to_grapheme)(const ds_str_t *s, size_t byte,
   return 0;
 }
 
-int FUNC(ds_str_u8_delete_grapheme_at)(ds_str_t *s, size_t gi) {
+int ds_str_u8_delete_grapheme_at(ds_str_t *s, size_t gi) {
   ds_u8_grapheme_iter_t it;
   size_t a, n, idx = 0;
   int r;
@@ -702,12 +695,12 @@ int FUNC(ds_str_u8_delete_grapheme_at)(ds_str_t *s, size_t gi) {
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (idx == gi) {
-      return FUNC(ds_str_erase)(s, a, n) == 0 ? 1 : -1;
+      return ds_str_erase(s, a, n) == 0 ? 1 : -1;
     }
     idx++;
   }
@@ -716,17 +709,17 @@ int FUNC(ds_str_u8_delete_grapheme_at)(ds_str_t *s, size_t gi) {
   return 0;
 }
 
-int FUNC(ds_str_u8_insert_at_grapheme)(ds_str_t *s, size_t gi, const void *data,
-                                       size_t n) {
+int ds_str_u8_insert_at_grapheme(ds_str_t *s, size_t gi, const void *data,
+                                 size_t n) {
   size_t byte = 0;
   if (!s)
     return -1;
-  if (FUNC(ds_str_u8_grapheme_to_byte)(s, gi, &byte) != 0)
+  if (ds_str_u8_grapheme_to_byte(s, gi, &byte) != 0)
     return -1;
-  return FUNC(ds_str_insert)(s, byte, data, n);
+  return ds_str_insert(s, byte, data, n);
 }
 
-int FUNC(ds_str_u8_delete_next_egc_from_byte)(ds_str_t *s, size_t cursor_byte) {
+int ds_str_u8_delete_next_egc_from_byte(ds_str_t *s, size_t cursor_byte) {
   ds_u8_grapheme_iter_t it;
   size_t a, n;
   int r;
@@ -738,18 +731,18 @@ int FUNC(ds_str_u8_delete_next_egc_from_byte)(ds_str_t *s, size_t cursor_byte) {
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (cursor_byte < a + n) {
-      return FUNC(ds_str_erase)(s, a, n) == 0 ? 1 : -1;
+      return ds_str_erase(s, a, n) == 0 ? 1 : -1;
     }
   }
   return (r < 0) ? -1 : 0;
 }
 
-long FUNC(ds_str_u8_find_folded)(const ds_str_t *s, const ds_str_t *needle) {
+long ds_str_u8_find_folded(const ds_str_t *s, const ds_str_t *needle) {
   ds_str_t *hs = NULL, *ns = NULL;
   long pos = -1;
 
@@ -758,32 +751,32 @@ long FUNC(ds_str_u8_find_folded)(const ds_str_t *s, const ds_str_t *needle) {
   if (ucd_init_once() != 0)
     return -1;
 
-  hs = FUNC(ds_str_create)();
-  ns = FUNC(ds_str_create)();
+  hs = ds_str_create();
+  ns = ds_str_create();
   if (!hs || !ns)
     goto done;
 
-  if (FUNC(ds_str_u8_casefold)(hs, s) != 0)
+  if (ds_str_u8_casefold(hs, s) != 0)
     goto done;
-  if (FUNC(ds_str_u8_normalize)(hs, hs, DS_U8_NFC) != 0)
-    goto done;
-
-  if (FUNC(ds_str_u8_casefold)(ns, needle) != 0)
-    goto done;
-  if (FUNC(ds_str_u8_normalize)(ns, ns, DS_U8_NFC) != 0)
+  if (ds_str_u8_normalize(hs, hs, DS_U8_NFC) != 0)
     goto done;
 
-  pos = FUNC(ds_str_find)((ds_str_t *)hs, ns->buf, ns->len, 0);
+  if (ds_str_u8_casefold(ns, needle) != 0)
+    goto done;
+  if (ds_str_u8_normalize(ns, ns, DS_U8_NFC) != 0)
+    goto done;
+
+  pos = ds_str_find((ds_str_t *)hs, ns->buf, ns->len, 0);
 
 done:
   if (hs)
-    FUNC(ds_str_destroy)(hs);
+    ds_str_destroy(hs);
   if (ns)
-    FUNC(ds_str_destroy)(ns);
+    ds_str_destroy(ns);
   return pos;
 }
 
-size_t FUNC(ds_str_u8_cursor_prev)(const ds_str_t *s, size_t cursor_byte) {
+size_t ds_str_u8_cursor_prev(const ds_str_t *s, size_t cursor_byte) {
   ds_u8_grapheme_iter_t it;
   size_t a, n;
   size_t last_start = 0;
@@ -796,10 +789,10 @@ size_t FUNC(ds_str_u8_cursor_prev)(const ds_str_t *s, size_t cursor_byte) {
   if (ucd_init_once() != 0)
     return SIZE_MAX;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return SIZE_MAX;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (a + n >= cursor_byte) {
       return (cursor_byte == 0) ? 0 : last_start;
     }
@@ -811,7 +804,7 @@ size_t FUNC(ds_str_u8_cursor_prev)(const ds_str_t *s, size_t cursor_byte) {
   return last_start;
 }
 
-size_t FUNC(ds_str_u8_cursor_next)(const ds_str_t *s, size_t cursor_byte) {
+size_t ds_str_u8_cursor_next(const ds_str_t *s, size_t cursor_byte) {
   ds_u8_grapheme_iter_t it;
   size_t a, n;
   int r;
@@ -823,10 +816,10 @@ size_t FUNC(ds_str_u8_cursor_next)(const ds_str_t *s, size_t cursor_byte) {
   if (ucd_init_once() != 0)
     return SIZE_MAX;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return SIZE_MAX;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (cursor_byte < a + n) {
       size_t end = a + n;
       if (end > s->len)
@@ -839,8 +832,7 @@ size_t FUNC(ds_str_u8_cursor_next)(const ds_str_t *s, size_t cursor_byte) {
   return s->len;
 }
 
-int FUNC(ds_str_u8_backspace)(ds_str_t *s, size_t cursor_byte,
-                              size_t *new_cursor) {
+int ds_str_u8_backspace(ds_str_t *s, size_t cursor_byte, size_t *new_cursor) {
   ds_u8_grapheme_iter_t it;
   size_t a, n, prev_a = 0, prev_n = 0;
   int r;
@@ -857,10 +849,10 @@ int FUNC(ds_str_u8_backspace)(ds_str_t *s, size_t cursor_byte,
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (a + n >= cursor_byte) {
       if (prev_n == 0 && a == 0) {
         if (new_cursor)
@@ -868,14 +860,14 @@ int FUNC(ds_str_u8_backspace)(ds_str_t *s, size_t cursor_byte,
         return 0;
       }
       if (prev_n == 0 && a > 0) {
-        if (FUNC(ds_str_erase)(s, 0, a + n) != 0)
+        if (ds_str_erase(s, 0, a + n) != 0)
           return -1;
         if (new_cursor)
           *new_cursor = 0;
         return 1;
       }
       if (prev_n > 0) {
-        if (FUNC(ds_str_erase)(s, prev_a, prev_n) != 0)
+        if (ds_str_erase(s, prev_a, prev_n) != 0)
           return -1;
         if (new_cursor)
           *new_cursor = prev_a;
@@ -889,7 +881,7 @@ int FUNC(ds_str_u8_backspace)(ds_str_t *s, size_t cursor_byte,
     return -1;
 
   if (prev_n > 0) {
-    if (FUNC(ds_str_erase)(s, prev_a, prev_n) != 0)
+    if (ds_str_erase(s, prev_a, prev_n) != 0)
       return -1;
     if (new_cursor)
       *new_cursor = prev_a;
@@ -900,8 +892,7 @@ int FUNC(ds_str_u8_backspace)(ds_str_t *s, size_t cursor_byte,
   return 0;
 }
 
-int FUNC(ds_str_u8_delete)(ds_str_t *s, size_t cursor_byte,
-                           size_t *new_cursor) {
+int ds_str_u8_delete(ds_str_t *s, size_t cursor_byte, size_t *new_cursor) {
   ds_u8_grapheme_iter_t it;
   size_t a, n;
   int r;
@@ -916,12 +907,12 @@ int FUNC(ds_str_u8_delete)(ds_str_t *s, size_t cursor_byte,
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     if (cursor_byte < a + n) {
-      if (FUNC(ds_str_erase)(s, a, n) != 0)
+      if (ds_str_erase(s, a, n) != 0)
         return -1;
       if (new_cursor)
         *new_cursor = cursor_byte;
@@ -958,7 +949,7 @@ int ds__in_ranges(unsigned long cp, const ds__range *r, size_t n) {
   return 0;
 }
 
-int FUNC(ds_str_u8_cp_width)(unsigned long cp, unsigned int flags) {
+int ds_str_u8_cp_width(unsigned long cp, unsigned int flags) {
   if (ds__is_c0_c1(cp))
     return -1;
 
@@ -975,8 +966,7 @@ int FUNC(ds_str_u8_cp_width)(unsigned long cp, unsigned int flags) {
   return 1;
 }
 
-int FUNC(ds_str_u8_width)(const ds_str_t *s, unsigned int flags,
-                          size_t *out_width) {
+int ds_str_u8_width(const ds_str_t *s, unsigned int flags, size_t *out_width) {
   ds_u8_grapheme_iter_t it;
   size_t a, n;
   int r;
@@ -987,10 +977,10 @@ int FUNC(ds_str_u8_width)(const ds_str_t *s, unsigned int flags,
   if (ucd_init_once() != 0)
     return -1;
 
-  if (FUNC(ds_str_u8_grapheme_iter_init)(&it, s) != 0)
+  if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
     return -1;
 
-  while ((r = FUNC(ds_str_u8_grapheme_next)(&it, &a, &n)) == 1) {
+  while ((r = ds_str_u8_grapheme_next(&it, &a, &n)) == 1) {
     int cluster_has_control = 0;
     int cluster_has_EP = 0;
     int cluster_base_width = 0;
@@ -1016,7 +1006,7 @@ int FUNC(ds_str_u8_width)(const ds_str_t *s, unsigned int flags,
       }
 
       if (get_ccc(cp) == 0ul && cluster_base_width == 0) {
-        int w = FUNC(ds_str_u8_cp_width)(cp, flags);
+        int w = ds_str_u8_cp_width(cp, flags);
         if (w < 0)
           w = 0;
         cluster_base_width = w;

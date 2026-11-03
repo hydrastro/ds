@@ -30,35 +30,33 @@ typedef struct skip_list {
   void (*deallocator)(void *);
 } ds_skip_list_t;
 
-ds_skip_list_t *FUNC(ds_skip_list_create)(
-    int (*compare)(ds_skip_list_node_t *, ds_skip_list_node_t *));
-ds_skip_list_t *FUNC(ds_skip_list_create_alloc)(
-    int (*compare)(ds_skip_list_node_t *, ds_skip_list_node_t *),
-    size_t max_level, unsigned long seed, void *(*allocator)(size_t),
-    void (*deallocator)(void *));
-void FUNC(ds_skip_list_node_init)(ds_skip_list_node_t *node);
-void FUNC(ds_skip_list_insert)(ds_skip_list_t *list, ds_skip_list_node_t *node);
-ds_skip_list_node_t *FUNC(ds_skip_list_search)(ds_skip_list_t *list,
-                                               ds_skip_list_node_t *node);
-ds_skip_list_node_t *FUNC(ds_skip_list_remove)(ds_skip_list_t *list,
-                                               ds_skip_list_node_t *node);
-ds_skip_list_node_t *FUNC(ds_skip_list_first)(ds_skip_list_t *list);
-ds_skip_list_node_t *FUNC(ds_skip_list_next)(ds_skip_list_t *list,
-                                             ds_skip_list_node_t *node);
-bool FUNC(ds_skip_list_is_empty)(ds_skip_list_t *list);
-void FUNC(ds_skip_list_delete_node)(ds_skip_list_t *list,
-                                    ds_skip_list_node_t *node);
-void FUNC(ds_skip_list_destroy_node)(ds_skip_list_t *list,
-                                     ds_skip_list_node_t *node,
-                                     void (*destroy)(ds_skip_list_node_t *));
-void FUNC(ds_skip_list_walk_forward)(ds_skip_list_t *list,
-                                     ds_skip_list_node_t *node,
-                                     void (*callback)(ds_skip_list_node_t *));
-void FUNC(ds_skip_list_destroy)(ds_skip_list_t *list,
-                                void (*destroy)(ds_skip_list_node_t *));
-ds_skip_list_t *FUNC(ds_skip_list_clone)(
-    ds_skip_list_t *list,
-    ds_skip_list_node_t *(*clone_node)(ds_skip_list_node_t *));
+ds_skip_list_t *ds_skip_list_create(int (*compare)(ds_skip_list_node_t *,
+                                                   ds_skip_list_node_t *));
+ds_skip_list_t *ds_skip_list_create_alloc(int (*compare)(ds_skip_list_node_t *,
+                                                         ds_skip_list_node_t *),
+                                          size_t max_level, unsigned long seed,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *));
+void ds_skip_list_node_init(ds_skip_list_node_t *node);
+void ds_skip_list_insert(ds_skip_list_t *list, ds_skip_list_node_t *node);
+ds_skip_list_node_t *ds_skip_list_search(ds_skip_list_t *list,
+                                         ds_skip_list_node_t *node);
+ds_skip_list_node_t *ds_skip_list_remove(ds_skip_list_t *list,
+                                         ds_skip_list_node_t *node);
+ds_skip_list_node_t *ds_skip_list_first(ds_skip_list_t *list);
+ds_skip_list_node_t *ds_skip_list_next(ds_skip_list_t *list,
+                                       ds_skip_list_node_t *node);
+bool ds_skip_list_is_empty(ds_skip_list_t *list);
+void ds_skip_list_delete_node(ds_skip_list_t *list, ds_skip_list_node_t *node);
+void ds_skip_list_destroy_node(ds_skip_list_t *list, ds_skip_list_node_t *node,
+                               void (*destroy)(ds_skip_list_node_t *));
+void ds_skip_list_walk_forward(ds_skip_list_t *list, ds_skip_list_node_t *node,
+                               void (*callback)(ds_skip_list_node_t *));
+void ds_skip_list_destroy(ds_skip_list_t *list,
+                          void (*destroy)(ds_skip_list_node_t *));
+ds_skip_list_t *
+ds_skip_list_clone(ds_skip_list_t *list,
+                   ds_skip_list_node_t *(*clone_node)(ds_skip_list_node_t *));
 
 #ifdef __cplusplus
 }

@@ -13,12 +13,6 @@
 extern "C" {
 #endif
 
-#ifdef FUNC
-#undef FUNC
-#endif
-
-#define FUNC(name) name
-
 #ifndef CAST
 #define CAST(node, type) ((type *)(node))
 #endif

@@ -97,8 +97,8 @@ static ds_status_t adq_grow_for_one(ds_array_deque_t *deque) {
   return adq_set_capacity(deque, capacity);
 }
 
-ds_status_t FUNC(ds_array_deque_init)(ds_array_deque_t *deque, size_t elem_size,
-                                      ds_context_t *context) {
+ds_status_t ds_array_deque_init(ds_array_deque_t *deque, size_t elem_size,
+                                ds_context_t *context) {
   if (deque == NULL) {
     return DS_ERR_NULL;
   }
@@ -115,9 +115,9 @@ ds_status_t FUNC(ds_array_deque_init)(ds_array_deque_t *deque, size_t elem_size,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_init_buffer)(ds_array_deque_t *deque,
-                                             size_t elem_size, void *buffer,
-                                             size_t capacity) {
+ds_status_t ds_array_deque_init_buffer(ds_array_deque_t *deque,
+                                       size_t elem_size, void *buffer,
+                                       size_t capacity) {
   if (deque == NULL || (buffer == NULL && capacity > 0)) {
     return DS_ERR_NULL;
   }
@@ -134,7 +134,7 @@ ds_status_t FUNC(ds_array_deque_init_buffer)(ds_array_deque_t *deque,
   return DS_OK;
 }
 
-void FUNC(ds_array_deque_destroy)(ds_array_deque_t *deque) {
+void ds_array_deque_destroy(ds_array_deque_t *deque) {
   if (deque == NULL) {
     return;
   }
@@ -147,42 +147,42 @@ void FUNC(ds_array_deque_destroy)(ds_array_deque_t *deque) {
   deque->size = 0;
 }
 
-size_t FUNC(ds_array_deque_size)(const ds_array_deque_t *deque) {
+size_t ds_array_deque_size(const ds_array_deque_t *deque) {
   return deque->size;
 }
 
-size_t FUNC(ds_array_deque_capacity)(const ds_array_deque_t *deque) {
+size_t ds_array_deque_capacity(const ds_array_deque_t *deque) {
   return deque->capacity;
 }
 
-bool FUNC(ds_array_deque_is_empty)(const ds_array_deque_t *deque) {
+bool ds_array_deque_is_empty(const ds_array_deque_t *deque) {
   return deque->size == 0;
 }
 
-bool FUNC(ds_array_deque_is_full)(const ds_array_deque_t *deque) {
+bool ds_array_deque_is_full(const ds_array_deque_t *deque) {
   return deque->size == deque->capacity;
 }
 
-void *FUNC(ds_array_deque_at)(ds_array_deque_t *deque, size_t index) {
+void *ds_array_deque_at(ds_array_deque_t *deque, size_t index) {
   if (index >= deque->size) {
     return NULL;
   }
   return adq_slot(deque, index);
 }
 
-void *FUNC(ds_array_deque_front)(ds_array_deque_t *deque) {
-  return FUNC(ds_array_deque_at)(deque, 0);
+void *ds_array_deque_front(ds_array_deque_t *deque) {
+  return ds_array_deque_at(deque, 0);
 }
 
-void *FUNC(ds_array_deque_back)(ds_array_deque_t *deque) {
+void *ds_array_deque_back(ds_array_deque_t *deque) {
   if (deque->size == 0) {
     return NULL;
   }
   return adq_slot(deque, deque->size - 1);
 }
 
-ds_status_t FUNC(ds_array_deque_get)(const ds_array_deque_t *deque,
-                                     size_t index, void *out) {
+ds_status_t ds_array_deque_get(const ds_array_deque_t *deque, size_t index,
+                               void *out) {
   if (out == NULL) {
     return DS_ERR_NULL;
   }
@@ -193,8 +193,8 @@ ds_status_t FUNC(ds_array_deque_get)(const ds_array_deque_t *deque,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_set)(ds_array_deque_t *deque, size_t index,
-                                     const void *elem) {
+ds_status_t ds_array_deque_set(ds_array_deque_t *deque, size_t index,
+                               const void *elem) {
   if (elem == NULL) {
     return DS_ERR_NULL;
   }
@@ -205,8 +205,8 @@ ds_status_t FUNC(ds_array_deque_set)(ds_array_deque_t *deque, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_push_back)(ds_array_deque_t *deque,
-                                           const void *elem) {
+ds_status_t ds_array_deque_push_back(ds_array_deque_t *deque,
+                                     const void *elem) {
   ds_status_t status;
   if (elem == NULL) {
     return DS_ERR_NULL;
@@ -220,8 +220,8 @@ ds_status_t FUNC(ds_array_deque_push_back)(ds_array_deque_t *deque,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_push_front)(ds_array_deque_t *deque,
-                                            const void *elem) {
+ds_status_t ds_array_deque_push_front(ds_array_deque_t *deque,
+                                      const void *elem) {
   ds_status_t status;
   if (elem == NULL) {
     return DS_ERR_NULL;
@@ -236,10 +236,9 @@ ds_status_t FUNC(ds_array_deque_push_front)(ds_array_deque_t *deque,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_push_back_overwrite)(ds_array_deque_t *deque,
-                                                     const void *elem,
-                                                     void *evicted,
-                                                     bool *out_evicted) {
+ds_status_t ds_array_deque_push_back_overwrite(ds_array_deque_t *deque,
+                                               const void *elem, void *evicted,
+                                               bool *out_evicted) {
   if (out_evicted != NULL) {
     *out_evicted = false;
   }
@@ -266,7 +265,7 @@ ds_status_t FUNC(ds_array_deque_push_back_overwrite)(ds_array_deque_t *deque,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_pop_back)(ds_array_deque_t *deque, void *out) {
+ds_status_t ds_array_deque_pop_back(ds_array_deque_t *deque, void *out) {
   if (deque->size == 0) {
     return DS_EMPTY;
   }
@@ -277,7 +276,7 @@ ds_status_t FUNC(ds_array_deque_pop_back)(ds_array_deque_t *deque, void *out) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_pop_front)(ds_array_deque_t *deque, void *out) {
+ds_status_t ds_array_deque_pop_front(ds_array_deque_t *deque, void *out) {
   if (deque->size == 0) {
     return DS_EMPTY;
   }
@@ -289,8 +288,8 @@ ds_status_t FUNC(ds_array_deque_pop_front)(ds_array_deque_t *deque, void *out) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_insert)(ds_array_deque_t *deque, size_t index,
-                                        const void *elem) {
+ds_status_t ds_array_deque_insert(ds_array_deque_t *deque, size_t index,
+                                  const void *elem) {
   ds_status_t status;
   size_t j;
   if (elem == NULL) {
@@ -319,8 +318,8 @@ ds_status_t FUNC(ds_array_deque_insert)(ds_array_deque_t *deque, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_erase)(ds_array_deque_t *deque, size_t index,
-                                       void *out) {
+ds_status_t ds_array_deque_erase(ds_array_deque_t *deque, size_t index,
+                                 void *out) {
   size_t j;
   if (index >= deque->size) {
     return DS_ERR_RANGE;
@@ -342,27 +341,26 @@ ds_status_t FUNC(ds_array_deque_erase)(ds_array_deque_t *deque, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_array_deque_reserve)(ds_array_deque_t *deque,
-                                         size_t capacity) {
+ds_status_t ds_array_deque_reserve(ds_array_deque_t *deque, size_t capacity) {
   if (capacity <= deque->capacity) {
     return DS_OK;
   }
   return adq_set_capacity(deque, capacity);
 }
 
-ds_status_t FUNC(ds_array_deque_shrink_to_fit)(ds_array_deque_t *deque) {
+ds_status_t ds_array_deque_shrink_to_fit(ds_array_deque_t *deque) {
   if (deque->fixed || deque->size == deque->capacity) {
     return DS_OK;
   }
   return adq_set_capacity(deque, deque->size);
 }
 
-void FUNC(ds_array_deque_clear)(ds_array_deque_t *deque) {
+void ds_array_deque_clear(ds_array_deque_t *deque) {
   deque->head = 0;
   deque->size = 0;
 }
 
-void *FUNC(ds_array_deque_linearize)(ds_array_deque_t *deque) {
+void *ds_array_deque_linearize(ds_array_deque_t *deque) {
   size_t es = deque->elem_size;
   if (deque->size == 0) {
     deque->head = 0;

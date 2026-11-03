@@ -1,12 +1,12 @@
 #include "ring_list.h"
 #include <stdlib.h>
 
-ds_ring_list_t *FUNC(ds_ring_list_create)(void) {
-  return FUNC(ds_ring_list_create_alloc)(malloc, free);
+ds_ring_list_t *ds_ring_list_create(void) {
+  return ds_ring_list_create_alloc(malloc, free);
 }
 
-ds_ring_list_t *FUNC(ds_ring_list_create_alloc)(void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
+ds_ring_list_t *ds_ring_list_create_alloc(void *(*allocator)(size_t),
+                                          void (*deallocator)(void *)) {
   ds_ring_list_t *list = (ds_ring_list_t *)allocator(sizeof(ds_ring_list_t));
   list->allocator = allocator;
   list->deallocator = deallocator;
@@ -17,8 +17,7 @@ ds_ring_list_t *FUNC(ds_ring_list_create_alloc)(void *(*allocator)(size_t),
   return list;
 }
 
-void FUNC(ds_ring_list_push_front)(ds_ring_list_t *list,
-                                   ds_ring_list_node_t *node) {
+void ds_ring_list_push_front(ds_ring_list_t *list, ds_ring_list_node_t *node) {
   if (node == list->nil) {
     return;
   }
@@ -32,8 +31,7 @@ void FUNC(ds_ring_list_push_front)(ds_ring_list_t *list,
   list->size += 1;
 }
 
-void FUNC(ds_ring_list_push_back)(ds_ring_list_t *list,
-                                  ds_ring_list_node_t *node) {
+void ds_ring_list_push_back(ds_ring_list_t *list, ds_ring_list_node_t *node) {
   if (node == list->nil) {
     return;
   }
@@ -48,7 +46,7 @@ void FUNC(ds_ring_list_push_back)(ds_ring_list_t *list,
   list->size += 1;
 }
 
-ds_ring_list_node_t *FUNC(ds_ring_list_pop_front)(ds_ring_list_t *list) {
+ds_ring_list_node_t *ds_ring_list_pop_front(ds_ring_list_t *list) {
   ds_ring_list_node_t *head;
   if (list->tail == list->nil) {
     return list->nil;
@@ -64,31 +62,31 @@ ds_ring_list_node_t *FUNC(ds_ring_list_pop_front)(ds_ring_list_t *list) {
   return head;
 }
 
-ds_ring_list_node_t *FUNC(ds_ring_list_front)(ds_ring_list_t *list) {
+ds_ring_list_node_t *ds_ring_list_front(ds_ring_list_t *list) {
   ds_ring_list_node_t *result;
   result = list->tail == list->nil ? list->nil : list->tail->next;
   return result;
 }
 
-ds_ring_list_node_t *FUNC(ds_ring_list_back)(ds_ring_list_t *list) {
+ds_ring_list_node_t *ds_ring_list_back(ds_ring_list_t *list) {
   ds_ring_list_node_t *result;
   result = list->tail;
   return result;
 }
 
-void FUNC(ds_ring_list_rotate)(ds_ring_list_t *list) {
+void ds_ring_list_rotate(ds_ring_list_t *list) {
   if (list->tail != list->nil) {
     list->tail = list->tail->next;
   }
 }
 
-bool FUNC(ds_ring_list_is_empty)(ds_ring_list_t *list) {
+bool ds_ring_list_is_empty(ds_ring_list_t *list) {
   bool result;
   result = list->tail == list->nil;
   return result;
 }
 
-ds_ring_list_node_t *FUNC(ds_ring_list_search)(
+ds_ring_list_node_t *ds_ring_list_search(
     ds_ring_list_t *list, ds_ring_list_node_t *node,
     int (*compare)(ds_ring_list_node_t *, ds_ring_list_node_t *)) {
   ds_ring_list_node_t *current;
@@ -106,8 +104,7 @@ ds_ring_list_node_t *FUNC(ds_ring_list_search)(
   return list->nil;
 }
 
-void FUNC(ds_ring_list_delete_node)(ds_ring_list_t *list,
-                                    ds_ring_list_node_t *node) {
+void ds_ring_list_delete_node(ds_ring_list_t *list, ds_ring_list_node_t *node) {
   ds_ring_list_node_t *current;
   ds_ring_list_node_t *previous;
   size_t i;
@@ -135,18 +132,17 @@ void FUNC(ds_ring_list_delete_node)(ds_ring_list_t *list,
   }
 }
 
-void FUNC(ds_ring_list_destroy_node)(ds_ring_list_t *list,
-                                     ds_ring_list_node_t *node,
-                                     void (*destroy)(ds_ring_list_node_t *)) {
-  FUNC(ds_ring_list_delete_node)(list, node);
+void ds_ring_list_destroy_node(ds_ring_list_t *list, ds_ring_list_node_t *node,
+                               void (*destroy)(ds_ring_list_node_t *)) {
+  ds_ring_list_delete_node(list, node);
   if (destroy != NULL) {
     destroy(node);
   }
 }
 
-void FUNC(ds_ring_list_walk_forward)(ds_ring_list_t *list,
-                                     ds_ring_list_node_t *start_node,
-                                     void (*callback)(ds_ring_list_node_t *)) {
+void ds_ring_list_walk_forward(ds_ring_list_t *list,
+                               ds_ring_list_node_t *start_node,
+                               void (*callback)(ds_ring_list_node_t *)) {
   ds_ring_list_node_t *current;
   size_t i;
   if (list->tail == list->nil) {
@@ -159,8 +155,8 @@ void FUNC(ds_ring_list_walk_forward)(ds_ring_list_t *list,
   }
 }
 
-void FUNC(ds_ring_list_destroy)(ds_ring_list_t *list,
-                                void (*destroy)(ds_ring_list_node_t *)) {
+void ds_ring_list_destroy(ds_ring_list_t *list,
+                          void (*destroy)(ds_ring_list_node_t *)) {
   ds_ring_list_node_t *current;
   size_t remaining = list->size;
   if (list->tail != list->nil) {
@@ -178,18 +174,17 @@ void FUNC(ds_ring_list_destroy)(ds_ring_list_t *list,
   list->deallocator(list);
 }
 
-ds_ring_list_t *FUNC(ds_ring_list_clone)(
-    ds_ring_list_t *list,
-    ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *)) {
+ds_ring_list_t *
+ds_ring_list_clone(ds_ring_list_t *list,
+                   ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *)) {
   ds_ring_list_t *new_list;
   ds_ring_list_node_t *current;
   size_t i;
-  new_list =
-      FUNC(ds_ring_list_create_alloc)(list->allocator, list->deallocator);
+  new_list = ds_ring_list_create_alloc(list->allocator, list->deallocator);
   if (list->tail != list->nil) {
     current = list->tail->next;
     for (i = 0; i < list->size; i++) {
-      FUNC(ds_ring_list_push_back)(new_list, clone_node(current));
+      ds_ring_list_push_back(new_list, clone_node(current));
       current = current->next;
     }
   }

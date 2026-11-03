@@ -33,29 +33,29 @@ typedef struct rope {
   void (*deallocator)(void *);
 } ds_rope_t;
 
-ds_rope_t *FUNC(ds_rope_create)(void);
-ds_rope_t *FUNC(ds_rope_create_alloc)(void *(*allocator)(size_t),
-                                      void (*deallocator)(void *));
-ds_rope_t *FUNC(ds_rope_from_string)(const char *str, size_t length);
-size_t FUNC(ds_rope_length)(ds_rope_t *rope);
+ds_rope_t *ds_rope_create(void);
+ds_rope_t *ds_rope_create_alloc(void *(*allocator)(size_t),
+                                void (*deallocator)(void *));
+ds_rope_t *ds_rope_from_string(const char *str, size_t length);
+size_t ds_rope_length(ds_rope_t *rope);
 /* character at index, or '\0' if out of range */
-char FUNC(ds_rope_char_at)(ds_rope_t *rope, size_t index);
+char ds_rope_char_at(ds_rope_t *rope, size_t index);
 /* append text to the end */
-void FUNC(ds_rope_append)(ds_rope_t *rope, const char *str, size_t length);
+void ds_rope_append(ds_rope_t *rope, const char *str, size_t length);
 /* insert text at byte offset index */
-void FUNC(ds_rope_insert)(ds_rope_t *rope, size_t index, const char *str,
-                          size_t length);
+void ds_rope_insert(ds_rope_t *rope, size_t index, const char *str,
+                    size_t length);
 /* delete `count` bytes starting at index */
-void FUNC(ds_rope_delete)(ds_rope_t *rope, size_t index, size_t count);
+void ds_rope_delete(ds_rope_t *rope, size_t index, size_t count);
 /* copy [index, index+count) into out (caller-provided), returns bytes copied */
-size_t FUNC(ds_rope_substring)(ds_rope_t *rope, size_t index, size_t count,
-                               char *out);
+size_t ds_rope_substring(ds_rope_t *rope, size_t index, size_t count,
+                         char *out);
 /* materialize the whole rope into a freshly allocated NUL-terminated buffer */
-char *FUNC(ds_rope_to_string)(ds_rope_t *rope);
+char *ds_rope_to_string(ds_rope_t *rope);
 /* concatenate other onto the end of rope; other is emptied (not destroyed) */
-void FUNC(ds_rope_concat)(ds_rope_t *rope, ds_rope_t *other);
-void FUNC(ds_rope_rebalance)(ds_rope_t *rope);
-void FUNC(ds_rope_destroy)(ds_rope_t *rope);
+void ds_rope_concat(ds_rope_t *rope, ds_rope_t *other);
+void ds_rope_rebalance(ds_rope_t *rope);
+void ds_rope_destroy(ds_rope_t *rope);
 
 #ifdef __cplusplus
 }

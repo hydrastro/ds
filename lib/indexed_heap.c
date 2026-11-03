@@ -92,7 +92,7 @@ static void iheap_apply_config(ds_indexed_heap_t *heap,
   heap->user = config->user;
 }
 
-void FUNC(ds_indexed_heap_config_init)(ds_indexed_heap_config_t *config) {
+void ds_indexed_heap_config_init(ds_indexed_heap_config_t *config) {
   if (config == NULL) {
     return;
   }
@@ -103,9 +103,9 @@ void FUNC(ds_indexed_heap_config_init)(ds_indexed_heap_config_t *config) {
   config->context = NULL;
 }
 
-ds_status_t FUNC(ds_indexed_heap_init)(ds_indexed_heap_t *heap,
-                                       const ds_indexed_heap_config_t *config,
-                                       size_t max_ids) {
+ds_status_t ds_indexed_heap_init(ds_indexed_heap_t *heap,
+                                 const ds_indexed_heap_config_t *config,
+                                 size_t max_ids) {
   ds_status_t status;
   if (heap == NULL) {
     return DS_ERR_NULL;
@@ -118,16 +118,17 @@ ds_status_t FUNC(ds_indexed_heap_init)(ds_indexed_heap_t *heap,
   heap->context =
       config->context != NULL ? config->context : ds_default_context();
   heap->fixed = false;
-  status = FUNC(ds_indexed_heap_set_max_ids)(heap, max_ids);
+  status = ds_indexed_heap_set_max_ids(heap, max_ids);
   if (status != DS_OK) {
-    FUNC(ds_indexed_heap_destroy)(heap);
+    ds_indexed_heap_destroy(heap);
   }
   return status;
 }
 
-ds_status_t FUNC(ds_indexed_heap_init_buffer)(
-    ds_indexed_heap_t *heap, const ds_indexed_heap_config_t *config,
-    size_t *heap_buffer, size_t *pos_buffer, void *key_buffer, size_t max_ids) {
+ds_status_t ds_indexed_heap_init_buffer(ds_indexed_heap_t *heap,
+                                        const ds_indexed_heap_config_t *config,
+                                        size_t *heap_buffer, size_t *pos_buffer,
+                                        void *key_buffer, size_t max_ids) {
   ds_status_t status;
   size_t i;
   if (heap == NULL ||
@@ -152,7 +153,7 @@ ds_status_t FUNC(ds_indexed_heap_init_buffer)(
   return DS_OK;
 }
 
-void FUNC(ds_indexed_heap_destroy)(ds_indexed_heap_t *heap) {
+void ds_indexed_heap_destroy(ds_indexed_heap_t *heap) {
   if (heap == NULL) {
     return;
   }
@@ -168,20 +169,19 @@ void FUNC(ds_indexed_heap_destroy)(ds_indexed_heap_t *heap) {
   heap->size = 0;
 }
 
-bool FUNC(ds_indexed_heap_contains)(const ds_indexed_heap_t *heap, size_t id) {
+bool ds_indexed_heap_contains(const ds_indexed_heap_t *heap, size_t id) {
   return id < heap->max_ids && heap->pos[id] != DS_INDEXED_HEAP_NONE;
 }
 
-const void *FUNC(ds_indexed_heap_key)(const ds_indexed_heap_t *heap,
-                                      size_t id) {
-  if (!FUNC(ds_indexed_heap_contains)(heap, id)) {
+const void *ds_indexed_heap_key(const ds_indexed_heap_t *heap, size_t id) {
+  if (!ds_indexed_heap_contains(heap, id)) {
     return NULL;
   }
   return iheap_key_of(heap, id);
 }
 
-ds_status_t FUNC(ds_indexed_heap_push)(ds_indexed_heap_t *heap, size_t id,
-                                       const void *key) {
+ds_status_t ds_indexed_heap_push(ds_indexed_heap_t *heap, size_t id,
+                                 const void *key) {
   if (key == NULL) {
     return DS_ERR_NULL;
   }
@@ -198,12 +198,12 @@ ds_status_t FUNC(ds_indexed_heap_push)(ds_indexed_heap_t *heap, size_t id,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_indexed_heap_update)(ds_indexed_heap_t *heap, size_t id,
-                                         const void *key) {
+ds_status_t ds_indexed_heap_update(ds_indexed_heap_t *heap, size_t id,
+                                   const void *key) {
   if (key == NULL) {
     return DS_ERR_NULL;
   }
-  if (!FUNC(ds_indexed_heap_contains)(heap, id)) {
+  if (!ds_indexed_heap_contains(heap, id)) {
     return id < heap->max_ids ? DS_NOT_FOUND : DS_ERR_RANGE;
   }
   memmove(heap->keys + id * heap->key_size, key, heap->key_size);
@@ -211,16 +211,16 @@ ds_status_t FUNC(ds_indexed_heap_update)(ds_indexed_heap_t *heap, size_t id,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_indexed_heap_push_or_update)(ds_indexed_heap_t *heap,
-                                                 size_t id, const void *key) {
-  if (FUNC(ds_indexed_heap_contains)(heap, id)) {
-    return FUNC(ds_indexed_heap_update)(heap, id, key);
+ds_status_t ds_indexed_heap_push_or_update(ds_indexed_heap_t *heap, size_t id,
+                                           const void *key) {
+  if (ds_indexed_heap_contains(heap, id)) {
+    return ds_indexed_heap_update(heap, id, key);
   }
-  return FUNC(ds_indexed_heap_push)(heap, id, key);
+  return ds_indexed_heap_push(heap, id, key);
 }
 
-ds_status_t FUNC(ds_indexed_heap_top)(const ds_indexed_heap_t *heap,
-                                      size_t *out_id, void *out_key) {
+ds_status_t ds_indexed_heap_top(const ds_indexed_heap_t *heap, size_t *out_id,
+                                void *out_key) {
   if (heap->size == 0) {
     return DS_EMPTY;
   }
@@ -233,11 +233,11 @@ ds_status_t FUNC(ds_indexed_heap_top)(const ds_indexed_heap_t *heap,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_indexed_heap_remove)(ds_indexed_heap_t *heap, size_t id,
-                                         void *out_key) {
+ds_status_t ds_indexed_heap_remove(ds_indexed_heap_t *heap, size_t id,
+                                   void *out_key) {
   size_t position;
   size_t last_id;
-  if (!FUNC(ds_indexed_heap_contains)(heap, id)) {
+  if (!ds_indexed_heap_contains(heap, id)) {
     return id < heap->max_ids ? DS_NOT_FOUND : DS_ERR_RANGE;
   }
   if (out_key != NULL) {
@@ -254,8 +254,8 @@ ds_status_t FUNC(ds_indexed_heap_remove)(ds_indexed_heap_t *heap, size_t id,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_indexed_heap_pop)(ds_indexed_heap_t *heap, size_t *out_id,
-                                      void *out_key) {
+ds_status_t ds_indexed_heap_pop(ds_indexed_heap_t *heap, size_t *out_id,
+                                void *out_key) {
   size_t id;
   if (heap->size == 0) {
     return DS_EMPTY;
@@ -264,10 +264,10 @@ ds_status_t FUNC(ds_indexed_heap_pop)(ds_indexed_heap_t *heap, size_t *out_id,
   if (out_id != NULL) {
     *out_id = id;
   }
-  return FUNC(ds_indexed_heap_remove)(heap, id, out_key);
+  return ds_indexed_heap_remove(heap, id, out_key);
 }
 
-void FUNC(ds_indexed_heap_clear)(ds_indexed_heap_t *heap) {
+void ds_indexed_heap_clear(ds_indexed_heap_t *heap) {
   size_t i;
   for (i = 0; i < heap->size; i++) {
     heap->pos[heap->heap[i]] = DS_INDEXED_HEAP_NONE;
@@ -275,20 +275,20 @@ void FUNC(ds_indexed_heap_clear)(ds_indexed_heap_t *heap) {
   heap->size = 0;
 }
 
-size_t FUNC(ds_indexed_heap_size)(const ds_indexed_heap_t *heap) {
+size_t ds_indexed_heap_size(const ds_indexed_heap_t *heap) {
   return heap->size;
 }
 
-bool FUNC(ds_indexed_heap_is_empty)(const ds_indexed_heap_t *heap) {
+bool ds_indexed_heap_is_empty(const ds_indexed_heap_t *heap) {
   return heap->size == 0;
 }
 
-size_t FUNC(ds_indexed_heap_max_ids)(const ds_indexed_heap_t *heap) {
+size_t ds_indexed_heap_max_ids(const ds_indexed_heap_t *heap) {
   return heap->max_ids;
 }
 
-ds_status_t FUNC(ds_indexed_heap_set_max_ids)(ds_indexed_heap_t *heap,
-                                              size_t max_ids) {
+ds_status_t ds_indexed_heap_set_max_ids(ds_indexed_heap_t *heap,
+                                        size_t max_ids) {
   void *block;
   size_t i;
   if (max_ids <= heap->max_ids) {

@@ -9,8 +9,8 @@ static size_t ruf_root(const ds_rollback_uf_t *uf, size_t x) {
   return x;
 }
 
-ds_status_t FUNC(ds_rollback_uf_init)(ds_rollback_uf_t *uf, size_t count,
-                                      ds_context_t *context) {
+ds_status_t ds_rollback_uf_init(ds_rollback_uf_t *uf, size_t count,
+                                ds_context_t *context) {
   size_t bytes;
   if (uf == NULL) {
     return DS_ERR_NULL;
@@ -34,16 +34,16 @@ ds_status_t FUNC(ds_rollback_uf_init)(ds_rollback_uf_t *uf, size_t count,
   uf->size = (size_t *)ds_context_alloc(uf->context, bytes);
   uf->history = (size_t *)ds_context_alloc(uf->context, bytes);
   if (uf->parent == NULL || uf->size == NULL || uf->history == NULL) {
-    FUNC(ds_rollback_uf_destroy)(uf);
+    ds_rollback_uf_destroy(uf);
     return DS_ERR_ALLOC;
   }
-  FUNC(ds_rollback_uf_reset)(uf);
+  ds_rollback_uf_reset(uf);
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_rollback_uf_init_buffer)(ds_rollback_uf_t *uf,
-                                             size_t *parent, size_t *size,
-                                             size_t *history, size_t count) {
+ds_status_t ds_rollback_uf_init_buffer(ds_rollback_uf_t *uf, size_t *parent,
+                                       size_t *size, size_t *history,
+                                       size_t count) {
   if (uf == NULL ||
       (count > 0 && (parent == NULL || size == NULL || history == NULL))) {
     return DS_ERR_NULL;
@@ -54,11 +54,11 @@ ds_status_t FUNC(ds_rollback_uf_init_buffer)(ds_rollback_uf_t *uf,
   uf->count = count;
   uf->context = NULL;
   uf->fixed = true;
-  FUNC(ds_rollback_uf_reset)(uf);
+  ds_rollback_uf_reset(uf);
   return DS_OK;
 }
 
-void FUNC(ds_rollback_uf_destroy)(ds_rollback_uf_t *uf) {
+void ds_rollback_uf_destroy(ds_rollback_uf_t *uf) {
   if (uf == NULL) {
     return;
   }
@@ -75,8 +75,8 @@ void FUNC(ds_rollback_uf_destroy)(ds_rollback_uf_t *uf) {
   uf->components = 0;
 }
 
-ds_status_t FUNC(ds_rollback_uf_find)(const ds_rollback_uf_t *uf, size_t x,
-                                      size_t *out_root) {
+ds_status_t ds_rollback_uf_find(const ds_rollback_uf_t *uf, size_t x,
+                                size_t *out_root) {
   if (out_root == NULL) {
     return DS_ERR_NULL;
   }
@@ -87,8 +87,8 @@ ds_status_t FUNC(ds_rollback_uf_find)(const ds_rollback_uf_t *uf, size_t x,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_rollback_uf_union)(ds_rollback_uf_t *uf, size_t a, size_t b,
-                                       bool *out_merged) {
+ds_status_t ds_rollback_uf_union(ds_rollback_uf_t *uf, size_t a, size_t b,
+                                 bool *out_merged) {
   size_t ra;
   size_t rb;
   size_t tmp;
@@ -118,15 +118,15 @@ ds_status_t FUNC(ds_rollback_uf_union)(ds_rollback_uf_t *uf, size_t a, size_t b,
   return DS_OK;
 }
 
-bool FUNC(ds_rollback_uf_same)(const ds_rollback_uf_t *uf, size_t a, size_t b) {
+bool ds_rollback_uf_same(const ds_rollback_uf_t *uf, size_t a, size_t b) {
   if (a >= uf->count || b >= uf->count) {
     return false;
   }
   return ruf_root(uf, a) == ruf_root(uf, b);
 }
 
-ds_status_t FUNC(ds_rollback_uf_component_size)(const ds_rollback_uf_t *uf,
-                                                size_t x, size_t *out_size) {
+ds_status_t ds_rollback_uf_component_size(const ds_rollback_uf_t *uf, size_t x,
+                                          size_t *out_size) {
   if (out_size == NULL) {
     return DS_ERR_NULL;
   }
@@ -137,19 +137,19 @@ ds_status_t FUNC(ds_rollback_uf_component_size)(const ds_rollback_uf_t *uf,
   return DS_OK;
 }
 
-size_t FUNC(ds_rollback_uf_components)(const ds_rollback_uf_t *uf) {
+size_t ds_rollback_uf_components(const ds_rollback_uf_t *uf) {
   return uf->components;
 }
 
-size_t FUNC(ds_rollback_uf_count)(const ds_rollback_uf_t *uf) {
+size_t ds_rollback_uf_count(const ds_rollback_uf_t *uf) {
   return uf->count;
 }
 
-size_t FUNC(ds_rollback_uf_snapshot)(const ds_rollback_uf_t *uf) {
+size_t ds_rollback_uf_snapshot(const ds_rollback_uf_t *uf) {
   return uf->history_len;
 }
 
-ds_status_t FUNC(ds_rollback_uf_undo)(ds_rollback_uf_t *uf) {
+ds_status_t ds_rollback_uf_undo(ds_rollback_uf_t *uf) {
   size_t child;
   size_t root;
   if (uf->history_len == 0) {
@@ -163,18 +163,17 @@ ds_status_t FUNC(ds_rollback_uf_undo)(ds_rollback_uf_t *uf) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_rollback_uf_rollback)(ds_rollback_uf_t *uf,
-                                          size_t snapshot) {
+ds_status_t ds_rollback_uf_rollback(ds_rollback_uf_t *uf, size_t snapshot) {
   if (snapshot > uf->history_len) {
     return DS_ERR_RANGE;
   }
   while (uf->history_len > snapshot) {
-    FUNC(ds_rollback_uf_undo)(uf);
+    ds_rollback_uf_undo(uf);
   }
   return DS_OK;
 }
 
-void FUNC(ds_rollback_uf_reset)(ds_rollback_uf_t *uf) {
+void ds_rollback_uf_reset(ds_rollback_uf_t *uf) {
   size_t i;
   for (i = 0; i < uf->count; i++) {
     uf->parent[i] = i;

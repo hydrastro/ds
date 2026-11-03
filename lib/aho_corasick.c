@@ -1,8 +1,7 @@
 #include "aho_corasick.h"
 #include <stdlib.h>
 
-static ds_aho_corasick_node_t *
-FUNC(aho_corasick_new_node)(ds_aho_corasick_t *ac) {
+static ds_aho_corasick_node_t *aho_corasick_new_node(ds_aho_corasick_t *ac) {
   ds_aho_corasick_node_t *node =
       (ds_aho_corasick_node_t *)ac->allocator(sizeof(ds_aho_corasick_node_t));
   int i;
@@ -17,13 +16,12 @@ FUNC(aho_corasick_new_node)(ds_aho_corasick_t *ac) {
   return node;
 }
 
-ds_aho_corasick_t *FUNC(ds_aho_corasick_create)(void) {
-  return FUNC(ds_aho_corasick_create_alloc)(malloc, free);
+ds_aho_corasick_t *ds_aho_corasick_create(void) {
+  return ds_aho_corasick_create_alloc(malloc, free);
 }
 
-ds_aho_corasick_t *
-FUNC(ds_aho_corasick_create_alloc)(void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
+ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
+                                                void (*deallocator)(void *)) {
   ds_aho_corasick_t *ac =
       (ds_aho_corasick_t *)allocator(sizeof(ds_aho_corasick_t));
   ac->allocator = allocator;
@@ -31,12 +29,12 @@ FUNC(ds_aho_corasick_create_alloc)(void *(*allocator)(size_t),
   ac->num_patterns = 0;
   ac->num_nodes = 0;
   ac->compiled = false;
-  ac->root = FUNC(aho_corasick_new_node)(ac);
+  ac->root = aho_corasick_new_node(ac);
   return ac;
 }
 
-int FUNC(ds_aho_corasick_add)(ds_aho_corasick_t *ac, const void *pattern,
-                              size_t length) {
+int ds_aho_corasick_add(ds_aho_corasick_t *ac, const void *pattern,
+                        size_t length) {
   const unsigned char *bytes = (const unsigned char *)pattern;
   ds_aho_corasick_node_t *node;
   int id = -1;
@@ -48,7 +46,7 @@ int FUNC(ds_aho_corasick_add)(ds_aho_corasick_t *ac, const void *pattern,
   for (i = 0; i < length; i++) {
     unsigned char c = bytes[i];
     if (node->children[c] == NULL) {
-      node->children[c] = FUNC(aho_corasick_new_node)(ac);
+      node->children[c] = aho_corasick_new_node(ac);
     }
     node = node->children[c];
   }
@@ -64,7 +62,7 @@ int FUNC(ds_aho_corasick_add)(ds_aho_corasick_t *ac, const void *pattern,
   return id;
 }
 
-void FUNC(ds_aho_corasick_compile)(ds_aho_corasick_t *ac) {
+void ds_aho_corasick_compile(ds_aho_corasick_t *ac) {
   ds_aho_corasick_node_t **queue;
   size_t head = 0;
   size_t tail = 0;
@@ -112,9 +110,9 @@ void FUNC(ds_aho_corasick_compile)(ds_aho_corasick_t *ac) {
   ac->compiled = true;
 }
 
-static ds_aho_corasick_node_t *
-FUNC(aho_corasick_step)(ds_aho_corasick_t *ac, ds_aho_corasick_node_t *node,
-                        unsigned char c) {
+static ds_aho_corasick_node_t *aho_corasick_step(ds_aho_corasick_t *ac,
+                                                 ds_aho_corasick_node_t *node,
+                                                 unsigned char c) {
   while (node != ac->root && node->children[c] == NULL) {
     node = node->fail;
   }
@@ -124,7 +122,7 @@ FUNC(aho_corasick_step)(ds_aho_corasick_t *ac, ds_aho_corasick_node_t *node,
   return node;
 }
 
-size_t FUNC(ds_aho_corasick_search)(
+size_t ds_aho_corasick_search(
     ds_aho_corasick_t *ac, const void *haystack, size_t length,
     void (*callback)(const ds_aho_corasick_match_t *, void *), void *user) {
   const unsigned char *bytes = (const unsigned char *)haystack;
@@ -132,12 +130,12 @@ size_t FUNC(ds_aho_corasick_search)(
   size_t count = 0;
   size_t i;
   if (!ac->compiled) {
-    FUNC(ds_aho_corasick_compile)(ac);
+    ds_aho_corasick_compile(ac);
   }
   node = ac->root;
   for (i = 0; i < length; i++) {
     ds_aho_corasick_node_t *out;
-    node = FUNC(aho_corasick_step)(ac, node, bytes[i]);
+    node = aho_corasick_step(ac, node, bytes[i]);
     if (node->pattern_id >= 0) {
       ds_aho_corasick_match_t match;
       match.pattern_id = node->pattern_id;
@@ -162,18 +160,18 @@ size_t FUNC(ds_aho_corasick_search)(
   return count;
 }
 
-bool FUNC(ds_aho_corasick_contains_any)(ds_aho_corasick_t *ac,
-                                        const void *haystack, size_t length) {
+bool ds_aho_corasick_contains_any(ds_aho_corasick_t *ac, const void *haystack,
+                                  size_t length) {
   const unsigned char *bytes = (const unsigned char *)haystack;
   ds_aho_corasick_node_t *node;
   bool found = false;
   size_t i;
   if (!ac->compiled) {
-    FUNC(ds_aho_corasick_compile)(ac);
+    ds_aho_corasick_compile(ac);
   }
   node = ac->root;
   for (i = 0; i < length; i++) {
-    node = FUNC(aho_corasick_step)(ac, node, bytes[i]);
+    node = aho_corasick_step(ac, node, bytes[i]);
     if (node->pattern_id >= 0 || node->output != NULL) {
       found = true;
       break;
@@ -182,24 +180,24 @@ bool FUNC(ds_aho_corasick_contains_any)(ds_aho_corasick_t *ac,
   return found;
 }
 
-size_t FUNC(ds_aho_corasick_pattern_count)(ds_aho_corasick_t *ac) {
+size_t ds_aho_corasick_pattern_count(ds_aho_corasick_t *ac) {
   size_t result;
   result = ac->num_patterns;
   return result;
 }
 
-static void FUNC(aho_corasick_destroy_recursive)(ds_aho_corasick_t *ac,
-                                                 ds_aho_corasick_node_t *node) {
+static void aho_corasick_destroy_recursive(ds_aho_corasick_t *ac,
+                                           ds_aho_corasick_node_t *node) {
   int c;
   for (c = 0; c < 256; c++) {
     if (node->children[c] != NULL) {
-      FUNC(aho_corasick_destroy_recursive)(ac, node->children[c]);
+      aho_corasick_destroy_recursive(ac, node->children[c]);
     }
   }
   ac->deallocator(node);
 }
 
-void FUNC(ds_aho_corasick_destroy)(ds_aho_corasick_t *ac) {
-  FUNC(aho_corasick_destroy_recursive)(ac, ac->root);
+void ds_aho_corasick_destroy(ds_aho_corasick_t *ac) {
+  aho_corasick_destroy_recursive(ac, ac->root);
   ac->deallocator(ac);
 }

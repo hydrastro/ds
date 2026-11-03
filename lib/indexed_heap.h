@@ -66,35 +66,36 @@ typedef struct ds_indexed_heap {
   bool fixed;
 } ds_indexed_heap_t;
 
-void FUNC(ds_indexed_heap_config_init)(ds_indexed_heap_config_t *config);
-ds_status_t FUNC(ds_indexed_heap_init)(ds_indexed_heap_t *heap,
-                                       const ds_indexed_heap_config_t *config,
-                                       size_t max_ids);
-ds_status_t FUNC(ds_indexed_heap_init_buffer)(
-    ds_indexed_heap_t *heap, const ds_indexed_heap_config_t *config,
-    size_t *heap_buffer, size_t *pos_buffer, void *key_buffer, size_t max_ids);
-void FUNC(ds_indexed_heap_destroy)(ds_indexed_heap_t *heap);
+void ds_indexed_heap_config_init(ds_indexed_heap_config_t *config);
+ds_status_t ds_indexed_heap_init(ds_indexed_heap_t *heap,
+                                 const ds_indexed_heap_config_t *config,
+                                 size_t max_ids);
+ds_status_t ds_indexed_heap_init_buffer(ds_indexed_heap_t *heap,
+                                        const ds_indexed_heap_config_t *config,
+                                        size_t *heap_buffer, size_t *pos_buffer,
+                                        void *key_buffer, size_t max_ids);
+void ds_indexed_heap_destroy(ds_indexed_heap_t *heap);
 
-ds_status_t FUNC(ds_indexed_heap_push)(ds_indexed_heap_t *heap, size_t id,
-                                       const void *key);
-ds_status_t FUNC(ds_indexed_heap_update)(ds_indexed_heap_t *heap, size_t id,
-                                         const void *key);
-ds_status_t FUNC(ds_indexed_heap_push_or_update)(ds_indexed_heap_t *heap,
-                                                 size_t id, const void *key);
-ds_status_t FUNC(ds_indexed_heap_top)(const ds_indexed_heap_t *heap,
-                                      size_t *out_id, void *out_key);
-ds_status_t FUNC(ds_indexed_heap_pop)(ds_indexed_heap_t *heap, size_t *out_id,
-                                      void *out_key);
-ds_status_t FUNC(ds_indexed_heap_remove)(ds_indexed_heap_t *heap, size_t id,
-                                         void *out_key);
-bool FUNC(ds_indexed_heap_contains)(const ds_indexed_heap_t *heap, size_t id);
-const void *FUNC(ds_indexed_heap_key)(const ds_indexed_heap_t *heap, size_t id);
-void FUNC(ds_indexed_heap_clear)(ds_indexed_heap_t *heap);
-size_t FUNC(ds_indexed_heap_size)(const ds_indexed_heap_t *heap);
-bool FUNC(ds_indexed_heap_is_empty)(const ds_indexed_heap_t *heap);
-size_t FUNC(ds_indexed_heap_max_ids)(const ds_indexed_heap_t *heap);
-ds_status_t FUNC(ds_indexed_heap_set_max_ids)(ds_indexed_heap_t *heap,
-                                              size_t max_ids);
+ds_status_t ds_indexed_heap_push(ds_indexed_heap_t *heap, size_t id,
+                                 const void *key);
+ds_status_t ds_indexed_heap_update(ds_indexed_heap_t *heap, size_t id,
+                                   const void *key);
+ds_status_t ds_indexed_heap_push_or_update(ds_indexed_heap_t *heap, size_t id,
+                                           const void *key);
+ds_status_t ds_indexed_heap_top(const ds_indexed_heap_t *heap, size_t *out_id,
+                                void *out_key);
+ds_status_t ds_indexed_heap_pop(ds_indexed_heap_t *heap, size_t *out_id,
+                                void *out_key);
+ds_status_t ds_indexed_heap_remove(ds_indexed_heap_t *heap, size_t id,
+                                   void *out_key);
+bool ds_indexed_heap_contains(const ds_indexed_heap_t *heap, size_t id);
+const void *ds_indexed_heap_key(const ds_indexed_heap_t *heap, size_t id);
+void ds_indexed_heap_clear(ds_indexed_heap_t *heap);
+size_t ds_indexed_heap_size(const ds_indexed_heap_t *heap);
+bool ds_indexed_heap_is_empty(const ds_indexed_heap_t *heap);
+size_t ds_indexed_heap_max_ids(const ds_indexed_heap_t *heap);
+ds_status_t ds_indexed_heap_set_max_ids(ds_indexed_heap_t *heap,
+                                        size_t max_ids);
 
 #ifdef __cplusplus
 }

@@ -567,7 +567,7 @@ ptrie_visit_from(ds_ptrie_node_t *node, unsigned char **buffer, size_t depth,
   return DS_OK;
 }
 
-ds_ptrie_t *FUNC(ds_ptrie_create)(const ds_ptrie_config_t *config) {
+ds_ptrie_t *ds_ptrie_create(const ds_ptrie_config_t *config) {
   ds_ptrie_t *trie;
   trie = (ds_ptrie_t *)ds_context_alloc(
       config != NULL && config->context != NULL ? config->context
@@ -599,25 +599,24 @@ ds_ptrie_t *FUNC(ds_ptrie_create)(const ds_ptrie_config_t *config) {
   return trie;
 }
 
-void FUNC(ds_ptrie_destroy)(ds_ptrie_t *trie) {
+void ds_ptrie_destroy(ds_ptrie_t *trie) {
   if (trie == NULL) {
     return;
   }
-  FUNC(ds_ptrie_version_release)(trie, trie->root);
+  ds_ptrie_version_release(trie, trie->root);
   ds_context_free(trie->config.context, trie);
 }
 
-ds_ptrie_version_t *FUNC(ds_ptrie_root)(ds_ptrie_t *trie) {
+ds_ptrie_version_t *ds_ptrie_root(ds_ptrie_t *trie) {
   if (trie == NULL) {
     return NULL;
   }
   return trie->root;
 }
 
-ds_ptrie_version_t *FUNC(ds_ptrie_insert)(ds_ptrie_t *trie,
-                                          ds_ptrie_version_t *base,
-                                          const unsigned char *key, size_t len,
-                                          void *value) {
+ds_ptrie_version_t *ds_ptrie_insert(ds_ptrie_t *trie, ds_ptrie_version_t *base,
+                                    const unsigned char *key, size_t len,
+                                    void *value) {
   ds_ptrie_version_t *version;
   ds_ptrie_node_t *new_root;
   void *stored_value;
@@ -642,10 +641,8 @@ ds_ptrie_version_t *FUNC(ds_ptrie_insert)(ds_ptrie_t *trie,
   return version;
 }
 
-ds_ptrie_version_t *FUNC(ds_ptrie_remove)(ds_ptrie_t *trie,
-                                          ds_ptrie_version_t *base,
-                                          const unsigned char *key,
-                                          size_t len) {
+ds_ptrie_version_t *ds_ptrie_remove(ds_ptrie_t *trie, ds_ptrie_version_t *base,
+                                    const unsigned char *key, size_t len) {
   ds_ptrie_version_t *version;
   ds_ptrie_node_t *new_root;
   bool removed;
@@ -665,11 +662,11 @@ ds_ptrie_version_t *FUNC(ds_ptrie_remove)(ds_ptrie_t *trie,
   return version;
 }
 
-ds_ptrie_version_t *FUNC(ds_ptrie_remove_prefix)(ds_ptrie_t *trie,
-                                                 ds_ptrie_version_t *base,
-                                                 const unsigned char *prefix,
-                                                 size_t prefix_len,
-                                                 size_t *out_removed) {
+ds_ptrie_version_t *ds_ptrie_remove_prefix(ds_ptrie_t *trie,
+                                           ds_ptrie_version_t *base,
+                                           const unsigned char *prefix,
+                                           size_t prefix_len,
+                                           size_t *out_removed) {
   ds_ptrie_version_t *version;
   ds_ptrie_node_t *new_root;
   size_t removed_count;
@@ -698,9 +695,8 @@ ds_ptrie_version_t *FUNC(ds_ptrie_remove_prefix)(ds_ptrie_t *trie,
   return version;
 }
 
-ds_status_t FUNC(ds_ptrie_get)(ds_ptrie_version_t *version,
-                               const unsigned char *key, size_t len,
-                               void **out_value) {
+ds_status_t ds_ptrie_get(ds_ptrie_version_t *version, const unsigned char *key,
+                         size_t len, void **out_value) {
   ds_ptrie_node_t *node;
   ds_ptrie_edge_t *edge;
   size_t i;
@@ -725,9 +721,9 @@ ds_status_t FUNC(ds_ptrie_get)(ds_ptrie_version_t *version,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_ptrie_contains_prefix)(ds_ptrie_version_t *version,
-                                           const unsigned char *prefix,
-                                           size_t prefix_len) {
+ds_status_t ds_ptrie_contains_prefix(ds_ptrie_version_t *version,
+                                     const unsigned char *prefix,
+                                     size_t prefix_len) {
   ds_ptrie_node_t *node;
 
   if (version == NULL || (prefix == NULL && prefix_len != 0U)) {
@@ -738,9 +734,8 @@ ds_status_t FUNC(ds_ptrie_contains_prefix)(ds_ptrie_version_t *version,
   return node == NULL ? DS_NOT_FOUND : DS_OK;
 }
 
-size_t FUNC(ds_ptrie_count_prefix)(ds_ptrie_version_t *version,
-                                   const unsigned char *prefix,
-                                   size_t prefix_len) {
+size_t ds_ptrie_count_prefix(ds_ptrie_version_t *version,
+                             const unsigned char *prefix, size_t prefix_len) {
   ds_ptrie_node_t *node;
 
   if (version == NULL || (prefix == NULL && prefix_len != 0U)) {
@@ -791,8 +786,7 @@ static bool ptrie_copy_prefix_visit(const unsigned char *key, size_t len,
              key + state->source_prefix_len, suffix_len);
     }
   }
-  next = FUNC(ds_ptrie_insert)(state->trie, state->current, new_key, new_len,
-                               value);
+  next = ds_ptrie_insert(state->trie, state->current, new_key, new_len, value);
   if (new_key != NULL) {
     ds_context_free(state->trie->config.context, new_key);
   }
@@ -800,13 +794,13 @@ static bool ptrie_copy_prefix_visit(const unsigned char *key, size_t len,
     state->failed = true;
     return false;
   }
-  FUNC(ds_ptrie_version_release)(state->trie, state->current);
+  ds_ptrie_version_release(state->trie, state->current);
   state->current = next;
   state->copied++;
   return true;
 }
 
-ds_ptrie_version_t *FUNC(ds_ptrie_copy_prefix)(
+ds_ptrie_version_t *ds_ptrie_copy_prefix(
     ds_ptrie_t *trie, ds_ptrie_version_t *destination_base,
     ds_ptrie_version_t *source_version, const unsigned char *source_prefix,
     size_t source_prefix_len, const unsigned char *destination_prefix,
@@ -823,8 +817,8 @@ ds_ptrie_version_t *FUNC(ds_ptrie_copy_prefix)(
     return NULL;
   }
 
-  if (FUNC(ds_ptrie_count_prefix)(source_version, source_prefix,
-                                  source_prefix_len) == 0U) {
+  if (ds_ptrie_count_prefix(source_version, source_prefix, source_prefix_len) ==
+      0U) {
     return NULL;
   }
 
@@ -836,13 +830,13 @@ ds_ptrie_version_t *FUNC(ds_ptrie_copy_prefix)(
   state.destination_prefix_len = destination_prefix_len;
   state.copied = 0U;
   state.failed = false;
-  FUNC(ds_ptrie_version_retain)(state.current);
+  ds_ptrie_version_retain(state.current);
 
-  status = FUNC(ds_ptrie_visit_prefix)(source_version, source_prefix,
-                                       source_prefix_len,
-                                       ptrie_copy_prefix_visit, &state);
+  status =
+      ds_ptrie_visit_prefix(source_version, source_prefix, source_prefix_len,
+                            ptrie_copy_prefix_visit, &state);
   if (status != DS_OK || state.failed || state.copied == 0U) {
-    FUNC(ds_ptrie_version_release)(trie, state.current);
+    ds_ptrie_version_release(trie, state.current);
     return NULL;
   }
   if (out_copied != NULL) {
@@ -852,11 +846,11 @@ ds_ptrie_version_t *FUNC(ds_ptrie_copy_prefix)(
 }
 
 ds_ptrie_version_t *
-FUNC(ds_ptrie_move_prefix)(ds_ptrie_t *trie, ds_ptrie_version_t *base,
-                           const unsigned char *source_prefix,
-                           size_t source_prefix_len,
-                           const unsigned char *destination_prefix,
-                           size_t destination_prefix_len, size_t *out_moved) {
+ds_ptrie_move_prefix(ds_ptrie_t *trie, ds_ptrie_version_t *base,
+                     const unsigned char *source_prefix,
+                     size_t source_prefix_len,
+                     const unsigned char *destination_prefix,
+                     size_t destination_prefix_len, size_t *out_moved) {
   ds_ptrie_version_t *removed;
   ds_ptrie_version_t *moved;
   size_t removed_count;
@@ -874,11 +868,11 @@ FUNC(ds_ptrie_move_prefix)(ds_ptrie_t *trie, ds_ptrie_version_t *base,
       (source_prefix_len == 0U ||
        memcmp(source_prefix, destination_prefix, source_prefix_len) == 0)) {
     removed_count =
-        FUNC(ds_ptrie_count_prefix)(base, source_prefix, source_prefix_len);
+        ds_ptrie_count_prefix(base, source_prefix, source_prefix_len);
     if (removed_count == 0U) {
       return NULL;
     }
-    FUNC(ds_ptrie_version_retain)(base);
+    ds_ptrie_version_retain(base);
     if (out_moved != NULL) {
       *out_moved = removed_count;
     }
@@ -886,16 +880,16 @@ FUNC(ds_ptrie_move_prefix)(ds_ptrie_t *trie, ds_ptrie_version_t *base,
   }
 
   removed_count = 0U;
-  removed = FUNC(ds_ptrie_remove_prefix)(trie, base, source_prefix,
-                                         source_prefix_len, &removed_count);
+  removed = ds_ptrie_remove_prefix(trie, base, source_prefix, source_prefix_len,
+                                   &removed_count);
   if (removed == NULL || removed_count == 0U) {
     return NULL;
   }
   copied_count = 0U;
-  moved = FUNC(ds_ptrie_copy_prefix)(trie, removed, base, source_prefix,
-                                     source_prefix_len, destination_prefix,
-                                     destination_prefix_len, &copied_count);
-  FUNC(ds_ptrie_version_release)(trie, removed);
+  moved = ds_ptrie_copy_prefix(trie, removed, base, source_prefix,
+                               source_prefix_len, destination_prefix,
+                               destination_prefix_len, &copied_count);
+  ds_ptrie_version_release(trie, removed);
   if (moved == NULL) {
     return NULL;
   }
@@ -905,9 +899,9 @@ FUNC(ds_ptrie_move_prefix)(ds_ptrie_t *trie, ds_ptrie_version_t *base,
   return moved;
 }
 
-ds_status_t FUNC(ds_ptrie_longest_prefix)(ds_ptrie_version_t *version,
-                                          const unsigned char *key, size_t len,
-                                          size_t *out_len, void **out_value) {
+ds_status_t ds_ptrie_longest_prefix(ds_ptrie_version_t *version,
+                                    const unsigned char *key, size_t len,
+                                    size_t *out_len, void **out_value) {
   ds_ptrie_node_t *node;
   ds_ptrie_edge_t *edge;
   size_t i;
@@ -957,11 +951,10 @@ ds_status_t FUNC(ds_ptrie_longest_prefix)(ds_ptrie_version_t *version,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_ptrie_visit_prefix)(ds_ptrie_version_t *version,
-                                        const unsigned char *prefix,
-                                        size_t prefix_len,
-                                        ds_ptrie_visit_func_t visit,
-                                        void *user) {
+ds_status_t ds_ptrie_visit_prefix(ds_ptrie_version_t *version,
+                                  const unsigned char *prefix,
+                                  size_t prefix_len,
+                                  ds_ptrie_visit_func_t visit, void *user) {
   ds_ptrie_node_t *node;
   unsigned char *buffer;
   size_t capacity;
@@ -992,11 +985,10 @@ ds_status_t FUNC(ds_ptrie_visit_prefix)(ds_ptrie_version_t *version,
   return status;
 }
 
-ds_status_t
-FUNC(ds_ptrie_visit_range)(ds_ptrie_version_t *version,
-                           const unsigned char *lower, size_t lower_len,
-                           const unsigned char *upper, size_t upper_len,
-                           ds_ptrie_visit_func_t visit, void *user) {
+ds_status_t ds_ptrie_visit_range(ds_ptrie_version_t *version,
+                                 const unsigned char *lower, size_t lower_len,
+                                 const unsigned char *upper, size_t upper_len,
+                                 ds_ptrie_visit_func_t visit, void *user) {
   unsigned char *buffer;
   size_t capacity;
   ds_status_t status;
@@ -1022,14 +1014,13 @@ FUNC(ds_ptrie_visit_range)(ds_ptrie_version_t *version,
   return status;
 }
 
-void FUNC(ds_ptrie_version_retain)(ds_ptrie_version_t *version) {
+void ds_ptrie_version_retain(ds_ptrie_version_t *version) {
   if (version != NULL) {
     version->refs++;
   }
 }
 
-void FUNC(ds_ptrie_version_release)(ds_ptrie_t *trie,
-                                    ds_ptrie_version_t *version) {
+void ds_ptrie_version_release(ds_ptrie_t *trie, ds_ptrie_version_t *version) {
   if (trie == NULL || version == NULL) {
     return;
   }

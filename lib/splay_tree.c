@@ -1,12 +1,12 @@
 #include "splay_tree.h"
 #include <stdlib.h>
 
-ds_splay_tree_t *FUNC(ds_splay_tree_create)(
-    int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *)) {
-  return FUNC(ds_splay_tree_create_alloc)(compare, malloc, free);
+ds_splay_tree_t *ds_splay_tree_create(int (*compare)(ds_splay_tree_node_t *,
+                                                     ds_splay_tree_node_t *)) {
+  return ds_splay_tree_create_alloc(compare, malloc, free);
 }
 
-ds_splay_tree_t *FUNC(ds_splay_tree_create_alloc)(
+ds_splay_tree_t *ds_splay_tree_create_alloc(
     int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   ds_splay_tree_t *tree = (ds_splay_tree_t *)allocator(sizeof(ds_splay_tree_t));
@@ -22,8 +22,8 @@ ds_splay_tree_t *FUNC(ds_splay_tree_create_alloc)(
   return tree;
 }
 
-static void FUNC(splay_tree_left_rotate)(ds_splay_tree_t *tree,
-                                         ds_splay_tree_node_t *node) {
+static void splay_tree_left_rotate(ds_splay_tree_t *tree,
+                                   ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *right = node->right;
   node->right = right->left;
   if (right->left != tree->nil) {
@@ -41,8 +41,8 @@ static void FUNC(splay_tree_left_rotate)(ds_splay_tree_t *tree,
   node->parent = right;
 }
 
-static void FUNC(splay_tree_right_rotate)(ds_splay_tree_t *tree,
-                                          ds_splay_tree_node_t *node) {
+static void splay_tree_right_rotate(ds_splay_tree_t *tree,
+                                    ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *left = node->left;
   node->left = left->right;
   if (left->right != tree->nil) {
@@ -60,35 +60,34 @@ static void FUNC(splay_tree_right_rotate)(ds_splay_tree_t *tree,
   node->parent = left;
 }
 
-static void FUNC(splay_tree_splay)(ds_splay_tree_t *tree,
-                                   ds_splay_tree_node_t *node) {
+static void splay_tree_splay(ds_splay_tree_t *tree,
+                             ds_splay_tree_node_t *node) {
   while (node->parent != tree->nil) {
     ds_splay_tree_node_t *parent = node->parent;
     ds_splay_tree_node_t *grand = parent->parent;
     if (grand == tree->nil) {
       if (node == parent->left) {
-        FUNC(splay_tree_right_rotate)(tree, parent);
+        splay_tree_right_rotate(tree, parent);
       } else {
-        FUNC(splay_tree_left_rotate)(tree, parent);
+        splay_tree_left_rotate(tree, parent);
       }
     } else if (node == parent->left && parent == grand->left) {
-      FUNC(splay_tree_right_rotate)(tree, grand);
-      FUNC(splay_tree_right_rotate)(tree, parent);
+      splay_tree_right_rotate(tree, grand);
+      splay_tree_right_rotate(tree, parent);
     } else if (node == parent->right && parent == grand->right) {
-      FUNC(splay_tree_left_rotate)(tree, grand);
-      FUNC(splay_tree_left_rotate)(tree, parent);
+      splay_tree_left_rotate(tree, grand);
+      splay_tree_left_rotate(tree, parent);
     } else if (node == parent->right && parent == grand->left) {
-      FUNC(splay_tree_left_rotate)(tree, parent);
-      FUNC(splay_tree_right_rotate)(tree, grand);
+      splay_tree_left_rotate(tree, parent);
+      splay_tree_right_rotate(tree, grand);
     } else {
-      FUNC(splay_tree_right_rotate)(tree, parent);
-      FUNC(splay_tree_left_rotate)(tree, grand);
+      splay_tree_right_rotate(tree, parent);
+      splay_tree_left_rotate(tree, grand);
     }
   }
 }
 
-void FUNC(ds_splay_tree_insert)(ds_splay_tree_t *tree,
-                                ds_splay_tree_node_t *node) {
+void ds_splay_tree_insert(ds_splay_tree_t *tree, ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
   ds_splay_tree_node_t *parent;
   int cmp;
@@ -106,7 +105,7 @@ void FUNC(ds_splay_tree_insert)(ds_splay_tree_t *tree,
     } else if (cmp > 0) {
       current = current->right;
     } else {
-      FUNC(splay_tree_splay)(tree, current);
+      splay_tree_splay(tree, current);
       return;
     }
   }
@@ -120,12 +119,12 @@ void FUNC(ds_splay_tree_insert)(ds_splay_tree_t *tree,
   } else {
     parent->right = node;
   }
-  FUNC(splay_tree_splay)(tree, node);
+  splay_tree_splay(tree, node);
   tree->size += 1;
 }
 
-ds_splay_tree_node_t *FUNC(ds_splay_tree_search)(ds_splay_tree_t *tree,
-                                                 ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *ds_splay_tree_search(ds_splay_tree_t *tree,
+                                           ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
   ds_splay_tree_node_t *last;
   current = tree->root;
@@ -138,18 +137,18 @@ ds_splay_tree_node_t *FUNC(ds_splay_tree_search)(ds_splay_tree_t *tree,
     } else if (cmp > 0) {
       current = current->right;
     } else {
-      FUNC(splay_tree_splay)(tree, current);
+      splay_tree_splay(tree, current);
       return current;
     }
   }
   if (last != tree->nil) {
-    FUNC(splay_tree_splay)(tree, last);
+    splay_tree_splay(tree, last);
   }
   return tree->nil;
 }
 
-ds_splay_tree_node_t *FUNC(ds_splay_tree_minimum)(ds_splay_tree_t *tree,
-                                                  ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *ds_splay_tree_minimum(ds_splay_tree_t *tree,
+                                            ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
   current = node;
   if (current == tree->nil) {
@@ -161,8 +160,8 @@ ds_splay_tree_node_t *FUNC(ds_splay_tree_minimum)(ds_splay_tree_t *tree,
   return current;
 }
 
-ds_splay_tree_node_t *FUNC(ds_splay_tree_maximum)(ds_splay_tree_t *tree,
-                                                  ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *ds_splay_tree_maximum(ds_splay_tree_t *tree,
+                                            ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *current;
   current = node;
   if (current == tree->nil) {
@@ -174,12 +173,12 @@ ds_splay_tree_node_t *FUNC(ds_splay_tree_maximum)(ds_splay_tree_t *tree,
   return current;
 }
 
-ds_splay_tree_node_t *FUNC(ds_splay_tree_remove)(ds_splay_tree_t *tree,
-                                                 ds_splay_tree_node_t *node) {
+ds_splay_tree_node_t *ds_splay_tree_remove(ds_splay_tree_t *tree,
+                                           ds_splay_tree_node_t *node) {
   ds_splay_tree_node_t *target;
   ds_splay_tree_node_t *left_subtree;
   ds_splay_tree_node_t *right_subtree;
-  target = FUNC(ds_splay_tree_search)(tree, node);
+  target = ds_splay_tree_search(tree, node);
   if (target == tree->nil) {
     return tree->nil;
   }
@@ -194,7 +193,7 @@ ds_splay_tree_node_t *FUNC(ds_splay_tree_remove)(ds_splay_tree_t *tree,
       max_left = max_left->right;
     }
     tree->root = left_subtree;
-    FUNC(splay_tree_splay)(tree, max_left);
+    splay_tree_splay(tree, max_left);
     tree->root->right = right_subtree;
     if (right_subtree != tree->nil) {
       right_subtree->parent = tree->root;
@@ -212,77 +211,76 @@ ds_splay_tree_node_t *FUNC(ds_splay_tree_remove)(ds_splay_tree_t *tree,
   return target;
 }
 
-bool FUNC(ds_splay_tree_is_empty)(ds_splay_tree_t *tree) {
+bool ds_splay_tree_is_empty(ds_splay_tree_t *tree) {
   bool result;
   result = tree->root == tree->nil;
   return result;
 }
 
-void FUNC(ds_splay_tree_destroy_node)(ds_splay_tree_t *tree,
-                                      ds_splay_tree_node_t *node,
-                                      void (*destroy)(ds_splay_tree_node_t *)) {
+void ds_splay_tree_destroy_node(ds_splay_tree_t *tree,
+                                ds_splay_tree_node_t *node,
+                                void (*destroy)(ds_splay_tree_node_t *)) {
   ds_splay_tree_node_t *removed;
-  removed = FUNC(ds_splay_tree_remove)(tree, node);
+  removed = ds_splay_tree_remove(tree, node);
   if (removed != tree->nil && destroy != NULL) {
     destroy(removed);
   }
 }
 
-void FUNC(ds_splay_tree_inorder_walk)(
-    ds_splay_tree_t *tree, ds_splay_tree_node_t *node,
-    void (*callback)(ds_splay_tree_node_t *)) {
+void ds_splay_tree_inorder_walk(ds_splay_tree_t *tree,
+                                ds_splay_tree_node_t *node,
+                                void (*callback)(ds_splay_tree_node_t *)) {
   if (node == tree->nil) {
     return;
   }
-  FUNC(ds_splay_tree_inorder_walk)(tree, node->left, callback);
+  ds_splay_tree_inorder_walk(tree, node->left, callback);
   callback(node);
-  FUNC(ds_splay_tree_inorder_walk)(tree, node->right, callback);
+  ds_splay_tree_inorder_walk(tree, node->right, callback);
 }
 
-void FUNC(ds_splay_tree_inorder_walk_tree)(
-    ds_splay_tree_t *tree, void (*callback)(ds_splay_tree_node_t *)) {
-  FUNC(ds_splay_tree_inorder_walk)(tree, tree->root, callback);
+void ds_splay_tree_inorder_walk_tree(ds_splay_tree_t *tree,
+                                     void (*callback)(ds_splay_tree_node_t *)) {
+  ds_splay_tree_inorder_walk(tree, tree->root, callback);
 }
 
 static void
-FUNC(splay_tree_destroy_recursive)(ds_splay_tree_t *tree,
-                                   ds_splay_tree_node_t *node,
-                                   void (*destroy)(ds_splay_tree_node_t *)) {
+splay_tree_destroy_recursive(ds_splay_tree_t *tree, ds_splay_tree_node_t *node,
+                             void (*destroy)(ds_splay_tree_node_t *)) {
   if (node == tree->nil) {
     return;
   }
-  FUNC(splay_tree_destroy_recursive)(tree, node->left, destroy);
-  FUNC(splay_tree_destroy_recursive)(tree, node->right, destroy);
+  splay_tree_destroy_recursive(tree, node->left, destroy);
+  splay_tree_destroy_recursive(tree, node->right, destroy);
   if (destroy != NULL) {
     destroy(node);
   }
 }
 
-void FUNC(ds_splay_tree_destroy)(ds_splay_tree_t *tree,
-                                 void (*destroy)(ds_splay_tree_node_t *)) {
-  FUNC(splay_tree_destroy_recursive)(tree, tree->root, destroy);
+void ds_splay_tree_destroy(ds_splay_tree_t *tree,
+                           void (*destroy)(ds_splay_tree_node_t *)) {
+  splay_tree_destroy_recursive(tree, tree->root, destroy);
   tree->deallocator(tree->nil);
   tree->deallocator(tree);
 }
 
-static void FUNC(splay_tree_clone_recursive)(
+static void splay_tree_clone_recursive(
     ds_splay_tree_t *tree, ds_splay_tree_t *new_tree,
     ds_splay_tree_node_t *node,
     ds_splay_tree_node_t *(*clone_node)(ds_splay_tree_node_t *)) {
   if (node == tree->nil) {
     return;
   }
-  FUNC(splay_tree_clone_recursive)(tree, new_tree, node->left, clone_node);
-  FUNC(ds_splay_tree_insert)(new_tree, clone_node(node));
-  FUNC(splay_tree_clone_recursive)(tree, new_tree, node->right, clone_node);
+  splay_tree_clone_recursive(tree, new_tree, node->left, clone_node);
+  ds_splay_tree_insert(new_tree, clone_node(node));
+  splay_tree_clone_recursive(tree, new_tree, node->right, clone_node);
 }
 
-ds_splay_tree_t *FUNC(ds_splay_tree_clone)(
+ds_splay_tree_t *ds_splay_tree_clone(
     ds_splay_tree_t *tree,
     ds_splay_tree_node_t *(*clone_node)(ds_splay_tree_node_t *)) {
   ds_splay_tree_t *new_tree;
-  new_tree = FUNC(ds_splay_tree_create_alloc)(tree->compare, tree->allocator,
-                                              tree->deallocator);
-  FUNC(splay_tree_clone_recursive)(tree, new_tree, tree->root, clone_node);
+  new_tree = ds_splay_tree_create_alloc(tree->compare, tree->allocator,
+                                        tree->deallocator);
+  splay_tree_clone_recursive(tree, new_tree, tree->root, clone_node);
   return new_tree;
 }

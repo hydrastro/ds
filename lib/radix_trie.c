@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static ds_radix_trie_node_t *
-FUNC(radix_trie_new_node)(ds_radix_trie_t *trie, const unsigned char *edge,
-                          size_t edge_length) {
+static ds_radix_trie_node_t *radix_trie_new_node(ds_radix_trie_t *trie,
+                                                 const unsigned char *edge,
+                                                 size_t edge_length) {
   ds_radix_trie_node_t *node =
       (ds_radix_trie_node_t *)trie->allocator(sizeof(ds_radix_trie_node_t));
   node->edge_length = edge_length;
@@ -24,22 +24,22 @@ FUNC(radix_trie_new_node)(ds_radix_trie_t *trie, const unsigned char *edge,
   return node;
 }
 
-ds_radix_trie_t *FUNC(ds_radix_trie_create)(void) {
-  return FUNC(ds_radix_trie_create_alloc)(malloc, free);
+ds_radix_trie_t *ds_radix_trie_create(void) {
+  return ds_radix_trie_create_alloc(malloc, free);
 }
 
-ds_radix_trie_t *FUNC(ds_radix_trie_create_alloc)(void *(*allocator)(size_t),
-                                                  void (*deallocator)(void *)) {
+ds_radix_trie_t *ds_radix_trie_create_alloc(void *(*allocator)(size_t),
+                                            void (*deallocator)(void *)) {
   ds_radix_trie_t *trie = (ds_radix_trie_t *)allocator(sizeof(ds_radix_trie_t));
   trie->allocator = allocator;
   trie->deallocator = deallocator;
   trie->size = 0;
-  trie->root = FUNC(radix_trie_new_node)(trie, NULL, 0);
+  trie->root = radix_trie_new_node(trie, NULL, 0);
   return trie;
 }
 
-static ds_radix_trie_node_t *
-FUNC(radix_trie_find_child)(ds_radix_trie_node_t *node, unsigned char first) {
+static ds_radix_trie_node_t *radix_trie_find_child(ds_radix_trie_node_t *node,
+                                                   unsigned char first) {
   size_t i;
   for (i = 0; i < node->num_children; i++) {
     if (node->children[i]->edge_length > 0 &&
@@ -50,9 +50,9 @@ FUNC(radix_trie_find_child)(ds_radix_trie_node_t *node, unsigned char first) {
   return NULL;
 }
 
-static void FUNC(radix_trie_add_child)(ds_radix_trie_t *trie,
-                                       ds_radix_trie_node_t *parent,
-                                       ds_radix_trie_node_t *child) {
+static void radix_trie_add_child(ds_radix_trie_t *trie,
+                                 ds_radix_trie_node_t *parent,
+                                 ds_radix_trie_node_t *child) {
   ds_radix_trie_node_t **grown;
   size_t i;
   grown = (ds_radix_trie_node_t **)trie->allocator(
@@ -68,9 +68,9 @@ static void FUNC(radix_trie_add_child)(ds_radix_trie_t *trie,
   parent->num_children += 1;
 }
 
-static void FUNC(radix_trie_remove_child)(ds_radix_trie_t *trie,
-                                          ds_radix_trie_node_t *parent,
-                                          ds_radix_trie_node_t *child) {
+static void radix_trie_remove_child(ds_radix_trie_t *trie,
+                                    ds_radix_trie_node_t *parent,
+                                    ds_radix_trie_node_t *child) {
   size_t i;
   size_t j = 0;
   ds_radix_trie_node_t **shrunk;
@@ -93,10 +93,8 @@ static void FUNC(radix_trie_remove_child)(ds_radix_trie_t *trie,
   parent->num_children -= 1;
 }
 
-static size_t FUNC(radix_trie_common_prefix)(const unsigned char *a,
-                                             size_t a_len,
-                                             const unsigned char *b,
-                                             size_t b_len) {
+static size_t radix_trie_common_prefix(const unsigned char *a, size_t a_len,
+                                       const unsigned char *b, size_t b_len) {
   size_t i = 0;
   size_t limit = a_len < b_len ? a_len : b_len;
   while (i < limit && a[i] == b[i]) {
@@ -105,10 +103,9 @@ static size_t FUNC(radix_trie_common_prefix)(const unsigned char *a,
   return i;
 }
 
-static void FUNC(radix_trie_set_edge)(ds_radix_trie_t *trie,
-                                      ds_radix_trie_node_t *node,
-                                      const unsigned char *edge,
-                                      size_t edge_length) {
+static void radix_trie_set_edge(ds_radix_trie_t *trie,
+                                ds_radix_trie_node_t *node,
+                                const unsigned char *edge, size_t edge_length) {
   unsigned char *buffer;
   size_t i;
   if (edge_length > 0) {
@@ -126,8 +123,8 @@ static void FUNC(radix_trie_set_edge)(ds_radix_trie_t *trie,
   node->edge_length = edge_length;
 }
 
-bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
-                                size_t length, void *value) {
+bool ds_radix_trie_insert(ds_radix_trie_t *trie, const void *key, size_t length,
+                          void *value) {
   const unsigned char *bytes = (const unsigned char *)key;
   ds_radix_trie_node_t *node;
   size_t offset = 0;
@@ -145,19 +142,19 @@ bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
       node->value = value;
       break;
     }
-    child = FUNC(radix_trie_find_child)(node, bytes[offset]);
+    child = radix_trie_find_child(node, bytes[offset]);
     if (child == NULL) {
       ds_radix_trie_node_t *leaf =
-          FUNC(radix_trie_new_node)(trie, bytes + offset, length - offset);
+          radix_trie_new_node(trie, bytes + offset, length - offset);
       leaf->is_terminal = true;
       leaf->value = value;
-      FUNC(radix_trie_add_child)(trie, node, leaf);
+      radix_trie_add_child(trie, node, leaf);
       trie->size += 1;
       inserted = true;
       break;
     }
-    common = FUNC(radix_trie_common_prefix)(child->edge, child->edge_length,
-                                            bytes + offset, length - offset);
+    common = radix_trie_common_prefix(child->edge, child->edge_length,
+                                      bytes + offset, length - offset);
     if (common == child->edge_length) {
       /* whole edge consumed: descend */
       offset += common;
@@ -167,13 +164,13 @@ bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
     /* split the edge at common */
     {
       ds_radix_trie_node_t *split =
-          FUNC(radix_trie_new_node)(trie, child->edge, common);
+          radix_trie_new_node(trie, child->edge, common);
       /* child keeps the suffix of its edge */
-      FUNC(radix_trie_set_edge)
-      (trie, child, child->edge + common, child->edge_length - common);
-      FUNC(radix_trie_remove_child)(trie, node, child);
-      FUNC(radix_trie_add_child)(trie, node, split);
-      FUNC(radix_trie_add_child)(trie, split, child);
+      radix_trie_set_edge(trie, child, child->edge + common,
+                          child->edge_length - common);
+      radix_trie_remove_child(trie, node, child);
+      radix_trie_add_child(trie, node, split);
+      radix_trie_add_child(trie, split, child);
       offset += common;
       if (offset == length) {
         split->is_terminal = true;
@@ -182,10 +179,10 @@ bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
         inserted = true;
       } else {
         ds_radix_trie_node_t *leaf =
-            FUNC(radix_trie_new_node)(trie, bytes + offset, length - offset);
+            radix_trie_new_node(trie, bytes + offset, length - offset);
         leaf->is_terminal = true;
         leaf->value = value;
-        FUNC(radix_trie_add_child)(trie, split, leaf);
+        radix_trie_add_child(trie, split, leaf);
         trie->size += 1;
         inserted = true;
       }
@@ -195,20 +192,19 @@ bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
   return inserted;
 }
 
-static ds_radix_trie_node_t *
-FUNC(radix_trie_find_node)(ds_radix_trie_t *trie, const unsigned char *bytes,
-                           size_t length) {
+static ds_radix_trie_node_t *radix_trie_find_node(ds_radix_trie_t *trie,
+                                                  const unsigned char *bytes,
+                                                  size_t length) {
   ds_radix_trie_node_t *node = trie->root;
   size_t offset = 0;
   while (offset < length) {
-    ds_radix_trie_node_t *child =
-        FUNC(radix_trie_find_child)(node, bytes[offset]);
+    ds_radix_trie_node_t *child = radix_trie_find_child(node, bytes[offset]);
     size_t common;
     if (child == NULL) {
       return NULL;
     }
-    common = FUNC(radix_trie_common_prefix)(child->edge, child->edge_length,
-                                            bytes + offset, length - offset);
+    common = radix_trie_common_prefix(child->edge, child->edge_length,
+                                      bytes + offset, length - offset);
     if (common != child->edge_length) {
       return NULL;
     }
@@ -218,28 +214,27 @@ FUNC(radix_trie_find_node)(ds_radix_trie_t *trie, const unsigned char *bytes,
   return node;
 }
 
-bool FUNC(ds_radix_trie_contains)(ds_radix_trie_t *trie, const void *key,
-                                  size_t length) {
+bool ds_radix_trie_contains(ds_radix_trie_t *trie, const void *key,
+                            size_t length) {
   ds_radix_trie_node_t *node;
   bool result;
-  node = FUNC(radix_trie_find_node)(trie, (const unsigned char *)key, length);
+  node = radix_trie_find_node(trie, (const unsigned char *)key, length);
   result = node != NULL && node->is_terminal;
   return result;
 }
 
-void *FUNC(ds_radix_trie_get)(ds_radix_trie_t *trie, const void *key,
-                              size_t length) {
+void *ds_radix_trie_get(ds_radix_trie_t *trie, const void *key, size_t length) {
   ds_radix_trie_node_t *node;
   void *result = NULL;
-  node = FUNC(radix_trie_find_node)(trie, (const unsigned char *)key, length);
+  node = radix_trie_find_node(trie, (const unsigned char *)key, length);
   if (node != NULL && node->is_terminal) {
     result = node->value;
   }
   return result;
 }
 
-static void FUNC(radix_trie_merge_with_child)(ds_radix_trie_t *trie,
-                                              ds_radix_trie_node_t *node) {
+static void radix_trie_merge_with_child(ds_radix_trie_t *trie,
+                                        ds_radix_trie_node_t *node) {
   /* node has exactly one child and is not terminal: merge edges */
   ds_radix_trie_node_t *child = node->children[0];
   size_t merged_length = node->edge_length + child->edge_length;
@@ -267,8 +262,8 @@ static void FUNC(radix_trie_merge_with_child)(ds_radix_trie_t *trie,
   trie->deallocator(child);
 }
 
-bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
-                                size_t length, void **out_value) {
+bool ds_radix_trie_remove(ds_radix_trie_t *trie, const void *key, size_t length,
+                          void **out_value) {
   const unsigned char *bytes = (const unsigned char *)key;
   ds_radix_trie_node_t *node;
   ds_radix_trie_node_t *parent;
@@ -280,15 +275,14 @@ bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
   stack[depth] = node;
   depth += 1;
   while (offset < length) {
-    ds_radix_trie_node_t *child =
-        FUNC(radix_trie_find_child)(node, bytes[offset]);
+    ds_radix_trie_node_t *child = radix_trie_find_child(node, bytes[offset]);
     size_t common;
     if (child == NULL || depth >= 256) {
       node = NULL;
       break;
     }
-    common = FUNC(radix_trie_common_prefix)(child->edge, child->edge_length,
-                                            bytes + offset, length - offset);
+    common = radix_trie_common_prefix(child->edge, child->edge_length,
+                                      bytes + offset, length - offset);
     if (common != child->edge_length) {
       node = NULL;
       break;
@@ -311,7 +305,7 @@ bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
       ds_radix_trie_node_t *current = stack[depth - 1];
       parent = stack[depth - 2];
       if (!current->is_terminal && current->num_children == 0) {
-        FUNC(radix_trie_remove_child)(trie, parent, current);
+        radix_trie_remove_child(trie, parent, current);
         if (current->edge != NULL) {
           trie->deallocator(current->edge);
         }
@@ -319,7 +313,7 @@ bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
         depth -= 1;
       } else if (!current->is_terminal && current->num_children == 1 &&
                  current != trie->root) {
-        FUNC(radix_trie_merge_with_child)(trie, current);
+        radix_trie_merge_with_child(trie, current);
         break;
       } else {
         break;
@@ -329,19 +323,19 @@ bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
   return removed;
 }
 
-size_t FUNC(ds_radix_trie_size)(ds_radix_trie_t *trie) {
+size_t ds_radix_trie_size(ds_radix_trie_t *trie) {
   size_t result;
   result = trie->size;
   return result;
 }
 
-bool FUNC(ds_radix_trie_is_empty)(ds_radix_trie_t *trie) {
+bool ds_radix_trie_is_empty(ds_radix_trie_t *trie) {
   bool result;
   result = trie->size == 0;
   return result;
 }
 
-static void FUNC(radix_trie_walk_recursive)(
+static void radix_trie_walk_recursive(
     ds_radix_trie_node_t *node, unsigned char **buffer, size_t *buffer_cap,
     size_t prefix_length, void *(*allocator)(size_t),
     void (*deallocator)(void *),
@@ -372,31 +366,29 @@ static void FUNC(radix_trie_walk_recursive)(
     callback(*buffer, needed, node->value);
   }
   for (i = 0; i < node->num_children; i++) {
-    FUNC(radix_trie_walk_recursive)
-    (node->children[i], buffer, buffer_cap, needed, allocator, deallocator,
-     callback);
+    radix_trie_walk_recursive(node->children[i], buffer, buffer_cap, needed,
+                              allocator, deallocator, callback);
   }
 }
 
-void FUNC(ds_radix_trie_walk)(ds_radix_trie_t *trie,
-                              void (*callback)(const unsigned char *, size_t,
-                                               void *)) {
+void ds_radix_trie_walk(ds_radix_trie_t *trie,
+                        void (*callback)(const unsigned char *, size_t,
+                                         void *)) {
   unsigned char *buffer = NULL;
   size_t buffer_cap = 0;
-  FUNC(radix_trie_walk_recursive)
-  (trie->root, &buffer, &buffer_cap, 0, trie->allocator, trie->deallocator,
-   callback);
+  radix_trie_walk_recursive(trie->root, &buffer, &buffer_cap, 0,
+                            trie->allocator, trie->deallocator, callback);
   if (buffer != NULL) {
     trie->deallocator(buffer);
   }
 }
 
-static void FUNC(radix_trie_destroy_recursive)(ds_radix_trie_t *trie,
-                                               ds_radix_trie_node_t *node,
-                                               void (*destroy_value)(void *)) {
+static void radix_trie_destroy_recursive(ds_radix_trie_t *trie,
+                                         ds_radix_trie_node_t *node,
+                                         void (*destroy_value)(void *)) {
   size_t i;
   for (i = 0; i < node->num_children; i++) {
-    FUNC(radix_trie_destroy_recursive)(trie, node->children[i], destroy_value);
+    radix_trie_destroy_recursive(trie, node->children[i], destroy_value);
   }
   if (node->is_terminal && destroy_value != NULL) {
     destroy_value(node->value);
@@ -410,8 +402,8 @@ static void FUNC(radix_trie_destroy_recursive)(ds_radix_trie_t *trie,
   trie->deallocator(node);
 }
 
-void FUNC(ds_radix_trie_destroy)(ds_radix_trie_t *trie,
-                                 void (*destroy_value)(void *)) {
-  FUNC(radix_trie_destroy_recursive)(trie, trie->root, destroy_value);
+void ds_radix_trie_destroy(ds_radix_trie_t *trie,
+                           void (*destroy_value)(void *)) {
+  radix_trie_destroy_recursive(trie, trie->root, destroy_value);
   trie->deallocator(trie);
 }

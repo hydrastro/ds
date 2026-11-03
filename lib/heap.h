@@ -27,20 +27,18 @@ void heapify_up(ds_heap_t *heap, size_t index,
                 int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
 void heapify_down(ds_heap_t *heap, size_t index,
                   int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
-ds_heap_t *FUNC(ds_heap_create)(size_t capacity);
-ds_heap_t *FUNC(ds_heap_create_alloc)(size_t capacity,
-                                      void *(*allocator)(size_t),
-                                      void (*deallocator)(void *));
-void FUNC(ds_heap_insert)(ds_heap_t *heap, ds_heap_node_t *node,
-                          int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
-void *FUNC(ds_heap_extract_root)(ds_heap_t *heap,
-                                 int (*compare)(ds_heap_node_t *,
-                                                ds_heap_node_t *));
-void *FUNC(ds_heap_peek_root)(ds_heap_t *heap);
-bool FUNC(ds_heap_is_empty)(ds_heap_t *heap);
-void FUNC(ds_heap_destroy)(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *));
-ds_heap_t *FUNC(ds_heap_clone)(ds_heap_t *heap,
-                               ds_heap_node_t *(*clone_node)(ds_heap_node_t *));
+ds_heap_t *ds_heap_create(size_t capacity);
+ds_heap_t *ds_heap_create_alloc(size_t capacity, void *(*allocator)(size_t),
+                                void (*deallocator)(void *));
+void ds_heap_insert(ds_heap_t *heap, ds_heap_node_t *node,
+                    int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
+void *ds_heap_extract_root(ds_heap_t *heap,
+                           int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
+void *ds_heap_peek_root(ds_heap_t *heap);
+bool ds_heap_is_empty(ds_heap_t *heap);
+void ds_heap_destroy(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *));
+ds_heap_t *ds_heap_clone(ds_heap_t *heap,
+                         ds_heap_node_t *(*clone_node)(ds_heap_node_t *));
 
 #ifdef __cplusplus
 }

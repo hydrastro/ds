@@ -8,7 +8,7 @@
  * fits in unsigned short as long as a superblock spans < 65536 bits. */
 #define DS_BV_BLOCKS_PER_SUPERBLOCK 8
 
-static size_t FUNC(bv_popcount)(unsigned long word) {
+static size_t bv_popcount(unsigned long word) {
   size_t count = 0;
   while (word != 0UL) {
     word &= word - 1UL;
@@ -17,13 +17,13 @@ static size_t FUNC(bv_popcount)(unsigned long word) {
   return count;
 }
 
-ds_bitvector_t *FUNC(ds_bitvector_create)(size_t num_bits) {
-  return FUNC(ds_bitvector_create_alloc)(num_bits, malloc, free);
+ds_bitvector_t *ds_bitvector_create(size_t num_bits) {
+  return ds_bitvector_create_alloc(num_bits, malloc, free);
 }
 
-ds_bitvector_t *FUNC(ds_bitvector_create_alloc)(size_t num_bits,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
+ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *)) {
   ds_bitvector_t *bv;
   size_t num_words;
   size_t i;
@@ -51,7 +51,7 @@ ds_bitvector_t *FUNC(ds_bitvector_create_alloc)(size_t num_bits,
   return bv;
 }
 
-void FUNC(ds_bitvector_set)(ds_bitvector_t *bv, size_t index, bool value) {
+void ds_bitvector_set(ds_bitvector_t *bv, size_t index, bool value) {
   if (index < bv->num_bits) {
     size_t w = index / DS_BV_BITS_PER_WORD;
     unsigned long mask = 1UL << (index % DS_BV_BITS_PER_WORD);
@@ -63,7 +63,7 @@ void FUNC(ds_bitvector_set)(ds_bitvector_t *bv, size_t index, bool value) {
   }
 }
 
-bool FUNC(ds_bitvector_get)(ds_bitvector_t *bv, size_t index) {
+bool ds_bitvector_get(ds_bitvector_t *bv, size_t index) {
   bool result = false;
   if (index < bv->num_bits) {
     size_t w = index / DS_BV_BITS_PER_WORD;
@@ -72,7 +72,7 @@ bool FUNC(ds_bitvector_get)(ds_bitvector_t *bv, size_t index) {
   return result;
 }
 
-void FUNC(ds_bitvector_build)(ds_bitvector_t *bv) {
+void ds_bitvector_build(ds_bitvector_t *bv) {
   size_t i;
   size_t cumulative = 0;
   size_t sb;
@@ -98,7 +98,7 @@ void FUNC(ds_bitvector_build)(ds_bitvector_t *bv) {
       bv->superblock_rank[sb] = cumulative;
     }
     bv->block_rank[i] = (unsigned short)(cumulative - bv->superblock_rank[sb]);
-    cumulative += FUNC(bv_popcount)(bv->words[i]);
+    cumulative += bv_popcount(bv->words[i]);
   }
   bv->block_rank[bv->num_blocks] = 0;
   bv->superblock_rank[(bv->num_blocks + DS_BV_BLOCKS_PER_SUPERBLOCK - 1) /
@@ -107,20 +107,20 @@ void FUNC(ds_bitvector_build)(ds_bitvector_t *bv) {
   bv->built = true;
 }
 
-size_t FUNC(ds_bitvector_size)(ds_bitvector_t *bv) {
+size_t ds_bitvector_size(ds_bitvector_t *bv) {
   size_t result;
   result = bv->num_bits;
   return result;
 }
 
-size_t FUNC(ds_bitvector_count_ones)(ds_bitvector_t *bv) {
+size_t ds_bitvector_count_ones(ds_bitvector_t *bv) {
   size_t result;
   result = bv->total_ones;
   return result;
 }
 
 /* internal rank1 with no locking (callers hold the lock) */
-static size_t FUNC(bv_rank1_nolock)(ds_bitvector_t *bv, size_t index) {
+static size_t bv_rank1_nolock(ds_bitvector_t *bv, size_t index) {
   size_t block;
   size_t sb;
   size_t count;
@@ -144,27 +144,27 @@ static size_t FUNC(bv_rank1_nolock)(ds_bitvector_t *bv, size_t index) {
   if (bit_in_word != 0) {
     word = bv->words[block];
     mask = (1UL << bit_in_word) - 1UL;
-    count += FUNC(bv_popcount)(word & mask);
+    count += bv_popcount(word & mask);
   }
   return count;
 }
 
-size_t FUNC(ds_bitvector_rank1)(ds_bitvector_t *bv, size_t index) {
+size_t ds_bitvector_rank1(ds_bitvector_t *bv, size_t index) {
   size_t result;
-  result = FUNC(bv_rank1_nolock)(bv, index);
+  result = bv_rank1_nolock(bv, index);
   return result;
 }
 
-size_t FUNC(ds_bitvector_rank0)(ds_bitvector_t *bv, size_t index) {
+size_t ds_bitvector_rank0(ds_bitvector_t *bv, size_t index) {
   size_t result;
   if (index > bv->num_bits) {
     index = bv->num_bits;
   }
-  result = index - FUNC(bv_rank1_nolock)(bv, index);
+  result = index - bv_rank1_nolock(bv, index);
   return result;
 }
 
-size_t FUNC(ds_bitvector_select1)(ds_bitvector_t *bv, size_t k) {
+size_t ds_bitvector_select1(ds_bitvector_t *bv, size_t k) {
   size_t lo;
   size_t hi;
   size_t result = DS_BITVECTOR_NPOS;
@@ -175,7 +175,7 @@ size_t FUNC(ds_bitvector_select1)(ds_bitvector_t *bv, size_t k) {
     hi = bv->num_bits;
     while (lo < hi) {
       size_t mid = lo + (hi - lo) / 2;
-      if (FUNC(bv_rank1_nolock)(bv, mid + 1) >= k + 1) {
+      if (bv_rank1_nolock(bv, mid + 1) >= k + 1) {
         hi = mid;
       } else {
         lo = mid + 1;
@@ -186,7 +186,7 @@ size_t FUNC(ds_bitvector_select1)(ds_bitvector_t *bv, size_t k) {
   return result;
 }
 
-size_t FUNC(ds_bitvector_select0)(ds_bitvector_t *bv, size_t k) {
+size_t ds_bitvector_select0(ds_bitvector_t *bv, size_t k) {
   size_t lo;
   size_t hi;
   size_t total_zeros;
@@ -197,7 +197,7 @@ size_t FUNC(ds_bitvector_select0)(ds_bitvector_t *bv, size_t k) {
     hi = bv->num_bits;
     while (lo < hi) {
       size_t mid = lo + (hi - lo) / 2;
-      size_t zeros = (mid + 1) - FUNC(bv_rank1_nolock)(bv, mid + 1);
+      size_t zeros = (mid + 1) - bv_rank1_nolock(bv, mid + 1);
       if (zeros >= k + 1) {
         hi = mid;
       } else {
@@ -209,7 +209,7 @@ size_t FUNC(ds_bitvector_select0)(ds_bitvector_t *bv, size_t k) {
   return result;
 }
 
-void FUNC(ds_bitvector_destroy)(ds_bitvector_t *bv) {
+void ds_bitvector_destroy(ds_bitvector_t *bv) {
   if (bv->words != NULL) {
     bv->deallocator(bv->words);
   }

@@ -88,43 +88,42 @@ static void mmh_trickle_down(ds_min_max_heap_t *heap, size_t index,
   }
 }
 
-ds_status_t FUNC(ds_min_max_heap_init)(ds_min_max_heap_t *heap,
-                                       size_t elem_size,
-                                       ds_min_max_heap_compare_func_t compare,
-                                       void *user, ds_context_t *context) {
+ds_status_t ds_min_max_heap_init(ds_min_max_heap_t *heap, size_t elem_size,
+                                 ds_min_max_heap_compare_func_t compare,
+                                 void *user, ds_context_t *context) {
   if (heap == NULL || compare == NULL) {
     return DS_ERR_NULL;
   }
   heap->compare = compare;
   heap->user = user;
-  return FUNC(ds_vec_init)(&heap->items, elem_size, context);
+  return ds_vec_init(&heap->items, elem_size, context);
 }
 
-ds_status_t
-FUNC(ds_min_max_heap_init_buffer)(ds_min_max_heap_t *heap, size_t elem_size,
-                                  ds_min_max_heap_compare_func_t compare,
-                                  void *user, void *buffer, size_t capacity) {
+ds_status_t ds_min_max_heap_init_buffer(ds_min_max_heap_t *heap,
+                                        size_t elem_size,
+                                        ds_min_max_heap_compare_func_t compare,
+                                        void *user, void *buffer,
+                                        size_t capacity) {
   if (heap == NULL || compare == NULL) {
     return DS_ERR_NULL;
   }
   heap->compare = compare;
   heap->user = user;
-  return FUNC(ds_vec_init_buffer)(&heap->items, elem_size, buffer, capacity);
+  return ds_vec_init_buffer(&heap->items, elem_size, buffer, capacity);
 }
 
-void FUNC(ds_min_max_heap_destroy)(ds_min_max_heap_t *heap) {
+void ds_min_max_heap_destroy(ds_min_max_heap_t *heap) {
   if (heap != NULL) {
-    FUNC(ds_vec_destroy)(&heap->items);
+    ds_vec_destroy(&heap->items);
   }
 }
 
-ds_status_t FUNC(ds_min_max_heap_push)(ds_min_max_heap_t *heap,
-                                       const void *elem) {
+ds_status_t ds_min_max_heap_push(ds_min_max_heap_t *heap, const void *elem) {
   ds_status_t status;
   size_t index;
   size_t parent;
   bool min_level;
-  status = FUNC(ds_vec_push)(&heap->items, elem);
+  status = ds_vec_push(&heap->items, elem);
   if (status != DS_OK) {
     return status;
   }
@@ -150,11 +149,11 @@ static size_t mmh_max_index(const ds_min_max_heap_t *heap) {
   return mmh_better(heap, 2, 1, false) ? 2 : 1;
 }
 
-const void *FUNC(ds_min_max_heap_peek_min)(const ds_min_max_heap_t *heap) {
+const void *ds_min_max_heap_peek_min(const ds_min_max_heap_t *heap) {
   return heap->items.size == 0 ? NULL : heap->items.data;
 }
 
-const void *FUNC(ds_min_max_heap_peek_max)(const ds_min_max_heap_t *heap) {
+const void *ds_min_max_heap_peek_max(const ds_min_max_heap_t *heap) {
   if (heap->items.size == 0) {
     return NULL;
   }
@@ -177,7 +176,7 @@ static void mmh_remove_at(ds_min_max_heap_t *heap, size_t index, void *out,
   }
 }
 
-ds_status_t FUNC(ds_min_max_heap_pop_min)(ds_min_max_heap_t *heap, void *out) {
+ds_status_t ds_min_max_heap_pop_min(ds_min_max_heap_t *heap, void *out) {
   if (heap->items.size == 0) {
     return DS_EMPTY;
   }
@@ -185,7 +184,7 @@ ds_status_t FUNC(ds_min_max_heap_pop_min)(ds_min_max_heap_t *heap, void *out) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_min_max_heap_pop_max)(ds_min_max_heap_t *heap, void *out) {
+ds_status_t ds_min_max_heap_pop_max(ds_min_max_heap_t *heap, void *out) {
   size_t index;
   if (heap->items.size == 0) {
     return DS_EMPTY;
@@ -195,14 +194,14 @@ ds_status_t FUNC(ds_min_max_heap_pop_max)(ds_min_max_heap_t *heap, void *out) {
   return DS_OK;
 }
 
-size_t FUNC(ds_min_max_heap_size)(const ds_min_max_heap_t *heap) {
+size_t ds_min_max_heap_size(const ds_min_max_heap_t *heap) {
   return heap->items.size;
 }
 
-bool FUNC(ds_min_max_heap_is_empty)(const ds_min_max_heap_t *heap) {
+bool ds_min_max_heap_is_empty(const ds_min_max_heap_t *heap) {
   return heap->items.size == 0;
 }
 
-void FUNC(ds_min_max_heap_clear)(ds_min_max_heap_t *heap) {
-  FUNC(ds_vec_clear)(&heap->items);
+void ds_min_max_heap_clear(ds_min_max_heap_t *heap) {
+  ds_vec_clear(&heap->items);
 }

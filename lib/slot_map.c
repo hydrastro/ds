@@ -91,8 +91,8 @@ static void slot_map_release(ds_slot_map_t *map, size_t slot) {
   map->free_head = slot;
 }
 
-ds_status_t FUNC(ds_slot_map_init)(ds_slot_map_t *map, size_t elem_size,
-                                   ds_context_t *context) {
+ds_status_t ds_slot_map_init(ds_slot_map_t *map, size_t elem_size,
+                             ds_context_t *context) {
   if (map == NULL) {
     return DS_ERR_NULL;
   }
@@ -112,10 +112,9 @@ ds_status_t FUNC(ds_slot_map_init)(ds_slot_map_t *map, size_t elem_size,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_slot_map_init_buffer)(ds_slot_map_t *map, size_t elem_size,
-                                          void *values,
-                                          ds_slot_map_slot_t *slots,
-                                          size_t *dense_slot, size_t capacity) {
+ds_status_t ds_slot_map_init_buffer(ds_slot_map_t *map, size_t elem_size,
+                                    void *values, ds_slot_map_slot_t *slots,
+                                    size_t *dense_slot, size_t capacity) {
   if (map == NULL || (capacity > 0 && (values == NULL || slots == NULL ||
                                        dense_slot == NULL))) {
     return DS_ERR_NULL;
@@ -136,7 +135,7 @@ ds_status_t FUNC(ds_slot_map_init_buffer)(ds_slot_map_t *map, size_t elem_size,
   return DS_OK;
 }
 
-void FUNC(ds_slot_map_destroy)(ds_slot_map_t *map) {
+void ds_slot_map_destroy(ds_slot_map_t *map) {
   if (map == NULL) {
     return;
   }
@@ -154,8 +153,8 @@ void FUNC(ds_slot_map_destroy)(ds_slot_map_t *map) {
   map->free_head = SLOT_MAP_NONE;
 }
 
-void *FUNC(ds_slot_map_emplace)(ds_slot_map_t *map,
-                                ds_slot_map_handle_t *out_handle) {
+void *ds_slot_map_emplace(ds_slot_map_t *map,
+                          ds_slot_map_handle_t *out_handle) {
   size_t slot;
   size_t dense;
   if (slot_map_acquire(map, &slot) != DS_OK) {
@@ -172,8 +171,8 @@ void *FUNC(ds_slot_map_emplace)(ds_slot_map_t *map,
   return slot_map_value(map, dense);
 }
 
-ds_status_t FUNC(ds_slot_map_insert)(ds_slot_map_t *map, const void *value,
-                                     ds_slot_map_handle_t *out_handle) {
+ds_status_t ds_slot_map_insert(ds_slot_map_t *map, const void *value,
+                               ds_slot_map_handle_t *out_handle) {
   void *dst;
   if (value == NULL) {
     return DS_ERR_NULL;
@@ -182,7 +181,7 @@ ds_status_t FUNC(ds_slot_map_insert)(ds_slot_map_t *map, const void *value,
       map->fixed) {
     return DS_ERR_OVERFLOW;
   }
-  dst = FUNC(ds_slot_map_emplace)(map, out_handle);
+  dst = ds_slot_map_emplace(map, out_handle);
   if (dst == NULL) {
     return map->fixed ? DS_ERR_OVERFLOW : DS_ERR_ALLOC;
   }
@@ -190,8 +189,8 @@ ds_status_t FUNC(ds_slot_map_insert)(ds_slot_map_t *map, const void *value,
   return DS_OK;
 }
 
-bool FUNC(ds_slot_map_contains)(const ds_slot_map_t *map,
-                                ds_slot_map_handle_t handle) {
+bool ds_slot_map_contains(const ds_slot_map_t *map,
+                          ds_slot_map_handle_t handle) {
   unsigned long generation;
   if (handle.index >= map->slot_count) {
     return false;
@@ -200,19 +199,19 @@ bool FUNC(ds_slot_map_contains)(const ds_slot_map_t *map,
   return generation == handle.generation && (generation & 1UL) != 0;
 }
 
-void *FUNC(ds_slot_map_get)(ds_slot_map_t *map, ds_slot_map_handle_t handle) {
-  if (!FUNC(ds_slot_map_contains)(map, handle)) {
+void *ds_slot_map_get(ds_slot_map_t *map, ds_slot_map_handle_t handle) {
+  if (!ds_slot_map_contains(map, handle)) {
     return NULL;
   }
   return slot_map_value(map, map->slots[handle.index].index);
 }
 
-ds_status_t FUNC(ds_slot_map_remove)(ds_slot_map_t *map,
-                                     ds_slot_map_handle_t handle, void *out) {
+ds_status_t ds_slot_map_remove(ds_slot_map_t *map, ds_slot_map_handle_t handle,
+                               void *out) {
   size_t dense;
   size_t last;
   size_t moved_slot;
-  if (!FUNC(ds_slot_map_contains)(map, handle)) {
+  if (!ds_slot_map_contains(map, handle)) {
     return DS_NOT_FOUND;
   }
   dense = map->slots[handle.index].index;
@@ -232,7 +231,7 @@ ds_status_t FUNC(ds_slot_map_remove)(ds_slot_map_t *map,
   return DS_OK;
 }
 
-void FUNC(ds_slot_map_clear)(ds_slot_map_t *map) {
+void ds_slot_map_clear(ds_slot_map_t *map) {
   size_t i;
   for (i = 0; i < map->size; i++) {
     slot_map_release(map, map->dense_slot[i]);
@@ -240,28 +239,27 @@ void FUNC(ds_slot_map_clear)(ds_slot_map_t *map) {
   map->size = 0;
 }
 
-ds_status_t FUNC(ds_slot_map_reserve)(ds_slot_map_t *map, size_t capacity) {
+ds_status_t ds_slot_map_reserve(ds_slot_map_t *map, size_t capacity) {
   if (capacity <= map->capacity) {
     return DS_OK;
   }
   return slot_map_set_capacity(map, capacity);
 }
 
-size_t FUNC(ds_slot_map_size)(const ds_slot_map_t *map) {
+size_t ds_slot_map_size(const ds_slot_map_t *map) {
   return map->size;
 }
 
-size_t FUNC(ds_slot_map_capacity)(const ds_slot_map_t *map) {
+size_t ds_slot_map_capacity(const ds_slot_map_t *map) {
   return map->capacity;
 }
 
-void *FUNC(ds_slot_map_data)(ds_slot_map_t *map) {
+void *ds_slot_map_data(ds_slot_map_t *map) {
   return map->values;
 }
 
-ds_status_t FUNC(ds_slot_map_handle_at)(const ds_slot_map_t *map,
-                                        size_t dense_index,
-                                        ds_slot_map_handle_t *out_handle) {
+ds_status_t ds_slot_map_handle_at(const ds_slot_map_t *map, size_t dense_index,
+                                  ds_slot_map_handle_t *out_handle) {
   size_t slot;
   if (out_handle == NULL) {
     return DS_ERR_NULL;

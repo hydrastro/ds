@@ -28,23 +28,22 @@ typedef struct hamt {
   void (*deallocator)(void *);
 } ds_hamt_t;
 
-ds_hamt_t *FUNC(ds_hamt_create)(void);
-ds_hamt_t *FUNC(ds_hamt_create_alloc)(void *(*allocator)(size_t),
-                                      void (*deallocator)(void *));
+ds_hamt_t *ds_hamt_create(void);
+ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
+                                void (*deallocator)(void *));
 /* insert or update; returns true if a new key was added, false on update */
-bool FUNC(ds_hamt_insert)(ds_hamt_t *hamt, const void *key, size_t key_length,
-                          void *value);
-bool FUNC(ds_hamt_contains)(ds_hamt_t *hamt, const void *key,
-                            size_t key_length);
-void *FUNC(ds_hamt_get)(ds_hamt_t *hamt, const void *key, size_t key_length);
-bool FUNC(ds_hamt_remove)(ds_hamt_t *hamt, const void *key, size_t key_length,
-                          void **out_value);
-size_t FUNC(ds_hamt_size)(ds_hamt_t *hamt);
-bool FUNC(ds_hamt_is_empty)(ds_hamt_t *hamt);
-void FUNC(ds_hamt_walk)(ds_hamt_t *hamt,
-                        void (*callback)(const void *, size_t, void *, void *),
-                        void *user);
-void FUNC(ds_hamt_destroy)(ds_hamt_t *hamt, void (*destroy_value)(void *));
+bool ds_hamt_insert(ds_hamt_t *hamt, const void *key, size_t key_length,
+                    void *value);
+bool ds_hamt_contains(ds_hamt_t *hamt, const void *key, size_t key_length);
+void *ds_hamt_get(ds_hamt_t *hamt, const void *key, size_t key_length);
+bool ds_hamt_remove(ds_hamt_t *hamt, const void *key, size_t key_length,
+                    void **out_value);
+size_t ds_hamt_size(ds_hamt_t *hamt);
+bool ds_hamt_is_empty(ds_hamt_t *hamt);
+void ds_hamt_walk(ds_hamt_t *hamt,
+                  void (*callback)(const void *, size_t, void *, void *),
+                  void *user);
+void ds_hamt_destroy(ds_hamt_t *hamt, void (*destroy_value)(void *));
 
 #ifdef __cplusplus
 }

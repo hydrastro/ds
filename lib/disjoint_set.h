@@ -20,23 +20,19 @@ typedef struct disjoint_set {
   void (*deallocator)(void *);
 } ds_disjoint_set_t;
 
-ds_disjoint_set_t *FUNC(ds_disjoint_set_create)(void);
-ds_disjoint_set_t *
-    FUNC(ds_disjoint_set_create_alloc)(void *(*allocator)(size_t),
-                                       void (*deallocator)(void *));
-void FUNC(ds_disjoint_set_make)(ds_disjoint_set_t *set,
-                                ds_disjoint_set_node_t *node);
-ds_disjoint_set_node_t *
-    FUNC(ds_disjoint_set_find)(ds_disjoint_set_t *set,
-                               ds_disjoint_set_node_t *node);
-bool FUNC(ds_disjoint_set_union)(ds_disjoint_set_t *set,
-                                 ds_disjoint_set_node_t *a,
-                                 ds_disjoint_set_node_t *b);
-bool FUNC(ds_disjoint_set_connected)(ds_disjoint_set_t *set,
-                                     ds_disjoint_set_node_t *a,
-                                     ds_disjoint_set_node_t *b);
-size_t FUNC(ds_disjoint_set_count)(ds_disjoint_set_t *set);
-void FUNC(ds_disjoint_set_destroy)(ds_disjoint_set_t *set);
+ds_disjoint_set_t *ds_disjoint_set_create(void);
+ds_disjoint_set_t *ds_disjoint_set_create_alloc(void *(*allocator)(size_t),
+                                                void (*deallocator)(void *));
+void ds_disjoint_set_make(ds_disjoint_set_t *set, ds_disjoint_set_node_t *node);
+ds_disjoint_set_node_t *ds_disjoint_set_find(ds_disjoint_set_t *set,
+                                             ds_disjoint_set_node_t *node);
+bool ds_disjoint_set_union(ds_disjoint_set_t *set, ds_disjoint_set_node_t *a,
+                           ds_disjoint_set_node_t *b);
+bool ds_disjoint_set_connected(ds_disjoint_set_t *set,
+                               ds_disjoint_set_node_t *a,
+                               ds_disjoint_set_node_t *b);
+size_t ds_disjoint_set_count(ds_disjoint_set_t *set);
+void ds_disjoint_set_destroy(ds_disjoint_set_t *set);
 
 #ifdef __cplusplus
 }

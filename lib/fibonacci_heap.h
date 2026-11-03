@@ -37,28 +37,26 @@ typedef struct fibonacci_heap {
   void (*deallocator)(void *);
 } ds_fibonacci_heap_t;
 
-ds_fibonacci_heap_t *FUNC(ds_fibonacci_heap_create)(
+ds_fibonacci_heap_t *ds_fibonacci_heap_create(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *));
-ds_fibonacci_heap_t *FUNC(ds_fibonacci_heap_create_alloc)(
+ds_fibonacci_heap_t *ds_fibonacci_heap_create_alloc(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *));
-void FUNC(ds_fibonacci_heap_node_init)(ds_fibonacci_heap_node_t *node);
-void FUNC(ds_fibonacci_heap_insert)(ds_fibonacci_heap_t *heap,
-                                    ds_fibonacci_heap_node_t *node);
-ds_fibonacci_heap_node_t *
-    FUNC(ds_fibonacci_heap_peek)(ds_fibonacci_heap_t *heap);
-ds_fibonacci_heap_node_t *
-    FUNC(ds_fibonacci_heap_extract)(ds_fibonacci_heap_t *heap);
+void ds_fibonacci_heap_node_init(ds_fibonacci_heap_node_t *node);
+void ds_fibonacci_heap_insert(ds_fibonacci_heap_t *heap,
+                              ds_fibonacci_heap_node_t *node);
+ds_fibonacci_heap_node_t *ds_fibonacci_heap_peek(ds_fibonacci_heap_t *heap);
+ds_fibonacci_heap_node_t *ds_fibonacci_heap_extract(ds_fibonacci_heap_t *heap);
 /* lower a node's key: caller must mutate the payload before calling */
-void FUNC(ds_fibonacci_heap_decrease_key)(ds_fibonacci_heap_t *heap,
-                                          ds_fibonacci_heap_node_t *node);
+void ds_fibonacci_heap_decrease_key(ds_fibonacci_heap_t *heap,
+                                    ds_fibonacci_heap_node_t *node);
 /* merge other into heap; other is emptied (but not destroyed) */
-void FUNC(ds_fibonacci_heap_merge)(ds_fibonacci_heap_t *heap,
-                                   ds_fibonacci_heap_t *other);
-size_t FUNC(ds_fibonacci_heap_size)(ds_fibonacci_heap_t *heap);
-bool FUNC(ds_fibonacci_heap_is_empty)(ds_fibonacci_heap_t *heap);
-void FUNC(ds_fibonacci_heap_destroy)(
-    ds_fibonacci_heap_t *heap, void (*destroy)(ds_fibonacci_heap_node_t *));
+void ds_fibonacci_heap_merge(ds_fibonacci_heap_t *heap,
+                             ds_fibonacci_heap_t *other);
+size_t ds_fibonacci_heap_size(ds_fibonacci_heap_t *heap);
+bool ds_fibonacci_heap_is_empty(ds_fibonacci_heap_t *heap);
+void ds_fibonacci_heap_destroy(ds_fibonacci_heap_t *heap,
+                               void (*destroy)(ds_fibonacci_heap_node_t *));
 
 #ifdef __cplusplus
 }

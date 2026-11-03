@@ -77,7 +77,7 @@ static unsigned long pa_mask(unsigned int bits) {
   return bits == PA_WORD_BITS ? ~0UL : (1UL << bits) - 1UL;
 }
 
-size_t FUNC(ds_packed_array_words_for)(size_t count, unsigned int bits) {
+size_t ds_packed_array_words_for(size_t count, unsigned int bits) {
   if (pa_check_bits(bits) != DS_OK || count == 0) {
     return 0;
   }
@@ -87,9 +87,8 @@ size_t FUNC(ds_packed_array_words_for)(size_t count, unsigned int bits) {
   return (count * bits + PA_WORD_BITS - 1) / PA_WORD_BITS;
 }
 
-ds_status_t FUNC(ds_packed_array_init)(ds_packed_array_t *array,
-                                       unsigned int bits,
-                                       ds_context_t *context) {
+ds_status_t ds_packed_array_init(ds_packed_array_t *array, unsigned int bits,
+                                 ds_context_t *context) {
   if (array == NULL) {
     return DS_ERR_NULL;
   }
@@ -107,10 +106,9 @@ ds_status_t FUNC(ds_packed_array_init)(ds_packed_array_t *array,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_packed_array_init_buffer)(ds_packed_array_t *array,
-                                              unsigned int bits,
-                                              unsigned long *words,
-                                              size_t word_count) {
+ds_status_t ds_packed_array_init_buffer(ds_packed_array_t *array,
+                                        unsigned int bits, unsigned long *words,
+                                        size_t word_count) {
   if (array == NULL || (words == NULL && word_count > 0)) {
     return DS_ERR_NULL;
   }
@@ -128,7 +126,7 @@ ds_status_t FUNC(ds_packed_array_init_buffer)(ds_packed_array_t *array,
   return DS_OK;
 }
 
-void FUNC(ds_packed_array_destroy)(ds_packed_array_t *array) {
+void ds_packed_array_destroy(ds_packed_array_t *array) {
   if (array == NULL) {
     return;
   }
@@ -141,8 +139,8 @@ void FUNC(ds_packed_array_destroy)(ds_packed_array_t *array) {
   array->size = 0;
 }
 
-ds_status_t FUNC(ds_packed_array_get)(const ds_packed_array_t *array,
-                                      size_t index, unsigned long *out_value) {
+ds_status_t ds_packed_array_get(const ds_packed_array_t *array, size_t index,
+                                unsigned long *out_value) {
   if (out_value == NULL) {
     return DS_ERR_NULL;
   }
@@ -153,13 +151,12 @@ ds_status_t FUNC(ds_packed_array_get)(const ds_packed_array_t *array,
   return DS_OK;
 }
 
-unsigned long FUNC(ds_packed_array_at)(const ds_packed_array_t *array,
-                                       size_t index) {
+unsigned long ds_packed_array_at(const ds_packed_array_t *array, size_t index) {
   return index < array->size ? pa_read(array, index) : 0UL;
 }
 
-ds_status_t FUNC(ds_packed_array_set)(ds_packed_array_t *array, size_t index,
-                                      unsigned long value) {
+ds_status_t ds_packed_array_set(ds_packed_array_t *array, size_t index,
+                                unsigned long value) {
   if (index >= array->size) {
     return DS_ERR_RANGE;
   }
@@ -170,21 +167,20 @@ ds_status_t FUNC(ds_packed_array_set)(ds_packed_array_t *array, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_packed_array_reserve)(ds_packed_array_t *array,
-                                          size_t capacity) {
+ds_status_t ds_packed_array_reserve(ds_packed_array_t *array, size_t capacity) {
   size_t words;
   if (capacity <= array->capacity) {
     return DS_OK;
   }
-  words = FUNC(ds_packed_array_words_for)(capacity, array->bits);
+  words = ds_packed_array_words_for(capacity, array->bits);
   if (words == 0) {
     return DS_ERR_OVERFLOW;
   }
   return pa_set_words(array, words);
 }
 
-ds_status_t FUNC(ds_packed_array_push)(ds_packed_array_t *array,
-                                       unsigned long value) {
+ds_status_t ds_packed_array_push(ds_packed_array_t *array,
+                                 unsigned long value) {
   ds_status_t status;
   size_t words;
   if ((value & ~array->mask) != 0) {
@@ -209,8 +205,8 @@ ds_status_t FUNC(ds_packed_array_push)(ds_packed_array_t *array,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_packed_array_pop)(ds_packed_array_t *array,
-                                      unsigned long *out_value) {
+ds_status_t ds_packed_array_pop(ds_packed_array_t *array,
+                                unsigned long *out_value) {
   if (array->size == 0) {
     return DS_EMPTY;
   }
@@ -221,12 +217,11 @@ ds_status_t FUNC(ds_packed_array_pop)(ds_packed_array_t *array,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_packed_array_resize)(ds_packed_array_t *array,
-                                         size_t size) {
+ds_status_t ds_packed_array_resize(ds_packed_array_t *array, size_t size) {
   ds_status_t status;
   size_t i;
   if (size > array->capacity) {
-    status = FUNC(ds_packed_array_reserve)(array, size);
+    status = ds_packed_array_reserve(array, size);
     if (status != DS_OK) {
       return status;
     }
@@ -238,22 +233,22 @@ ds_status_t FUNC(ds_packed_array_resize)(ds_packed_array_t *array,
   return DS_OK;
 }
 
-void FUNC(ds_packed_array_clear)(ds_packed_array_t *array) {
+void ds_packed_array_clear(ds_packed_array_t *array) {
   array->size = 0;
 }
 
-size_t FUNC(ds_packed_array_size)(const ds_packed_array_t *array) {
+size_t ds_packed_array_size(const ds_packed_array_t *array) {
   return array->size;
 }
 
-size_t FUNC(ds_packed_array_capacity)(const ds_packed_array_t *array) {
+size_t ds_packed_array_capacity(const ds_packed_array_t *array) {
   return array->capacity;
 }
 
-unsigned int FUNC(ds_packed_array_bits)(const ds_packed_array_t *array) {
+unsigned int ds_packed_array_bits(const ds_packed_array_t *array) {
   return array->bits;
 }
 
-unsigned long FUNC(ds_packed_array_max_value)(const ds_packed_array_t *array) {
+unsigned long ds_packed_array_max_value(const ds_packed_array_t *array) {
   return array->mask;
 }

@@ -49,13 +49,12 @@ void heapify_down(ds_heap_t *heap, size_t index,
   }
 }
 
-ds_heap_t *FUNC(ds_heap_create)(size_t capacity) {
-  return FUNC(ds_heap_create_alloc)(capacity, malloc, free);
+ds_heap_t *ds_heap_create(size_t capacity) {
+  return ds_heap_create_alloc(capacity, malloc, free);
 }
 
-ds_heap_t *FUNC(ds_heap_create_alloc)(size_t capacity,
-                                      void *(*allocator)(size_t),
-                                      void (*deallocator)(void *)) {
+ds_heap_t *ds_heap_create_alloc(size_t capacity, void *(*allocator)(size_t),
+                                void (*deallocator)(void *)) {
   ds_heap_t *heap = (ds_heap_t *)allocator(sizeof(ds_heap_t));
   heap->allocator = allocator;
   heap->deallocator = deallocator;
@@ -70,8 +69,8 @@ ds_heap_t *FUNC(ds_heap_create_alloc)(size_t capacity,
   return heap;
 }
 
-void FUNC(ds_heap_insert)(ds_heap_t *heap, ds_heap_node_t *node,
-                          int (*compare)(ds_heap_node_t *, ds_heap_node_t *)) {
+void ds_heap_insert(ds_heap_t *heap, ds_heap_node_t *node,
+                    int (*compare)(ds_heap_node_t *, ds_heap_node_t *)) {
   if (heap->size >= heap->capacity) {
     size_t new_capacity;
     ds_heap_node_t **new_data;
@@ -97,11 +96,10 @@ void FUNC(ds_heap_insert)(ds_heap_t *heap, ds_heap_node_t *node,
   heap->size++;
 }
 
-void *FUNC(ds_heap_extract_root)(ds_heap_t *heap,
-                                 int (*compare)(ds_heap_node_t *,
-                                                ds_heap_node_t *)) {
+void *ds_heap_extract_root(ds_heap_t *heap,
+                           int (*compare)(ds_heap_node_t *, ds_heap_node_t *)) {
   void *root;
-  if (FUNC(ds_heap_is_empty)(heap)) {
+  if (ds_heap_is_empty(heap)) {
     return heap->nil;
   }
   root = heap->data[0];
@@ -114,18 +112,18 @@ void *FUNC(ds_heap_extract_root)(ds_heap_t *heap,
   return root;
 }
 
-void *FUNC(ds_heap_peek_root)(ds_heap_t *heap) {
-  if (FUNC(ds_heap_is_empty)(heap)) {
+void *ds_heap_peek_root(ds_heap_t *heap) {
+  if (ds_heap_is_empty(heap)) {
     return heap->nil;
   }
   return heap->data[0];
 }
 
-bool FUNC(ds_heap_is_empty)(ds_heap_t *heap) {
+bool ds_heap_is_empty(ds_heap_t *heap) {
   return heap->size == 0;
 }
 
-void FUNC(ds_heap_destroy)(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *)) {
+void ds_heap_destroy(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *)) {
   size_t i;
   if (destroy != NULL) {
     for (i = 0; i < heap->size; ++i) {
@@ -139,13 +137,12 @@ void FUNC(ds_heap_destroy)(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *)) {
   heap->deallocator(heap);
 }
 
-ds_heap_t *
-FUNC(ds_heap_clone)(ds_heap_t *heap,
-                    ds_heap_node_t *(*clone_node)(ds_heap_node_t *)) {
+ds_heap_t *ds_heap_clone(ds_heap_t *heap,
+                         ds_heap_node_t *(*clone_node)(ds_heap_node_t *)) {
   size_t i;
   ds_heap_t *new_heap;
-  new_heap = FUNC(ds_heap_create_alloc)(heap->capacity, heap->allocator,
-                                        heap->deallocator);
+  new_heap =
+      ds_heap_create_alloc(heap->capacity, heap->allocator, heap->deallocator);
   new_heap->size = heap->size;
   for (i = 0; i < heap->size; ++i) {
     ds_heap_node_t *original_node = heap->data[i];

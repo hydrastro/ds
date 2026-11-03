@@ -73,8 +73,8 @@ static ds_status_t vec_grow_for(ds_vec_t *vec, size_t extra) {
   return vec_set_capacity(vec, capacity);
 }
 
-ds_status_t FUNC(ds_vec_init)(ds_vec_t *vec, size_t elem_size,
-                              ds_context_t *context) {
+ds_status_t ds_vec_init(ds_vec_t *vec, size_t elem_size,
+                        ds_context_t *context) {
   if (vec == NULL) {
     return DS_ERR_NULL;
   }
@@ -90,8 +90,8 @@ ds_status_t FUNC(ds_vec_init)(ds_vec_t *vec, size_t elem_size,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_vec_init_buffer)(ds_vec_t *vec, size_t elem_size,
-                                     void *buffer, size_t capacity) {
+ds_status_t ds_vec_init_buffer(ds_vec_t *vec, size_t elem_size, void *buffer,
+                               size_t capacity) {
   if (vec == NULL || (buffer == NULL && capacity > 0)) {
     return DS_ERR_NULL;
   }
@@ -107,7 +107,7 @@ ds_status_t FUNC(ds_vec_init_buffer)(ds_vec_t *vec, size_t elem_size,
   return DS_OK;
 }
 
-void FUNC(ds_vec_destroy)(ds_vec_t *vec) {
+void ds_vec_destroy(ds_vec_t *vec) {
   if (vec == NULL) {
     return;
   }
@@ -119,42 +119,42 @@ void FUNC(ds_vec_destroy)(ds_vec_t *vec) {
   vec->size = 0;
 }
 
-size_t FUNC(ds_vec_size)(const ds_vec_t *vec) {
+size_t ds_vec_size(const ds_vec_t *vec) {
   return vec->size;
 }
 
-size_t FUNC(ds_vec_capacity)(const ds_vec_t *vec) {
+size_t ds_vec_capacity(const ds_vec_t *vec) {
   return vec->capacity;
 }
 
-bool FUNC(ds_vec_is_empty)(const ds_vec_t *vec) {
+bool ds_vec_is_empty(const ds_vec_t *vec) {
   return vec->size == 0;
 }
 
-bool FUNC(ds_vec_is_full)(const ds_vec_t *vec) {
+bool ds_vec_is_full(const ds_vec_t *vec) {
   return vec->size == vec->capacity;
 }
 
-void *FUNC(ds_vec_data)(ds_vec_t *vec) {
+void *ds_vec_data(ds_vec_t *vec) {
   return vec->data;
 }
 
-void *FUNC(ds_vec_at)(ds_vec_t *vec, size_t index) {
+void *ds_vec_at(ds_vec_t *vec, size_t index) {
   if (index >= vec->size) {
     return NULL;
   }
   return vec_ptr(vec, index);
 }
 
-void *FUNC(ds_vec_front)(ds_vec_t *vec) {
+void *ds_vec_front(ds_vec_t *vec) {
   return vec->size == 0 ? NULL : vec->data;
 }
 
-void *FUNC(ds_vec_back)(ds_vec_t *vec) {
+void *ds_vec_back(ds_vec_t *vec) {
   return vec->size == 0 ? NULL : vec_ptr(vec, vec->size - 1);
 }
 
-ds_status_t FUNC(ds_vec_get)(const ds_vec_t *vec, size_t index, void *out) {
+ds_status_t ds_vec_get(const ds_vec_t *vec, size_t index, void *out) {
   if (out == NULL) {
     return DS_ERR_NULL;
   }
@@ -165,7 +165,7 @@ ds_status_t FUNC(ds_vec_get)(const ds_vec_t *vec, size_t index, void *out) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_vec_set)(ds_vec_t *vec, size_t index, const void *elem) {
+ds_status_t ds_vec_set(ds_vec_t *vec, size_t index, const void *elem) {
   if (elem == NULL) {
     return DS_ERR_NULL;
   }
@@ -176,21 +176,21 @@ ds_status_t FUNC(ds_vec_set)(ds_vec_t *vec, size_t index, const void *elem) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_vec_reserve)(ds_vec_t *vec, size_t capacity) {
+ds_status_t ds_vec_reserve(ds_vec_t *vec, size_t capacity) {
   if (capacity <= vec->capacity) {
     return DS_OK;
   }
   return vec_set_capacity(vec, capacity);
 }
 
-ds_status_t FUNC(ds_vec_shrink_to_fit)(ds_vec_t *vec) {
+ds_status_t ds_vec_shrink_to_fit(ds_vec_t *vec) {
   if (vec->fixed || vec->size == vec->capacity) {
     return DS_OK;
   }
   return vec_set_capacity(vec, vec->size);
 }
 
-ds_status_t FUNC(ds_vec_resize)(ds_vec_t *vec, size_t size, const void *fill) {
+ds_status_t ds_vec_resize(ds_vec_t *vec, size_t size, const void *fill) {
   ds_status_t status;
   size_t i;
   if (size <= vec->size) {
@@ -212,11 +212,11 @@ ds_status_t FUNC(ds_vec_resize)(ds_vec_t *vec, size_t size, const void *fill) {
   return DS_OK;
 }
 
-void FUNC(ds_vec_clear)(ds_vec_t *vec) {
+void ds_vec_clear(ds_vec_t *vec) {
   vec->size = 0;
 }
 
-ds_status_t FUNC(ds_vec_push)(ds_vec_t *vec, const void *elem) {
+ds_status_t ds_vec_push(ds_vec_t *vec, const void *elem) {
   ds_status_t status;
   if (elem == NULL) {
     return DS_ERR_NULL;
@@ -230,7 +230,7 @@ ds_status_t FUNC(ds_vec_push)(ds_vec_t *vec, const void *elem) {
   return DS_OK;
 }
 
-void *FUNC(ds_vec_emplace)(ds_vec_t *vec) {
+void *ds_vec_emplace(ds_vec_t *vec) {
   if (vec_grow_for(vec, 1) != DS_OK) {
     return NULL;
   }
@@ -238,12 +238,11 @@ void *FUNC(ds_vec_emplace)(ds_vec_t *vec) {
   return vec_ptr(vec, vec->size - 1);
 }
 
-ds_status_t FUNC(ds_vec_append)(ds_vec_t *vec, const void *elems,
-                                size_t count) {
-  return FUNC(ds_vec_insert_n)(vec, vec->size, elems, count);
+ds_status_t ds_vec_append(ds_vec_t *vec, const void *elems, size_t count) {
+  return ds_vec_insert_n(vec, vec->size, elems, count);
 }
 
-ds_status_t FUNC(ds_vec_pop)(ds_vec_t *vec, void *out) {
+ds_status_t ds_vec_pop(ds_vec_t *vec, void *out) {
   if (vec->size == 0) {
     return DS_EMPTY;
   }
@@ -254,12 +253,12 @@ ds_status_t FUNC(ds_vec_pop)(ds_vec_t *vec, void *out) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_vec_insert)(ds_vec_t *vec, size_t index, const void *elem) {
-  return FUNC(ds_vec_insert_n)(vec, index, elem, 1);
+ds_status_t ds_vec_insert(ds_vec_t *vec, size_t index, const void *elem) {
+  return ds_vec_insert_n(vec, index, elem, 1);
 }
 
-ds_status_t FUNC(ds_vec_insert_n)(ds_vec_t *vec, size_t index,
-                                  const void *elems, size_t count) {
+ds_status_t ds_vec_insert_n(ds_vec_t *vec, size_t index, const void *elems,
+                            size_t count) {
   ds_status_t status;
   if (count == 0) {
     return DS_OK;
@@ -284,18 +283,17 @@ ds_status_t FUNC(ds_vec_insert_n)(ds_vec_t *vec, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_vec_erase)(ds_vec_t *vec, size_t index, void *out) {
+ds_status_t ds_vec_erase(ds_vec_t *vec, size_t index, void *out) {
   if (index >= vec->size) {
     return DS_ERR_RANGE;
   }
   if (out != NULL) {
     memcpy(out, vec_ptr(vec, index), vec->elem_size);
   }
-  return FUNC(ds_vec_erase_range)(vec, index, 1);
+  return ds_vec_erase_range(vec, index, 1);
 }
 
-ds_status_t FUNC(ds_vec_erase_range)(ds_vec_t *vec, size_t index,
-                                     size_t count) {
+ds_status_t ds_vec_erase_range(ds_vec_t *vec, size_t index, size_t count) {
   size_t tail;
   if (index > vec->size || count > vec->size - index) {
     return DS_ERR_RANGE;
@@ -312,7 +310,7 @@ ds_status_t FUNC(ds_vec_erase_range)(ds_vec_t *vec, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_vec_swap_remove)(ds_vec_t *vec, size_t index, void *out) {
+ds_status_t ds_vec_swap_remove(ds_vec_t *vec, size_t index, void *out) {
   if (index >= vec->size) {
     return DS_ERR_RANGE;
   }
@@ -326,7 +324,7 @@ ds_status_t FUNC(ds_vec_swap_remove)(ds_vec_t *vec, size_t index, void *out) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_vec_swap)(ds_vec_t *vec, size_t a, size_t b) {
+ds_status_t ds_vec_swap(ds_vec_t *vec, size_t a, size_t b) {
   if (a >= vec->size || b >= vec->size) {
     return DS_ERR_RANGE;
   }
@@ -336,7 +334,7 @@ ds_status_t FUNC(ds_vec_swap)(ds_vec_t *vec, size_t a, size_t b) {
   return DS_OK;
 }
 
-void FUNC(ds_vec_reverse)(ds_vec_t *vec) {
+void ds_vec_reverse(ds_vec_t *vec) {
   size_t i;
   size_t j;
   if (vec->size < 2) {
@@ -371,8 +369,7 @@ static void vec_sift_down(ds_vec_t *vec, size_t root, size_t end,
   }
 }
 
-void FUNC(ds_vec_sort)(ds_vec_t *vec, ds_vec_compare_func_t compare,
-                       void *user) {
+void ds_vec_sort(ds_vec_t *vec, ds_vec_compare_func_t compare, void *user) {
   size_t i;
   size_t end;
   if (vec->size < 2 || compare == NULL) {
@@ -387,8 +384,8 @@ void FUNC(ds_vec_sort)(ds_vec_t *vec, ds_vec_compare_func_t compare,
   }
 }
 
-size_t FUNC(ds_vec_lower_bound)(const ds_vec_t *vec, const void *key,
-                                ds_vec_compare_func_t compare, void *user) {
+size_t ds_vec_lower_bound(const ds_vec_t *vec, const void *key,
+                          ds_vec_compare_func_t compare, void *user) {
   size_t lo = 0;
   size_t hi = vec->size;
   size_t mid;
@@ -403,14 +400,14 @@ size_t FUNC(ds_vec_lower_bound)(const ds_vec_t *vec, const void *key,
   return lo;
 }
 
-ds_status_t FUNC(ds_vec_binary_search)(const ds_vec_t *vec, const void *key,
-                                       ds_vec_compare_func_t compare,
-                                       void *user, size_t *out_index) {
+ds_status_t ds_vec_binary_search(const ds_vec_t *vec, const void *key,
+                                 ds_vec_compare_func_t compare, void *user,
+                                 size_t *out_index) {
   size_t index;
   if (key == NULL || compare == NULL) {
     return DS_ERR_NULL;
   }
-  index = FUNC(ds_vec_lower_bound)(vec, key, compare, user);
+  index = ds_vec_lower_bound(vec, key, compare, user);
   if (out_index != NULL) {
     *out_index = index;
   }
@@ -420,9 +417,9 @@ ds_status_t FUNC(ds_vec_binary_search)(const ds_vec_t *vec, const void *key,
   return DS_NOT_FOUND;
 }
 
-ds_status_t FUNC(ds_vec_find)(const ds_vec_t *vec, const void *key,
-                              ds_vec_compare_func_t compare, void *user,
-                              size_t *out_index) {
+ds_status_t ds_vec_find(const ds_vec_t *vec, const void *key,
+                        ds_vec_compare_func_t compare, void *user,
+                        size_t *out_index) {
   size_t i;
   if (key == NULL || compare == NULL) {
     return DS_ERR_NULL;
@@ -438,13 +435,13 @@ ds_status_t FUNC(ds_vec_find)(const ds_vec_t *vec, const void *key,
   return DS_NOT_FOUND;
 }
 
-ds_status_t FUNC(ds_vec_copy)(ds_vec_t *dst, const ds_vec_t *src,
-                              ds_context_t *context) {
+ds_status_t ds_vec_copy(ds_vec_t *dst, const ds_vec_t *src,
+                        ds_context_t *context) {
   ds_status_t status;
   if (dst == NULL || src == NULL) {
     return DS_ERR_NULL;
   }
-  status = FUNC(ds_vec_init)(dst, src->elem_size, context);
+  status = ds_vec_init(dst, src->elem_size, context);
   if (status != DS_OK) {
     return status;
   }

@@ -45,11 +45,11 @@ static ds_status_t graph_reserve_edges(ds_graph_t *graph, size_t vertex,
   return DS_OK;
 }
 
-ds_graph_t *FUNC(ds_graph_create)(void) {
-  return FUNC(ds_graph_create_ctx)(NULL);
+ds_graph_t *ds_graph_create(void) {
+  return ds_graph_create_ctx(NULL);
 }
 
-ds_graph_t *FUNC(ds_graph_create_ctx)(ds_context_t *context) {
+ds_graph_t *ds_graph_create_ctx(ds_context_t *context) {
   ds_graph_t *graph;
   if (context == NULL) {
     context = ds_default_context();
@@ -65,8 +65,8 @@ ds_graph_t *FUNC(ds_graph_create_ctx)(ds_context_t *context) {
   return graph;
 }
 
-void FUNC(ds_graph_destroy)(ds_graph_t *graph, void (*destroy_vertex)(void *),
-                            void (*destroy_edge)(void *)) {
+void ds_graph_destroy(ds_graph_t *graph, void (*destroy_vertex)(void *),
+                      void (*destroy_edge)(void *)) {
   size_t i;
   size_t j;
   if (graph == NULL) {
@@ -87,8 +87,8 @@ void FUNC(ds_graph_destroy)(ds_graph_t *graph, void (*destroy_vertex)(void *),
   ds_context_free(graph->context, graph);
 }
 
-ds_status_t FUNC(ds_graph_add_vertex)(ds_graph_t *graph, void *data,
-                                      size_t *out_index) {
+ds_status_t ds_graph_add_vertex(ds_graph_t *graph, void *data,
+                                size_t *out_index) {
   ds_status_t status;
   size_t index;
   if (graph == NULL) {
@@ -111,14 +111,13 @@ ds_status_t FUNC(ds_graph_add_vertex)(ds_graph_t *graph, void *data,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_graph_add_edge)(ds_graph_t *graph, size_t from, size_t to,
-                                    void *data) {
-  return FUNC(ds_graph_add_weighted_edge)(graph, from, to, 1.0, data);
+ds_status_t ds_graph_add_edge(ds_graph_t *graph, size_t from, size_t to,
+                              void *data) {
+  return ds_graph_add_weighted_edge(graph, from, to, 1.0, data);
 }
 
-ds_status_t FUNC(ds_graph_add_weighted_edge)(ds_graph_t *graph, size_t from,
-                                             size_t to, double weight,
-                                             void *data) {
+ds_status_t ds_graph_add_weighted_edge(ds_graph_t *graph, size_t from,
+                                       size_t to, double weight, void *data) {
   ds_status_t status;
   size_t index;
   if (graph == NULL) {
@@ -145,8 +144,8 @@ ds_status_t FUNC(ds_graph_add_weighted_edge)(ds_graph_t *graph, size_t from,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_graph_get_vertex)(ds_graph_t *graph, size_t index,
-                                      void **out_data) {
+ds_status_t ds_graph_get_vertex(ds_graph_t *graph, size_t index,
+                                void **out_data) {
   if (out_data != NULL) {
     *out_data = NULL;
   }
@@ -160,9 +159,9 @@ ds_status_t FUNC(ds_graph_get_vertex)(ds_graph_t *graph, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_graph_update_edge)(ds_graph_t *graph, size_t from,
-                                       size_t to, double weight, void *data,
-                                       void (*destroy_old_edge)(void *)) {
+ds_status_t ds_graph_update_edge(ds_graph_t *graph, size_t from, size_t to,
+                                 double weight, void *data,
+                                 void (*destroy_old_edge)(void *)) {
   size_t i;
 
   if (graph == NULL) {
@@ -181,12 +180,11 @@ ds_status_t FUNC(ds_graph_update_edge)(ds_graph_t *graph, size_t from,
       return DS_OK;
     }
   }
-  return FUNC(ds_graph_add_weighted_edge)(graph, from, to, weight, data);
+  return ds_graph_add_weighted_edge(graph, from, to, weight, data);
 }
 
-ds_status_t FUNC(ds_graph_remove_edge)(ds_graph_t *graph, size_t from,
-                                       size_t to,
-                                       void (*destroy_edge)(void *)) {
+ds_status_t ds_graph_remove_edge(ds_graph_t *graph, size_t from, size_t to,
+                                 void (*destroy_edge)(void *)) {
   size_t i;
   size_t j;
 
@@ -211,9 +209,8 @@ ds_status_t FUNC(ds_graph_remove_edge)(ds_graph_t *graph, size_t from,
   return DS_NOT_FOUND;
 }
 
-ds_status_t FUNC(ds_graph_visit_edges)(ds_graph_t *graph, size_t from,
-                                       ds_graph_edge_visit_func_t visit,
-                                       void *user) {
+ds_status_t ds_graph_visit_edges(ds_graph_t *graph, size_t from,
+                                 ds_graph_edge_visit_func_t visit, void *user) {
   size_t i;
 
   if (graph == NULL || visit == NULL) {
@@ -230,22 +227,22 @@ ds_status_t FUNC(ds_graph_visit_edges)(ds_graph_t *graph, size_t from,
   return DS_OK;
 }
 
-size_t FUNC(ds_graph_vertex_count)(ds_graph_t *graph) {
+size_t ds_graph_vertex_count(ds_graph_t *graph) {
   if (graph == NULL) {
     return 0U;
   }
   return graph->vertex_count;
 }
 
-size_t FUNC(ds_graph_edge_count)(ds_graph_t *graph, size_t vertex) {
+size_t ds_graph_edge_count(ds_graph_t *graph, size_t vertex) {
   if (graph == NULL || vertex >= graph->vertex_count) {
     return 0U;
   }
   return graph->vertices[vertex].edge_count;
 }
 
-ds_status_t FUNC(ds_graph_bfs)(ds_graph_t *graph, size_t start,
-                               ds_graph_visit_func_t visit, void *user) {
+ds_status_t ds_graph_bfs(ds_graph_t *graph, size_t start,
+                         ds_graph_visit_func_t visit, void *user) {
   bool *seen;
   size_t *queue;
   size_t head;
@@ -316,8 +313,8 @@ static ds_status_t graph_dfs_visit(ds_graph_t *graph, size_t vertex, bool *seen,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_graph_dfs)(ds_graph_t *graph, size_t start,
-                               ds_graph_visit_func_t visit, void *user) {
+ds_status_t ds_graph_dfs(ds_graph_t *graph, size_t start,
+                         ds_graph_visit_func_t visit, void *user) {
   bool *seen;
   ds_status_t status;
   if (graph == NULL || visit == NULL) {
@@ -335,9 +332,8 @@ ds_status_t FUNC(ds_graph_dfs)(ds_graph_t *graph, size_t start,
   return status;
 }
 
-ds_status_t FUNC(ds_graph_topological_sort)(ds_graph_t *graph,
-                                            size_t *out_order, size_t capacity,
-                                            size_t *out_count) {
+ds_status_t ds_graph_topological_sort(ds_graph_t *graph, size_t *out_order,
+                                      size_t capacity, size_t *out_count) {
   size_t *indegree;
   size_t *queue;
   size_t head;
@@ -401,9 +397,9 @@ ds_status_t FUNC(ds_graph_topological_sort)(ds_graph_t *graph,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_graph_dijkstra)(ds_graph_t *graph, size_t start,
-                                    double *out_distances, size_t *out_previous,
-                                    size_t capacity) {
+ds_status_t ds_graph_dijkstra(ds_graph_t *graph, size_t start,
+                              double *out_distances, size_t *out_previous,
+                              size_t capacity) {
   bool *done;
   size_t i;
   size_t j;
@@ -468,10 +464,10 @@ ds_status_t FUNC(ds_graph_dijkstra)(ds_graph_t *graph, size_t start,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_graph_bellman_ford)(ds_graph_t *graph, size_t start,
-                                        double *out_distances,
-                                        size_t *out_previous, size_t capacity,
-                                        bool *out_has_negative_cycle) {
+ds_status_t ds_graph_bellman_ford(ds_graph_t *graph, size_t start,
+                                  double *out_distances, size_t *out_previous,
+                                  size_t capacity,
+                                  bool *out_has_negative_cycle) {
   size_t i;
   size_t j;
   size_t k;
@@ -563,8 +559,8 @@ static size_t graph_uf_find(size_t *parent, size_t index) {
   return index;
 }
 
-ds_status_t FUNC(ds_graph_minimum_spanning_tree)(ds_graph_t *graph,
-                                                 ds_graph_t *out_tree) {
+ds_status_t ds_graph_minimum_spanning_tree(ds_graph_t *graph,
+                                           ds_graph_t *out_tree) {
   graph_mst_edge_t *edges;
   size_t edge_total;
   size_t edge_index;
@@ -602,8 +598,8 @@ ds_status_t FUNC(ds_graph_minimum_spanning_tree)(ds_graph_t *graph,
   }
 
   for (i = 0U; i < graph->vertex_count; i++) {
-    status = FUNC(ds_graph_add_vertex)(out_tree, graph->vertices[i].data,
-                                       &ignored_index);
+    status =
+        ds_graph_add_vertex(out_tree, graph->vertices[i].data, &ignored_index);
     if (status != DS_OK) {
       free(parent);
       free(edges);
@@ -630,8 +626,8 @@ ds_status_t FUNC(ds_graph_minimum_spanning_tree)(ds_graph_t *graph,
     root_b = graph_uf_find(parent, edges[i].to);
     if (root_a != root_b) {
       parent[root_b] = root_a;
-      status = FUNC(ds_graph_add_weighted_edge)(
-          out_tree, edges[i].from, edges[i].to, edges[i].weight, edges[i].data);
+      status = ds_graph_add_weighted_edge(out_tree, edges[i].from, edges[i].to,
+                                          edges[i].weight, edges[i].data);
       if (status != DS_OK) {
         free(parent);
         free(edges);
@@ -649,10 +645,9 @@ ds_status_t FUNC(ds_graph_minimum_spanning_tree)(ds_graph_t *graph,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_graph_connected_components)(ds_graph_t *graph,
-                                                size_t *out_components,
-                                                size_t capacity,
-                                                size_t *out_count) {
+ds_status_t ds_graph_connected_components(ds_graph_t *graph,
+                                          size_t *out_components,
+                                          size_t capacity, size_t *out_count) {
   size_t *parent;
   size_t *roots;
   size_t i;
@@ -753,10 +748,10 @@ static void graph_scc_reverse_mark(size_t vertex, size_t component,
   }
 }
 
-ds_status_t FUNC(ds_graph_strongly_connected_components)(ds_graph_t *graph,
-                                                         size_t *out_components,
-                                                         size_t capacity,
-                                                         size_t *out_count) {
+ds_status_t ds_graph_strongly_connected_components(ds_graph_t *graph,
+                                                   size_t *out_components,
+                                                   size_t capacity,
+                                                   size_t *out_count) {
   bool *seen;
   size_t *order;
   size_t *reverse_counts;

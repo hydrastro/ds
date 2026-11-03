@@ -38,32 +38,30 @@ typedef struct bplus_tree {
   void (*deallocator)(void *);
 } ds_bplus_tree_t;
 
-ds_bplus_tree_t *FUNC(ds_bplus_tree_create)(
-    int order, int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *));
-ds_bplus_tree_t *FUNC(ds_bplus_tree_create_alloc)(
+ds_bplus_tree_t *ds_bplus_tree_create(int order,
+                                      int (*compare)(ds_bplus_tree_node_t *,
+                                                     ds_bplus_tree_node_t *));
+ds_bplus_tree_t *ds_bplus_tree_create_alloc(
     int order, bool bstar,
     int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *));
-bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
-                                ds_bplus_tree_node_t *data);
-ds_bplus_tree_node_t *FUNC(ds_bplus_tree_search)(ds_bplus_tree_t *tree,
-                                                 ds_bplus_tree_node_t *key);
-bool FUNC(ds_bplus_tree_remove)(ds_bplus_tree_t *tree,
-                                ds_bplus_tree_node_t *key,
-                                ds_bplus_tree_node_t **out_data);
-ds_bplus_tree_node_t *FUNC(ds_bplus_tree_minimum)(ds_bplus_tree_t *tree);
-ds_bplus_tree_node_t *FUNC(ds_bplus_tree_maximum)(ds_bplus_tree_t *tree);
-bool FUNC(ds_bplus_tree_is_empty)(ds_bplus_tree_t *tree);
-size_t FUNC(ds_bplus_tree_size)(ds_bplus_tree_t *tree);
-void FUNC(ds_bplus_tree_walk_forward)(ds_bplus_tree_t *tree,
-                                      void (*callback)(ds_bplus_tree_node_t *));
-void FUNC(ds_bplus_tree_range_walk)(ds_bplus_tree_t *tree,
-                                    ds_bplus_tree_node_t *low,
-                                    ds_bplus_tree_node_t *high,
-                                    void (*callback)(ds_bplus_tree_node_t *));
-void FUNC(ds_bplus_tree_destroy)(ds_bplus_tree_t *tree,
-                                 void (*destroy)(ds_bplus_tree_node_t *));
-ds_bplus_tree_t *FUNC(ds_bplus_tree_clone)(
+bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data);
+ds_bplus_tree_node_t *ds_bplus_tree_search(ds_bplus_tree_t *tree,
+                                           ds_bplus_tree_node_t *key);
+bool ds_bplus_tree_remove(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key,
+                          ds_bplus_tree_node_t **out_data);
+ds_bplus_tree_node_t *ds_bplus_tree_minimum(ds_bplus_tree_t *tree);
+ds_bplus_tree_node_t *ds_bplus_tree_maximum(ds_bplus_tree_t *tree);
+bool ds_bplus_tree_is_empty(ds_bplus_tree_t *tree);
+size_t ds_bplus_tree_size(ds_bplus_tree_t *tree);
+void ds_bplus_tree_walk_forward(ds_bplus_tree_t *tree,
+                                void (*callback)(ds_bplus_tree_node_t *));
+void ds_bplus_tree_range_walk(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *low,
+                              ds_bplus_tree_node_t *high,
+                              void (*callback)(ds_bplus_tree_node_t *));
+void ds_bplus_tree_destroy(ds_bplus_tree_t *tree,
+                           void (*destroy)(ds_bplus_tree_node_t *));
+ds_bplus_tree_t *ds_bplus_tree_clone(
     ds_bplus_tree_t *tree,
     ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *));
 

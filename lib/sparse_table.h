@@ -67,28 +67,29 @@ typedef struct ds_sparse_table {
   bool fixed;
 } ds_sparse_table_t;
 
-void FUNC(ds_sparse_table_config_init)(ds_sparse_table_config_t *config);
-size_t FUNC(ds_sparse_table_buffer_size)(ds_sparse_table_kind_t kind,
-                                         size_t count, size_t elem_size);
-ds_status_t FUNC(ds_sparse_table_init)(ds_sparse_table_t *table,
-                                       const ds_sparse_table_config_t *config,
-                                       const void *elems, size_t count);
-ds_status_t FUNC(ds_sparse_table_init_buffer)(
-    ds_sparse_table_t *table, const ds_sparse_table_config_t *config,
-    const void *elems, size_t count, void *buffer, size_t buffer_size);
-void FUNC(ds_sparse_table_destroy)(ds_sparse_table_t *table);
+void ds_sparse_table_config_init(ds_sparse_table_config_t *config);
+size_t ds_sparse_table_buffer_size(ds_sparse_table_kind_t kind, size_t count,
+                                   size_t elem_size);
+ds_status_t ds_sparse_table_init(ds_sparse_table_t *table,
+                                 const ds_sparse_table_config_t *config,
+                                 const void *elems, size_t count);
+ds_status_t ds_sparse_table_init_buffer(ds_sparse_table_t *table,
+                                        const ds_sparse_table_config_t *config,
+                                        const void *elems, size_t count,
+                                        void *buffer, size_t buffer_size);
+void ds_sparse_table_destroy(ds_sparse_table_t *table);
 
-ds_status_t FUNC(ds_sparse_table_query)(const ds_sparse_table_t *table,
-                                        size_t left, size_t right, void *out);
-size_t FUNC(ds_sparse_table_size)(const ds_sparse_table_t *table);
+ds_status_t ds_sparse_table_query(const ds_sparse_table_t *table, size_t left,
+                                  size_t right, void *out);
+size_t ds_sparse_table_size(const ds_sparse_table_t *table);
 
 /* Ready-made operations on `long` elements. */
-void FUNC(ds_sparse_table_op_min_long)(void *out, const void *a, const void *b,
-                                       void *user);
-void FUNC(ds_sparse_table_op_max_long)(void *out, const void *a, const void *b,
-                                       void *user);
-void FUNC(ds_sparse_table_op_sum_long)(void *out, const void *a, const void *b,
-                                       void *user);
+void ds_sparse_table_op_min_long(void *out, const void *a, const void *b,
+                                 void *user);
+void ds_sparse_table_op_max_long(void *out, const void *a, const void *b,
+                                 void *user);
+void ds_sparse_table_op_sum_long(void *out, const void *a, const void *b,
+                                 void *user);
 
 #ifdef __cplusplus
 }

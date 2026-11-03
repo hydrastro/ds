@@ -64,8 +64,8 @@ void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p) {
   }
 }
 
-long FUNC(ds_str_find_twoway)(ds_str_t *s, const void *needle, size_t m,
-                              size_t start) {
+long ds_str_find_twoway(ds_str_t *s, const void *needle, size_t m,
+                        size_t start) {
   const unsigned char *y;
   const unsigned char *x = (const unsigned char *)needle;
   size_t n;
@@ -137,8 +137,7 @@ long FUNC(ds_str_find_twoway)(ds_str_t *s, const void *needle, size_t m,
   return ret;
 }
 
-long FUNC(ds_str_find_bmh)(ds_str_t *s, const void *needle, size_t n,
-                           size_t start) {
+long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start) {
   const unsigned char *h, *pat = (const unsigned char *)needle;
   size_t i, len;
   unsigned char skip[256];
@@ -156,7 +155,7 @@ long FUNC(ds_str_find_bmh)(ds_str_t *s, const void *needle, size_t n,
     return ret;
   }
   if (n > 255u) {
-    return FUNC(ds_str_find_twoway)(s, needle, n, start);
+    return ds_str_find_twoway(s, needle, n, start);
   }
   for (i = 0; i < 256; ++i)
     skip[i] = (unsigned char)n;
@@ -175,8 +174,7 @@ long FUNC(ds_str_find_bmh)(ds_str_t *s, const void *needle, size_t n,
   return ret;
 }
 
-int FUNC(ds_str_ltrim_set)(ds_str_t *s, const unsigned char *set,
-                           size_t set_n) {
+int ds_str_ltrim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
   size_t i = 0u, len;
   if (!s)
     return -1;
@@ -191,8 +189,7 @@ int FUNC(ds_str_ltrim_set)(ds_str_t *s, const unsigned char *set,
   return 0;
 }
 
-int FUNC(ds_str_rtrim_set)(ds_str_t *s, const unsigned char *set,
-                           size_t set_n) {
+int ds_str_rtrim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
   size_t len;
   if (!s)
     return -1;
@@ -204,13 +201,13 @@ int FUNC(ds_str_rtrim_set)(ds_str_t *s, const unsigned char *set,
   return 0;
 }
 
-int FUNC(ds_str_trim_set)(ds_str_t *s, const unsigned char *set, size_t set_n) {
-  if (FUNC(ds_str_rtrim_set)(s, set, set_n) != 0)
+int ds_str_trim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
+  if (ds_str_rtrim_set(s, set, set_n) != 0)
     return -1;
-  return FUNC(ds_str_ltrim_set)(s, set, set_n);
+  return ds_str_ltrim_set(s, set, set_n);
 }
 
-int FUNC(ds_str_ltrim_pred)(ds_str_t *s, ds_byte_pred pred) {
+int ds_str_ltrim_pred(ds_str_t *s, ds_byte_pred pred) {
   size_t i = 0u, len;
   if (!s || !pred)
     return -1;
@@ -225,7 +222,7 @@ int FUNC(ds_str_ltrim_pred)(ds_str_t *s, ds_byte_pred pred) {
   return 0;
 }
 
-int FUNC(ds_str_rtrim_pred)(ds_str_t *s, ds_byte_pred pred) {
+int ds_str_rtrim_pred(ds_str_t *s, ds_byte_pred pred) {
   size_t len;
   if (!s || !pred)
     return -1;
@@ -237,14 +234,14 @@ int FUNC(ds_str_rtrim_pred)(ds_str_t *s, ds_byte_pred pred) {
   return 0;
 }
 
-int FUNC(ds_str_trim_pred)(ds_str_t *s, ds_byte_pred pred) {
-  if (FUNC(ds_str_rtrim_pred)(s, pred) != 0)
+int ds_str_trim_pred(ds_str_t *s, ds_byte_pred pred) {
+  if (ds_str_rtrim_pred(s, pred) != 0)
     return -1;
-  return FUNC(ds_str_ltrim_pred)(s, pred);
+  return ds_str_ltrim_pred(s, pred);
 }
 
-void FUNC(ds_str_split_each_c)(ds_str_t *s, unsigned char sep,
-                               ds_str_token_cb cb, void *ud) {
+void ds_str_split_each_c(ds_str_t *s, unsigned char sep, ds_str_token_cb cb,
+                         void *ud) {
   size_t i = 0u, start = 0u, len;
   if (!s || !cb)
     return;
@@ -258,14 +255,14 @@ void FUNC(ds_str_split_each_c)(ds_str_t *s, unsigned char sep,
   cb(s->buf + start, len - start, ud);
 }
 
-void FUNC(ds_str_split_each_substr)(ds_str_t *s, const void *sep, size_t nsep,
-                                    ds_str_token_cb cb, void *ud) {
+void ds_str_split_each_substr(ds_str_t *s, const void *sep, size_t nsep,
+                              ds_str_token_cb cb, void *ud) {
   size_t pos = 0u;
   long at;
   if (!s || !cb || !sep || nsep == 0u)
     return;
   for (;;) {
-    at = FUNC(ds_str_find_twoway)(s, sep, nsep, pos);
+    at = ds_str_find_twoway(s, sep, nsep, pos);
     if (at < 0) {
       cb(s->buf + pos, s->len - pos, ud);
       break;
@@ -277,8 +274,8 @@ void FUNC(ds_str_split_each_substr)(ds_str_t *s, const void *sep, size_t nsep,
   }
 }
 
-int FUNC(ds_str_join_c)(ds_str_t *dst, ds_str_t **parts, size_t count,
-                        const void *sep, size_t nsep) {
+int ds_str_join_c(ds_str_t *dst, ds_str_t **parts, size_t count,
+                  const void *sep, size_t nsep) {
   size_t i;
   if (!dst)
     return -1;
@@ -286,12 +283,12 @@ int FUNC(ds_str_join_c)(ds_str_t *dst, ds_str_t **parts, size_t count,
     return 0;
   for (i = 0; i < count; ++i) {
     if (i) {
-      if (FUNC(ds_str_append)(dst, sep, nsep) != 0) {
+      if (ds_str_append(dst, sep, nsep) != 0) {
         return -1;
       }
     }
     if (parts[i] && parts[i]->len) {
-      if (FUNC(ds_str_append)(dst, parts[i]->buf, parts[i]->len) != 0) {
+      if (ds_str_append(dst, parts[i]->buf, parts[i]->len) != 0) {
         return -1;
       }
     }
@@ -299,7 +296,7 @@ int FUNC(ds_str_join_c)(ds_str_t *dst, ds_str_t **parts, size_t count,
   return 0;
 }
 
-int FUNC(ds_str_starts_with)(ds_str_t *s, const void *prefix, size_t n) {
+int ds_str_starts_with(ds_str_t *s, const void *prefix, size_t n) {
   if (!s || !prefix)
     return 0;
   if (s->len < n)
@@ -307,7 +304,7 @@ int FUNC(ds_str_starts_with)(ds_str_t *s, const void *prefix, size_t n) {
   return memcmp(s->buf, prefix, n) == 0;
 }
 
-int FUNC(ds_str_ends_with)(ds_str_t *s, const void *suffix, size_t n) {
+int ds_str_ends_with(ds_str_t *s, const void *suffix, size_t n) {
   if (!s || !suffix)
     return 0;
   if (s->len < n)
@@ -315,14 +312,14 @@ int FUNC(ds_str_ends_with)(ds_str_t *s, const void *suffix, size_t n) {
   return memcmp(s->buf + (s->len - n), suffix, n) == 0;
 }
 
-long FUNC(ds_str_count)(ds_str_t *s, const void *needle, size_t n) {
+long ds_str_count(ds_str_t *s, const void *needle, size_t n) {
   size_t pos = 0u;
   long c = 0;
   long at;
   if (!s || !needle || n == 0u)
     return 0;
   for (;;) {
-    at = FUNC(ds_str_find_twoway)(s, needle, n, pos);
+    at = ds_str_find_twoway(s, needle, n, pos);
     if (at < 0)
       break;
     ++c;
@@ -333,21 +330,21 @@ long FUNC(ds_str_count)(ds_str_t *s, const void *needle, size_t n) {
   return c;
 }
 
-int FUNC(ds_str_replace_all)(ds_str_t *s, const void *from, size_t nfrom,
-                             const void *to, size_t nto) {
+int ds_str_replace_all(ds_str_t *s, const void *from, size_t nfrom,
+                       const void *to, size_t nto) {
   size_t pos = 0u;
   long at;
   if (!s || !from || nfrom == 0u)
     return -1;
   while (1) {
-    at = FUNC(ds_str_find_twoway)(s, from, nfrom, pos);
+    at = ds_str_find_twoway(s, from, nfrom, pos);
     if (at < 0)
       break;
-    if (FUNC(ds_str_erase)(s, (size_t)at, nfrom) != 0) {
+    if (ds_str_erase(s, (size_t)at, nfrom) != 0) {
       return -1;
     }
     if (nto) {
-      if (FUNC(ds_str_insert)(s, (size_t)at, to, nto) != 0) {
+      if (ds_str_insert(s, (size_t)at, to, nto) != 0) {
         return -1;
       }
       pos = (size_t)at + nto;
@@ -358,8 +355,8 @@ int FUNC(ds_str_replace_all)(ds_str_t *s, const void *from, size_t nfrom,
   return 0;
 }
 
-int FUNC(ds_str_replace_all_builder)(ds_str_t *s, const void *from,
-                                     size_t nfrom, const void *to, size_t nto) {
+int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
+                               const void *to, size_t nto) {
   size_t pos = 0u;
   long at;
   ds_str_t *out;
@@ -368,24 +365,24 @@ int FUNC(ds_str_replace_all_builder)(ds_str_t *s, const void *from,
   if (!s || !from || nfrom == 0u)
     return -1;
 
-  out = FUNC(ds_str_create_alloc)(s->allocator, s->deallocator);
+  out = ds_str_create_alloc(s->allocator, s->deallocator);
   if (!out) {
     return -1;
   }
 
   if (s->len > 0u) {
-    if (FUNC(ds_str_reserve)(out, s->len) != 0) {
-      FUNC(ds_str_destroy)(out);
+    if (ds_str_reserve(out, s->len) != 0) {
+      ds_str_destroy(out);
       return -1;
     }
   }
 
   while (1) {
-    at = FUNC(ds_str_find_twoway)(s, from, nfrom, pos);
+    at = ds_str_find_twoway(s, from, nfrom, pos);
     if (at < 0) {
       if (last < s->len) {
-        if (FUNC(ds_str_append)(out, s->buf + last, s->len - last) != 0) {
-          FUNC(ds_str_destroy)(out);
+        if (ds_str_append(out, s->buf + last, s->len - last) != 0) {
+          ds_str_destroy(out);
           return -1;
         }
       }
@@ -393,15 +390,15 @@ int FUNC(ds_str_replace_all_builder)(ds_str_t *s, const void *from,
     }
 
     if ((size_t)at > last) {
-      if (FUNC(ds_str_append)(out, s->buf + last, (size_t)at - last) != 0) {
-        FUNC(ds_str_destroy)(out);
+      if (ds_str_append(out, s->buf + last, (size_t)at - last) != 0) {
+        ds_str_destroy(out);
         return -1;
       }
     }
 
     if (nto) {
-      if (FUNC(ds_str_append)(out, to, nto) != 0) {
-        FUNC(ds_str_destroy)(out);
+      if (ds_str_append(out, to, nto) != 0) {
+        ds_str_destroy(out);
         return -1;
       }
     }
@@ -420,7 +417,7 @@ int FUNC(ds_str_replace_all_builder)(ds_str_t *s, const void *from,
   out->buf = NULL;
   out->len = 0u;
   out->cap = 0u;
-  FUNC(ds_str_destroy)(out);
+  ds_str_destroy(out);
   if (s->buf)
     s->buf[s->len] = '\0';
   return 0;

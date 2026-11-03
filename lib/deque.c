@@ -1,12 +1,12 @@
 #include "deque.h"
 #include <stdlib.h>
 
-ds_deque_t *FUNC(ds_deque_create)(void) {
-  return FUNC(ds_deque_create_alloc)(malloc, free);
+ds_deque_t *ds_deque_create(void) {
+  return ds_deque_create_alloc(malloc, free);
 }
 
-ds_deque_t *FUNC(ds_deque_create_alloc)(void *(*allocator)(size_t),
-                                        void (*deallocator)(void *)) {
+ds_deque_t *ds_deque_create_alloc(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
   ds_deque_t *deque = (ds_deque_t *)allocator(sizeof(ds_deque_t));
   deque->allocator = allocator;
   deque->deallocator = deallocator;
@@ -20,7 +20,7 @@ ds_deque_t *FUNC(ds_deque_create_alloc)(void *(*allocator)(size_t),
   return deque;
 }
 
-void FUNC(ds_deque_push_front)(ds_deque_t *deque, ds_deque_node_t *node) {
+void ds_deque_push_front(ds_deque_t *deque, ds_deque_node_t *node) {
   node->next = deque->head;
   node->prev = deque->nil;
   if (deque->head != deque->nil) {
@@ -33,7 +33,7 @@ void FUNC(ds_deque_push_front)(ds_deque_t *deque, ds_deque_node_t *node) {
   deque->size += 1;
 }
 
-void FUNC(ds_deque_push_back)(ds_deque_t *deque, ds_deque_node_t *node) {
+void ds_deque_push_back(ds_deque_t *deque, ds_deque_node_t *node) {
   node->next = deque->nil;
   node->prev = deque->tail;
   if (deque->tail != deque->nil) {
@@ -46,10 +46,10 @@ void FUNC(ds_deque_push_back)(ds_deque_t *deque, ds_deque_node_t *node) {
   deque->size += 1;
 }
 
-ds_deque_node_t *FUNC(ds_deque_pop_front)(ds_deque_t *deque) {
+ds_deque_node_t *ds_deque_pop_front(ds_deque_t *deque) {
   ds_deque_node_t *node;
 
-  if (FUNC(ds_deque_is_empty)(deque)) {
+  if (ds_deque_is_empty(deque)) {
     return deque->nil;
   }
   node = deque->head;
@@ -64,10 +64,10 @@ ds_deque_node_t *FUNC(ds_deque_pop_front)(ds_deque_t *deque) {
   return node;
 }
 
-ds_deque_node_t *FUNC(ds_deque_pop_back)(ds_deque_t *deque) {
+ds_deque_node_t *ds_deque_pop_back(ds_deque_t *deque) {
   ds_deque_node_t *node;
 
-  if (FUNC(ds_deque_is_empty)(deque)) {
+  if (ds_deque_is_empty(deque)) {
     return deque->nil;
   }
   node = deque->tail;
@@ -82,19 +82,19 @@ ds_deque_node_t *FUNC(ds_deque_pop_back)(ds_deque_t *deque) {
   return node;
 }
 
-ds_deque_node_t *FUNC(ds_deque_peek_front)(ds_deque_t *deque) {
+ds_deque_node_t *ds_deque_peek_front(ds_deque_t *deque) {
   ds_deque_node_t *result;
   result = deque->head;
   return result;
 }
 
-ds_deque_node_t *FUNC(ds_deque_peek_back)(ds_deque_t *deque) {
+ds_deque_node_t *ds_deque_peek_back(ds_deque_t *deque) {
   ds_deque_node_t *result;
   result = deque->tail;
   return result;
 }
 
-bool FUNC(ds_deque_is_empty)(ds_deque_t *deque) {
+bool ds_deque_is_empty(ds_deque_t *deque) {
   bool empty;
 
   empty = deque->head == deque->nil;
@@ -102,8 +102,7 @@ bool FUNC(ds_deque_is_empty)(ds_deque_t *deque) {
   return empty;
 }
 
-void FUNC(ds_deque_destroy)(ds_deque_t *deque,
-                            void (*destroy)(ds_deque_node_t *)) {
+void ds_deque_destroy(ds_deque_t *deque, void (*destroy)(ds_deque_node_t *)) {
   ds_deque_node_t *node = deque->head;
   while (node != deque->nil) {
     ds_deque_node_t *next = node->next;
@@ -117,12 +116,12 @@ void FUNC(ds_deque_destroy)(ds_deque_t *deque,
   deque->deallocator(deque);
 }
 
-void FUNC(ds_deque_delete)(ds_deque_t *deque) {
+void ds_deque_delete(ds_deque_t *deque) {
   deque->head = deque->tail = deque->nil;
   deque->size = 0;
 }
 
-void FUNC(ds_deque_delete_node)(ds_deque_t *deque, ds_deque_node_t *node) {
+void ds_deque_delete_node(ds_deque_t *deque, ds_deque_node_t *node) {
   if (node == deque->head) {
     deque->head = node->next;
     if (deque->head != deque->nil) {
@@ -145,37 +144,37 @@ void FUNC(ds_deque_delete_node)(ds_deque_t *deque, ds_deque_node_t *node) {
   deque->size--;
 }
 
-void FUNC(ds_deque_destroy_node)(ds_deque_t *deque, ds_deque_node_t *node,
-                                 void (*destroy)(ds_deque_node_t *)) {
-  FUNC(ds_deque_delete_node)(deque, node);
+void ds_deque_destroy_node(ds_deque_t *deque, ds_deque_node_t *node,
+                           void (*destroy)(ds_deque_node_t *)) {
+  ds_deque_delete_node(deque, node);
   if (destroy != NULL) {
     destroy(node);
   }
 }
 
-void FUNC(ds_deque_pop_front_destroy)(ds_deque_t *deque,
-                                      void (*destroy)(ds_deque_node_t *)) {
+void ds_deque_pop_front_destroy(ds_deque_t *deque,
+                                void (*destroy)(ds_deque_node_t *)) {
   if (deque->head != deque->nil) {
-    ds_deque_node_t *node = FUNC(ds_deque_pop_front)(deque);
+    ds_deque_node_t *node = ds_deque_pop_front(deque);
     if (destroy != NULL) {
       destroy(node);
     }
   }
 }
 
-void FUNC(ds_deque_pop_back_destroy)(ds_deque_t *deque,
-                                     void (*destroy)(ds_deque_node_t *)) {
+void ds_deque_pop_back_destroy(ds_deque_t *deque,
+                               void (*destroy)(ds_deque_node_t *)) {
   if (deque->tail != deque->nil) {
-    ds_deque_node_t *node = FUNC(ds_deque_pop_back)(deque);
+    ds_deque_node_t *node = ds_deque_pop_back(deque);
     if (destroy != NULL) {
       destroy(node);
     }
   }
 }
 
-ds_deque_node_t *FUNC(ds_deque_search)(ds_deque_t *deque, ds_deque_node_t *node,
-                                       int (*compare)(ds_deque_node_t *,
-                                                      ds_deque_node_t *)) {
+ds_deque_node_t *ds_deque_search(ds_deque_t *deque, ds_deque_node_t *node,
+                                 int (*compare)(ds_deque_node_t *,
+                                                ds_deque_node_t *)) {
   ds_deque_node_t *current;
 
   current = deque->head;
@@ -190,8 +189,8 @@ ds_deque_node_t *FUNC(ds_deque_search)(ds_deque_t *deque, ds_deque_node_t *node,
   return deque->nil;
 }
 
-void FUNC(ds_deque_walk_forward)(ds_deque_t *deque, ds_deque_node_t *start_node,
-                                 void (*callback)(ds_deque_node_t *)) {
+void ds_deque_walk_forward(ds_deque_t *deque, ds_deque_node_t *start_node,
+                           void (*callback)(ds_deque_node_t *)) {
   ds_deque_node_t *current;
 
   current = (start_node != NULL) ? start_node : deque->head;
@@ -202,24 +201,23 @@ void FUNC(ds_deque_walk_forward)(ds_deque_t *deque, ds_deque_node_t *start_node,
   }
 }
 
-void FUNC(ds_deque_walk_backwards)(ds_deque_t *deque, ds_deque_node_t *current,
-                                   void (*callback)(ds_deque_node_t *)) {
+void ds_deque_walk_backwards(ds_deque_t *deque, ds_deque_node_t *current,
+                             void (*callback)(ds_deque_node_t *)) {
   while (current != deque->nil) {
     callback(current);
     current = current->prev;
   }
 }
 
-ds_deque_t *
-FUNC(ds_deque_clone)(ds_deque_t *deque,
-                     ds_deque_node_t *(*clone_node)(ds_deque_node_t *)) {
+ds_deque_t *ds_deque_clone(ds_deque_t *deque,
+                           ds_deque_node_t *(*clone_node)(ds_deque_node_t *)) {
   ds_deque_t *new_deque;
   ds_deque_node_t *current;
-  new_deque = FUNC(ds_deque_create_alloc)(deque->allocator, deque->deallocator);
+  new_deque = ds_deque_create_alloc(deque->allocator, deque->deallocator);
   current = deque->head;
   while (current != deque->nil) {
     ds_deque_node_t *cloned_node = clone_node(current);
-    FUNC(ds_deque_push_back)(new_deque, cloned_node);
+    ds_deque_push_back(new_deque, cloned_node);
     current = current->next;
   }
 

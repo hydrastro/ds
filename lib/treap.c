@@ -1,14 +1,15 @@
 #include "treap.h"
 #include <stdlib.h>
 
-ds_treap_t *FUNC(ds_treap_create)(int (*compare)(ds_treap_node_t *,
-                                                 ds_treap_node_t *)) {
-  return FUNC(ds_treap_create_alloc)(compare, 0UL, malloc, free);
+ds_treap_t *ds_treap_create(int (*compare)(ds_treap_node_t *,
+                                           ds_treap_node_t *)) {
+  return ds_treap_create_alloc(compare, 0UL, malloc, free);
 }
 
-ds_treap_t *FUNC(ds_treap_create_alloc)(
-    int (*compare)(ds_treap_node_t *, ds_treap_node_t *), unsigned long seed,
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
+ds_treap_t *
+ds_treap_create_alloc(int (*compare)(ds_treap_node_t *, ds_treap_node_t *),
+                      unsigned long seed, void *(*allocator)(size_t),
+                      void (*deallocator)(void *)) {
   ds_treap_t *treap = (ds_treap_t *)allocator(sizeof(ds_treap_t));
   treap->allocator = allocator;
   treap->deallocator = deallocator;
@@ -24,19 +25,19 @@ ds_treap_t *FUNC(ds_treap_create_alloc)(
   return treap;
 }
 
-static unsigned long FUNC(treap_random)(ds_treap_t *treap) {
+static unsigned long treap_random(ds_treap_t *treap) {
   treap->seed = treap->seed * 1103515245UL + 12345UL;
   return (treap->seed >> 16) & 0x7FFFUL;
 }
 
-void FUNC(ds_treap_node_init)(ds_treap_node_t *node) {
+void ds_treap_node_init(ds_treap_node_t *node) {
   node->left = NULL;
   node->right = NULL;
   node->parent = NULL;
   node->priority = 0UL;
 }
 
-static void FUNC(treap_left_rotate)(ds_treap_t *treap, ds_treap_node_t *node) {
+static void treap_left_rotate(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *right = node->right;
   node->right = right->left;
   if (right->left != treap->nil) {
@@ -54,7 +55,7 @@ static void FUNC(treap_left_rotate)(ds_treap_t *treap, ds_treap_node_t *node) {
   node->parent = right;
 }
 
-static void FUNC(treap_right_rotate)(ds_treap_t *treap, ds_treap_node_t *node) {
+static void treap_right_rotate(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *left = node->left;
   node->left = left->right;
   if (left->right != treap->nil) {
@@ -72,7 +73,7 @@ static void FUNC(treap_right_rotate)(ds_treap_t *treap, ds_treap_node_t *node) {
   node->parent = left;
 }
 
-void FUNC(ds_treap_insert)(ds_treap_t *treap, ds_treap_node_t *node) {
+void ds_treap_insert(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *current;
   ds_treap_node_t *parent;
   int cmp;
@@ -96,7 +97,7 @@ void FUNC(ds_treap_insert)(ds_treap_t *treap, ds_treap_node_t *node) {
   node->parent = parent;
   node->left = treap->nil;
   node->right = treap->nil;
-  node->priority = FUNC(treap_random)(treap);
+  node->priority = treap_random(treap);
   if (parent == treap->nil) {
     treap->root = node;
   } else if (cmp < 0) {
@@ -107,16 +108,15 @@ void FUNC(ds_treap_insert)(ds_treap_t *treap, ds_treap_node_t *node) {
   while (node->parent != treap->nil &&
          node->parent->priority < node->priority) {
     if (node == node->parent->left) {
-      FUNC(treap_right_rotate)(treap, node->parent);
+      treap_right_rotate(treap, node->parent);
     } else {
-      FUNC(treap_left_rotate)(treap, node->parent);
+      treap_left_rotate(treap, node->parent);
     }
   }
   treap->size += 1;
 }
 
-ds_treap_node_t *FUNC(ds_treap_search)(ds_treap_t *treap,
-                                       ds_treap_node_t *node) {
+ds_treap_node_t *ds_treap_search(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *current;
   current = treap->root;
   while (current != treap->nil) {
@@ -132,8 +132,7 @@ ds_treap_node_t *FUNC(ds_treap_search)(ds_treap_t *treap,
   return treap->nil;
 }
 
-ds_treap_node_t *FUNC(ds_treap_minimum)(ds_treap_t *treap,
-                                        ds_treap_node_t *node) {
+ds_treap_node_t *ds_treap_minimum(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *current;
   current = node;
   if (current == treap->nil) {
@@ -145,8 +144,7 @@ ds_treap_node_t *FUNC(ds_treap_minimum)(ds_treap_t *treap,
   return current;
 }
 
-ds_treap_node_t *FUNC(ds_treap_maximum)(ds_treap_t *treap,
-                                        ds_treap_node_t *node) {
+ds_treap_node_t *ds_treap_maximum(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *current;
   current = node;
   if (current == treap->nil) {
@@ -158,22 +156,21 @@ ds_treap_node_t *FUNC(ds_treap_maximum)(ds_treap_t *treap,
   return current;
 }
 
-ds_treap_node_t *FUNC(ds_treap_remove)(ds_treap_t *treap,
-                                       ds_treap_node_t *node) {
+ds_treap_node_t *ds_treap_remove(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *target;
-  target = FUNC(ds_treap_search)(treap, node);
+  target = ds_treap_search(treap, node);
   if (target == treap->nil) {
     return treap->nil;
   }
   while (target->left != treap->nil || target->right != treap->nil) {
     if (target->left == treap->nil) {
-      FUNC(treap_left_rotate)(treap, target);
+      treap_left_rotate(treap, target);
     } else if (target->right == treap->nil) {
-      FUNC(treap_right_rotate)(treap, target);
+      treap_right_rotate(treap, target);
     } else if (target->left->priority > target->right->priority) {
-      FUNC(treap_right_rotate)(treap, target);
+      treap_right_rotate(treap, target);
     } else {
-      FUNC(treap_left_rotate)(treap, target);
+      treap_left_rotate(treap, target);
     }
   }
   if (target->parent == treap->nil) {
@@ -190,74 +187,71 @@ ds_treap_node_t *FUNC(ds_treap_remove)(ds_treap_t *treap,
   return target;
 }
 
-bool FUNC(ds_treap_is_empty)(ds_treap_t *treap) {
+bool ds_treap_is_empty(ds_treap_t *treap) {
   bool result;
   result = treap->root == treap->nil;
   return result;
 }
 
-void FUNC(ds_treap_destroy_node)(ds_treap_t *treap, ds_treap_node_t *node,
-                                 void (*destroy)(ds_treap_node_t *)) {
+void ds_treap_destroy_node(ds_treap_t *treap, ds_treap_node_t *node,
+                           void (*destroy)(ds_treap_node_t *)) {
   ds_treap_node_t *removed;
-  removed = FUNC(ds_treap_remove)(treap, node);
+  removed = ds_treap_remove(treap, node);
   if (removed != treap->nil && destroy != NULL) {
     destroy(removed);
   }
 }
 
-void FUNC(ds_treap_inorder_walk)(ds_treap_t *treap, ds_treap_node_t *node,
-                                 void (*callback)(ds_treap_node_t *)) {
+void ds_treap_inorder_walk(ds_treap_t *treap, ds_treap_node_t *node,
+                           void (*callback)(ds_treap_node_t *)) {
   if (node == treap->nil) {
     return;
   }
-  FUNC(ds_treap_inorder_walk)(treap, node->left, callback);
+  ds_treap_inorder_walk(treap, node->left, callback);
   callback(node);
-  FUNC(ds_treap_inorder_walk)(treap, node->right, callback);
+  ds_treap_inorder_walk(treap, node->right, callback);
 }
 
-void FUNC(ds_treap_inorder_walk_tree)(ds_treap_t *treap,
-                                      void (*callback)(ds_treap_node_t *)) {
-  FUNC(ds_treap_inorder_walk)(treap, treap->root, callback);
+void ds_treap_inorder_walk_tree(ds_treap_t *treap,
+                                void (*callback)(ds_treap_node_t *)) {
+  ds_treap_inorder_walk(treap, treap->root, callback);
 }
 
-static void FUNC(treap_destroy_recursive)(ds_treap_t *treap,
-                                          ds_treap_node_t *node,
-                                          void (*destroy)(ds_treap_node_t *)) {
+static void treap_destroy_recursive(ds_treap_t *treap, ds_treap_node_t *node,
+                                    void (*destroy)(ds_treap_node_t *)) {
   if (node == treap->nil) {
     return;
   }
-  FUNC(treap_destroy_recursive)(treap, node->left, destroy);
-  FUNC(treap_destroy_recursive)(treap, node->right, destroy);
+  treap_destroy_recursive(treap, node->left, destroy);
+  treap_destroy_recursive(treap, node->right, destroy);
   if (destroy != NULL) {
     destroy(node);
   }
 }
 
-void FUNC(ds_treap_destroy)(ds_treap_t *treap,
-                            void (*destroy)(ds_treap_node_t *)) {
-  FUNC(treap_destroy_recursive)(treap, treap->root, destroy);
+void ds_treap_destroy(ds_treap_t *treap, void (*destroy)(ds_treap_node_t *)) {
+  treap_destroy_recursive(treap, treap->root, destroy);
   treap->deallocator(treap->nil);
   treap->deallocator(treap);
 }
 
 static void
-FUNC(treap_clone_recursive)(ds_treap_t *treap, ds_treap_t *new_treap,
-                            ds_treap_node_t *node,
-                            ds_treap_node_t *(*clone_node)(ds_treap_node_t *)) {
+treap_clone_recursive(ds_treap_t *treap, ds_treap_t *new_treap,
+                      ds_treap_node_t *node,
+                      ds_treap_node_t *(*clone_node)(ds_treap_node_t *)) {
   if (node == treap->nil) {
     return;
   }
-  FUNC(treap_clone_recursive)(treap, new_treap, node->left, clone_node);
-  FUNC(ds_treap_insert)(new_treap, clone_node(node));
-  FUNC(treap_clone_recursive)(treap, new_treap, node->right, clone_node);
+  treap_clone_recursive(treap, new_treap, node->left, clone_node);
+  ds_treap_insert(new_treap, clone_node(node));
+  treap_clone_recursive(treap, new_treap, node->right, clone_node);
 }
 
-ds_treap_t *
-FUNC(ds_treap_clone)(ds_treap_t *treap,
-                     ds_treap_node_t *(*clone_node)(ds_treap_node_t *)) {
+ds_treap_t *ds_treap_clone(ds_treap_t *treap,
+                           ds_treap_node_t *(*clone_node)(ds_treap_node_t *)) {
   ds_treap_t *new_treap;
-  new_treap = FUNC(ds_treap_create_alloc)(treap->compare, treap->seed,
-                                          treap->allocator, treap->deallocator);
-  FUNC(treap_clone_recursive)(treap, new_treap, treap->root, clone_node);
+  new_treap = ds_treap_create_alloc(treap->compare, treap->seed,
+                                    treap->allocator, treap->deallocator);
+  treap_clone_recursive(treap, new_treap, treap->root, clone_node);
   return new_treap;
 }

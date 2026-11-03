@@ -3,8 +3,8 @@
 
 #define SPARSE_SET_SIZE_MAX (~(size_t)0)
 
-ds_status_t FUNC(ds_sparse_set_init)(ds_sparse_set_t *set, size_t universe,
-                                     ds_context_t *context) {
+ds_status_t ds_sparse_set_init(ds_sparse_set_t *set, size_t universe,
+                               ds_context_t *context) {
   if (set == NULL) {
     return DS_ERR_NULL;
   }
@@ -14,11 +14,11 @@ ds_status_t FUNC(ds_sparse_set_init)(ds_sparse_set_t *set, size_t universe,
   set->universe = 0;
   set->context = context != NULL ? context : ds_default_context();
   set->fixed = false;
-  return FUNC(ds_sparse_set_set_universe)(set, universe);
+  return ds_sparse_set_set_universe(set, universe);
 }
 
-ds_status_t FUNC(ds_sparse_set_init_buffer)(ds_sparse_set_t *set, size_t *dense,
-                                            size_t *sparse, size_t universe) {
+ds_status_t ds_sparse_set_init_buffer(ds_sparse_set_t *set, size_t *dense,
+                                      size_t *sparse, size_t universe) {
   if (set == NULL || (universe > 0 && (dense == NULL || sparse == NULL))) {
     return DS_ERR_NULL;
   }
@@ -35,7 +35,7 @@ ds_status_t FUNC(ds_sparse_set_init_buffer)(ds_sparse_set_t *set, size_t *dense,
   return DS_OK;
 }
 
-void FUNC(ds_sparse_set_destroy)(ds_sparse_set_t *set) {
+void ds_sparse_set_destroy(ds_sparse_set_t *set) {
   if (set == NULL) {
     return;
   }
@@ -49,7 +49,7 @@ void FUNC(ds_sparse_set_destroy)(ds_sparse_set_t *set) {
   set->size = 0;
 }
 
-bool FUNC(ds_sparse_set_contains)(const ds_sparse_set_t *set, size_t value) {
+bool ds_sparse_set_contains(const ds_sparse_set_t *set, size_t value) {
   size_t index;
   if (value >= set->universe) {
     return false;
@@ -58,11 +58,11 @@ bool FUNC(ds_sparse_set_contains)(const ds_sparse_set_t *set, size_t value) {
   return index < set->size && set->dense[index] == value;
 }
 
-ds_status_t FUNC(ds_sparse_set_insert)(ds_sparse_set_t *set, size_t value) {
+ds_status_t ds_sparse_set_insert(ds_sparse_set_t *set, size_t value) {
   if (value >= set->universe) {
     return DS_ERR_RANGE;
   }
-  if (FUNC(ds_sparse_set_contains)(set, value)) {
+  if (ds_sparse_set_contains(set, value)) {
     return DS_EXISTS;
   }
   set->dense[set->size] = value;
@@ -71,10 +71,10 @@ ds_status_t FUNC(ds_sparse_set_insert)(ds_sparse_set_t *set, size_t value) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_sparse_set_remove)(ds_sparse_set_t *set, size_t value) {
+ds_status_t ds_sparse_set_remove(ds_sparse_set_t *set, size_t value) {
   size_t index;
   size_t last;
-  if (!FUNC(ds_sparse_set_contains)(set, value)) {
+  if (!ds_sparse_set_contains(set, value)) {
     return DS_NOT_FOUND;
   }
   index = set->sparse[value];
@@ -85,9 +85,9 @@ ds_status_t FUNC(ds_sparse_set_remove)(ds_sparse_set_t *set, size_t value) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_sparse_set_index_of)(const ds_sparse_set_t *set,
-                                         size_t value, size_t *out_index) {
-  if (!FUNC(ds_sparse_set_contains)(set, value)) {
+ds_status_t ds_sparse_set_index_of(const ds_sparse_set_t *set, size_t value,
+                                   size_t *out_index) {
+  if (!ds_sparse_set_contains(set, value)) {
     return DS_NOT_FOUND;
   }
   if (out_index != NULL) {
@@ -96,24 +96,24 @@ ds_status_t FUNC(ds_sparse_set_index_of)(const ds_sparse_set_t *set,
   return DS_OK;
 }
 
-void FUNC(ds_sparse_set_clear)(ds_sparse_set_t *set) {
+void ds_sparse_set_clear(ds_sparse_set_t *set) {
   set->size = 0;
 }
 
-size_t FUNC(ds_sparse_set_size)(const ds_sparse_set_t *set) {
+size_t ds_sparse_set_size(const ds_sparse_set_t *set) {
   return set->size;
 }
 
-size_t FUNC(ds_sparse_set_universe)(const ds_sparse_set_t *set) {
+size_t ds_sparse_set_universe(const ds_sparse_set_t *set) {
   return set->universe;
 }
 
-const size_t *FUNC(ds_sparse_set_data)(const ds_sparse_set_t *set) {
+const size_t *ds_sparse_set_data(const ds_sparse_set_t *set) {
   return set->dense;
 }
 
-ds_status_t FUNC(ds_sparse_set_at)(const ds_sparse_set_t *set, size_t index,
-                                   size_t *out_value) {
+ds_status_t ds_sparse_set_at(const ds_sparse_set_t *set, size_t index,
+                             size_t *out_value) {
   if (out_value == NULL) {
     return DS_ERR_NULL;
   }
@@ -124,7 +124,7 @@ ds_status_t FUNC(ds_sparse_set_at)(const ds_sparse_set_t *set, size_t index,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_sparse_set_pop)(ds_sparse_set_t *set, size_t *out_value) {
+ds_status_t ds_sparse_set_pop(ds_sparse_set_t *set, size_t *out_value) {
   if (set->size == 0) {
     return DS_EMPTY;
   }
@@ -135,8 +135,7 @@ ds_status_t FUNC(ds_sparse_set_pop)(ds_sparse_set_t *set, size_t *out_value) {
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_sparse_set_set_universe)(ds_sparse_set_t *set,
-                                             size_t universe) {
+ds_status_t ds_sparse_set_set_universe(ds_sparse_set_t *set, size_t universe) {
   size_t *dense;
   size_t *sparse;
   size_t i;

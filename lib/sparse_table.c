@@ -84,8 +84,8 @@ static ds_status_t st_setup(ds_sparse_table_t *table,
                                  config->kind != DS_SPARSE_TABLE_DISJOINT)) {
     return DS_ERR_INVALID;
   }
-  if (count > 0 && FUNC(ds_sparse_table_buffer_size)(config->kind, count,
-                                                     config->elem_size) == 0) {
+  if (count > 0 && ds_sparse_table_buffer_size(config->kind, count,
+                                               config->elem_size) == 0) {
     return DS_ERR_OVERFLOW;
   }
   table->table = NULL;
@@ -110,7 +110,7 @@ static void st_build(ds_sparse_table_t *table, const void *elems) {
   }
 }
 
-void FUNC(ds_sparse_table_config_init)(ds_sparse_table_config_t *config) {
+void ds_sparse_table_config_init(ds_sparse_table_config_t *config) {
   if (config == NULL) {
     return;
   }
@@ -121,8 +121,8 @@ void FUNC(ds_sparse_table_config_init)(ds_sparse_table_config_t *config) {
   config->context = NULL;
 }
 
-size_t FUNC(ds_sparse_table_buffer_size)(ds_sparse_table_kind_t kind,
-                                         size_t count, size_t elem_size) {
+size_t ds_sparse_table_buffer_size(ds_sparse_table_kind_t kind, size_t count,
+                                   size_t elem_size) {
   size_t levels = st_levels(kind, count);
   if (count == 0 || elem_size == 0) {
     return 0;
@@ -134,9 +134,9 @@ size_t FUNC(ds_sparse_table_buffer_size)(ds_sparse_table_kind_t kind,
   return count * levels * elem_size;
 }
 
-ds_status_t FUNC(ds_sparse_table_init)(ds_sparse_table_t *table,
-                                       const ds_sparse_table_config_t *config,
-                                       const void *elems, size_t count) {
+ds_status_t ds_sparse_table_init(ds_sparse_table_t *table,
+                                 const ds_sparse_table_config_t *config,
+                                 const void *elems, size_t count) {
   ds_status_t status = st_setup(table, config, elems, count);
   size_t bytes;
   if (status != DS_OK) {
@@ -146,8 +146,7 @@ ds_status_t FUNC(ds_sparse_table_init)(ds_sparse_table_t *table,
       config->context != NULL ? config->context : ds_default_context();
   table->fixed = false;
   if (count > 0) {
-    bytes =
-        FUNC(ds_sparse_table_buffer_size)(table->kind, count, table->elem_size);
+    bytes = ds_sparse_table_buffer_size(table->kind, count, table->elem_size);
     table->table = (unsigned char *)ds_context_alloc(table->context, bytes);
     if (table->table == NULL) {
       return DS_ERR_ALLOC;
@@ -157,9 +156,10 @@ ds_status_t FUNC(ds_sparse_table_init)(ds_sparse_table_t *table,
   return DS_OK;
 }
 
-ds_status_t FUNC(ds_sparse_table_init_buffer)(
-    ds_sparse_table_t *table, const ds_sparse_table_config_t *config,
-    const void *elems, size_t count, void *buffer, size_t buffer_size) {
+ds_status_t ds_sparse_table_init_buffer(ds_sparse_table_t *table,
+                                        const ds_sparse_table_config_t *config,
+                                        const void *elems, size_t count,
+                                        void *buffer, size_t buffer_size) {
   ds_status_t status = st_setup(table, config, elems, count);
   if (status != DS_OK) {
     return status;
@@ -168,8 +168,8 @@ ds_status_t FUNC(ds_sparse_table_init_buffer)(
     if (buffer == NULL) {
       return DS_ERR_NULL;
     }
-    if (buffer_size < FUNC(ds_sparse_table_buffer_size)(table->kind, count,
-                                                        table->elem_size)) {
+    if (buffer_size <
+        ds_sparse_table_buffer_size(table->kind, count, table->elem_size)) {
       return DS_ERR_OVERFLOW;
     }
   }
@@ -180,7 +180,7 @@ ds_status_t FUNC(ds_sparse_table_init_buffer)(
   return DS_OK;
 }
 
-void FUNC(ds_sparse_table_destroy)(ds_sparse_table_t *table) {
+void ds_sparse_table_destroy(ds_sparse_table_t *table) {
   if (table == NULL) {
     return;
   }
@@ -192,8 +192,8 @@ void FUNC(ds_sparse_table_destroy)(ds_sparse_table_t *table) {
   table->levels = 0;
 }
 
-ds_status_t FUNC(ds_sparse_table_query)(const ds_sparse_table_t *table,
-                                        size_t left, size_t right, void *out) {
+ds_status_t ds_sparse_table_query(const ds_sparse_table_t *table, size_t left,
+                                  size_t right, void *out) {
   size_t level;
   if (out == NULL) {
     return DS_ERR_NULL;
@@ -218,28 +218,28 @@ ds_status_t FUNC(ds_sparse_table_query)(const ds_sparse_table_t *table,
   return DS_OK;
 }
 
-size_t FUNC(ds_sparse_table_size)(const ds_sparse_table_t *table) {
+size_t ds_sparse_table_size(const ds_sparse_table_t *table) {
   return table->size;
 }
 
-void FUNC(ds_sparse_table_op_min_long)(void *out, const void *a, const void *b,
-                                       void *user) {
+void ds_sparse_table_op_min_long(void *out, const void *a, const void *b,
+                                 void *user) {
   long x = *(const long *)a;
   long y = *(const long *)b;
   (void)user;
   *(long *)out = x < y ? x : y;
 }
 
-void FUNC(ds_sparse_table_op_max_long)(void *out, const void *a, const void *b,
-                                       void *user) {
+void ds_sparse_table_op_max_long(void *out, const void *a, const void *b,
+                                 void *user) {
   long x = *(const long *)a;
   long y = *(const long *)b;
   (void)user;
   *(long *)out = x > y ? x : y;
 }
 
-void FUNC(ds_sparse_table_op_sum_long)(void *out, const void *a, const void *b,
-                                       void *user) {
+void ds_sparse_table_op_sum_long(void *out, const void *a, const void *b,
+                                 void *user) {
   long x = *(const long *)a;
   long y = *(const long *)b;
   (void)user;

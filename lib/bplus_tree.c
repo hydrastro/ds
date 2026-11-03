@@ -10,19 +10,19 @@
  * full, yielding ~2/3 minimum fill instead of ~1/2.
  */
 
-static int FUNC(bplus_max_keys)(ds_bplus_tree_t *tree) {
+static int bplus_max_keys(ds_bplus_tree_t *tree) {
   return tree->order - 1;
 }
 
-static int FUNC(bplus_min_keys)(ds_bplus_tree_t *tree) {
+static int bplus_min_keys(ds_bplus_tree_t *tree) {
   if (tree->bstar) {
     return (2 * (tree->order - 1)) / 3;
   }
   return (tree->order - 1) / 2;
 }
 
-static ds_bplus_tree_internal_node_t *
-FUNC(bplus_create_node)(ds_bplus_tree_t *tree, bool is_leaf) {
+static ds_bplus_tree_internal_node_t *bplus_create_node(ds_bplus_tree_t *tree,
+                                                        bool is_leaf) {
   ds_bplus_tree_internal_node_t *node =
       (ds_bplus_tree_internal_node_t *)tree->allocator(
           sizeof(ds_bplus_tree_internal_node_t));
@@ -43,8 +43,8 @@ FUNC(bplus_create_node)(ds_bplus_tree_t *tree, bool is_leaf) {
   return node;
 }
 
-static void FUNC(bplus_free_node)(ds_bplus_tree_t *tree,
-                                  ds_bplus_tree_internal_node_t *node) {
+static void bplus_free_node(ds_bplus_tree_t *tree,
+                            ds_bplus_tree_internal_node_t *node) {
   tree->deallocator(node->keys);
   if (node->children != NULL) {
     tree->deallocator(node->children);
@@ -52,12 +52,13 @@ static void FUNC(bplus_free_node)(ds_bplus_tree_t *tree,
   tree->deallocator(node);
 }
 
-ds_bplus_tree_t *FUNC(ds_bplus_tree_create)(
-    int order, int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *)) {
-  return FUNC(ds_bplus_tree_create_alloc)(order, false, compare, malloc, free);
+ds_bplus_tree_t *ds_bplus_tree_create(int order,
+                                      int (*compare)(ds_bplus_tree_node_t *,
+                                                     ds_bplus_tree_node_t *)) {
+  return ds_bplus_tree_create_alloc(order, false, compare, malloc, free);
 }
 
-ds_bplus_tree_t *FUNC(ds_bplus_tree_create_alloc)(
+ds_bplus_tree_t *ds_bplus_tree_create_alloc(
     int order, bool bstar,
     int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
@@ -70,14 +71,14 @@ ds_bplus_tree_t *FUNC(ds_bplus_tree_create_alloc)(
   tree->size = 0;
   tree->nil = (ds_bplus_tree_node_t *)allocator(sizeof(ds_bplus_tree_node_t));
   tree->nil->internal = NULL;
-  tree->root = FUNC(bplus_create_node)(tree, true);
+  tree->root = bplus_create_node(tree, true);
   tree->head = tree->root;
   return tree;
 }
 
 /* find the leaf where key belongs */
 static ds_bplus_tree_internal_node_t *
-FUNC(bplus_find_leaf)(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key) {
+bplus_find_leaf(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key) {
   ds_bplus_tree_internal_node_t *node = tree->root;
   while (!node->is_leaf) {
     int i = 0;
@@ -89,12 +90,12 @@ FUNC(bplus_find_leaf)(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key) {
   return node;
 }
 
-ds_bplus_tree_node_t *FUNC(ds_bplus_tree_search)(ds_bplus_tree_t *tree,
-                                                 ds_bplus_tree_node_t *key) {
+ds_bplus_tree_node_t *ds_bplus_tree_search(ds_bplus_tree_t *tree,
+                                           ds_bplus_tree_node_t *key) {
   ds_bplus_tree_internal_node_t *leaf;
   ds_bplus_tree_node_t *result;
   int i;
-  leaf = FUNC(bplus_find_leaf)(tree, key);
+  leaf = bplus_find_leaf(tree, key);
   result = tree->nil;
   for (i = 0; i < leaf->num_keys; i++) {
     if (tree->compare(key, leaf->keys[i]) == 0) {
@@ -105,25 +106,25 @@ ds_bplus_tree_node_t *FUNC(ds_bplus_tree_search)(ds_bplus_tree_t *tree,
   return result;
 }
 
-bool FUNC(ds_bplus_tree_is_empty)(ds_bplus_tree_t *tree) {
+bool ds_bplus_tree_is_empty(ds_bplus_tree_t *tree) {
   bool result;
   result = tree->size == 0;
   return result;
 }
 
-size_t FUNC(ds_bplus_tree_size)(ds_bplus_tree_t *tree) {
+size_t ds_bplus_tree_size(ds_bplus_tree_t *tree) {
   size_t result;
   result = tree->size;
   return result;
 }
 
-ds_bplus_tree_node_t *FUNC(ds_bplus_tree_minimum)(ds_bplus_tree_t *tree) {
+ds_bplus_tree_node_t *ds_bplus_tree_minimum(ds_bplus_tree_t *tree) {
   ds_bplus_tree_node_t *result;
   result = (tree->head->num_keys > 0) ? tree->head->keys[0] : tree->nil;
   return result;
 }
 
-ds_bplus_tree_node_t *FUNC(ds_bplus_tree_maximum)(ds_bplus_tree_t *tree) {
+ds_bplus_tree_node_t *ds_bplus_tree_maximum(ds_bplus_tree_t *tree) {
   ds_bplus_tree_internal_node_t *node;
   ds_bplus_tree_node_t *result;
   node = tree->root;
@@ -135,10 +136,9 @@ ds_bplus_tree_node_t *FUNC(ds_bplus_tree_maximum)(ds_bplus_tree_t *tree) {
 }
 
 /* insert a separator key + right child into an internal node at position idx */
-static void
-FUNC(bplus_internal_insert_at)(ds_bplus_tree_internal_node_t *node, int idx,
-                               ds_bplus_tree_node_t *key,
-                               ds_bplus_tree_internal_node_t *right) {
+static void bplus_internal_insert_at(ds_bplus_tree_internal_node_t *node,
+                                     int idx, ds_bplus_tree_node_t *key,
+                                     ds_bplus_tree_internal_node_t *right) {
   int j;
   for (j = node->num_keys; j > idx; j--) {
     node->keys[j] = node->keys[j - 1];
@@ -151,24 +151,25 @@ FUNC(bplus_internal_insert_at)(ds_bplus_tree_internal_node_t *node, int idx,
 
 /* leftmost key of the subtree rooted at node (used as separator) */
 static ds_bplus_tree_node_t *
-FUNC(bplus_subtree_min)(ds_bplus_tree_internal_node_t *node) {
+bplus_subtree_min(ds_bplus_tree_internal_node_t *node) {
   while (!node->is_leaf) {
     node = node->children[0];
   }
   return node->keys[0];
 }
 
-static void FUNC(bplus_insert_into_parent)(
-    ds_bplus_tree_t *tree, ds_bplus_tree_internal_node_t *left,
-    ds_bplus_tree_node_t *key, ds_bplus_tree_internal_node_t *right);
+static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
+                                     ds_bplus_tree_internal_node_t *left,
+                                     ds_bplus_tree_node_t *key,
+                                     ds_bplus_tree_internal_node_t *right);
 
 /* split an internal node that has overflowed (num_keys == order) */
-static void FUNC(bplus_split_internal)(ds_bplus_tree_t *tree,
-                                       ds_bplus_tree_internal_node_t *node) {
+static void bplus_split_internal(ds_bplus_tree_t *tree,
+                                 ds_bplus_tree_internal_node_t *node) {
   int total = node->num_keys;
   int mid = total / 2;
   ds_bplus_tree_node_t *up = node->keys[mid];
-  ds_bplus_tree_internal_node_t *right = FUNC(bplus_create_node)(tree, false);
+  ds_bplus_tree_internal_node_t *right = bplus_create_node(tree, false);
   int i;
   int r = 0;
   for (i = mid + 1; i < total; i++) {
@@ -181,15 +182,15 @@ static void FUNC(bplus_split_internal)(ds_bplus_tree_t *tree,
   right->children[r]->parent = right;
   right->num_keys = total - mid - 1;
   node->num_keys = mid;
-  FUNC(bplus_insert_into_parent)(tree, node, up, right);
+  bplus_insert_into_parent(tree, node, up, right);
 }
 
 /* split a leaf that has overflowed (num_keys == order) */
-static void FUNC(bplus_split_leaf)(ds_bplus_tree_t *tree,
-                                   ds_bplus_tree_internal_node_t *leaf) {
+static void bplus_split_leaf(ds_bplus_tree_t *tree,
+                             ds_bplus_tree_internal_node_t *leaf) {
   int total = leaf->num_keys;
   int mid = (total + 1) / 2;
-  ds_bplus_tree_internal_node_t *right = FUNC(bplus_create_node)(tree, true);
+  ds_bplus_tree_internal_node_t *right = bplus_create_node(tree, true);
   int i;
   int r = 0;
   for (i = mid; i < total; i++) {
@@ -204,17 +205,16 @@ static void FUNC(bplus_split_leaf)(ds_bplus_tree_t *tree,
     leaf->next->prev = right;
   }
   leaf->next = right;
-  FUNC(bplus_insert_into_parent)(tree, leaf, right->keys[0], right);
+  bplus_insert_into_parent(tree, leaf, right->keys[0], right);
 }
 
 /* B* leaf overflow: try to push the overflow record into a sibling that has
  * room before resorting to a split. Returns true if redistribution handled it.
  */
-static bool
-FUNC(bplus_bstar_relieve_leaf)(ds_bplus_tree_t *tree,
-                               ds_bplus_tree_internal_node_t *leaf) {
+static bool bplus_bstar_relieve_leaf(ds_bplus_tree_t *tree,
+                                     ds_bplus_tree_internal_node_t *leaf) {
   ds_bplus_tree_internal_node_t *parent = leaf->parent;
-  int max_keys = FUNC(bplus_max_keys)(tree);
+  int max_keys = bplus_max_keys(tree);
   int idx;
   int i;
   if (parent == NULL) {
@@ -257,14 +257,14 @@ FUNC(bplus_bstar_relieve_leaf)(ds_bplus_tree_t *tree,
   return false;
 }
 
-static void FUNC(bplus_insert_into_parent)(
-    ds_bplus_tree_t *tree, ds_bplus_tree_internal_node_t *left,
-    ds_bplus_tree_node_t *key, ds_bplus_tree_internal_node_t *right) {
+static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
+                                     ds_bplus_tree_internal_node_t *left,
+                                     ds_bplus_tree_node_t *key,
+                                     ds_bplus_tree_internal_node_t *right) {
   ds_bplus_tree_internal_node_t *parent = left->parent;
   int idx;
   if (parent == NULL) {
-    ds_bplus_tree_internal_node_t *new_root =
-        FUNC(bplus_create_node)(tree, false);
+    ds_bplus_tree_internal_node_t *new_root = bplus_create_node(tree, false);
     new_root->keys[0] = key;
     new_root->children[0] = left;
     new_root->children[1] = right;
@@ -279,14 +279,13 @@ static void FUNC(bplus_insert_into_parent)(
   while (idx <= parent->num_keys && parent->children[idx] != left) {
     idx += 1;
   }
-  FUNC(bplus_internal_insert_at)(parent, idx, key, right);
+  bplus_internal_insert_at(parent, idx, key, right);
   if (parent->num_keys >= tree->order) {
-    FUNC(bplus_split_internal)(tree, parent);
+    bplus_split_internal(tree, parent);
   }
 }
 
-bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
-                                ds_bplus_tree_node_t *data) {
+bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
   int pos;
@@ -294,7 +293,7 @@ bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
   if (data == tree->nil) {
     return false;
   }
-  leaf = FUNC(bplus_find_leaf)(tree, data);
+  leaf = bplus_find_leaf(tree, data);
   /* find insertion position; reject duplicates */
   pos = 0;
   while (pos < leaf->num_keys && tree->compare(data, leaf->keys[pos]) > 0) {
@@ -319,7 +318,7 @@ bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
         c += 1;
       }
       if (c > 0) {
-        parent->keys[c - 1] = FUNC(bplus_subtree_min)(parent->children[c]);
+        parent->keys[c - 1] = bplus_subtree_min(parent->children[c]);
         break;
       }
       child = parent;
@@ -327,15 +326,15 @@ bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
     }
   }
   if (leaf->num_keys >= tree->order) {
-    if (!tree->bstar || !FUNC(bplus_bstar_relieve_leaf)(tree, leaf)) {
-      FUNC(bplus_split_leaf)(tree, leaf);
+    if (!tree->bstar || !bplus_bstar_relieve_leaf(tree, leaf)) {
+      bplus_split_leaf(tree, leaf);
     }
   }
   return result;
 }
 
-void FUNC(ds_bplus_tree_walk_forward)(
-    ds_bplus_tree_t *tree, void (*callback)(ds_bplus_tree_node_t *)) {
+void ds_bplus_tree_walk_forward(ds_bplus_tree_t *tree,
+                                void (*callback)(ds_bplus_tree_node_t *)) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
   leaf = tree->head;
@@ -347,13 +346,12 @@ void FUNC(ds_bplus_tree_walk_forward)(
   }
 }
 
-void FUNC(ds_bplus_tree_range_walk)(ds_bplus_tree_t *tree,
-                                    ds_bplus_tree_node_t *low,
-                                    ds_bplus_tree_node_t *high,
-                                    void (*callback)(ds_bplus_tree_node_t *)) {
+void ds_bplus_tree_range_walk(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *low,
+                              ds_bplus_tree_node_t *high,
+                              void (*callback)(ds_bplus_tree_node_t *)) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
-  leaf = FUNC(bplus_find_leaf)(tree, low);
+  leaf = bplus_find_leaf(tree, low);
   while (leaf != NULL) {
     for (i = 0; i < leaf->num_keys; i++) {
       if (tree->compare(leaf->keys[i], low) < 0) {
@@ -368,43 +366,41 @@ void FUNC(ds_bplus_tree_range_walk)(ds_bplus_tree_t *tree,
   }
 }
 
-static void
-FUNC(bplus_destroy_recursive)(ds_bplus_tree_t *tree,
-                              ds_bplus_tree_internal_node_t *node,
-                              void (*destroy)(ds_bplus_tree_node_t *)) {
+static void bplus_destroy_recursive(ds_bplus_tree_t *tree,
+                                    ds_bplus_tree_internal_node_t *node,
+                                    void (*destroy)(ds_bplus_tree_node_t *)) {
   int i;
   if (!node->is_leaf) {
     for (i = 0; i <= node->num_keys; i++) {
-      FUNC(bplus_destroy_recursive)(tree, node->children[i], destroy);
+      bplus_destroy_recursive(tree, node->children[i], destroy);
     }
   } else if (destroy != NULL) {
     for (i = 0; i < node->num_keys; i++) {
       destroy(node->keys[i]);
     }
   }
-  FUNC(bplus_free_node)(tree, node);
+  bplus_free_node(tree, node);
 }
 
-void FUNC(ds_bplus_tree_destroy)(ds_bplus_tree_t *tree,
-                                 void (*destroy)(ds_bplus_tree_node_t *)) {
-  FUNC(bplus_destroy_recursive)(tree, tree->root, destroy);
+void ds_bplus_tree_destroy(ds_bplus_tree_t *tree,
+                           void (*destroy)(ds_bplus_tree_node_t *)) {
+  bplus_destroy_recursive(tree, tree->root, destroy);
   tree->deallocator(tree->nil);
   tree->deallocator(tree);
 }
 
-ds_bplus_tree_t *FUNC(ds_bplus_tree_clone)(
+ds_bplus_tree_t *ds_bplus_tree_clone(
     ds_bplus_tree_t *tree,
     ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *)) {
   ds_bplus_tree_t *new_tree;
   ds_bplus_tree_internal_node_t *leaf;
   int i;
-  new_tree =
-      FUNC(ds_bplus_tree_create_alloc)(tree->order, tree->bstar, tree->compare,
-                                       tree->allocator, tree->deallocator);
+  new_tree = ds_bplus_tree_create_alloc(tree->order, tree->bstar, tree->compare,
+                                        tree->allocator, tree->deallocator);
   leaf = tree->head;
   while (leaf != NULL) {
     for (i = 0; i < leaf->num_keys; i++) {
-      FUNC(ds_bplus_tree_insert)(new_tree, clone_node(leaf->keys[i]));
+      ds_bplus_tree_insert(new_tree, clone_node(leaf->keys[i]));
     }
     leaf = leaf->next;
   }
@@ -412,8 +408,8 @@ ds_bplus_tree_t *FUNC(ds_bplus_tree_clone)(
 }
 
 /* index of child within its parent */
-static int FUNC(bplus_child_index)(ds_bplus_tree_internal_node_t *parent,
-                                   ds_bplus_tree_internal_node_t *child) {
+static int bplus_child_index(ds_bplus_tree_internal_node_t *parent,
+                             ds_bplus_tree_internal_node_t *child) {
   int i = 0;
   while (i <= parent->num_keys && parent->children[i] != child) {
     i += 1;
@@ -422,38 +418,37 @@ static int FUNC(bplus_child_index)(ds_bplus_tree_internal_node_t *parent,
 }
 
 /* refresh separators along the path so parent->keys hold subtree minimums */
-static void
-FUNC(bplus_refresh_separators)(ds_bplus_tree_internal_node_t *node) {
+static void bplus_refresh_separators(ds_bplus_tree_internal_node_t *node) {
   ds_bplus_tree_internal_node_t *child = node;
   ds_bplus_tree_internal_node_t *parent = node->parent;
   while (parent != NULL) {
-    int c = FUNC(bplus_child_index)(parent, child);
+    int c = bplus_child_index(parent, child);
     if (c > 0) {
-      parent->keys[c - 1] = FUNC(bplus_subtree_min)(parent->children[c]);
+      parent->keys[c - 1] = bplus_subtree_min(parent->children[c]);
     }
     child = parent;
     parent = parent->parent;
   }
 }
 
-static void FUNC(bplus_fix_underflow)(ds_bplus_tree_t *tree,
-                                      ds_bplus_tree_internal_node_t *node);
+static void bplus_fix_underflow(ds_bplus_tree_t *tree,
+                                ds_bplus_tree_internal_node_t *node);
 
-static void FUNC(bplus_collapse_root)(ds_bplus_tree_t *tree) {
+static void bplus_collapse_root(ds_bplus_tree_t *tree) {
   if (!tree->root->is_leaf && tree->root->num_keys == 0) {
     ds_bplus_tree_internal_node_t *old = tree->root;
     tree->root = old->children[0];
     tree->root->parent = NULL;
-    FUNC(bplus_free_node)(tree, old);
+    bplus_free_node(tree, old);
   }
 }
 
 /* merge node into its left sibling (left absorbs node) */
-static void FUNC(bplus_merge_nodes)(ds_bplus_tree_t *tree,
-                                    ds_bplus_tree_internal_node_t *left,
-                                    ds_bplus_tree_internal_node_t *node,
-                                    ds_bplus_tree_internal_node_t *parent,
-                                    int sep_index) {
+static void bplus_merge_nodes(ds_bplus_tree_t *tree,
+                              ds_bplus_tree_internal_node_t *left,
+                              ds_bplus_tree_internal_node_t *node,
+                              ds_bplus_tree_internal_node_t *parent,
+                              int sep_index) {
   int i;
   if (left->is_leaf) {
     for (i = 0; i < node->num_keys; i++) {
@@ -482,25 +477,25 @@ static void FUNC(bplus_merge_nodes)(ds_bplus_tree_t *tree,
     parent->children[i + 1] = parent->children[i + 2];
   }
   parent->num_keys -= 1;
-  FUNC(bplus_free_node)(tree, node);
+  bplus_free_node(tree, node);
   if (parent == tree->root) {
-    FUNC(bplus_collapse_root)(tree);
-  } else if (parent->num_keys < FUNC(bplus_min_keys)(tree)) {
-    FUNC(bplus_fix_underflow)(tree, parent);
+    bplus_collapse_root(tree);
+  } else if (parent->num_keys < bplus_min_keys(tree)) {
+    bplus_fix_underflow(tree, parent);
   }
 }
 
-static void FUNC(bplus_fix_underflow)(ds_bplus_tree_t *tree,
-                                      ds_bplus_tree_internal_node_t *node) {
+static void bplus_fix_underflow(ds_bplus_tree_t *tree,
+                                ds_bplus_tree_internal_node_t *node) {
   ds_bplus_tree_internal_node_t *parent = node->parent;
-  int min_keys = FUNC(bplus_min_keys)(tree);
+  int min_keys = bplus_min_keys(tree);
   int idx;
   int i;
   if (parent == NULL) {
-    FUNC(bplus_collapse_root)(tree);
+    bplus_collapse_root(tree);
     return;
   }
-  idx = FUNC(bplus_child_index)(parent, node);
+  idx = bplus_child_index(parent, node);
   /* borrow from left sibling */
   if (idx > 0) {
     ds_bplus_tree_internal_node_t *left = parent->children[idx - 1];
@@ -561,21 +556,19 @@ static void FUNC(bplus_fix_underflow)(ds_bplus_tree_t *tree,
   }
   /* merge */
   if (idx > 0) {
-    FUNC(bplus_merge_nodes)
-    (tree, parent->children[idx - 1], node, parent, idx - 1);
+    bplus_merge_nodes(tree, parent->children[idx - 1], node, parent, idx - 1);
   } else {
-    FUNC(bplus_merge_nodes)(tree, node, parent->children[idx + 1], parent, idx);
+    bplus_merge_nodes(tree, node, parent->children[idx + 1], parent, idx);
   }
 }
 
-bool FUNC(ds_bplus_tree_remove)(ds_bplus_tree_t *tree,
-                                ds_bplus_tree_node_t *key,
-                                ds_bplus_tree_node_t **out_data) {
+bool ds_bplus_tree_remove(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key,
+                          ds_bplus_tree_node_t **out_data) {
   ds_bplus_tree_internal_node_t *leaf;
   int pos;
   int i;
   bool removed = false;
-  leaf = FUNC(bplus_find_leaf)(tree, key);
+  leaf = bplus_find_leaf(tree, key);
   pos = -1;
   for (i = 0; i < leaf->num_keys; i++) {
     if (tree->compare(key, leaf->keys[i]) == 0) {
@@ -596,10 +589,10 @@ bool FUNC(ds_bplus_tree_remove)(ds_bplus_tree_t *tree,
   tree->size -= 1;
   removed = true;
   if (leaf->num_keys > 0) {
-    FUNC(bplus_refresh_separators)(leaf);
+    bplus_refresh_separators(leaf);
   }
-  if (leaf != tree->root && leaf->num_keys < FUNC(bplus_min_keys)(tree)) {
-    FUNC(bplus_fix_underflow)(tree, leaf);
+  if (leaf != tree->root && leaf->num_keys < bplus_min_keys(tree)) {
+    bplus_fix_underflow(tree, leaf);
   }
   return removed;
 }

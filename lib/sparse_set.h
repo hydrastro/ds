@@ -38,27 +38,26 @@ typedef struct ds_sparse_set {
   bool fixed;
 } ds_sparse_set_t;
 
-ds_status_t FUNC(ds_sparse_set_init)(ds_sparse_set_t *set, size_t universe,
-                                     ds_context_t *context);
-ds_status_t FUNC(ds_sparse_set_init_buffer)(ds_sparse_set_t *set, size_t *dense,
-                                            size_t *sparse, size_t universe);
-void FUNC(ds_sparse_set_destroy)(ds_sparse_set_t *set);
+ds_status_t ds_sparse_set_init(ds_sparse_set_t *set, size_t universe,
+                               ds_context_t *context);
+ds_status_t ds_sparse_set_init_buffer(ds_sparse_set_t *set, size_t *dense,
+                                      size_t *sparse, size_t universe);
+void ds_sparse_set_destroy(ds_sparse_set_t *set);
 
-ds_status_t FUNC(ds_sparse_set_insert)(ds_sparse_set_t *set, size_t value);
-ds_status_t FUNC(ds_sparse_set_remove)(ds_sparse_set_t *set, size_t value);
-bool FUNC(ds_sparse_set_contains)(const ds_sparse_set_t *set, size_t value);
-ds_status_t FUNC(ds_sparse_set_index_of)(const ds_sparse_set_t *set,
-                                         size_t value, size_t *out_index);
-void FUNC(ds_sparse_set_clear)(ds_sparse_set_t *set);
+ds_status_t ds_sparse_set_insert(ds_sparse_set_t *set, size_t value);
+ds_status_t ds_sparse_set_remove(ds_sparse_set_t *set, size_t value);
+bool ds_sparse_set_contains(const ds_sparse_set_t *set, size_t value);
+ds_status_t ds_sparse_set_index_of(const ds_sparse_set_t *set, size_t value,
+                                   size_t *out_index);
+void ds_sparse_set_clear(ds_sparse_set_t *set);
 
-size_t FUNC(ds_sparse_set_size)(const ds_sparse_set_t *set);
-size_t FUNC(ds_sparse_set_universe)(const ds_sparse_set_t *set);
-const size_t *FUNC(ds_sparse_set_data)(const ds_sparse_set_t *set);
-ds_status_t FUNC(ds_sparse_set_at)(const ds_sparse_set_t *set, size_t index,
-                                   size_t *out_value);
-ds_status_t FUNC(ds_sparse_set_pop)(ds_sparse_set_t *set, size_t *out_value);
-ds_status_t FUNC(ds_sparse_set_set_universe)(ds_sparse_set_t *set,
-                                             size_t universe);
+size_t ds_sparse_set_size(const ds_sparse_set_t *set);
+size_t ds_sparse_set_universe(const ds_sparse_set_t *set);
+const size_t *ds_sparse_set_data(const ds_sparse_set_t *set);
+ds_status_t ds_sparse_set_at(const ds_sparse_set_t *set, size_t index,
+                             size_t *out_value);
+ds_status_t ds_sparse_set_pop(ds_sparse_set_t *set, size_t *out_value);
+ds_status_t ds_sparse_set_set_universe(ds_sparse_set_t *set, size_t universe);
 
 #ifdef __cplusplus
 }

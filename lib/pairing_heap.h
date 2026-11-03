@@ -24,26 +24,25 @@ typedef struct pairing_heap {
   void (*deallocator)(void *);
 } ds_pairing_heap_t;
 
-ds_pairing_heap_t *FUNC(ds_pairing_heap_create)(
+ds_pairing_heap_t *ds_pairing_heap_create(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *));
-ds_pairing_heap_t *FUNC(ds_pairing_heap_create_alloc)(
+ds_pairing_heap_t *ds_pairing_heap_create_alloc(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *));
-void FUNC(ds_pairing_heap_node_init)(ds_pairing_heap_node_t *node);
-void FUNC(ds_pairing_heap_insert)(ds_pairing_heap_t *heap,
+void ds_pairing_heap_node_init(ds_pairing_heap_node_t *node);
+void ds_pairing_heap_insert(ds_pairing_heap_t *heap,
+                            ds_pairing_heap_node_t *node);
+ds_pairing_heap_node_t *ds_pairing_heap_peek(ds_pairing_heap_t *heap);
+ds_pairing_heap_node_t *ds_pairing_heap_extract(ds_pairing_heap_t *heap);
+void ds_pairing_heap_decrease_key(ds_pairing_heap_t *heap,
                                   ds_pairing_heap_node_t *node);
-ds_pairing_heap_node_t *FUNC(ds_pairing_heap_peek)(ds_pairing_heap_t *heap);
-ds_pairing_heap_node_t *FUNC(ds_pairing_heap_extract)(ds_pairing_heap_t *heap);
-void FUNC(ds_pairing_heap_decrease_key)(ds_pairing_heap_t *heap,
-                                        ds_pairing_heap_node_t *node);
-bool FUNC(ds_pairing_heap_is_empty)(ds_pairing_heap_t *heap);
-size_t FUNC(ds_pairing_heap_size)(ds_pairing_heap_t *heap);
-void FUNC(ds_pairing_heap_merge)(ds_pairing_heap_t *heap,
-                                 ds_pairing_heap_t *other);
-void FUNC(ds_pairing_heap_walk)(ds_pairing_heap_t *heap,
-                                void (*callback)(ds_pairing_heap_node_t *));
-void FUNC(ds_pairing_heap_destroy)(ds_pairing_heap_t *heap,
-                                   void (*destroy)(ds_pairing_heap_node_t *));
+bool ds_pairing_heap_is_empty(ds_pairing_heap_t *heap);
+size_t ds_pairing_heap_size(ds_pairing_heap_t *heap);
+void ds_pairing_heap_merge(ds_pairing_heap_t *heap, ds_pairing_heap_t *other);
+void ds_pairing_heap_walk(ds_pairing_heap_t *heap,
+                          void (*callback)(ds_pairing_heap_node_t *));
+void ds_pairing_heap_destroy(ds_pairing_heap_t *heap,
+                             void (*destroy)(ds_pairing_heap_node_t *));
 
 #ifdef __cplusplus
 }

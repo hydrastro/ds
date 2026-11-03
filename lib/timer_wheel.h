@@ -66,25 +66,21 @@ typedef struct ds_timer_wheel {
   size_t pending;
 } ds_timer_wheel_t;
 
-void FUNC(ds_timer_wheel_init)(ds_timer_wheel_t *wheel, unsigned long now);
-void FUNC(ds_timer_init)(ds_timer_t *timer, ds_timer_callback_func_t callback,
-                         void *user);
+void ds_timer_wheel_init(ds_timer_wheel_t *wheel, unsigned long now);
+void ds_timer_init(ds_timer_t *timer, ds_timer_callback_func_t callback,
+                   void *user);
 
-ds_status_t FUNC(ds_timer_wheel_start)(ds_timer_wheel_t *wheel,
-                                       ds_timer_t *timer,
-                                       unsigned long expires);
-ds_status_t FUNC(ds_timer_wheel_start_after)(ds_timer_wheel_t *wheel,
-                                             ds_timer_t *timer,
-                                             unsigned long delay);
-bool FUNC(ds_timer_wheel_cancel)(ds_timer_wheel_t *wheel, ds_timer_t *timer);
-bool FUNC(ds_timer_is_pending)(const ds_timer_t *timer);
+ds_status_t ds_timer_wheel_start(ds_timer_wheel_t *wheel, ds_timer_t *timer,
+                                 unsigned long expires);
+ds_status_t ds_timer_wheel_start_after(ds_timer_wheel_t *wheel,
+                                       ds_timer_t *timer, unsigned long delay);
+bool ds_timer_wheel_cancel(ds_timer_wheel_t *wheel, ds_timer_t *timer);
+bool ds_timer_is_pending(const ds_timer_t *timer);
 
-size_t FUNC(ds_timer_wheel_advance)(ds_timer_wheel_t *wheel,
-                                    unsigned long ticks);
-size_t FUNC(ds_timer_wheel_advance_to)(ds_timer_wheel_t *wheel,
-                                       unsigned long time);
-unsigned long FUNC(ds_timer_wheel_now)(const ds_timer_wheel_t *wheel);
-size_t FUNC(ds_timer_wheel_pending)(const ds_timer_wheel_t *wheel);
+size_t ds_timer_wheel_advance(ds_timer_wheel_t *wheel, unsigned long ticks);
+size_t ds_timer_wheel_advance_to(ds_timer_wheel_t *wheel, unsigned long time);
+unsigned long ds_timer_wheel_now(const ds_timer_wheel_t *wheel);
+size_t ds_timer_wheel_pending(const ds_timer_wheel_t *wheel);
 
 #ifdef __cplusplus
 }

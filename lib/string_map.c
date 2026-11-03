@@ -47,11 +47,11 @@ static char *string_map_strdup(const char *str) {
   return copy;
 }
 
-ds_string_map_t *FUNC(ds_string_map_create)(void) {
-  return FUNC(ds_string_map_create_ctx)(NULL);
+ds_string_map_t *ds_string_map_create(void) {
+  return ds_string_map_create_ctx(NULL);
 }
 
-ds_string_map_t *FUNC(ds_string_map_create_ctx)(ds_context_t *context) {
+ds_string_map_t *ds_string_map_create_ctx(ds_context_t *context) {
   ds_string_map_t *map;
   ds_hash_table_config_t config;
 
@@ -66,7 +66,7 @@ ds_string_map_t *FUNC(ds_string_map_create_ctx)(ds_context_t *context) {
   config.compare = string_map_compare;
   config.destroy_key = string_map_destroy_key;
   config.context = context;
-  map->table = FUNC(ds_hash_table_create_config)(&config);
+  map->table = ds_hash_table_create_config(&config);
   if (map->table == NULL) {
     free(map);
     return NULL;
@@ -74,8 +74,8 @@ ds_string_map_t *FUNC(ds_string_map_create_ctx)(ds_context_t *context) {
   return map;
 }
 
-ds_status_t FUNC(ds_string_map_put)(ds_string_map_t *map, const char *key,
-                                    void *value) {
+ds_status_t ds_string_map_put(ds_string_map_t *map, const char *key,
+                              void *value) {
   char *copy;
   ds_status_t status;
 
@@ -86,56 +86,54 @@ ds_status_t FUNC(ds_string_map_put)(ds_string_map_t *map, const char *key,
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
-  status = FUNC(ds_hash_table_insert_take_key)(map->table, copy, value);
+  status = ds_hash_table_insert_take_key(map->table, copy, value);
   if (status != DS_OK) {
     free(copy);
   }
   return status;
 }
 
-ds_status_t FUNC(ds_string_map_get)(ds_string_map_t *map, const char *key,
-                                    void **out_value) {
+ds_status_t ds_string_map_get(ds_string_map_t *map, const char *key,
+                              void **out_value) {
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_hash_table_get)(map->table, string_map_key_ptr(key),
-                                 out_value);
+  return ds_hash_table_get(map->table, string_map_key_ptr(key), out_value);
 }
 
-ds_status_t FUNC(ds_string_map_remove)(ds_string_map_t *map, const char *key) {
+ds_status_t ds_string_map_remove(ds_string_map_t *map, const char *key) {
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_hash_table_remove)(map->table, string_map_key_ptr(key));
+  return ds_hash_table_remove(map->table, string_map_key_ptr(key));
 }
 
-ds_status_t FUNC(ds_string_map_contains)(ds_string_map_t *map,
-                                         const char *key) {
+ds_status_t ds_string_map_contains(ds_string_map_t *map, const char *key) {
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_hash_table_contains)(map->table, string_map_key_ptr(key));
+  return ds_hash_table_contains(map->table, string_map_key_ptr(key));
 }
 
-void FUNC(ds_string_map_destroy)(ds_string_map_t *map) {
+void ds_string_map_destroy(ds_string_map_t *map) {
   if (map == NULL) {
     return;
   }
-  FUNC(ds_hash_table_destroy)(map->table);
+  ds_hash_table_destroy(map->table);
   free(map);
 }
 
-ds_string_set_t *FUNC(ds_string_set_create)(void) {
-  return FUNC(ds_string_set_create_ctx)(NULL);
+ds_string_set_t *ds_string_set_create(void) {
+  return ds_string_set_create_ctx(NULL);
 }
 
-ds_string_set_t *FUNC(ds_string_set_create_ctx)(ds_context_t *context) {
+ds_string_set_t *ds_string_set_create_ctx(ds_context_t *context) {
   ds_string_set_t *set;
   set = (ds_string_set_t *)malloc(sizeof(*set));
   if (set == NULL) {
     return NULL;
   }
-  set->map = FUNC(ds_string_map_create_ctx)(context);
+  set->map = ds_string_map_create_ctx(context);
   if (set->map == NULL) {
     free(set);
     return NULL;
@@ -143,32 +141,31 @@ ds_string_set_t *FUNC(ds_string_set_create_ctx)(ds_context_t *context) {
   return set;
 }
 
-ds_status_t FUNC(ds_string_set_add)(ds_string_set_t *set, const char *key) {
+ds_status_t ds_string_set_add(ds_string_set_t *set, const char *key) {
   if (set == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_string_map_put)(set->map, key, set);
+  return ds_string_map_put(set->map, key, set);
 }
 
-ds_status_t FUNC(ds_string_set_contains)(ds_string_set_t *set,
-                                         const char *key) {
+ds_status_t ds_string_set_contains(ds_string_set_t *set, const char *key) {
   if (set == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_string_map_contains)(set->map, key);
+  return ds_string_map_contains(set->map, key);
 }
 
-ds_status_t FUNC(ds_string_set_remove)(ds_string_set_t *set, const char *key) {
+ds_status_t ds_string_set_remove(ds_string_set_t *set, const char *key) {
   if (set == NULL) {
     return DS_ERR_NULL;
   }
-  return FUNC(ds_string_map_remove)(set->map, key);
+  return ds_string_map_remove(set->map, key);
 }
 
-void FUNC(ds_string_set_destroy)(ds_string_set_t *set) {
+void ds_string_set_destroy(ds_string_set_t *set) {
   if (set == NULL) {
     return;
   }
-  FUNC(ds_string_map_destroy)(set->map);
+  ds_string_map_destroy(set->map);
   free(set);
 }

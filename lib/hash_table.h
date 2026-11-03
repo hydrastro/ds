@@ -116,19 +116,18 @@ struct hash_table {
 
 void ds_hash_table_config_init(ds_hash_table_config_t *config);
 ds_hash_table_t *
-    FUNC(ds_hash_table_create_config)(const ds_hash_table_config_t *config);
-ds_status_t FUNC(ds_hash_table_insert)(ds_hash_table_t *table, void *key,
-                                       void *value);
-ds_status_t FUNC(ds_hash_table_insert_take_key)(ds_hash_table_t *table,
-                                                void *key, void *value);
-ds_status_t FUNC(ds_hash_table_get)(ds_hash_table_t *table, void *key,
-                                    void **out_value);
-ds_status_t FUNC(ds_hash_table_remove)(ds_hash_table_t *table, void *key);
-ds_status_t FUNC(ds_hash_table_contains)(ds_hash_table_t *table, void *key);
-void FUNC(ds_hash_table_destroy)(ds_hash_table_t *table);
-ds_hash_table_t *FUNC(ds_hash_table_clone)(ds_hash_table_t *table);
-ds_status_t FUNC(ds_hash_table_iter_init)(ds_hash_table_t *table,
-                                          ds_iter_t *iter);
+ds_hash_table_create_config(const ds_hash_table_config_t *config);
+ds_status_t ds_hash_table_insert(ds_hash_table_t *table, void *key,
+                                 void *value);
+ds_status_t ds_hash_table_insert_take_key(ds_hash_table_t *table, void *key,
+                                          void *value);
+ds_status_t ds_hash_table_get(ds_hash_table_t *table, void *key,
+                              void **out_value);
+ds_status_t ds_hash_table_remove(ds_hash_table_t *table, void *key);
+ds_status_t ds_hash_table_contains(ds_hash_table_t *table, void *key);
+void ds_hash_table_destroy(ds_hash_table_t *table);
+ds_hash_table_t *ds_hash_table_clone(ds_hash_table_t *table);
+ds_status_t ds_hash_table_iter_init(ds_hash_table_t *table, ds_iter_t *iter);
 
 ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                  void *value);
@@ -145,49 +144,49 @@ size_t next_prime_capacity(size_t current_capacity);
 size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity);
 size_t linear_probing(size_t base_index, size_t iteration, size_t capacity);
 
-const ds_hash_bucket_store_t *
-    FUNC(ds_hash_table_linked_list_bucket_store)(void);
+const ds_hash_bucket_store_t *ds_hash_table_linked_list_bucket_store(void);
 
+ds_hash_table_t *ds_hash_table_create(size_t capacity,
+                                      ds_hash_table_mode_t mode,
+                                      ds_hash_probing_func_t probing_func);
 ds_hash_table_t *
-    FUNC(ds_hash_table_create)(size_t capacity, ds_hash_table_mode_t mode,
-                               ds_hash_probing_func_t probing_func);
-ds_hash_table_t *FUNC(ds_hash_table_create_chain)(
-    size_t capacity, const ds_hash_bucket_store_t *bucket_store);
-ds_hash_table_t *
-    FUNC(ds_hash_table_create_alloc)(size_t capacity, ds_hash_table_mode_t mode,
-                                     ds_hash_probing_func_t probing_func,
-                                     void *(*allocator)(size_t),
-                                     void (*deallocator)(void *));
-ds_hash_table_t *FUNC(ds_hash_table_create_chain_alloc)(
+ds_hash_table_create_chain(size_t capacity,
+                           const ds_hash_bucket_store_t *bucket_store);
+ds_hash_table_t *ds_hash_table_create_alloc(size_t capacity,
+                                            ds_hash_table_mode_t mode,
+                                            ds_hash_probing_func_t probing_func,
+                                            void *(*allocator)(size_t),
+                                            void (*deallocator)(void *));
+ds_hash_table_t *ds_hash_table_create_chain_alloc(
     size_t capacity, const ds_hash_bucket_store_t *bucket_store,
     void *(*allocator)(size_t), void (*deallocator)(void *));
-void FUNC(hash_table_insert)(ds_hash_table_t *table, void *key, void *value,
-                             size_t (*hash_func)(void *),
-                             int (*compare)(void *, void *));
-void FUNC(ds_hash_table_resize)(ds_hash_table_t *table, size_t new_capacity,
-                                size_t (*hash_func)(void *),
-                                int (*compare)(void *, void *));
-void *FUNC(ds_hash_table_lookup)(ds_hash_table_t *table, void *key,
-                                 size_t (*hash_func)(void *),
-                                 int (*compare)(void *, void *));
-void FUNC(hash_table_remove)(ds_hash_table_t *table, void *key,
-                             size_t (*hash_func)(void *),
-                             int (*compare)(void *, void *),
-                             void (*destroy)(ds_hash_node_t *));
-void FUNC(ds_hash_table_for_each)(ds_hash_table_t *table,
-                                  void (*callback)(ds_hash_node_t *, void *),
-                                  void *args);
-bool FUNC(ds_hash_table_is_empty)(ds_hash_table_t *table);
-void FUNC(hash_table_destroy)(ds_hash_table_t *table,
-                              void (*destroy)(ds_hash_node_t *));
-ds_hash_table_t *FUNC(hash_table_clone)(ds_hash_table_t *table,
-                                        void *(*clone_key)(void *),
-                                        void *(*clone_value)(void *));
-ds_hash_table_t *FUNC(ds_hash_table_clone_with)(ds_hash_table_t *table,
-                                                void *(*clone_key)(void *),
-                                                void *(*clone_value)(void *),
-                                                size_t (*hash_func)(void *),
-                                                int (*compare)(void *, void *));
+void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
+                       size_t (*hash_func)(void *),
+                       int (*compare)(void *, void *));
+void ds_hash_table_resize(ds_hash_table_t *table, size_t new_capacity,
+                          size_t (*hash_func)(void *),
+                          int (*compare)(void *, void *));
+void *ds_hash_table_lookup(ds_hash_table_t *table, void *key,
+                           size_t (*hash_func)(void *),
+                           int (*compare)(void *, void *));
+void hash_table_remove(ds_hash_table_t *table, void *key,
+                       size_t (*hash_func)(void *),
+                       int (*compare)(void *, void *),
+                       void (*destroy)(ds_hash_node_t *));
+void ds_hash_table_for_each(ds_hash_table_t *table,
+                            void (*callback)(ds_hash_node_t *, void *),
+                            void *args);
+bool ds_hash_table_is_empty(ds_hash_table_t *table);
+void hash_table_destroy(ds_hash_table_t *table,
+                        void (*destroy)(ds_hash_node_t *));
+ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
+                                  void *(*clone_key)(void *),
+                                  void *(*clone_value)(void *));
+ds_hash_table_t *ds_hash_table_clone_with(ds_hash_table_t *table,
+                                          void *(*clone_key)(void *),
+                                          void *(*clone_value)(void *),
+                                          size_t (*hash_func)(void *),
+                                          int (*compare)(void *, void *));
 
 #ifdef __cplusplus
 }

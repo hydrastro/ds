@@ -44,28 +44,27 @@ typedef struct ds_rollback_uf {
   bool fixed;
 } ds_rollback_uf_t;
 
-ds_status_t FUNC(ds_rollback_uf_init)(ds_rollback_uf_t *uf, size_t count,
-                                      ds_context_t *context);
-ds_status_t FUNC(ds_rollback_uf_init_buffer)(ds_rollback_uf_t *uf,
-                                             size_t *parent, size_t *size,
-                                             size_t *history, size_t count);
-void FUNC(ds_rollback_uf_destroy)(ds_rollback_uf_t *uf);
+ds_status_t ds_rollback_uf_init(ds_rollback_uf_t *uf, size_t count,
+                                ds_context_t *context);
+ds_status_t ds_rollback_uf_init_buffer(ds_rollback_uf_t *uf, size_t *parent,
+                                       size_t *size, size_t *history,
+                                       size_t count);
+void ds_rollback_uf_destroy(ds_rollback_uf_t *uf);
 
-ds_status_t FUNC(ds_rollback_uf_find)(const ds_rollback_uf_t *uf, size_t x,
-                                      size_t *out_root);
-ds_status_t FUNC(ds_rollback_uf_union)(ds_rollback_uf_t *uf, size_t a, size_t b,
-                                       bool *out_merged);
-bool FUNC(ds_rollback_uf_same)(const ds_rollback_uf_t *uf, size_t a, size_t b);
-ds_status_t FUNC(ds_rollback_uf_component_size)(const ds_rollback_uf_t *uf,
-                                                size_t x, size_t *out_size);
-size_t FUNC(ds_rollback_uf_components)(const ds_rollback_uf_t *uf);
-size_t FUNC(ds_rollback_uf_count)(const ds_rollback_uf_t *uf);
+ds_status_t ds_rollback_uf_find(const ds_rollback_uf_t *uf, size_t x,
+                                size_t *out_root);
+ds_status_t ds_rollback_uf_union(ds_rollback_uf_t *uf, size_t a, size_t b,
+                                 bool *out_merged);
+bool ds_rollback_uf_same(const ds_rollback_uf_t *uf, size_t a, size_t b);
+ds_status_t ds_rollback_uf_component_size(const ds_rollback_uf_t *uf, size_t x,
+                                          size_t *out_size);
+size_t ds_rollback_uf_components(const ds_rollback_uf_t *uf);
+size_t ds_rollback_uf_count(const ds_rollback_uf_t *uf);
 
-size_t FUNC(ds_rollback_uf_snapshot)(const ds_rollback_uf_t *uf);
-ds_status_t FUNC(ds_rollback_uf_rollback)(ds_rollback_uf_t *uf,
-                                          size_t snapshot);
-ds_status_t FUNC(ds_rollback_uf_undo)(ds_rollback_uf_t *uf);
-void FUNC(ds_rollback_uf_reset)(ds_rollback_uf_t *uf);
+size_t ds_rollback_uf_snapshot(const ds_rollback_uf_t *uf);
+ds_status_t ds_rollback_uf_rollback(ds_rollback_uf_t *uf, size_t snapshot);
+ds_status_t ds_rollback_uf_undo(ds_rollback_uf_t *uf);
+void ds_rollback_uf_reset(ds_rollback_uf_t *uf);
 
 #ifdef __cplusplus
 }
