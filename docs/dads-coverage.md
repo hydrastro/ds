@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 424 |
-| todo | 281 |
+| done | 445 |
+| todo | 260 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,10 +38,9 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
-| `algo/sort_dist` | 20 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
-| `algo/sort_misc` | 14 | balanced k-way merge sort, balanced merge sort, balanced two-way merge sort, blind sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, rapid sort, shadow merge, shadow merge insert |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
+| `algo/sort_misc` | 12 | balanced k-way merge sort, balanced merge sort, balanced two-way merge sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, shadow merge, shadow merge insert |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -85,6 +84,7 @@ Families ordered by how many DADS entries they close.
 | `algo/knapsack` | 1 | set packing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
 | `algo/sequence (extensions)` | 1 | balanced multiway merge |
+| `algo/sort_dist` | 1 | JSort |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
@@ -138,7 +138,7 @@ Families ordered by how many DADS entries they close.
 | adaptive Huffman coding | todo | `algo/compress` |
 | adaptive k-d tree | todo | `lib/kdb_tree` |
 | adaptive sort | done | `algo/sort_misc` |
-| address-calculation sort | todo | `algo/sort_dist` |
+| address-calculation sort | done | `algo/sort_dist` |
 | adjacency-list representation | done | `lib/graph, algo/graph_view` (CSR) |
 | adjacency-matrix representation | def |  |
 | adjacent | def |  |
@@ -157,7 +157,7 @@ Families ordered by how many DADS entries they close.
 | alternating path | done | `algo/matching` |
 | alternating Turing machine | def |  |
 | alternation | def |  |
-| American flag sort | todo | `algo/sort_dist` |
+| American flag sort | done | `algo/sort_dist` |
 | amortized cost | def |  |
 | ancestor | def |  |
 | and | def |  |
@@ -239,7 +239,7 @@ Families ordered by how many DADS entries they close.
 | binomial heap | done | `lib/binomial_heap` |
 | binomial tree | done | `lib/binomial_heap` |
 | bin packing problem | done | `algo/knapsack` |
-| bin sort | todo | `algo/sort_dist` |
+| bin sort | done | `algo/sort_dist` |
 | bintree | todo | `lib/quadtree` |
 | bipartite graph | done | `algo/graph_view` (ds_gview_bipartite) |
 | bipartite matching | done | `algo/matching` |
@@ -247,7 +247,7 @@ Families ordered by how many DADS entries they close.
 | bitonic sort | done | `algo/sort_classic` |
 | bit vector | done | `lib/bitset, lib/bitvector` |
 | Bk tree | done | `lib/binomial_heap` |
-| blind sort | todo | `algo/sort_misc` |
+| blind sort | done | `algo/sort_dist` |
 | blind trie | todo | `lib/elastic_trie` |
 | block | def |  |
 | block addressing index | def |  |
@@ -288,7 +288,7 @@ Families ordered by how many DADS entries they close.
 | bucket | def |  |
 | bucket array | def |  |
 | bucketing method | def |  |
-| bucket sort | todo | `algo/sort_dist` |
+| bucket sort | done | `algo/sort_dist` |
 | bucket trie | todo | `lib/elastic_trie` |
 | buddy system | todo | `lib/buddy_allocator` |
 | buddy tree | todo | `lib/hb_tree` |
@@ -458,8 +458,8 @@ Families ordered by how many DADS entries they close.
 | disjoint set | done | `lib/disjoint_set, lib/rollback_union_find` |
 | disjunction | def |  |
 | distributional complexity | def |  |
-| distribution sort | todo | `algo/sort_dist` |
-| distributive partitioning sort | todo | `algo/sort_dist` |
+| distribution sort | done | `algo/sort_dist` |
+| distributive partitioning sort | done | `algo/sort_dist` |
 | divide and conquer | def |  |
 | divide and marriage before conquest | def |  |
 | domain | def |  |
@@ -592,7 +592,7 @@ Families ordered by how many DADS entries they close.
 | first-in, first-out | done | `lib/queue` |
 | Fisher-Yates shuffle | done | `algo/sequence` (ds_shuffle) |
 | fixed-grid method | todo | `lib/grid_file` |
-| flash sort | todo | `algo/sort_dist` |
+| flash sort | done | `algo/sort_dist` |
 | flow | def |  |
 | flow conservation | def |  |
 | flow function | def |  |
@@ -677,7 +677,7 @@ Families ordered by how many DADS entries they close.
 | heuristic | def |  |
 | hidden Markov model | todo | `algo/hmm` |
 | highest common factor | done | `algo/numeric` |
-| histogram sort | todo | `algo/sort_dist` |
+| histogram sort | done | `algo/sort_dist` |
 | HMM | todo | `algo/hmm` |
 | homeomorphic | def |  |
 | horizontal visibility map | def |  |
@@ -721,7 +721,7 @@ Families ordered by how many DADS entries they close.
 | internal sort | def |  |
 | interpolation search | done | `algo/search` |
 | interpolation-sequential search | done | `algo/search` |
-| interpolation sort | todo | `algo/sort_dist` |
+| interpolation sort | done | `algo/sort_dist` |
 | intersection | done | `algo/sequence` (ds_set_intersection) |
 | interval tree | done | `lib/interval_tree` |
 | intractable | def |  |
@@ -746,7 +746,7 @@ Families ordered by how many DADS entries they close.
 | Johnson's algorithm | done | `algo/graph_path` |
 | Johnson-Trotter | done | `algo/combinatorics` |
 | JSort | todo | `algo/sort_dist` |
-| J sort | todo | `algo/sort_dist` |
+| J sort | done | `algo/sort_dist` |
 | jump list | todo | `lib/jump_list` |
 | jump search | done | `algo/search` |
 
@@ -818,7 +818,7 @@ Families ordered by how many DADS entries they close.
 | linear insertion sort | done | `algo/sort` |
 | linear order | def |  |
 | linear probing | done | `lib/hash_table, lib/rh_map` |
-| linear probing sort | todo | `algo/sort_dist` |
+| linear probing sort | done | `algo/sort_dist` |
 | linear product | def |  |
 | linear program | todo | `algo/lp` |
 | linear quadtree | todo | `lib/quadtree` |
@@ -908,7 +908,7 @@ Families ordered by how many DADS entries they close.
 | MST | done | `algo/graph_view, lib/graph` |
 | multi-commodity flow | def |  |
 | multigraph | def |  |
-| multikey Quicksort | todo | `algo/sort_dist` |
+| multikey Quicksort | done | `algo/sort_dist` |
 | multilayer grid file | todo | `lib/grid_file` |
 | multiplication method | done | `algo/hash_family` |
 | multiprefix | done | `algo/scan` |
@@ -1067,7 +1067,7 @@ Families ordered by how many DADS entries they close.
 | permutation sort | done | `algo/sort_misc` |
 | persistent data structure | done | `lib/persistent_rbt, lib/persistent_trie` |
 | phonetic coding | todo | `algo/phonetic` |
-| pigeonhole sort | todo | `algo/sort_dist` |
+| pigeonhole sort | done | `algo/sort_dist` |
 | pile | def |  |
 | pipelined divide and conquer | def |  |
 | planar graph | def |  |
@@ -1092,7 +1092,7 @@ Families ordered by how many DADS entries they close.
 | poset | def |  |
 | postfix traversal | def |  |
 | Post machine | def |  |
-| postman's sort | todo | `algo/sort_dist` |
+| postman's sort | done | `algo/sort_dist` |
 | postorder traversal | done | `lib/avl, lib/bst walks` |
 | Post's correspondence problem | def |  |
 | potential function | def |  |
@@ -1169,9 +1169,9 @@ Families ordered by how many DADS entries they close.
 | random sampling | todo | `algo/random` (extensions) |
 | random search | def |  |
 | range | def |  |
-| range sort | todo | `algo/sort_dist` |
+| range sort | done | `algo/sort_dist` |
 | rank | done | `lib/order_statistic_tree, lib/bitvector` |
-| rapid sort | todo | `algo/sort_misc` |
+| rapid sort | done | `algo/sort_dist` |
 | Ratcliff/Obershelp pattern recognition | todo | `algo/string_approx` |
 | RBST | todo | `lib/rbst` |
 | reachability | done | `algo/graph_view` (BFS) |
@@ -1208,7 +1208,7 @@ Families ordered by how many DADS entries they close.
 | repeated squaring | done | `algo/numeric` (ds_powmod) |
 | rescalable | def |  |
 | reservoir sampling | todo | `algo/random` (extensions) |
-| restricted universe sort | todo | `algo/sort_dist` |
+| restricted universe sort | done | `algo/sort_dist` |
 | Reverse Colussi | todo | `algo/string_search` |
 | Reverse Factor | todo | `algo/string_search` |
 | R-file | todo | `lib/grid_file` |
@@ -1279,7 +1279,7 @@ Families ordered by how many DADS entries they close.
 | shortest path | done | `algo/graph_path` |
 | shortest spanning tree | done | `algo/graph_path` |
 | shuffle | done | `algo/sequence` |
-| shuffle sort † | todo | `algo/sort_dist` |
+| shuffle sort † | done | `algo/sort_dist` |
 | sibling † | def |  |
 | sieve of Eratosthenes | done | `algo/numeric` |
 | sift up † | def |  |
@@ -1410,10 +1410,10 @@ Families ordered by how many DADS entries they close.
 | threaded tree † | todo | `lib/threaded_tree` |
 | three-dimensional | def |  |
 | three-way merge sort † | done | `algo/sort_misc` |
-| three-way radix quicksort † | todo | `algo/sort_dist` |
+| three-way radix quicksort † | done | `algo/sort_dist` |
 | time-constructible function † | def |  |
 | time/space complexity † | def |  |
-| top-down radix sort † | todo | `algo/sort_dist` |
+| top-down radix sort † | done | `algo/sort_dist` |
 | top-down tree automaton | def |  |
 | topological order | done | `algo/graph_view` |
 | topological sort † | done | `algo/graph_view, lib/graph` |

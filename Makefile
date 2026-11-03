@@ -156,7 +156,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/kway_merge.c \
   $(ALGO_DIR)/scan.c \
   $(ALGO_DIR)/select.c \
-  $(ALGO_DIR)/sort_misc.c
+  $(ALGO_DIR)/sort_misc.c \
+  $(ALGO_DIR)/sort_dist.c
 
 LIB_SRC += $(ALGO_SRC)
 

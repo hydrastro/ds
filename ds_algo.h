@@ -32,5 +32,6 @@
 #include "algo/scan.h"
 #include "algo/select.h"
 #include "algo/sort_misc.h"
+#include "algo/sort_dist.h"
 
 #endif /* DS_ALGO_H */
