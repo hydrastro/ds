@@ -43,6 +43,7 @@
 #include "lib/heap.h"
 #include "lib/history.h"
 #include "lib/hyperloglog.h"
+#include "lib/iblt.h"
 #include "lib/implicit_treap.h"
 #include "lib/indexed_heap.h"
 #include "lib/interval_tree.h"

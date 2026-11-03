@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 235 |
-| todo | 484 |
+| done | 237 |
+| todo | 482 |
 | def | 579 |
 | total | 1298 |
 
@@ -84,7 +84,6 @@ Families ordered by how many DADS entries they close.
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
 | `lib/diet` | 2 | diet, discrete interval encoding tree |
-| `lib/iblt` | 2 | IBLT, invertible Bloom lookup table |
 | `lib/multiset` | 2 | bag, multi-set |
 | `lib/rbst` | 2 | randomized binary search tree, RBST |
 | `lib/tst` | 2 | ternary search tree, TST |
@@ -703,7 +702,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| IBLT | todo | `lib/iblt` |
+| IBLT | done | `lib/iblt` |
 | ideal merge | todo | `algo/sequence` (extensions) |
 | ideal random shuffle | done | `algo/sequence` (ds_shuffle) |
 | implication | def |  |
@@ -739,7 +738,7 @@ Families ordered by how many DADS entries they close.
 | inversion list | todo | `algo/sequence` (extensions) |
 | inverted file index | def |  |
 | inverted index | def |  |
-| invertible Bloom lookup table | todo | `lib/iblt` |
+| invertible Bloom lookup table | done | `lib/iblt` |
 | irreflexive | def |  |
 | isomorphic | def |  |
 | iteration | def |  |
