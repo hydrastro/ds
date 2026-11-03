@@ -148,7 +148,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/graph_path.c \
   $(ALGO_DIR)/geometry.c \
   $(ALGO_DIR)/combinatorics.c \
-  $(ALGO_DIR)/knapsack.c
+  $(ALGO_DIR)/knapsack.c \
+  $(ALGO_DIR)/number_theory.c
 
 LIB_SRC += $(ALGO_SRC)
 

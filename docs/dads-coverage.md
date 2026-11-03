@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 339 |
-| todo | 366 |
+| done | 347 |
+| todo | 358 |
 | def | 593 |
 | total | 1298 |
 
@@ -40,9 +40,9 @@ Families ordered by how many DADS entries they close.
 | `algo/string_search` | 36 | Alpha Skip Search algorithm, Apostolico-Crochemore, Apostolico-Giancarlo algorithm, Boyer-Moore, Boyer-Moore-Horspool, brute force string search, brute force string search with mismatches, Colussi, Commentz-Walter, deterministic finite automata string search, exact string matching, Galil-Giancarlo, Galil-Seiferas, Horspool, KmpSkip Search, Maximal Shift, Morris-Pratt algorithm, naive string search, Not So Naive, optimal mismatch, quick search, Raita, Reverse Colussi, Reverse Factor, Shift-Or, skip search, Smith algorithm, string matching, string matching on ordered alphabets, string matching with mismatches, string searching, text searching, Turbo-BM, Turbo Reverse Factor, Two Way algorithm, Zhu-Takaoka |
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
 | `algo/sort_misc` | 32 | adaptive sort, balanced k-way merge sort, balanced merge sort, balanced quicksort, balanced two-way merge sort, bingo sort, blind sort, bogosort, bozo sort, dual-pivot quicksort, k-way merge sort, linear insertion sort, lucky sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, p-way merge sort, qm sort, q sort, quicksort, rapid sort, shadow merge, shadow merge insert, simple merge, sinking sort, strand sort, three-way merge sort, two-way merge sort |
-| `algo/numeric (extensions)` | 22 | Ackermann's function, BBP algorithm, Chinese remainder theorem, CORDIC, cube root, Doomsday rule, Ferguson-Forcade algorithm, Fibonacci number, gamma function, Horner's rule, inverse Ackermann function, kth order Fibonacci numbers, midrange, mode, pth order Fibonacci numbers, reduced basis, Rice's method, secant search, square root, Stirling's approximation, Stirling's formula, Zeller's congruence |
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
+| `algo/numeric (extensions)` | 14 | BBP algorithm, CORDIC, cube root, Ferguson-Forcade algorithm, gamma function, Horner's rule, midrange, mode, reduced basis, Rice's method, secant search, square root, Stirling's approximation, Stirling's formula |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/sequence (extensions)` | 11 | balanced multiway merge, Dutch national flag, ideal merge, inversion list, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
@@ -132,7 +132,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | accepting state | def |  |
-| Ackermann's function | todo | `algo/numeric` (extensions) |
+| Ackermann's function | done | `algo/number_theory` |
 | active data structure | def |  |
 | acyclic directed graph | def |  |
 | acyclic graph | def |  |
@@ -326,7 +326,7 @@ Families ordered by how many DADS entries they close.
 | chaining | done | `lib/hash_table` (chaining mode) |
 | child | def |  |
 | Chinese postman problem | done | `algo/graph_path` |
-| Chinese remainder theorem | todo | `algo/numeric` (extensions) |
+| Chinese remainder theorem | done | `algo/number_theory` |
 | Christofides algorithm | todo | `algo/graph_hard` |
 | chromatic index | todo | `algo/graph_hard` |
 | chromatic number | todo | `algo/graph_hard` |
@@ -467,7 +467,7 @@ Families ordered by how many DADS entries they close.
 | domain | def |  |
 | dominance tree sort | todo | `algo/sort_heap` |
 | don't care | def |  |
-| Doomsday rule | todo | `algo/numeric` (extensions) |
+| Doomsday rule | done | `algo/number_theory` |
 | double-direction bubble sort | done | `algo/sort_classic` (cocktail) |
 | double-ended priority queue | done | `lib/min_max_heap` |
 | double hashing | done | `lib/open_map` |
@@ -577,7 +577,7 @@ Families ordered by how many DADS entries they close.
 | FFT | todo | `algo/fft` |
 | Fibonaccian search | todo | `algo/search` (extensions) |
 | Fibonacci heap | done | `lib/fibonacci_heap` |
-| Fibonacci number | todo | `algo/numeric` (extensions) |
+| Fibonacci number | done | `algo/number_theory` |
 | Fibonacci tree | def |  |
 | FIFO | done | `lib/queue` |
 | filial-heir chain | todo | `lib/binary_tree_repr` |
@@ -729,7 +729,7 @@ Families ordered by how many DADS entries they close.
 | intractable | def |  |
 | introsort | done | `algo/sort` |
 | introspective sort | done | `algo/sort` |
-| inverse Ackermann function | todo | `algo/numeric` (extensions) |
+| inverse Ackermann function | done | `algo/number_theory` |
 | inverse suffix array | todo | `lib/suffix_tree` |
 | inversion list | todo | `algo/sequence` (extensions) |
 | inverted file index | def |  |
@@ -780,7 +780,7 @@ Families ordered by how many DADS entries they close.
 | Kraft's inequality | def |  |
 | Kripke structure | def |  |
 | Kruskal's algorithm | done | `algo/graph_path` |
-| kth order Fibonacci numbers | todo | `algo/numeric` (extensions) |
+| kth order Fibonacci numbers | done | `algo/number_theory` |
 | kth shortest path | done | `algo/graph_path` |
 | kth smallest element | done | `algo/sort` (nth_element) |
 | k²-tree | todo | `lib/k2_tree` |
@@ -1127,7 +1127,7 @@ Families ordered by how many DADS entries they close.
 | prune and search | def |  |
 | pseudo-random number generator | done | `algo/random` |
 | PTAS | def |  |
-| pth order Fibonacci numbers | todo | `algo/numeric` (extensions) |
+| pth order Fibonacci numbers | done | `algo/number_theory` |
 | P-tree | todo | `lib/hb_tree` |
 | purely functional language | def |  |
 | pushdown automaton | def |  |
@@ -1587,7 +1587,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| Zeller's congruence | todo | `algo/numeric` (extensions) |
+| Zeller's congruence | done | `algo/number_theory` |
 
 ### Symbols and digits
 

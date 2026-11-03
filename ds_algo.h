@@ -25,5 +25,6 @@
 #include "algo/geometry.h"
 #include "algo/combinatorics.h"
 #include "algo/knapsack.h"
+#include "algo/number_theory.h"
 
 #endif /* DS_ALGO_H */

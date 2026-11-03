@@ -85,6 +85,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/geometry`: hulls, calipers, closest pair, kernels, triangulation, rasterization
 - `algo/combinatorics`: ranking, SJT, partitions, n queens, knight's tours, Hanoi
 - `algo/knapsack`: knapsack variants, bin/strip packing, cutting stock, matrix chain
+- `algo/number_theory`: CRT, Fibonacci, Ackermann, day-of-week rules
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
