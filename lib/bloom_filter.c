@@ -89,9 +89,6 @@ FUNC(ds_bloom_filter_create_with_params)(size_t num_bits, size_t num_hashes,
   for (i = 0; i < num_words; i++) {
     filter->words[i] = 0UL;
   }
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(filter);
-#endif
   return filter;
 }
 
@@ -113,9 +110,6 @@ void FUNC(ds_bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
                                size_t length) {
   size_t *indices;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(filter);
-#endif
   indices = (size_t *)filter->allocator(filter->num_hashes * sizeof(size_t));
   FUNC(bloom_each_index)(filter, key, length, indices);
   for (i = 0; i < filter->num_hashes; i++) {
@@ -125,9 +119,6 @@ void FUNC(ds_bloom_filter_add)(ds_bloom_filter_t *filter, const void *key,
   }
   filter->num_items += 1;
   filter->deallocator(indices);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(filter);
-#endif
 }
 
 bool FUNC(ds_bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
@@ -135,9 +126,6 @@ bool FUNC(ds_bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
   size_t *indices;
   size_t i;
   bool result = true;
-#ifdef DS_THREAD_SAFE
-  LOCK(filter);
-#endif
   indices = (size_t *)filter->allocator(filter->num_hashes * sizeof(size_t));
   FUNC(bloom_each_index)(filter, key, length, indices);
   for (i = 0; i < filter->num_hashes; i++) {
@@ -149,35 +137,20 @@ bool FUNC(ds_bloom_filter_maybe_contains)(ds_bloom_filter_t *filter,
     }
   }
   filter->deallocator(indices);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(filter);
-#endif
   return result;
 }
 
 void FUNC(ds_bloom_filter_clear)(ds_bloom_filter_t *filter) {
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(filter);
-#endif
   for (i = 0; i < filter->num_words; i++) {
     filter->words[i] = 0UL;
   }
   filter->num_items = 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(filter);
-#endif
 }
 
 size_t FUNC(ds_bloom_filter_count)(ds_bloom_filter_t *filter) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(filter);
-#endif
   result = filter->num_items;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(filter);
-#endif
   return result;
 }
 
@@ -186,49 +159,31 @@ double FUNC(ds_bloom_filter_estimated_fpr)(ds_bloom_filter_t *filter) {
   double n;
   double m;
   double result;
-#ifdef DS_THREAD_SAFE
-  LOCK(filter);
-#endif
   k = (double)filter->num_hashes;
   n = (double)filter->num_items;
   m = (double)filter->num_bits;
   /* (1 - e^(-kn/m))^k */
   result = pow(1.0 - exp(-(k * n) / m), k);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(filter);
-#endif
   return result;
 }
 
 bool FUNC(ds_bloom_filter_union)(ds_bloom_filter_t *filter,
                                  ds_bloom_filter_t *other) {
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(filter);
-#endif
   if (filter->num_bits != other->num_bits ||
       filter->num_hashes != other->num_hashes) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(filter);
-#endif
     return false;
   }
   for (i = 0; i < filter->num_words; i++) {
     filter->words[i] |= other->words[i];
   }
   filter->num_items += other->num_items;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(filter);
-#endif
   return true;
 }
 
 ds_bloom_filter_t *FUNC(ds_bloom_filter_clone)(ds_bloom_filter_t *filter) {
   ds_bloom_filter_t *new_filter;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(filter);
-#endif
   new_filter = FUNC(ds_bloom_filter_create_with_params)(
       filter->num_bits, filter->num_hashes, filter->allocator,
       filter->deallocator);
@@ -236,16 +191,10 @@ ds_bloom_filter_t *FUNC(ds_bloom_filter_clone)(ds_bloom_filter_t *filter) {
     new_filter->words[i] = filter->words[i];
   }
   new_filter->num_items = filter->num_items;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(filter);
-#endif
   return new_filter;
 }
 
 void FUNC(ds_bloom_filter_destroy)(ds_bloom_filter_t *filter) {
   filter->deallocator(filter->words);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(filter);
-#endif
   filter->deallocator(filter);
 }

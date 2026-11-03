@@ -22,10 +22,6 @@ typedef struct splay_tree {
   int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *);
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_splay_tree_t;
 
 ds_splay_tree_t *FUNC(ds_splay_tree_create)(

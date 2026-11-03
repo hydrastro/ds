@@ -11,16 +11,6 @@ make test
 
 Builds every `test/*_test.c` binary and runs them sequentially.
 
-## Thread-safe tests
-
-```sh
-make test-safe
-```
-
-Builds the safe library variant and runs thread-safe smoke/regression tests.
-This is especially important for code that touches `LOCK`, `UNLOCK`, recursive
-walks, or APIs that call other locked APIs internally.
-
 ## Sanitizers
 
 ```sh
@@ -41,7 +31,6 @@ Runs:
 
 ```txt
 make valgrind-test
-make valgrind-safe
 make valgrind-examples
 ```
 
@@ -89,8 +78,6 @@ breakage in user-facing code.
 The review-driven stabilization tests are intentionally focused on bug classes
 that ordinary examples miss:
 
-- lock/unlock balance in safe builds
-- B-tree/AVL walks under `DS_THREAD_SAFE`
 - heap index invariants
 - string-map update ownership
 - allocator hardening paths
@@ -98,4 +85,4 @@ that ordinary examples miss:
 - persistent trie/RBT version isolation
 
 When fixing a review item, add a regression test near the bug's natural module
-or in `test/stability_review_test.c` / `test/thread_safe_all_structures_test.c`.
+or in `test/stability_review_test.c`.

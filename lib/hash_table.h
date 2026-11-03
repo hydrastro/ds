@@ -112,10 +112,6 @@ struct hash_table {
   ds_hash_destroy_func_t config_destroy_key;
   ds_hash_destroy_func_t config_destroy_value;
   void *config_user;
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 };
 
 void ds_hash_table_config_init(ds_hash_table_config_t *config);

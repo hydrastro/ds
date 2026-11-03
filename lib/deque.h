@@ -21,10 +21,6 @@ typedef struct deque {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_deque_t;
 
 ds_deque_t *FUNC(ds_deque_create)(void);

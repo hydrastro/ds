@@ -14,71 +14,38 @@ ds_stack_t *FUNC(ds_stack_create_alloc)(void *(*allocator)(size_t),
   stack->nil->next = stack->nil;
   stack->top = stack->nil;
   stack->size = 0;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(stack);
-#endif
   return stack;
 }
 
 void FUNC(ds_stack_push)(ds_stack_t *stack, ds_stack_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
   if (node == stack->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(stack);
-#endif
     return;
   }
   node->next = stack->top;
   stack->top = node;
   stack->size += 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 }
 
 ds_stack_node_t *FUNC(ds_stack_pop)(ds_stack_t *stack) {
   ds_stack_node_t *node;
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
   if (FUNC(ds_stack_is_empty)(stack)) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(stack);
-#endif
     return stack->nil;
   }
   node = stack->top;
   stack->top = node->next;
   stack->size -= 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
   return node;
 }
 
 ds_stack_node_t *FUNC(ds_stack_peek)(ds_stack_t *stack) {
   ds_stack_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
   result = stack->top;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
   return result;
 }
 
 bool FUNC(ds_stack_is_empty)(ds_stack_t *stack) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
   result = stack->top == stack->nil;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
   return result;
 }
 
@@ -91,31 +58,17 @@ void FUNC(ds_stack_destroy)(ds_stack_t *stack,
     node = next;
   }
   stack->deallocator(stack->nil);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(stack);
-#endif
   stack->deallocator(stack);
 }
 
 void FUNC(ds_stack_delete)(ds_stack_t *stack) {
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
-
   stack->top = stack->nil;
   stack->size = 0;
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 }
 
 void FUNC(ds_stack_delete_node)(ds_stack_t *stack, ds_stack_node_t *node) {
   ds_stack_node_t *current;
   ds_stack_node_t *previous;
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
 
   current = stack->top;
   previous = stack->nil;
@@ -133,67 +86,37 @@ void FUNC(ds_stack_delete_node)(ds_stack_t *stack, ds_stack_node_t *node) {
     }
     stack->size -= 1;
   }
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 }
 
 void FUNC(ds_stack_destroy_node)(ds_stack_t *stack, ds_stack_node_t *node,
                                  void (*destroy)(ds_stack_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
-
   FUNC(ds_stack_delete_node)(stack, node);
   if (destroy != NULL) {
     destroy(node);
   }
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 }
 
 void FUNC(ds_stack_pop_destroy)(ds_stack_t *stack,
                                 void (*destroy_node)(ds_stack_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
-
   if (!FUNC(ds_stack_is_empty)(stack)) {
     ds_stack_node_t *node = FUNC(ds_stack_pop)(stack);
     destroy_node(node);
   }
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 }
 
 ds_stack_node_t *FUNC(ds_stack_search)(ds_stack_t *stack, ds_stack_node_t *node,
                                        int (*compare)(ds_stack_node_t *,
                                                       ds_stack_node_t *)) {
   ds_stack_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
 
   current = stack->top;
 
   while (current != stack->nil) {
     if (compare(current, node) == 0) {
-#ifdef DS_THREAD_SAFE
-      UNLOCK(stack);
-#endif
       return current;
     }
     current = current->next;
   }
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 
   return stack->nil;
 }
@@ -201,9 +124,6 @@ ds_stack_node_t *FUNC(ds_stack_search)(ds_stack_t *stack, ds_stack_node_t *node,
 void FUNC(ds_stack_walk_forward)(ds_stack_t *stack, ds_stack_node_t *start_node,
                                  void (*callback)(ds_stack_node_t *)) {
   ds_stack_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
 
   current = start_node != stack->nil ? start_node : stack->top;
 
@@ -211,31 +131,16 @@ void FUNC(ds_stack_walk_forward)(ds_stack_t *stack, ds_stack_node_t *start_node,
     callback(current);
     current = current->next;
   }
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 }
 
 void FUNC(ds_stack_walk_backwards)(ds_stack_t *stack, ds_stack_node_t *current,
                                    void (*callback)(ds_stack_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
-
   if (current == stack->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(stack);
-#endif
     return;
   }
 
   FUNC(ds_stack_walk_backwards)(stack, current->next, callback);
   callback(current);
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 }
 
 ds_stack_t *
@@ -244,9 +149,6 @@ FUNC(ds_stack_clone)(ds_stack_t *stack,
   ds_stack_t *temp_stack;
   ds_stack_t *new_stack;
   ds_stack_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(stack);
-#endif
   temp_stack =
       FUNC(ds_stack_create_alloc)(stack->allocator, stack->deallocator);
   new_stack = FUNC(ds_stack_create_alloc)(stack->allocator, stack->deallocator);
@@ -261,9 +163,6 @@ FUNC(ds_stack_clone)(ds_stack_t *stack,
     FUNC(ds_stack_push)(new_stack, node);
   }
   FUNC(ds_stack_destroy)(temp_stack, NULL);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(stack);
-#endif
 
   return new_stack;
 }

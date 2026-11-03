@@ -37,10 +37,6 @@ typedef struct segment_tree {
   ds_segment_tree_op_t op;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_segment_tree_t;
 
 ds_segment_tree_t *FUNC(ds_segment_tree_create)(const long *values, size_t n,

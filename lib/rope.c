@@ -47,9 +47,6 @@ ds_rope_t *FUNC(ds_rope_create_alloc)(void *(*allocator)(size_t),
   rope->root = NULL;
   rope->allocator = allocator;
   rope->deallocator = deallocator;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(rope);
-#endif
   return rope;
 }
 
@@ -77,13 +74,7 @@ ds_rope_t *FUNC(ds_rope_from_string)(const char *str, size_t length) {
 
 size_t FUNC(ds_rope_length)(ds_rope_t *rope) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   result = rope->root != NULL ? rope->root->length : 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
   return result;
 }
 
@@ -107,15 +98,9 @@ static char FUNC(rope_char_at_node)(ds_rope_node_t *node, size_t index) {
 
 char FUNC(ds_rope_char_at)(ds_rope_t *rope, size_t index) {
   char result = '\0';
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   if (rope->root != NULL && index < rope->root->length) {
     result = FUNC(rope_char_at_node)(rope->root, index);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
   return result;
 }
 
@@ -173,9 +158,6 @@ static void FUNC(rope_free_internal)(ds_rope_t *rope, ds_rope_node_t *node) {
 }
 
 void FUNC(ds_rope_rebalance)(ds_rope_t *rope) {
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   if (rope->root != NULL && !rope->root->is_leaf) {
     size_t num_leaves = FUNC(rope_count_leaves)(rope->root);
     ds_rope_node_t **leaves = (ds_rope_node_t **)rope->allocator(
@@ -186,9 +168,6 @@ void FUNC(ds_rope_rebalance)(ds_rope_t *rope) {
     rope->root = FUNC(rope_balance_leaves)(rope, leaves, 0, num_leaves);
     rope->deallocator(leaves);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
 }
 
 /* depth of a subtree */
@@ -240,17 +219,11 @@ static void FUNC(rope_maybe_rebalance)(ds_rope_t *rope) {
 }
 
 void FUNC(ds_rope_append)(ds_rope_t *rope, const char *str, size_t length) {
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   if (length > 0) {
     ds_rope_node_t *leaf = FUNC(rope_build)(rope, str, length);
     rope->root = FUNC(rope_concat_nodes)(rope, rope->root, leaf);
     FUNC(rope_maybe_rebalance)(rope);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
 }
 
 /* split subtree at index into (left, right); returns via out params. The input
@@ -304,9 +277,6 @@ static void FUNC(rope_split_node)(ds_rope_t *rope, ds_rope_node_t *node,
 
 void FUNC(ds_rope_insert)(ds_rope_t *rope, size_t index, const char *str,
                           size_t length) {
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   if (length > 0) {
     ds_rope_node_t *mid = FUNC(rope_build)(rope, str, length);
     size_t total = rope->root != NULL ? rope->root->length : 0;
@@ -321,9 +291,6 @@ void FUNC(ds_rope_insert)(ds_rope_t *rope, size_t index, const char *str,
     }
     FUNC(rope_maybe_rebalance)(rope);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
 }
 
 static void FUNC(rope_destroy_node)(ds_rope_t *rope, ds_rope_node_t *node) {
@@ -341,9 +308,6 @@ static void FUNC(rope_destroy_node)(ds_rope_t *rope, ds_rope_node_t *node) {
 }
 
 void FUNC(ds_rope_delete)(ds_rope_t *rope, size_t index, size_t count) {
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   if (rope->root != NULL && count > 0 && index < rope->root->length) {
     ds_rope_node_t *left;
     ds_rope_node_t *mid_right;
@@ -359,9 +323,6 @@ void FUNC(ds_rope_delete)(ds_rope_t *rope, size_t index, size_t count) {
     rope->root = FUNC(rope_concat_nodes)(rope, left, right);
     FUNC(rope_maybe_rebalance)(rope);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
 }
 
 static size_t FUNC(rope_substring_node)(ds_rope_node_t *node, size_t index,
@@ -396,57 +357,36 @@ static size_t FUNC(rope_substring_node)(ds_rope_node_t *node, size_t index,
 size_t FUNC(ds_rope_substring)(ds_rope_t *rope, size_t index, size_t count,
                                char *out) {
   size_t written = 0;
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   if (rope->root != NULL && index < rope->root->length) {
     if (index + count > rope->root->length) {
       count = rope->root->length - index;
     }
     written = FUNC(rope_substring_node)(rope->root, index, count, out, 0);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
   return written;
 }
 
 char *FUNC(ds_rope_to_string)(ds_rope_t *rope) {
   char *buffer;
   size_t length;
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   length = rope->root != NULL ? rope->root->length : 0;
   buffer = (char *)rope->allocator(length + 1);
   if (length > 0) {
     FUNC(rope_substring_node)(rope->root, 0, length, buffer, 0);
   }
   buffer[length] = '\0';
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
   return buffer;
 }
 
 void FUNC(ds_rope_concat)(ds_rope_t *rope, ds_rope_t *other) {
-#ifdef DS_THREAD_SAFE
-  LOCK(rope);
-#endif
   if (other->root != NULL) {
     rope->root = FUNC(rope_concat_nodes)(rope, rope->root, other->root);
     other->root = NULL;
     FUNC(rope_maybe_rebalance)(rope);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(rope);
-#endif
 }
 
 void FUNC(ds_rope_destroy)(ds_rope_t *rope) {
   FUNC(rope_destroy_node)(rope, rope->root);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(rope);
-#endif
   rope->deallocator(rope);
 }

@@ -48,16 +48,10 @@ ds_bitvector_t *FUNC(ds_bitvector_create_alloc)(size_t num_bits,
   bv->num_blocks = 0;
   bv->total_ones = 0;
   bv->built = false;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(bv);
-#endif
   return bv;
 }
 
 void FUNC(ds_bitvector_set)(ds_bitvector_t *bv, size_t index, bool value) {
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   if (index < bv->num_bits) {
     size_t w = index / DS_BV_BITS_PER_WORD;
     unsigned long mask = 1UL << (index % DS_BV_BITS_PER_WORD);
@@ -67,23 +61,14 @@ void FUNC(ds_bitvector_set)(ds_bitvector_t *bv, size_t index, bool value) {
       bv->words[w] &= ~mask;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
 }
 
 bool FUNC(ds_bitvector_get)(ds_bitvector_t *bv, size_t index) {
   bool result = false;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   if (index < bv->num_bits) {
     size_t w = index / DS_BV_BITS_PER_WORD;
     result = (bv->words[w] & (1UL << (index % DS_BV_BITS_PER_WORD))) != 0UL;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
   return result;
 }
 
@@ -91,9 +76,6 @@ void FUNC(ds_bitvector_build)(ds_bitvector_t *bv) {
   size_t i;
   size_t cumulative = 0;
   size_t sb;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   bv->num_blocks = bv->num_words;
   bv->num_superblocks = (bv->num_blocks + DS_BV_BLOCKS_PER_SUPERBLOCK - 1) /
                             DS_BV_BLOCKS_PER_SUPERBLOCK +
@@ -123,32 +105,17 @@ void FUNC(ds_bitvector_build)(ds_bitvector_t *bv) {
                       DS_BV_BLOCKS_PER_SUPERBLOCK] = cumulative;
   bv->total_ones = cumulative;
   bv->built = true;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
 }
 
 size_t FUNC(ds_bitvector_size)(ds_bitvector_t *bv) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   result = bv->num_bits;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
   return result;
 }
 
 size_t FUNC(ds_bitvector_count_ones)(ds_bitvector_t *bv) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   result = bv->total_ones;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
   return result;
 }
 
@@ -184,28 +151,16 @@ static size_t FUNC(bv_rank1_nolock)(ds_bitvector_t *bv, size_t index) {
 
 size_t FUNC(ds_bitvector_rank1)(ds_bitvector_t *bv, size_t index) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   result = FUNC(bv_rank1_nolock)(bv, index);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
   return result;
 }
 
 size_t FUNC(ds_bitvector_rank0)(ds_bitvector_t *bv, size_t index) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   if (index > bv->num_bits) {
     index = bv->num_bits;
   }
   result = index - FUNC(bv_rank1_nolock)(bv, index);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
   return result;
 }
 
@@ -213,9 +168,6 @@ size_t FUNC(ds_bitvector_select1)(ds_bitvector_t *bv, size_t k) {
   size_t lo;
   size_t hi;
   size_t result = DS_BITVECTOR_NPOS;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   if (k < bv->total_ones) {
     /* find smallest index i such that rank1(i+1) == k+1, i.e. the (k+1)-th one
      * lives at position i; binary search on prefix rank */
@@ -231,9 +183,6 @@ size_t FUNC(ds_bitvector_select1)(ds_bitvector_t *bv, size_t k) {
     }
     result = lo;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
   return result;
 }
 
@@ -242,9 +191,6 @@ size_t FUNC(ds_bitvector_select0)(ds_bitvector_t *bv, size_t k) {
   size_t hi;
   size_t total_zeros;
   size_t result = DS_BITVECTOR_NPOS;
-#ifdef DS_THREAD_SAFE
-  LOCK(bv);
-#endif
   total_zeros = bv->num_bits - bv->total_ones;
   if (k < total_zeros) {
     lo = 0;
@@ -260,9 +206,6 @@ size_t FUNC(ds_bitvector_select0)(ds_bitvector_t *bv, size_t k) {
     }
     result = lo;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(bv);
-#endif
   return result;
 }
 
@@ -276,8 +219,5 @@ void FUNC(ds_bitvector_destroy)(ds_bitvector_t *bv) {
   if (bv->block_rank != NULL) {
     bv->deallocator(bv->block_rank);
   }
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(bv);
-#endif
   bv->deallocator(bv);
 }

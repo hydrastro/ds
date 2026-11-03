@@ -46,9 +46,8 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - union-find with snapshot/rollback
 - hierarchical timer wheel with intrusive timers and no allocation
 - bit-packed integer array (k-bit values)
-- `make test`, `make test-safe`, `make sanitize`, `make examples`, and
+- `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
-- `ds_safe.h`, `libds_safe.a`, and `libds_safe.so`
 
 ## Implemented persistent/versioned structures
 
@@ -144,8 +143,16 @@ legacy structures and the new high-level modules, including:
 - pool/debug allocator hardening
 - README/Makefile drift
 
-The test suite now includes focused review-regression tests and multi-container
-safe-build smoke coverage.
+The test suite includes focused review-regression tests.
+
+## Threading model
+
+The optional thread-safe build (`DS_THREAD_SAFE`, `ds_safe.h`, `libds_safe`)
+was removed. Per-call mutexes could not make check-then-act sequences atomic,
+pointers returned by accessors outlived the lock, the struct layout differed
+between the two builds under one type name, and several modules were never
+covered. Containers are now externally synchronized; lock-free structures
+designed for concurrency belong in a dedicated module.
 
 ## Still open / future work
 

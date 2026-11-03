@@ -1,5 +1,4 @@
 #include "../lib/btree.h"
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -125,43 +124,8 @@ void test_btree_operations() {
   ds_btree_destroy_tree(new_tree, destroy_int);
 }
 
-void *thread_function(void *arg) {
-  ds_btree_t *tree = (ds_btree_t *)arg;
-
-  for (int i = 0; i < 100; i++) {
-    my_node_t *data = (my_node_t *)malloc(sizeof(my_node_t));
-    data->data = rand() % 1000;
-    printf("thread insert..\n");
-    ds_btree_insert(tree, &data->node, compare_int);
-    printf("thread inserted\n");
-  }
-
-  return NULL;
-}
-
-void test_thread_safety() {
-  ds_btree_t *tree = ds_btree_create(2);
-
-  pthread_t threads[5];
-  for (int i = 0; i < 5; i++) {
-    pthread_create(&threads[i], NULL, thread_function, tree);
-  }
-
-  for (int i = 0; i < 5; i++) {
-    pthread_join(threads[i], NULL);
-  }
-
-  printf("after inserts:\n");
-  print_btree_node(tree->root, 0, print_int);
-
-  ds_btree_destroy_tree(tree, destroy_int);
-}
-
 int main() {
   test_btree_operations();
-#ifdef DS_THREAD_SAFE
-  test_thread_safety();
-#endif
 
   return 0;
 }

@@ -52,9 +52,6 @@ ds_ost_t *FUNC(ds_ost_create_alloc)(int (*compare)(ds_ost_node_t *,
   tree->nil->size = 0;
   tree->nil->height = 0;
   tree->root = tree->nil;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(tree);
-#endif
   return tree;
 }
 
@@ -126,18 +123,12 @@ bool FUNC(ds_ost_insert)(ds_ost_t *tree, ds_ost_node_t *node) {
   ds_ost_node_t *parent;
   int cmp = 0;
   bool result = true;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   current = tree->root;
   parent = tree->nil;
   while (current != tree->nil) {
     parent = current;
     cmp = tree->compare(node, current);
     if (cmp == 0) {
-#ifdef DS_THREAD_SAFE
-      UNLOCK(tree);
-#endif
       return false;
     }
     current = cmp < 0 ? current->left : current->right;
@@ -156,9 +147,6 @@ bool FUNC(ds_ost_insert)(ds_ost_t *tree, ds_ost_node_t *node) {
   }
   FUNC(ost_rebalance)(tree, parent);
   tree->size += 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
@@ -171,9 +159,6 @@ static ds_ost_node_t *FUNC(ost_min_node)(ds_ost_t *tree, ds_ost_node_t *node) {
 
 ds_ost_node_t *FUNC(ds_ost_search)(ds_ost_t *tree, ds_ost_node_t *key) {
   ds_ost_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   current = tree->root;
   while (current != tree->nil) {
     int cmp = tree->compare(key, current);
@@ -182,9 +167,6 @@ ds_ost_node_t *FUNC(ds_ost_search)(ds_ost_t *tree, ds_ost_node_t *key) {
     }
     current = cmp < 0 ? current->left : current->right;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return current;
 }
 
@@ -208,9 +190,6 @@ bool FUNC(ds_ost_remove)(ds_ost_t *tree, ds_ost_node_t *key,
   ds_ost_node_t *z;
   ds_ost_node_t *fixup_from;
   bool result = false;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   z = tree->root;
   while (z != tree->nil) {
     int cmp = tree->compare(key, z);
@@ -220,9 +199,6 @@ bool FUNC(ds_ost_remove)(ds_ost_t *tree, ds_ost_node_t *key,
     z = cmp < 0 ? z->left : z->right;
   }
   if (z == tree->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return false;
   }
   if (out_node != NULL) {
@@ -251,18 +227,12 @@ bool FUNC(ds_ost_remove)(ds_ost_t *tree, ds_ost_node_t *key,
   FUNC(ost_rebalance)(tree, fixup_from);
   tree->size -= 1;
   result = true;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 ds_ost_node_t *FUNC(ds_ost_select)(ds_ost_t *tree, size_t k) {
   ds_ost_node_t *current;
   ds_ost_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   result = tree->nil;
   current = tree->root;
   if (k < tree->size) {
@@ -279,18 +249,12 @@ ds_ost_node_t *FUNC(ds_ost_select)(ds_ost_t *tree, size_t k) {
       }
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 size_t FUNC(ds_ost_rank)(ds_ost_t *tree, ds_ost_node_t *key) {
   ds_ost_node_t *current;
   size_t rank = 0;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   current = tree->root;
   while (current != tree->nil) {
     int cmp = tree->compare(key, current);
@@ -301,63 +265,36 @@ size_t FUNC(ds_ost_rank)(ds_ost_t *tree, ds_ost_node_t *key) {
       current = current->right;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return rank;
 }
 
 ds_ost_node_t *FUNC(ds_ost_minimum)(ds_ost_t *tree) {
   ds_ost_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   result = tree->root == tree->nil ? tree->nil
                                    : FUNC(ost_min_node)(tree, tree->root);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 ds_ost_node_t *FUNC(ds_ost_maximum)(ds_ost_t *tree) {
   ds_ost_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   current = tree->root;
   if (current != tree->nil) {
     while (current->right != tree->nil) {
       current = current->right;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return current;
 }
 
 size_t FUNC(ds_ost_size)(ds_ost_t *tree) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   result = tree->size;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 bool FUNC(ds_ost_is_empty)(ds_ost_t *tree) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   result = tree->size == 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
@@ -373,13 +310,7 @@ static void FUNC(ost_walk_recursive)(ds_ost_t *tree, ds_ost_node_t *node,
 
 void FUNC(ds_ost_inorder_walk)(ds_ost_t *tree,
                                void (*callback)(ds_ost_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   FUNC(ost_walk_recursive)(tree, tree->root, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 static void FUNC(ost_destroy_recursive)(ds_ost_t *tree, ds_ost_node_t *node,
@@ -397,8 +328,5 @@ static void FUNC(ost_destroy_recursive)(ds_ost_t *tree, ds_ost_node_t *node,
 void FUNC(ds_ost_destroy)(ds_ost_t *tree, void (*destroy)(ds_ost_node_t *)) {
   FUNC(ost_destroy_recursive)(tree, tree->root, destroy);
   tree->deallocator(tree->nil);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(tree);
-#endif
   tree->deallocator(tree);
 }

@@ -36,10 +36,6 @@ typedef struct bplus_tree {
   int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *);
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_bplus_tree_t;
 
 ds_bplus_tree_t *FUNC(ds_bplus_tree_create)(

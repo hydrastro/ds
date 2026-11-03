@@ -30,10 +30,6 @@ typedef struct aho_corasick {
   bool compiled;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_aho_corasick_t;
 
 ds_aho_corasick_t *FUNC(ds_aho_corasick_create)(void);

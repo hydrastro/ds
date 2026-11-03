@@ -35,9 +35,6 @@ ds_radix_trie_t *FUNC(ds_radix_trie_create_alloc)(void *(*allocator)(size_t),
   trie->deallocator = deallocator;
   trie->size = 0;
   trie->root = FUNC(radix_trie_new_node)(trie, NULL, 0);
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(trie);
-#endif
   return trie;
 }
 
@@ -135,9 +132,6 @@ bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
   ds_radix_trie_node_t *node;
   size_t offset = 0;
   bool inserted = false;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   node = trie->root;
   for (;;) {
     ds_radix_trie_node_t *child;
@@ -198,9 +192,6 @@ bool FUNC(ds_radix_trie_insert)(ds_radix_trie_t *trie, const void *key,
       break;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
   return inserted;
 }
 
@@ -231,14 +222,8 @@ bool FUNC(ds_radix_trie_contains)(ds_radix_trie_t *trie, const void *key,
                                   size_t length) {
   ds_radix_trie_node_t *node;
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   node = FUNC(radix_trie_find_node)(trie, (const unsigned char *)key, length);
   result = node != NULL && node->is_terminal;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
   return result;
 }
 
@@ -246,16 +231,10 @@ void *FUNC(ds_radix_trie_get)(ds_radix_trie_t *trie, const void *key,
                               size_t length) {
   ds_radix_trie_node_t *node;
   void *result = NULL;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   node = FUNC(radix_trie_find_node)(trie, (const unsigned char *)key, length);
   if (node != NULL && node->is_terminal) {
     result = node->value;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
   return result;
 }
 
@@ -297,9 +276,6 @@ bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
   size_t depth = 0;
   size_t offset = 0;
   bool removed = false;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   node = trie->root;
   stack[depth] = node;
   depth += 1;
@@ -350,33 +326,18 @@ bool FUNC(ds_radix_trie_remove)(ds_radix_trie_t *trie, const void *key,
       }
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
   return removed;
 }
 
 size_t FUNC(ds_radix_trie_size)(ds_radix_trie_t *trie) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   result = trie->size;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
   return result;
 }
 
 bool FUNC(ds_radix_trie_is_empty)(ds_radix_trie_t *trie) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   result = trie->size == 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
   return result;
 }
 
@@ -422,18 +383,12 @@ void FUNC(ds_radix_trie_walk)(ds_radix_trie_t *trie,
                                                void *)) {
   unsigned char *buffer = NULL;
   size_t buffer_cap = 0;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   FUNC(radix_trie_walk_recursive)
   (trie->root, &buffer, &buffer_cap, 0, trie->allocator, trie->deallocator,
    callback);
   if (buffer != NULL) {
     trie->deallocator(buffer);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
 }
 
 static void FUNC(radix_trie_destroy_recursive)(ds_radix_trie_t *trie,
@@ -458,8 +413,5 @@ static void FUNC(radix_trie_destroy_recursive)(ds_radix_trie_t *trie,
 void FUNC(ds_radix_trie_destroy)(ds_radix_trie_t *trie,
                                  void (*destroy_value)(void *)) {
   FUNC(radix_trie_destroy_recursive)(trie, trie->root, destroy_value);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(trie);
-#endif
   trie->deallocator(trie);
 }

@@ -32,9 +32,6 @@ FUNC(ds_aho_corasick_create_alloc)(void *(*allocator)(size_t),
   ac->num_nodes = 0;
   ac->compiled = false;
   ac->root = FUNC(aho_corasick_new_node)(ac);
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(ac);
-#endif
   return ac;
 }
 
@@ -44,13 +41,7 @@ int FUNC(ds_aho_corasick_add)(ds_aho_corasick_t *ac, const void *pattern,
   ds_aho_corasick_node_t *node;
   int id = -1;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(ac);
-#endif
   if (length == 0) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(ac);
-#endif
     return -1;
   }
   node = ac->root;
@@ -70,9 +61,6 @@ int FUNC(ds_aho_corasick_add)(ds_aho_corasick_t *ac, const void *pattern,
   } else {
     id = node->pattern_id;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(ac);
-#endif
   return id;
 }
 
@@ -81,9 +69,6 @@ void FUNC(ds_aho_corasick_compile)(ds_aho_corasick_t *ac) {
   size_t head = 0;
   size_t tail = 0;
   int c;
-#ifdef DS_THREAD_SAFE
-  LOCK(ac);
-#endif
   queue = (ds_aho_corasick_node_t **)ac->allocator(
       ac->num_nodes * sizeof(ds_aho_corasick_node_t *));
   /* depth-1 nodes fail to root */
@@ -125,9 +110,6 @@ void FUNC(ds_aho_corasick_compile)(ds_aho_corasick_t *ac) {
   }
   ac->deallocator(queue);
   ac->compiled = true;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(ac);
-#endif
 }
 
 static ds_aho_corasick_node_t *
@@ -149,9 +131,6 @@ size_t FUNC(ds_aho_corasick_search)(
   ds_aho_corasick_node_t *node;
   size_t count = 0;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(ac);
-#endif
   if (!ac->compiled) {
     FUNC(ds_aho_corasick_compile)(ac);
   }
@@ -180,9 +159,6 @@ size_t FUNC(ds_aho_corasick_search)(
       }
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(ac);
-#endif
   return count;
 }
 
@@ -192,9 +168,6 @@ bool FUNC(ds_aho_corasick_contains_any)(ds_aho_corasick_t *ac,
   ds_aho_corasick_node_t *node;
   bool found = false;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(ac);
-#endif
   if (!ac->compiled) {
     FUNC(ds_aho_corasick_compile)(ac);
   }
@@ -206,21 +179,12 @@ bool FUNC(ds_aho_corasick_contains_any)(ds_aho_corasick_t *ac,
       break;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(ac);
-#endif
   return found;
 }
 
 size_t FUNC(ds_aho_corasick_pattern_count)(ds_aho_corasick_t *ac) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(ac);
-#endif
   result = ac->num_patterns;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(ac);
-#endif
   return result;
 }
 
@@ -237,8 +201,5 @@ static void FUNC(aho_corasick_destroy_recursive)(ds_aho_corasick_t *ac,
 
 void FUNC(ds_aho_corasick_destroy)(ds_aho_corasick_t *ac) {
   FUNC(aho_corasick_destroy_recursive)(ac, ac->root);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(ac);
-#endif
   ac->deallocator(ac);
 }

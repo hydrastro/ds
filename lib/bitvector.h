@@ -30,13 +30,9 @@ typedef struct bitvector {
   bool built;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_bitvector_t;
 
-#define DS_BITVECTOR_NPOS ((size_t)-1)
+#define DS_BITVECTOR_NPOS ((size_t) - 1)
 
 ds_bitvector_t *FUNC(ds_bitvector_create)(size_t num_bits);
 ds_bitvector_t *FUNC(ds_bitvector_create_alloc)(size_t num_bits,

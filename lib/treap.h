@@ -24,10 +24,6 @@ typedef struct treap {
   int (*compare)(ds_treap_node_t *, ds_treap_node_t *);
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_treap_t;
 
 ds_treap_t *FUNC(ds_treap_create)(int (*compare)(ds_treap_node_t *,

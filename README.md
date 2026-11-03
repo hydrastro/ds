@@ -1,8 +1,8 @@
 # ds
 
-`ds` is an intrusive, allocator-aware C data-structure library with optional
-thread-safe symbol variants, structured diagnostics/errors, persistent/versioned
-containers, and a generic retroactive history layer.
+`ds` is an intrusive, allocator-aware C data-structure library with structured
+diagnostics/errors, persistent/versioned containers, and a generic retroactive
+history layer.
 
 The library is written to keep the low-level C control surface visible while
 also offering newer high-level wrappers such as config-based hash tables,
@@ -87,13 +87,11 @@ make
 make test
 ```
 
-By default, `make` builds both normal and thread-safe library variants:
+By default, `make` builds the library:
 
 ```txt
 libds.a
 libds.so
-libds_safe.a
-libds_safe.so
 ```
 
 Install and uninstall are available:
@@ -107,10 +105,9 @@ make uninstall
 
 ```sh
 make test        # build and run all normal tests
-make test-safe   # build safe variants and run thread-safe regression tests
 make sanitize    # run tests under ASAN/UBSAN
 make examples    # build example programs
-make valgrind    # run tests, safe tests, and examples under Valgrind
+make valgrind    # run tests and examples under Valgrind
 make check       # alias for make test
 ```
 
@@ -123,7 +120,6 @@ The split Valgrind targets are:
 
 ```sh
 make valgrind-test
-make valgrind-safe
 make valgrind-examples
 ```
 
@@ -137,7 +133,7 @@ make valgrind VALGRIND_FLAGS="--leak-check=full --error-exitcode=99"
 ## Health check and coverage
 
 ```sh
-make summary         # one-shot verdict: build, tests, safe tests, examples,
+make summary         # one-shot verdict: build, tests, examples,
                      # lint, format, valgrind, and a coverage figure, each
                      # reported PASS/FAIL with a final overall verdict
 make coverage        # line/function/branch coverage summary (needs gcovr)
@@ -146,8 +142,7 @@ make coverage-html   # browsable HTML report under build/coverage/
 ```
 
 `make summary` is the single "is everything OK?" command. It splits checks
-into **correctness gates** (build, unit tests, thread-safe tests, examples,
-valgrind) that determine the exit status, and **style gates** (lint, format)
+into **correctness gates** (build, unit tests, examples, valgrind) that determine the exit status, and **style gates** (lint, format)
 that are reported as advisory `WARN` because their output depends on the exact
 `clang-format` / `cppcheck` version installed. A style WARN does not fail the
 verdict or CI; run `make lint` / `make format-check` to see the detail. The
@@ -185,26 +180,10 @@ Use the central header for the normal build:
 #include <ds.h>
 ```
 
-Use `ds_safe.h` when compiling a translation unit against the safe symbol set:
-
-```c
-#include <ds_safe.h>
-```
-
-`ds_safe.h` defines `DS_THREAD_SAFE` before including `ds.h`, so declarations
-map to the `*_safe` symbol names through the library's `FUNC(...)` macro. Link
-against `libds_safe.a` or `libds_safe.so` for those symbols.
-
 Compile against an installed library with:
 
 ```sh
 gcc -o example example.c -lds
-```
-
-Compile against the safe variant with:
-
-```sh
-gcc -o example_safe example_safe.c -lds_safe -pthread
 ```
 
 For concrete usage, see:
@@ -277,11 +256,14 @@ See `docs/ownership.md`.
 
 ## Thread-safety
 
-The safe build provides separate `*_safe` symbols guarded by recursive mutexes
-inside participating containers. It is intended to protect individual container
-operations, not arbitrary multi-operation transactions. Iteration and composite
-workflows may still require external synchronization unless the specific API
-documents otherwise.
+Containers do no internal locking. The contract is the usual one for C and
+C++ libraries: a ds object may be used by one thread at a time, and different
+objects are independent. When threads share a container, synchronize around
+whole sequences of operations (check-then-act, iterate-then-modify) with your
+own lock, since per-call locking cannot make such sequences atomic.
+
+Structures that are immutable after construction (for example a built sparse
+table) may be queried from any number of threads at once.
 
 For multi-threaded code that cares about diagnostics or last-error state, prefer
 an explicit `ds_context_t` per thread or per object. The default context is a
@@ -306,7 +288,6 @@ Before submitting changes:
 
 ```sh
 make test
-make test-safe
 make sanitize
 make examples
 make valgrind    # when Valgrind is installed

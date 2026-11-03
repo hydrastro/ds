@@ -47,9 +47,6 @@ ds_skip_list_t *FUNC(ds_skip_list_create_alloc)(
   list->nil->forward = NULL;
   list->nil->level = 0;
   list->header = FUNC(skip_list_make_header)(list, list->max_level);
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(list);
-#endif
   return list;
 }
 
@@ -64,13 +61,7 @@ void FUNC(ds_skip_list_insert)(ds_skip_list_t *list,
   ds_skip_list_node_t *current;
   size_t i;
   size_t new_level;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (node == list->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return;
   }
   current = list->header;
@@ -98,18 +89,12 @@ void FUNC(ds_skip_list_insert)(ds_skip_list_t *list,
     update[i]->forward[i] = node;
   }
   list->size += 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 ds_skip_list_node_t *FUNC(ds_skip_list_search)(ds_skip_list_t *list,
                                                ds_skip_list_node_t *node) {
   ds_skip_list_node_t *current;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   current = list->header;
   i = list->level;
   while (i > 0) {
@@ -121,14 +106,8 @@ ds_skip_list_node_t *FUNC(ds_skip_list_search)(ds_skip_list_t *list,
   }
   current = current->forward[0];
   if (current != list->nil && list->compare(current, node) == 0) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return current;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return list->nil;
 }
 
@@ -137,9 +116,6 @@ ds_skip_list_node_t *FUNC(ds_skip_list_remove)(ds_skip_list_t *list,
   ds_skip_list_node_t *update[DS_SKIP_LIST_MAX_LEVEL];
   ds_skip_list_node_t *current;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   current = list->header;
   i = list->level;
   while (i > 0) {
@@ -152,9 +128,6 @@ ds_skip_list_node_t *FUNC(ds_skip_list_remove)(ds_skip_list_t *list,
   }
   current = current->forward[0];
   if (current == list->nil || list->compare(current, node) != 0) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return list->nil;
   }
   for (i = 0; i < list->level; i++) {
@@ -171,99 +144,57 @@ ds_skip_list_node_t *FUNC(ds_skip_list_remove)(ds_skip_list_t *list,
     list->level -= 1;
   }
   list->size -= 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return current;
 }
 
 ds_skip_list_node_t *FUNC(ds_skip_list_first)(ds_skip_list_t *list) {
   ds_skip_list_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   result = list->header->forward[0];
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return result;
 }
 
 ds_skip_list_node_t *FUNC(ds_skip_list_next)(ds_skip_list_t *list,
                                              ds_skip_list_node_t *node) {
   ds_skip_list_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (node == list->nil || node->forward == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return list->nil;
   }
   result = node->forward[0];
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return result;
 }
 
 bool FUNC(ds_skip_list_is_empty)(ds_skip_list_t *list) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   result = list->header->forward[0] == list->nil;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return result;
 }
 
 void FUNC(ds_skip_list_delete_node)(ds_skip_list_t *list,
                                     ds_skip_list_node_t *node) {
   ds_skip_list_node_t *removed;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   removed = FUNC(ds_skip_list_remove)(list, node);
   (void)removed;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 void FUNC(ds_skip_list_destroy_node)(ds_skip_list_t *list,
                                      ds_skip_list_node_t *node,
                                      void (*destroy)(ds_skip_list_node_t *)) {
   ds_skip_list_node_t *removed;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   removed = FUNC(ds_skip_list_remove)(list, node);
   if (removed != list->nil && destroy != NULL) {
     destroy(removed);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 void FUNC(ds_skip_list_walk_forward)(ds_skip_list_t *list,
                                      ds_skip_list_node_t *start_node,
                                      void (*callback)(ds_skip_list_node_t *)) {
   ds_skip_list_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   current = start_node != list->nil ? start_node : list->header->forward[0];
   while (current != list->nil) {
     callback(current);
     current = current->forward[0];
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 void FUNC(ds_skip_list_destroy)(ds_skip_list_t *list,
@@ -281,9 +212,6 @@ void FUNC(ds_skip_list_destroy)(ds_skip_list_t *list,
   list->deallocator(list->header->forward);
   list->deallocator(list->header);
   list->deallocator(list->nil);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(list);
-#endif
   list->deallocator(list);
 }
 
@@ -292,9 +220,6 @@ ds_skip_list_t *FUNC(ds_skip_list_clone)(
     ds_skip_list_node_t *(*clone_node)(ds_skip_list_node_t *)) {
   ds_skip_list_t *new_list;
   ds_skip_list_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   new_list = FUNC(ds_skip_list_create_alloc)(list->compare, list->max_level,
                                              list->seed, list->allocator,
                                              list->deallocator);
@@ -304,8 +229,5 @@ ds_skip_list_t *FUNC(ds_skip_list_clone)(
     FUNC(ds_skip_list_insert)(new_list, cloned);
     current = current->forward[0];
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return new_list;
 }

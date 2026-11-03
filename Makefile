@@ -16,7 +16,7 @@ CFLAGS = -std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors \
 TEST_CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic -O2
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -pedantic -O2
 LDFLAGS = -shared
-LDLIBS = -pthread -lm
+LDLIBS = -lm
 ARFLAGS = rcs
 VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=definite,possible --error-exitcode=99 --track-origins=yes
 
@@ -44,7 +44,6 @@ LIB_SRC := \
   $(LIB_DIR)/bloom_filter.c \
   $(LIB_DIR)/bplus_tree.c \
   $(LIB_DIR)/circular_buffer.c \
-  $(LIB_DIR)/common.c \
   $(LIB_DIR)/deque.c \
   $(LIB_DIR)/disjoint_set.c \
   $(LIB_DIR)/dlist.c \
@@ -151,14 +150,11 @@ TEST_GEN_SRC_C := $(TEST_BUILD_DIR)/unicode_tables.c
 TEST_GEN_SRC_H := $(TEST_BUILD_DIR)/unicode_tables.h
 
 LIB_OBJ      := $(LIB_SRC:.c=.o)
-LIB_OBJ_SAFE := $(patsubst %.c,%_safe.o,$(LIB_SRC))
 GEN_OBJ      := $(GEN_SRC_C:.c=.o)
 TEST_GEN_OBJ := $(TEST_GEN_SRC_C:.c=.o)
 
 LIB_STATIC      := libds.a
 LIB_SHARED      := libds.so
-LIB_STATIC_SAFE := libds_safe.a
-LIB_SHARED_SAFE := libds_safe.so
 TEST_LIB_STATIC := $(TEST_BUILD_DIR)/libds_test.a
 
 TEST_SRC := $(wildcard $(TEST_DIR)/*_test.c)
@@ -181,21 +177,21 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize test-safe examples valgrind valgrind-test valgrind-safe valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
-all: $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE)
+.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
+all: $(LIB_STATIC) $(LIB_SHARED)
 
 install: all
 	$(INSTALL) -d $(DESTDIR)$(INCLUDEDIR)/lib $(DESTDIR)$(LIBDIR)
-	$(INSTALL) -m 0644 ds.h ds_safe.h $(DESTDIR)$(INCLUDEDIR)
+	$(INSTALL) -m 0644 ds.h $(DESTDIR)$(INCLUDEDIR)
 	$(INSTALL) -m 0644 $(LIB_DIR)/*.h $(DESTDIR)$(INCLUDEDIR)/lib
-	$(INSTALL) -m 0644 $(LIB_STATIC) $(LIB_STATIC_SAFE) $(DESTDIR)$(LIBDIR)
-	$(INSTALL) -m 0755 $(LIB_SHARED) $(LIB_SHARED_SAFE) $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -m 0644 $(LIB_STATIC) $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -m 0755 $(LIB_SHARED) $(DESTDIR)$(LIBDIR)
 
 uninstall:
-	rm -f $(DESTDIR)$(INCLUDEDIR)/ds.h $(DESTDIR)$(INCLUDEDIR)/ds_safe.h
+	rm -f $(DESTDIR)$(INCLUDEDIR)/ds.h
 	rm -rf $(DESTDIR)$(INCLUDEDIR)/lib
-	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_STATIC) $(DESTDIR)$(LIBDIR)/$(LIB_STATIC_SAFE)
-	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_SHARED) $(DESTDIR)$(LIBDIR)/$(LIB_SHARED_SAFE)
+	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_STATIC)
+	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_SHARED)
 
 
 $(BUILD_DIR) $(DATA_DIR) $(TEST_BUILD_DIR) $(EXAMPLE_BUILD_DIR):
@@ -240,9 +236,6 @@ $(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H): $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD
 %.o: %.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
 
-%_safe.o: %.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -D DS_THREAD_SAFE $(INCLUDES) -c -o $@ $<
-
 $(GEN_OBJ): $(GEN_SRC_C) $(GEN_SRC_H)
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $(GEN_SRC_C)
 
@@ -253,12 +246,6 @@ $(LIB_STATIC): $(LIB_OBJ) $(GEN_OBJ)
 	$(AR) $(ARFLAGS) $@ $^
 
 $(LIB_SHARED): $(LIB_OBJ) $(GEN_OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
-
-$(LIB_STATIC_SAFE): $(LIB_OBJ_SAFE) $(GEN_OBJ)
-	$(AR) $(ARFLAGS) $@ $^
-
-$(LIB_SHARED_SAFE): $(LIB_OBJ_SAFE) $(GEN_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 $(TEST_LIB_STATIC): $(LIB_OBJ) $(TEST_GEN_OBJ) | $(TEST_BUILD_DIR)
@@ -285,12 +272,11 @@ check-cpp: $(TEST_BUILD_DIR)/cpp_smoke
 	$(TEST_BUILD_DIR)/cpp_smoke
 
 # Line-coverage report. Builds an instrumented copy of the library, links and
-# runs every (non-thread-safe) test against it, then aggregates with gcovr.
-# Requires gcovr (pip install gcovr). The plain-symbol tests are used because
-# coverage of the _safe variants exercises the same lines plus locking.
+# runs every test against it, then aggregates with gcovr.
+# Requires gcovr (pip install gcovr).
 COV_DIR := $(BUILD_DIR)/coverage
 COV_FLAGS := -std=c99 -g -O0 --coverage $(INCLUDES)
-COV_TEST_SRC := $(filter-out $(SAFE_TEST_SRC),$(TEST_SRC))
+COV_TEST_SRC := $(TEST_SRC)
 
 coverage: $(GEN_SRC_C)
 	@command -v gcovr >/dev/null 2>&1 || { \
@@ -326,7 +312,7 @@ coverage-html: coverage
 	  --object-directory $(COV_DIR) $(COV_DIR) 2>/dev/null
 	@echo "HTML report: $(COV_DIR)/index.html"
 
-# One-shot health verdict: build, tests, thread-safe tests, examples, lint,
+# One-shot health verdict: build, tests, examples, lint,
 # format, valgrind, and coverage, each reported pass/fail, with a final line
 # coverage figure. Intended as the single "is everything OK?" command.
 summary:
@@ -340,13 +326,11 @@ summary:
 	  else printf "  %-22s %s\n" "$$name" "WARN (advisory)"; fi; }; \
 	echo "==================== ds health summary ===================="; \
 	echo "  correctness gates (determine the verdict):"; \
-	gate "build (normal+safe)" $(MAKE) all; \
+	gate "build"               $(MAKE) all; \
 	gate "unit tests"          $(MAKE) test; \
-	gate "thread-safe tests"   $(MAKE) test-safe; \
 	gate "examples"            $(MAKE) examples; \
 	if command -v $(VALGRIND) >/dev/null 2>&1; then \
 	  gate "valgrind (tests)"  $(MAKE) valgrind-test; \
-	  gate "valgrind (safe)"   $(MAKE) valgrind-safe; \
 	else printf "  %-22s %s\n" "valgrind" "SKIP (not installed)"; fi; \
 	echo "  style gates (advisory; tool-version sensitive):"; \
 	if command -v $(CPPCHECK) >/dev/null 2>&1; then \
@@ -377,8 +361,8 @@ $(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(TEST_LIB_STATIC) | $(EXAMPLE_BUILD_
 examples: $(EXAMPLE_BIN)
 
 clean:
-	rm -f $(LIB_DIR)/*.o $(LIB_DIR)/*_safe.o $(BUILD_DIR)/*.o \
-	      $(LIB_STATIC) $(LIB_SHARED) $(LIB_STATIC_SAFE) $(LIB_SHARED_SAFE) \
+	rm -f $(LIB_DIR)/*.o $(BUILD_DIR)/*.o \
+	      $(LIB_STATIC) $(LIB_SHARED) \
 	      $(GEN_BIN)
 	rm -f $(GEN_SRC_C) $(GEN_SRC_H)
 	rm -rf $(TEST_BUILD_DIR)
@@ -389,33 +373,10 @@ distclean: clean
 	rm -f $(LIB_DIR)/*.gch *.gch
 
 
-SAFE_TEST_BUILD_DIR := $(TEST_BUILD_DIR)/safe
-TEST_LIB_STATIC_SAFE_TEST := $(SAFE_TEST_BUILD_DIR)/libds_test_safe.a
-SAFE_TEST_SRC := \
-  $(TEST_DIR)/thread_safe_smoke_test.c \
-  $(TEST_DIR)/thread_safe_all_structures_test.c
-TEST_BIN_SAFE := $(patsubst $(TEST_DIR)/%.c,$(SAFE_TEST_BUILD_DIR)/%,$(SAFE_TEST_SRC))
-
-$(SAFE_TEST_BUILD_DIR):
-	@mkdir -p $@
-
-$(TEST_LIB_STATIC_SAFE_TEST): $(LIB_OBJ_SAFE) $(TEST_GEN_OBJ) | $(SAFE_TEST_BUILD_DIR)
-	$(AR) $(ARFLAGS) $@ $^
-
-$(SAFE_TEST_BUILD_DIR)/%: $(TEST_DIR)/%.c $(TEST_LIB_STATIC_SAFE_TEST) | $(SAFE_TEST_BUILD_DIR)
-	$(CC) $(TEST_CFLAGS) -D DS_THREAD_SAFE $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC_SAFE_TEST) $(LDLIBS)
-
-test-safe: $(TEST_BIN_SAFE)
-	@set -e; \
-	for test_bin in $(TEST_BIN_SAFE); do \
-	  printf '\n== %s ==\n' "$$test_bin"; \
-	  "$$test_bin"; \
-	done
-
 sanitize:
 	$(MAKE) clean
 	@status=0; \
-	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' LDLIBS='-pthread -lm -fsanitize=address,undefined' test || status=$$?; \
+	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' LDLIBS='-lm -fsanitize=address,undefined' test || status=$$?; \
 	$(MAKE) clean; \
 	exit $$status
 
@@ -513,17 +474,6 @@ valgrind-test: test-build
 	  $(VALGRIND) $(VALGRIND_FLAGS) "$$test_bin"; \
 	done
 
-valgrind-safe: test-safe
-	@command -v $(VALGRIND) >/dev/null 2>&1 || { \
-	  echo "valgrind not found; install Valgrind or set VALGRIND=/path/to/valgrind"; \
-	  exit 127; \
-	}
-	@set -e; \
-	for test_bin in $(TEST_BIN_SAFE); do \
-	  printf '\n== valgrind %s ==\n' "$$test_bin"; \
-	  $(VALGRIND) $(VALGRIND_FLAGS) "$$test_bin"; \
-	done
-
 valgrind-examples: examples
 	@command -v $(VALGRIND) >/dev/null 2>&1 || { \
 	  echo "valgrind not found; install Valgrind or set VALGRIND=/path/to/valgrind"; \
@@ -535,4 +485,4 @@ valgrind-examples: examples
 	  $(VALGRIND) $(VALGRIND_FLAGS) "$$example_bin"; \
 	done
 
-valgrind: valgrind-test valgrind-safe valgrind-examples
+valgrind: valgrind-test valgrind-examples

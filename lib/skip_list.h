@@ -28,10 +28,6 @@ typedef struct skip_list {
   int (*compare)(ds_skip_list_node_t *, ds_skip_list_node_t *);
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_skip_list_t;
 
 ds_skip_list_t *FUNC(ds_skip_list_create)(

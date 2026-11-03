@@ -318,9 +318,6 @@ int FUNC(ds_str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src,
     return rc;
   }
 
-#ifdef DS_THREAD_SAFE
-  LOCK(dst);
-#endif
   FUNC(ds_str_clear)(dst);
 
   n = src->len;
@@ -333,26 +330,17 @@ int FUNC(ds_str_u8_sanitize)(ds_str_t *dst, const ds_str_t *src,
     if (r <= 0) {
       size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, enc);
       if (FUNC(ds_str_append)(dst, enc, k) != 0) {
-#ifdef DS_THREAD_SAFE
-        UNLOCK(dst);
-#endif
         return -1;
       }
       i += 1;
     } else {
       size_t k = ds__encode_one(cp, enc);
       if (FUNC(ds_str_append)(dst, enc, k) != 0) {
-#ifdef DS_THREAD_SAFE
-        UNLOCK(dst);
-#endif
         return -1;
       }
       i += adv;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(dst);
-#endif
   return 0;
 }
 
@@ -380,25 +368,13 @@ int FUNC(ds_str_u8_ascii_tolower)(ds_str_t *dst, const ds_str_t *src) {
   size_t i, n;
   if (!dst || !src)
     return -1;
-#ifdef DS_THREAD_SAFE
-  if (dst)
-    LOCK(dst);
-#endif
   if (FUNC(ds_str_reserve)(dst, src->len) != 0) {
-#ifdef DS_THREAD_SAFE
-    if (dst)
-      UNLOCK(dst);
-#endif
     return -1;
   }
   for (i = 0, n = src->len; i < n; ++i)
     dst->buf[i] = (char)ds__ascii_lower((unsigned char)src->buf[i]);
   dst->len = src->len;
   dst->buf[dst->len] = '\0';
-#ifdef DS_THREAD_SAFE
-  if (dst)
-    UNLOCK(dst);
-#endif
   return 0;
 }
 
@@ -406,25 +382,13 @@ int FUNC(ds_str_u8_ascii_toupper)(ds_str_t *dst, const ds_str_t *src) {
   size_t i, n;
   if (!dst || !src)
     return -1;
-#ifdef DS_THREAD_SAFE
-  if (dst)
-    LOCK(dst);
-#endif
   if (FUNC(ds_str_reserve)(dst, src->len) != 0) {
-#ifdef DS_THREAD_SAFE
-    if (dst)
-      UNLOCK(dst);
-#endif
     return -1;
   }
   for (i = 0, n = src->len; i < n; ++i)
     dst->buf[i] = (char)ds__ascii_upper((unsigned char)src->buf[i]);
   dst->len = src->len;
   dst->buf[dst->len] = '\0';
-#ifdef DS_THREAD_SAFE
-  if (dst)
-    UNLOCK(dst);
-#endif
   return 0;
 }
 

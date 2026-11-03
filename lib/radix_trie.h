@@ -23,10 +23,6 @@ typedef struct radix_trie {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_radix_trie_t;
 
 ds_radix_trie_t *FUNC(ds_radix_trie_create)(void);

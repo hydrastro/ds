@@ -15,10 +15,6 @@ typedef struct bitset {
   size_t num_words;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_bitset_t;
 
 ds_bitset_t *FUNC(ds_bitset_create)(size_t num_bits);

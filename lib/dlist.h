@@ -21,10 +21,6 @@ typedef struct dlist {
   ds_dlist_node_t *nil;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_dlist_t;
 
 ds_dlist_t *FUNC(ds_dlist_create)(void);

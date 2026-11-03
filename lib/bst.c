@@ -16,19 +16,12 @@ ds_bst_t *FUNC(ds_bst_create_alloc)(void *(*allocator)(size_t),
   tree->nil->parent = tree->nil;
   tree->root = tree->nil;
   tree->size = 0;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(tree);
-#endif
 
   return tree;
 }
 
 void FUNC(ds_bst_insert)(ds_bst_t *tree, ds_bst_node_t *node,
                          int (*compare)(ds_bst_node_t *, ds_bst_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
-
   if (tree->root == tree->nil) {
     tree->root = node;
     node->parent = node->left = node->right = tree->nil;
@@ -52,19 +45,12 @@ void FUNC(ds_bst_insert)(ds_bst_t *tree, ds_bst_node_t *node,
     node->left = node->right = tree->nil;
   }
   tree->size += 1;
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 ds_bst_node_t *FUNC(ds_bst_search)(ds_bst_t *tree, ds_bst_node_t *data,
                                    int (*compare)(ds_bst_node_t *,
                                                   ds_bst_node_t *)) {
   ds_bst_node_t *current;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   current = tree->root;
   while (current != tree->nil && compare(data, current) != 0) {
     if (compare(data, current) < 0) {
@@ -74,44 +60,25 @@ ds_bst_node_t *FUNC(ds_bst_search)(ds_bst_t *tree, ds_bst_node_t *data,
     }
   }
 
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
-
   return current;
 }
 
 ds_bst_node_t *FUNC(ds_bst_minimum)(ds_bst_t *tree, ds_bst_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   while (node != tree->nil && node->left != tree->nil) {
     node = node->left;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return node;
 }
 
 ds_bst_node_t *FUNC(ds_bst_maximum)(ds_bst_t *tree, ds_bst_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   while (node != tree->nil && node->right != tree->nil) {
     node = node->right;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return node;
 }
 
 void FUNC(ds_bst_transplant)(ds_bst_t *tree, ds_bst_node_t *u,
                              ds_bst_node_t *v) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   if (u->parent == tree->nil) {
     tree->root = v;
   } else if (u == u->parent->left) {
@@ -123,14 +90,8 @@ void FUNC(ds_bst_transplant)(ds_bst_t *tree, ds_bst_node_t *u,
   if (v != tree->nil) {
     v->parent = u->parent;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 void FUNC(ds_bst_delete_node)(ds_bst_t *tree, ds_bst_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   if (node->left == tree->nil) {
     FUNC(ds_bst_transplant)(tree, node, node->right);
   } else if (node->right == tree->nil) {
@@ -147,31 +108,16 @@ void FUNC(ds_bst_delete_node)(ds_bst_t *tree, ds_bst_node_t *node) {
     successor->left->parent = successor;
   }
   tree->size -= 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 void FUNC(ds_bst_delete_tree)(ds_bst_t *tree) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   tree->root = tree->nil;
   tree->size = 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 void FUNC(ds_bst_destroy_node)(ds_bst_t *tree, ds_bst_node_t *node,
                                void (*destroy)(ds_bst_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   if (node == tree->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return;
   }
 
@@ -179,20 +125,10 @@ void FUNC(ds_bst_destroy_node)(ds_bst_t *tree, ds_bst_node_t *node,
   if (destroy != NULL) {
     destroy(node);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 void FUNC(ds_bst_destroy_recursive)(ds_bst_t *tree, ds_bst_node_t *node,
                                     void (*destroy)(ds_bst_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   if (node == tree->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
-
     return;
   }
 
@@ -202,23 +138,12 @@ void FUNC(ds_bst_destroy_recursive)(ds_bst_t *tree, ds_bst_node_t *node,
   if (destroy != NULL) {
     destroy(node);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 void FUNC(ds_bst_destroy_tree)(ds_bst_t *tree,
                                void (*destroy)(ds_bst_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
-
   FUNC(ds_bst_destroy_recursive)(tree, tree->root, destroy);
 
   tree->deallocator(tree->nil);
-
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(tree);
-#endif
 
   tree->deallocator(tree);
 }
@@ -234,23 +159,11 @@ void FUNC(ds_bst_inorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
 
 void FUNC(ds_bst_inorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
                                void (*callback)(void *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   FUNC(ds_bst_inorder_walk_helper)(tree, node, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 void FUNC(ds_bst_inorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   FUNC(ds_bst_inorder_walk_helper)(tree, tree->root, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 void FUNC(ds_bst_preorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
@@ -264,23 +177,11 @@ void FUNC(ds_bst_preorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
 
 void FUNC(ds_bst_preorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
                                 void (*callback)(void *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   FUNC(ds_bst_preorder_walk_helper)(tree, node, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 void FUNC(ds_bst_preorder_walk_tree)(ds_bst_t *tree, void (*callback)(void *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   FUNC(ds_bst_preorder_walk_helper)(tree, tree->root, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 void FUNC(ds_bst_postorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
@@ -293,34 +194,16 @@ void FUNC(ds_bst_postorder_walk_helper)(ds_bst_t *tree, ds_bst_node_t *node,
 }
 void FUNC(ds_bst_postorder_walk)(ds_bst_t *tree, ds_bst_node_t *node,
                                  void (*callback)(void *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   FUNC(ds_bst_postorder_walk_helper)(tree, node, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 void FUNC(ds_bst_postorder_walk_tree)(ds_bst_t *tree,
                                       void (*callback)(void *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   FUNC(ds_bst_postorder_walk_helper)(tree, tree->root, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 ds_bst_node_t *FUNC(ds_bst_successor)(ds_bst_t *tree, ds_bst_node_t *node_x) {
   ds_bst_node_t *node_y;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   if (node_x->right != tree->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return FUNC(ds_bst_minimum)(tree, node_x->right);
   }
   node_y = node_x->parent;
@@ -328,21 +211,12 @@ ds_bst_node_t *FUNC(ds_bst_successor)(ds_bst_t *tree, ds_bst_node_t *node_x) {
     node_x = node_y;
     node_y = node_y->parent;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return node_y;
 }
 
 ds_bst_node_t *FUNC(ds_bst_predecessor)(ds_bst_t *tree, ds_bst_node_t *node_x) {
   ds_bst_node_t *node_y;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   if (node_x->left != tree->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return FUNC(ds_bst_maximum)(tree, node_x->left);
   }
   node_y = node_x->parent;
@@ -350,9 +224,6 @@ ds_bst_node_t *FUNC(ds_bst_predecessor)(ds_bst_t *tree, ds_bst_node_t *node_x) {
     node_x = node_y;
     node_y = node_y->parent;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return node_y;
 }
 
@@ -383,17 +254,10 @@ FUNC(ds_bst_clone_recursive)(ds_bst_t *tree, ds_bst_t *new_tree,
 ds_bst_t *FUNC(ds_bst_clone)(ds_bst_t *tree,
                              ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
   ds_bst_t *new_tree;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   new_tree = FUNC(ds_bst_create_alloc)(tree->allocator, tree->deallocator);
   new_tree->root =
       FUNC(ds_bst_clone_recursive)(tree, new_tree, tree->root, clone_node);
   new_tree->size = tree->size;
-
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 
   return new_tree;
 }

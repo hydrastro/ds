@@ -14,10 +14,6 @@ typedef struct fenwick_tree {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_fenwick_tree_t;
 
 ds_fenwick_tree_t *FUNC(ds_fenwick_tree_create)(size_t size);

@@ -23,10 +23,6 @@ typedef struct circular_buffer {
   ds_circular_buffer_node_t *nil;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_circular_buffer_t;
 
 ds_circular_buffer_t *FUNC(ds_circular_buffer_create)(size_t capacity);

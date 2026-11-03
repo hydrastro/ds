@@ -46,8 +46,6 @@ struct ds_history {
   struct ds_history_branch_node *branches;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-  mutex_t lock;
-  bool is_thread_safe;
 };
 
 static void *history_default_allocator(size_t size);
@@ -557,26 +555,15 @@ ds_history_t *FUNC(ds_history_create_alloc)(const ds_history_ops_t *ops,
   history->branches = NULL;
   history->allocator = allocator;
   history->deallocator = deallocator;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(history);
-#else
-  history->is_thread_safe = false;
-#endif
 
   main_branch = history_branch_alloc(history, NULL, 0UL, "main");
   if (main_branch == NULL) {
-    if (history->is_thread_safe) {
-      LOCK_DESTROY(history);
-    }
     deallocator(history);
     return NULL;
   }
 
   if (!history_branch_register(history, main_branch)) {
     history_branch_destroy(main_branch);
-    if (history->is_thread_safe) {
-      LOCK_DESTROY(history);
-    }
     deallocator(history);
     return NULL;
   }
@@ -593,7 +580,6 @@ void FUNC(ds_history_destroy)(ds_history_t *history) {
     return;
   }
 
-  LOCK(history);
   node = history->branches;
   while (node != NULL) {
     next = node->next;
@@ -602,10 +588,6 @@ void FUNC(ds_history_destroy)(ds_history_t *history) {
     node = next;
   }
   history->branches = NULL;
-  UNLOCK(history);
-  if (history->is_thread_safe) {
-    LOCK_DESTROY(history);
-  }
   history->deallocator(history);
 }
 
@@ -614,9 +596,7 @@ void FUNC(ds_history_set_clone_data)(ds_history_t *history, void *clone_data) {
     return;
   }
 
-  LOCK(history);
   history->clone_data = clone_data;
-  UNLOCK(history);
 }
 
 void FUNC(ds_history_set_checkpoint_interval)(ds_history_t *history,
@@ -625,32 +605,26 @@ void FUNC(ds_history_set_checkpoint_interval)(ds_history_t *history,
     return;
   }
 
-  LOCK(history);
   history->checkpoint_interval = interval;
-  UNLOCK(history);
 }
 
 void FUNC(ds_history_transaction_begin)(ds_history_t *history) {
   if (history == NULL) {
     return;
   }
-  LOCK(history);
   history->transaction_depth++;
-  UNLOCK(history);
 }
 
 void FUNC(ds_history_transaction_commit)(ds_history_t *history) {
   if (history == NULL) {
     return;
   }
-  LOCK(history);
   if (history->transaction_depth != 0U) {
     history->transaction_depth--;
     if (history->transaction_depth == 0U) {
       history->transaction_dirty = false;
     }
   }
-  UNLOCK(history);
 }
 
 bool FUNC(ds_history_in_transaction)(ds_history_t *history) {
@@ -658,9 +632,7 @@ bool FUNC(ds_history_in_transaction)(ds_history_t *history) {
   if (history == NULL) {
     return false;
   }
-  LOCK(history);
   result = history->transaction_depth != 0U;
-  UNLOCK(history);
   return result;
 }
 
@@ -695,28 +667,23 @@ ds_history_branch_t *FUNC(ds_history_branch_create)(ds_history_t *history,
     return NULL;
   }
 
-  LOCK(history);
   if (parent == NULL) {
     parent = history->main_branch;
   }
   if (parent == NULL || parent->history != history) {
-    UNLOCK(history);
     return NULL;
   }
 
   branch = history_branch_alloc(history, parent, fork_time, name);
   if (branch == NULL) {
-    UNLOCK(history);
     return NULL;
   }
 
   if (!history_branch_register(history, branch)) {
     history_branch_destroy(branch);
-    UNLOCK(history);
     return NULL;
   }
 
-  UNLOCK(history);
   return branch;
 }
 
@@ -763,16 +730,13 @@ ds_history_branch_t *FUNC(ds_history_branch_find_name)(ds_history_t *history,
   if (history == NULL || name == NULL) {
     return NULL;
   }
-  LOCK(history);
   node = history->branches;
   while (node != NULL) {
     if (node->branch->name != NULL && strcmp(node->branch->name, name) == 0) {
-      UNLOCK(history);
       return node->branch;
     }
     node = node->next;
   }
-  UNLOCK(history);
   return NULL;
 }
 
@@ -860,16 +824,13 @@ unsigned long FUNC(ds_history_branch_insert_at)(ds_history_branch_t *branch,
   }
 
   history = branch->history;
-  LOCK(history);
   id = history->next_operation_id++;
   if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
     if (history->next_operation_id == id + 1UL) {
       history->next_operation_id = id;
     }
-    UNLOCK(history);
     return 0UL;
   }
-  UNLOCK(history);
   return id;
 }
 
@@ -884,7 +845,6 @@ unsigned long FUNC(ds_history_branch_append)(ds_history_branch_t *branch,
   }
 
   history = branch->history;
-  LOCK(history);
   time = history_branch_local_head_time(branch);
   if (time != ~0UL) {
     time++;
@@ -894,10 +854,8 @@ unsigned long FUNC(ds_history_branch_append)(ds_history_branch_t *branch,
     if (history->next_operation_id == id + 1UL) {
       history->next_operation_id = id;
     }
-    UNLOCK(history);
     return 0UL;
   }
-  UNLOCK(history);
   return id;
 }
 
@@ -913,7 +871,6 @@ bool FUNC(ds_history_branch_delete_op)(ds_history_branch_t *branch,
   }
 
   history = branch->history;
-  LOCK(history);
 
   op = branch->operations;
   prev = NULL;
@@ -923,7 +880,6 @@ bool FUNC(ds_history_branch_delete_op)(ds_history_branch_t *branch,
   }
 
   if (op == NULL) {
-    UNLOCK(history);
     return false;
   }
 
@@ -940,7 +896,6 @@ bool FUNC(ds_history_branch_delete_op)(ds_history_branch_t *branch,
   history->deallocator(op);
 
   history_note_edit(branch, edit_time);
-  UNLOCK(history);
   return true;
 }
 
@@ -964,7 +919,6 @@ size_t FUNC(ds_history_branch_merge_with)(
 
   history = target->history;
   merged = 0U;
-  LOCK(history);
   append_time = history_branch_local_head_time(target);
   if (append_time < target->fork_time) {
     append_time = target->fork_time;
@@ -1024,7 +978,6 @@ size_t FUNC(ds_history_branch_merge_with)(
     }
     op = op->next;
   }
-  UNLOCK(history);
   return merged;
 }
 
@@ -1048,14 +1001,12 @@ void *FUNC(ds_history_branch_snapshot_at)(ds_history_branch_t *branch,
   }
 
   history = branch->history;
-  LOCK(history);
   replayed_count = 0U;
   state = history_materialize(branch, time, &replayed_count);
   if (state != NULL && history->checkpoint_interval != 0U &&
       replayed_count >= history->checkpoint_interval) {
     (void)history_store_checkpoint(branch, time, state);
   }
-  UNLOCK(history);
   return state;
 }
 
@@ -1092,11 +1043,9 @@ void *FUNC(ds_history_branch_query_at)(ds_history_branch_t *branch,
     return NULL;
   }
 
-  LOCK(history);
   replayed_count = 0U;
   state = history_materialize(branch, time, &replayed_count);
   if (state == NULL) {
-    UNLOCK(history);
     return NULL;
   }
 
@@ -1107,7 +1056,6 @@ void *FUNC(ds_history_branch_query_at)(ds_history_branch_t *branch,
 
   result = history->ops.query(state, query);
   history->ops.destroy_state(state);
-  UNLOCK(history);
   return result;
 }
 
@@ -1319,7 +1267,6 @@ size_t FUNC(ds_history_branch_deserialize_ops)(
 
   history = branch->history;
   imported = 0U;
-  LOCK(history);
   while (imported < count) {
     if (!read(&id, sizeof(id), io_user) ||
         !read(&time, sizeof(time), io_user) ||
@@ -1338,7 +1285,6 @@ size_t FUNC(ds_history_branch_deserialize_ops)(
     }
     imported++;
   }
-  UNLOCK(history);
   return imported;
 }
 
@@ -1499,7 +1445,6 @@ bool FUNC(ds_history_serialize)(ds_history_t *history,
     return false;
   }
 
-  LOCK(history);
   branch_count = history_branch_count(history);
   ok = write(magic, sizeof(magic), io_user) &&
        write(&branch_count, sizeof(branch_count), io_user) &&
@@ -1511,7 +1456,6 @@ bool FUNC(ds_history_serialize)(ds_history_t *history,
              sizeof(history->checkpoint_interval), io_user) &&
        history_serialize_branch_recursive(history->main_branch, write,
                                           write_payload, io_user, payload_user);
-  UNLOCK(history);
   return ok;
 }
 
@@ -1863,7 +1807,6 @@ bool FUNC(ds_history_serialize_portable)(
     return false;
   }
 
-  LOCK(history);
   branch_count = history_branch_count(history);
   ok = write(magic, sizeof(magic), io_user) &&
        FUNC(ds_history_write_size)(write, io_user, branch_count) &&
@@ -1874,7 +1817,6 @@ bool FUNC(ds_history_serialize_portable)(
                                    history->checkpoint_interval) &&
        history_serialize_branch_recursive_portable(
            history->main_branch, write, write_payload, io_user, payload_user);
-  UNLOCK(history);
   return ok;
 }
 

@@ -20,10 +20,6 @@ typedef struct heap {
   ds_heap_node_t *nil;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_heap_t;
 
 void swap(ds_heap_node_t **a, ds_heap_node_t **b);

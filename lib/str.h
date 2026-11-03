@@ -18,10 +18,6 @@ typedef struct ds_str {
   size_t cap;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_str_t;
 
 #define FUNC_str_len(s) ((s) ? (s)->len : 0u)
@@ -31,11 +27,6 @@ typedef struct ds_str {
 
 int ds__ensure(ds_str_t *s, size_t need_cap);
 int ds__ensure_exact(ds_str_t *s, size_t need_cap);
-
-#ifdef DS_THREAD_SAFE
-void ds__lock2(ds_str_t *a, ds_str_t *b);
-void ds__unlock2(ds_str_t *a, ds_str_t *b);
-#endif
 
 size_t ds__grow_cap(size_t cur, size_t need);
 

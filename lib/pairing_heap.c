@@ -21,9 +21,6 @@ ds_pairing_heap_t *FUNC(ds_pairing_heap_create_alloc)(
   heap->nil->prev = NULL;
   heap->root = NULL;
   heap->size = 0;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(heap);
-#endif
   return heap;
 }
 
@@ -65,13 +62,7 @@ FUNC(pairing_heap_link)(ds_pairing_heap_t *heap, ds_pairing_heap_node_t *a,
 
 void FUNC(ds_pairing_heap_insert)(ds_pairing_heap_t *heap,
                                   ds_pairing_heap_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   if (node == heap->nil || node == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(heap);
-#endif
     return;
   }
   node->child = NULL;
@@ -79,20 +70,11 @@ void FUNC(ds_pairing_heap_insert)(ds_pairing_heap_t *heap,
   node->prev = NULL;
   heap->root = FUNC(pairing_heap_link)(heap, heap->root, node);
   heap->size += 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
 }
 
 ds_pairing_heap_node_t *FUNC(ds_pairing_heap_peek)(ds_pairing_heap_t *heap) {
   ds_pairing_heap_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   result = heap->root != NULL ? heap->root : heap->nil;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
   return result;
 }
 
@@ -143,13 +125,7 @@ FUNC(pairing_heap_combine_siblings)(ds_pairing_heap_t *heap,
 ds_pairing_heap_node_t *FUNC(ds_pairing_heap_extract)(ds_pairing_heap_t *heap) {
   ds_pairing_heap_node_t *root;
   ds_pairing_heap_node_t *child;
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   if (heap->root == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(heap);
-#endif
     return heap->nil;
   }
   root = heap->root;
@@ -166,21 +142,12 @@ ds_pairing_heap_node_t *FUNC(ds_pairing_heap_extract)(ds_pairing_heap_t *heap) {
   root->sibling = NULL;
   root->prev = NULL;
   heap->size -= 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
   return root;
 }
 
 void FUNC(ds_pairing_heap_decrease_key)(ds_pairing_heap_t *heap,
                                         ds_pairing_heap_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   if (node == heap->nil || node == NULL || node == heap->root) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(heap);
-#endif
     return;
   }
   /* detach node (with its subtree) from its current position */
@@ -197,53 +164,29 @@ void FUNC(ds_pairing_heap_decrease_key)(ds_pairing_heap_t *heap,
   node->sibling = NULL;
   node->prev = NULL;
   heap->root = FUNC(pairing_heap_link)(heap, heap->root, node);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
 }
 
 bool FUNC(ds_pairing_heap_is_empty)(ds_pairing_heap_t *heap) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   result = heap->root == NULL;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
   return result;
 }
 
 size_t FUNC(ds_pairing_heap_size)(ds_pairing_heap_t *heap) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   result = heap->size;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
   return result;
 }
 
 void FUNC(ds_pairing_heap_merge)(ds_pairing_heap_t *heap,
                                  ds_pairing_heap_t *other) {
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   if (other == NULL || other->root == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(heap);
-#endif
     return;
   }
   heap->root = FUNC(pairing_heap_link)(heap, heap->root, other->root);
   heap->size += other->size;
   other->root = NULL;
   other->size = 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
 }
 
 static void
@@ -259,13 +202,7 @@ FUNC(pairing_heap_walk_recursive)(ds_pairing_heap_node_t *node,
 
 void FUNC(ds_pairing_heap_walk)(ds_pairing_heap_t *heap,
                                 void (*callback)(ds_pairing_heap_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(heap);
-#endif
   FUNC(pairing_heap_walk_recursive)(heap->root, callback);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(heap);
-#endif
 }
 
 static void FUNC(pairing_heap_destroy_recursive)(
@@ -284,8 +221,5 @@ void FUNC(ds_pairing_heap_destroy)(ds_pairing_heap_t *heap,
                                    void (*destroy)(ds_pairing_heap_node_t *)) {
   FUNC(pairing_heap_destroy_recursive)(heap->root, destroy);
   heap->deallocator(heap->nil);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(heap);
-#endif
   heap->deallocator(heap);
 }

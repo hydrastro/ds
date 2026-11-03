@@ -20,10 +20,6 @@ typedef struct queue {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_queue_t;
 
 ds_queue_t *FUNC(ds_queue_create)(void);

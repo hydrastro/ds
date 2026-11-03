@@ -37,10 +37,6 @@ typedef struct trie {
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
   ds_context_t *context;
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_trie_t;
 
 typedef struct ds_trie_store_ops {

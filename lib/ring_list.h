@@ -19,10 +19,6 @@ typedef struct ring_list {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_ring_list_t;
 
 ds_ring_list_t *FUNC(ds_ring_list_create)(void);

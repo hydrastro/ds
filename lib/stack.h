@@ -19,10 +19,6 @@ typedef struct stack {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_stack_t;
 
 ds_stack_t *FUNC(ds_stack_create)(void);

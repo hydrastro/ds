@@ -27,10 +27,6 @@ typedef struct btree {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_btree_t;
 
 ds_btree_internal_node_t *FUNC(ds_btree_create_node)(ds_btree_t *tree,

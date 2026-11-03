@@ -17,10 +17,6 @@ typedef struct bloom_filter {
   size_t num_items;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_bloom_filter_t;
 
 ds_bloom_filter_t *FUNC(ds_bloom_filter_create)(size_t expected_items,

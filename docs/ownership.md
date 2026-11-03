@@ -27,8 +27,8 @@ own the cloned pointer according to the matching destructor.
 
 `ds_hash_table_insert_take_key` exists for wrappers that already allocated a key
 and need the table to dispose of that key atomically when an update finds an
-existing equal key. `ds_string_map_put` uses this to avoid contains-then-insert
-races in safe builds.
+existing equal key. `ds_string_map_put` uses this so an update needs one
+lookup instead of contains-then-insert.
 
 ## String map and string set
 

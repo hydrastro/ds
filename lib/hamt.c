@@ -104,9 +104,6 @@ ds_hamt_t *FUNC(ds_hamt_create_alloc)(void *(*allocator)(size_t),
   hamt->deallocator = deallocator;
   hamt->size = 0;
   hamt->root = FUNC(hamt_new_branch)(hamt);
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(hamt);
-#endif
   return hamt;
 }
 
@@ -191,9 +188,6 @@ bool FUNC(ds_hamt_insert)(ds_hamt_t *hamt, const void *key, size_t key_length,
   ds_hamt_node_t *node;
   int level = 0;
   bool added = false;
-#ifdef DS_THREAD_SAFE
-  LOCK(hamt);
-#endif
   hash = FUNC(hamt_hash)(key, key_length);
   node = hamt->root;
   for (;;) {
@@ -243,9 +237,6 @@ bool FUNC(ds_hamt_insert)(ds_hamt_t *hamt, const void *key, size_t key_length,
     }
   }
 done:
-#ifdef DS_THREAD_SAFE
-  UNLOCK(hamt);
-#endif
   return added;
 }
 
@@ -280,31 +271,19 @@ static ds_hamt_node_t *FUNC(hamt_find_leaf)(ds_hamt_t *hamt, const void *key,
 bool FUNC(ds_hamt_contains)(ds_hamt_t *hamt, const void *key,
                             size_t key_length) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(hamt);
-#endif
   result = FUNC(hamt_find_leaf)(hamt, key, key_length,
                                 FUNC(hamt_hash)(key, key_length)) != NULL;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(hamt);
-#endif
   return result;
 }
 
 void *FUNC(ds_hamt_get)(ds_hamt_t *hamt, const void *key, size_t key_length) {
   ds_hamt_node_t *leaf;
   void *result = NULL;
-#ifdef DS_THREAD_SAFE
-  LOCK(hamt);
-#endif
   leaf = FUNC(hamt_find_leaf)(hamt, key, key_length,
                               FUNC(hamt_hash)(key, key_length));
   if (leaf != NULL) {
     result = leaf->value;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(hamt);
-#endif
   return result;
 }
 
@@ -317,9 +296,6 @@ bool FUNC(ds_hamt_remove)(ds_hamt_t *hamt, const void *key, size_t key_length,
   int depth = 0;
   int level = 0;
   bool removed = false;
-#ifdef DS_THREAD_SAFE
-  LOCK(hamt);
-#endif
   hash = FUNC(hamt_hash)(key, key_length);
   node = hamt->root;
   for (;;) {
@@ -375,33 +351,18 @@ bool FUNC(ds_hamt_remove)(ds_hamt_t *hamt, const void *key, size_t key_length,
     node = child;
     level += 1;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(hamt);
-#endif
   return removed;
 }
 
 size_t FUNC(ds_hamt_size)(ds_hamt_t *hamt) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(hamt);
-#endif
   result = hamt->size;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(hamt);
-#endif
   return result;
 }
 
 bool FUNC(ds_hamt_is_empty)(ds_hamt_t *hamt) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(hamt);
-#endif
   result = hamt->size == 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(hamt);
-#endif
   return result;
 }
 
@@ -426,13 +387,7 @@ static void FUNC(hamt_walk_node)(ds_hamt_node_t *node,
 void FUNC(ds_hamt_walk)(ds_hamt_t *hamt,
                         void (*callback)(const void *, size_t, void *, void *),
                         void *user) {
-#ifdef DS_THREAD_SAFE
-  LOCK(hamt);
-#endif
   FUNC(hamt_walk_node)(hamt->root, callback, user);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(hamt);
-#endif
 }
 
 static void FUNC(hamt_destroy_node)(ds_hamt_t *hamt, ds_hamt_node_t *node,
@@ -466,8 +421,5 @@ static void FUNC(hamt_destroy_node)(ds_hamt_t *hamt, ds_hamt_node_t *node,
 
 void FUNC(ds_hamt_destroy)(ds_hamt_t *hamt, void (*destroy_value)(void *)) {
   FUNC(hamt_destroy_node)(hamt, hamt->root, destroy_value);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(hamt);
-#endif
   hamt->deallocator(hamt);
 }

@@ -32,10 +32,6 @@ typedef struct ost {
   int (*compare)(ds_ost_node_t *, ds_ost_node_t *);
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_ost_t;
 
 ds_ost_t *FUNC(ds_ost_create)(int (*compare)(ds_ost_node_t *, ds_ost_node_t *));

@@ -31,10 +31,6 @@ typedef struct rope {
   ds_rope_node_t *root;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_rope_t;
 
 ds_rope_t *FUNC(ds_rope_create)(void);

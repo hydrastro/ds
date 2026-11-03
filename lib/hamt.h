@@ -26,10 +26,6 @@ typedef struct hamt {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_hamt_t;
 
 ds_hamt_t *FUNC(ds_hamt_create)(void);

@@ -222,9 +222,6 @@ ds_trie_t *FUNC(ds_trie_create_alloc)(
   trie->store_apply = store_apply;
   trie->store_clone = store_clone;
   trie->root = FUNC(ds_trie_create_node)(trie);
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(trie);
-#endif
   return trie;
 }
 
@@ -236,9 +233,6 @@ void FUNC(trie_insert)(ds_trie_t *trie, void *data,
   ds_trie_node_t *new_node;
   size_t current_slice;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   current_node = trie->root;
 
   for (i = 0; has_slice(data, i); i++) {
@@ -258,9 +252,6 @@ void FUNC(trie_insert)(ds_trie_t *trie, void *data,
 
   current_node->is_terminal = true;
   current_node->terminal_data = data;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
 }
 
 ds_trie_node_t *FUNC(ds_trie_search)(ds_trie_t *trie, void *data,
@@ -270,13 +261,7 @@ ds_trie_node_t *FUNC(ds_trie_search)(ds_trie_t *trie, void *data,
   ds_trie_node_t *result;
   size_t current_slice;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   if (trie->root == NULL) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(trie);
-#endif
     return NULL;
   }
   current_node = trie->root;
@@ -286,31 +271,19 @@ ds_trie_node_t *FUNC(ds_trie_search)(ds_trie_t *trie, void *data,
     result = trie->store_search(current_node->children, current_slice);
 
     if (result == NULL) {
-#ifdef DS_THREAD_SAFE
-      UNLOCK(trie);
-#endif
       return NULL;
     }
     current_node = result;
   }
   result = current_node->is_terminal ? current_node : NULL;
 
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
   return result;
 }
 
 void FUNC(ds_trie_delete_node)(ds_trie_t *trie, ds_trie_node_t *node) {
   ds_trie_node_t *cur;
   ds_trie_node_t *temp;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   if (!node->is_terminal) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(trie);
-#endif
     return;
   }
   node->is_terminal = false;
@@ -328,28 +301,16 @@ void FUNC(ds_trie_delete_node)(ds_trie_t *trie, ds_trie_node_t *node) {
     }
     cur = cur->parent;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
 }
 
 void FUNC(ds_trie_destroy_node)(ds_trie_t *trie, ds_trie_node_t *node,
                                 void (*destroy)(ds_trie_t *, ds_trie_node_t *,
                                                 va_list *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   if (!node->is_terminal) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(trie);
-#endif
     return;
   }
   destroy(trie, node, NULL);
   FUNC(ds_trie_delete_node)(trie, node);
-#ifdef DS_THREAD_SAFE
-  UNLOCK(trie);
-#endif
 }
 
 void FUNC(ds_trie_destroy_callback)(ds_trie_t *trie, ds_trie_node_t *node,
@@ -378,9 +339,6 @@ void FUNC(ds_trie_destroy_trie)(ds_trie_t *trie,
     destroy(trie, trie->root, NULL);
   }
   trie->deallocator(trie->root);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(trie);
-#endif
   trie->deallocator(trie);
 }
 
@@ -414,9 +372,6 @@ ds_trie_node_t *FUNC(ds_trie_clone_node)(ds_trie_t *trie, ds_trie_node_t *node,
 
 ds_trie_t *FUNC(ds_trie_clone)(ds_trie_t *trie, void *(*clone_data)(void *)) {
   ds_trie_t *new_trie;
-#ifdef DS_THREAD_SAFE
-  LOCK(trie);
-#endif
   new_trie = (ds_trie_t *)trie->allocator(sizeof(ds_trie_t));
   new_trie->num_splits = trie->num_splits;
   new_trie->store_search = trie->store_search;
@@ -432,10 +387,6 @@ ds_trie_t *FUNC(ds_trie_clone)(ds_trie_t *trie, void *(*clone_data)(void *)) {
   new_trie->deallocator = trie->deallocator;
   new_trie->context = trie->context;
   new_trie->root = FUNC(ds_trie_clone_node)(trie, trie->root, NULL, clone_data);
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(new_trie);
-  UNLOCK(trie);
-#endif
   return new_trie;
 }
 

@@ -124,9 +124,6 @@ ds_segment_tree_t *FUNC(ds_segment_tree_create_alloc)(
   if (n > 0) {
     FUNC(seg_build)(st, values, 1, 0, n - 1);
   }
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(st);
-#endif
   return st;
 }
 
@@ -151,15 +148,9 @@ static void FUNC(seg_update_add)(ds_segment_tree_t *st, size_t node,
 
 void FUNC(ds_segment_tree_update_add)(ds_segment_tree_t *st, size_t left,
                                       size_t right, long delta) {
-#ifdef DS_THREAD_SAFE
-  LOCK(st);
-#endif
   if (st->n > 0 && left <= right && right < st->n) {
     FUNC(seg_update_add)(st, 1, 0, st->n - 1, left, right, delta);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(st);
-#endif
 }
 
 static void FUNC(seg_update_assign)(ds_segment_tree_t *st, size_t node,
@@ -183,15 +174,9 @@ static void FUNC(seg_update_assign)(ds_segment_tree_t *st, size_t node,
 
 void FUNC(ds_segment_tree_update_assign)(ds_segment_tree_t *st, size_t left,
                                          size_t right, long value) {
-#ifdef DS_THREAD_SAFE
-  LOCK(st);
-#endif
   if (st->n > 0 && left <= right && right < st->n) {
     FUNC(seg_update_assign)(st, 1, 0, st->n - 1, left, right, value);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(st);
-#endif
 }
 
 static long FUNC(seg_query)(ds_segment_tree_t *st, size_t node, size_t left,
@@ -215,29 +200,17 @@ static long FUNC(seg_query)(ds_segment_tree_t *st, size_t node, size_t left,
 long FUNC(ds_segment_tree_query)(ds_segment_tree_t *st, size_t left,
                                  size_t right) {
   long result;
-#ifdef DS_THREAD_SAFE
-  LOCK(st);
-#endif
   if (st->n == 0 || left > right || right >= st->n) {
     result = FUNC(seg_identity)(st);
   } else {
     result = FUNC(seg_query)(st, 1, 0, st->n - 1, left, right);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(st);
-#endif
   return result;
 }
 
 size_t FUNC(ds_segment_tree_size)(ds_segment_tree_t *st) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(st);
-#endif
   result = st->n;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(st);
-#endif
   return result;
 }
 
@@ -246,8 +219,5 @@ void FUNC(ds_segment_tree_destroy)(ds_segment_tree_t *st) {
   st->deallocator(st->lazy_add);
   st->deallocator(st->lazy_set);
   st->deallocator(st->has_set);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(st);
-#endif
   st->deallocator(st);
 }

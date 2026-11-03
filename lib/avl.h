@@ -21,10 +21,6 @@ typedef struct avl {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_avl_t;
 
 ds_avl_t *FUNC(ds_avl_create)(void);

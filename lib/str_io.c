@@ -7,23 +7,14 @@ int FUNC(ds_str_write_all)(ds_str_t *s, ds_write_cb cb, void *ud) {
   if (!s || !cb) {
     return -1;
   }
-#ifdef DS_THREAD_SAFE
-  LOCK(s);
-#endif
   n = FUNC_str_len(s);
   while (off < n) {
     w = cb(ud, s->buf + off, n - off);
     if (w <= 0) {
-#ifdef DS_THREAD_SAFE
-      UNLOCK(s);
-#endif
       return -1;
     }
     off += (size_t)w;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(s);
-#endif
   return 0;
 }
 

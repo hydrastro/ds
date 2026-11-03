@@ -18,10 +18,6 @@ typedef struct disjoint_set {
   size_t count;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_disjoint_set_t;
 
 ds_disjoint_set_t *FUNC(ds_disjoint_set_create)(void);

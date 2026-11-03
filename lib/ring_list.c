@@ -14,21 +14,12 @@ ds_ring_list_t *FUNC(ds_ring_list_create_alloc)(void *(*allocator)(size_t),
   list->nil->next = list->nil;
   list->tail = list->nil;
   list->size = 0;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(list);
-#endif
   return list;
 }
 
 void FUNC(ds_ring_list_push_front)(ds_ring_list_t *list,
                                    ds_ring_list_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (node == list->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return;
   }
   if (list->tail == list->nil) {
@@ -39,20 +30,11 @@ void FUNC(ds_ring_list_push_front)(ds_ring_list_t *list,
     list->tail->next = node;
   }
   list->size += 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 void FUNC(ds_ring_list_push_back)(ds_ring_list_t *list,
                                   ds_ring_list_node_t *node) {
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (node == list->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return;
   }
   if (list->tail == list->nil) {
@@ -64,20 +46,11 @@ void FUNC(ds_ring_list_push_back)(ds_ring_list_t *list,
     list->tail = node;
   }
   list->size += 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 ds_ring_list_node_t *FUNC(ds_ring_list_pop_front)(ds_ring_list_t *list) {
   ds_ring_list_node_t *head;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (list->tail == list->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return list->nil;
   }
   head = list->tail->next;
@@ -88,57 +61,30 @@ ds_ring_list_node_t *FUNC(ds_ring_list_pop_front)(ds_ring_list_t *list) {
   }
   head->next = list->nil;
   list->size -= 1;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return head;
 }
 
 ds_ring_list_node_t *FUNC(ds_ring_list_front)(ds_ring_list_t *list) {
   ds_ring_list_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   result = list->tail == list->nil ? list->nil : list->tail->next;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return result;
 }
 
 ds_ring_list_node_t *FUNC(ds_ring_list_back)(ds_ring_list_t *list) {
   ds_ring_list_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   result = list->tail;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return result;
 }
 
 void FUNC(ds_ring_list_rotate)(ds_ring_list_t *list) {
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (list->tail != list->nil) {
     list->tail = list->tail->next;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 bool FUNC(ds_ring_list_is_empty)(ds_ring_list_t *list) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   result = list->tail == list->nil;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return result;
 }
 
@@ -147,28 +93,16 @@ ds_ring_list_node_t *FUNC(ds_ring_list_search)(
     int (*compare)(ds_ring_list_node_t *, ds_ring_list_node_t *)) {
   ds_ring_list_node_t *current;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (list->tail == list->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return list->nil;
   }
   current = list->tail->next;
   for (i = 0; i < list->size; i++) {
     if (compare(current, node) == 0) {
-#ifdef DS_THREAD_SAFE
-      UNLOCK(list);
-#endif
       return current;
     }
     current = current->next;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return list->nil;
 }
 
@@ -177,13 +111,7 @@ void FUNC(ds_ring_list_delete_node)(ds_ring_list_t *list,
   ds_ring_list_node_t *current;
   ds_ring_list_node_t *previous;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (list->tail == list->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return;
   }
   previous = list->tail;
@@ -200,32 +128,20 @@ void FUNC(ds_ring_list_delete_node)(ds_ring_list_t *list,
       }
       current->next = list->nil;
       list->size -= 1;
-#ifdef DS_THREAD_SAFE
-      UNLOCK(list);
-#endif
       return;
     }
     previous = current;
     current = current->next;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 void FUNC(ds_ring_list_destroy_node)(ds_ring_list_t *list,
                                      ds_ring_list_node_t *node,
                                      void (*destroy)(ds_ring_list_node_t *)) {
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   FUNC(ds_ring_list_delete_node)(list, node);
   if (destroy != NULL) {
     destroy(node);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 void FUNC(ds_ring_list_walk_forward)(ds_ring_list_t *list,
@@ -233,13 +149,7 @@ void FUNC(ds_ring_list_walk_forward)(ds_ring_list_t *list,
                                      void (*callback)(ds_ring_list_node_t *)) {
   ds_ring_list_node_t *current;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   if (list->tail == list->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(list);
-#endif
     return;
   }
   current = start_node != list->nil ? start_node : list->tail->next;
@@ -247,9 +157,6 @@ void FUNC(ds_ring_list_walk_forward)(ds_ring_list_t *list,
     callback(current);
     current = current->next;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
 }
 
 void FUNC(ds_ring_list_destroy)(ds_ring_list_t *list,
@@ -268,9 +175,6 @@ void FUNC(ds_ring_list_destroy)(ds_ring_list_t *list,
     }
   }
   list->deallocator(list->nil);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(list);
-#endif
   list->deallocator(list);
 }
 
@@ -280,9 +184,6 @@ ds_ring_list_t *FUNC(ds_ring_list_clone)(
   ds_ring_list_t *new_list;
   ds_ring_list_node_t *current;
   size_t i;
-#ifdef DS_THREAD_SAFE
-  LOCK(list);
-#endif
   new_list =
       FUNC(ds_ring_list_create_alloc)(list->allocator, list->deallocator);
   if (list->tail != list->nil) {
@@ -292,8 +193,5 @@ ds_ring_list_t *FUNC(ds_ring_list_clone)(
       current = current->next;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(list);
-#endif
   return new_list;
 }

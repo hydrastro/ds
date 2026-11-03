@@ -4,10 +4,6 @@
 #include "common.h"
 #include <stddef.h>
 
-#ifdef DS_THREAD_SAFE
-#include <stdbool.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,10 +49,6 @@ typedef struct rbt {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } __attribute__((aligned(sizeof(long)))) ds_rbt_t;
 
 void FUNC(ds_rbt_set_parent)(ds_rbt_node_t *node, ds_rbt_node_t *parent);

@@ -72,9 +72,6 @@ ds_bplus_tree_t *FUNC(ds_bplus_tree_create_alloc)(
   tree->nil->internal = NULL;
   tree->root = FUNC(bplus_create_node)(tree, true);
   tree->head = tree->root;
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(tree);
-#endif
   return tree;
 }
 
@@ -97,9 +94,6 @@ ds_bplus_tree_node_t *FUNC(ds_bplus_tree_search)(ds_bplus_tree_t *tree,
   ds_bplus_tree_internal_node_t *leaf;
   ds_bplus_tree_node_t *result;
   int i;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   leaf = FUNC(bplus_find_leaf)(tree, key);
   result = tree->nil;
   for (i = 0; i < leaf->num_keys; i++) {
@@ -108,62 +102,35 @@ ds_bplus_tree_node_t *FUNC(ds_bplus_tree_search)(ds_bplus_tree_t *tree,
       break;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 bool FUNC(ds_bplus_tree_is_empty)(ds_bplus_tree_t *tree) {
   bool result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   result = tree->size == 0;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 size_t FUNC(ds_bplus_tree_size)(ds_bplus_tree_t *tree) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   result = tree->size;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 ds_bplus_tree_node_t *FUNC(ds_bplus_tree_minimum)(ds_bplus_tree_t *tree) {
   ds_bplus_tree_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   result = (tree->head->num_keys > 0) ? tree->head->keys[0] : tree->nil;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
 ds_bplus_tree_node_t *FUNC(ds_bplus_tree_maximum)(ds_bplus_tree_t *tree) {
   ds_bplus_tree_internal_node_t *node;
   ds_bplus_tree_node_t *result;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   node = tree->root;
   while (!node->is_leaf) {
     node = node->children[node->num_keys];
   }
   result = (node->num_keys > 0) ? node->keys[node->num_keys - 1] : tree->nil;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
@@ -324,13 +291,7 @@ bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
   int i;
   int pos;
   bool result = true;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   if (data == tree->nil) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return false;
   }
   leaf = FUNC(bplus_find_leaf)(tree, data);
@@ -340,9 +301,6 @@ bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
     pos += 1;
   }
   if (pos < leaf->num_keys && tree->compare(data, leaf->keys[pos]) == 0) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return false;
   }
   for (i = leaf->num_keys; i > pos; i--) {
@@ -373,9 +331,6 @@ bool FUNC(ds_bplus_tree_insert)(ds_bplus_tree_t *tree,
       FUNC(bplus_split_leaf)(tree, leaf);
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return result;
 }
 
@@ -383,9 +338,6 @@ void FUNC(ds_bplus_tree_walk_forward)(
     ds_bplus_tree_t *tree, void (*callback)(ds_bplus_tree_node_t *)) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   leaf = tree->head;
   while (leaf != NULL) {
     for (i = 0; i < leaf->num_keys; i++) {
@@ -393,9 +345,6 @@ void FUNC(ds_bplus_tree_walk_forward)(
     }
     leaf = leaf->next;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 void FUNC(ds_bplus_tree_range_walk)(ds_bplus_tree_t *tree,
@@ -404,9 +353,6 @@ void FUNC(ds_bplus_tree_range_walk)(ds_bplus_tree_t *tree,
                                     void (*callback)(ds_bplus_tree_node_t *)) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   leaf = FUNC(bplus_find_leaf)(tree, low);
   while (leaf != NULL) {
     for (i = 0; i < leaf->num_keys; i++) {
@@ -414,18 +360,12 @@ void FUNC(ds_bplus_tree_range_walk)(ds_bplus_tree_t *tree,
         continue;
       }
       if (tree->compare(leaf->keys[i], high) > 0) {
-#ifdef DS_THREAD_SAFE
-        UNLOCK(tree);
-#endif
         return;
       }
       callback(leaf->keys[i]);
     }
     leaf = leaf->next;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
 }
 
 static void
@@ -449,9 +389,6 @@ void FUNC(ds_bplus_tree_destroy)(ds_bplus_tree_t *tree,
                                  void (*destroy)(ds_bplus_tree_node_t *)) {
   FUNC(bplus_destroy_recursive)(tree, tree->root, destroy);
   tree->deallocator(tree->nil);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(tree);
-#endif
   tree->deallocator(tree);
 }
 
@@ -461,9 +398,6 @@ ds_bplus_tree_t *FUNC(ds_bplus_tree_clone)(
   ds_bplus_tree_t *new_tree;
   ds_bplus_tree_internal_node_t *leaf;
   int i;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   new_tree =
       FUNC(ds_bplus_tree_create_alloc)(tree->order, tree->bstar, tree->compare,
                                        tree->allocator, tree->deallocator);
@@ -474,9 +408,6 @@ ds_bplus_tree_t *FUNC(ds_bplus_tree_clone)(
     }
     leaf = leaf->next;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return new_tree;
 }
 
@@ -644,9 +575,6 @@ bool FUNC(ds_bplus_tree_remove)(ds_bplus_tree_t *tree,
   int pos;
   int i;
   bool removed = false;
-#ifdef DS_THREAD_SAFE
-  LOCK(tree);
-#endif
   leaf = FUNC(bplus_find_leaf)(tree, key);
   pos = -1;
   for (i = 0; i < leaf->num_keys; i++) {
@@ -656,9 +584,6 @@ bool FUNC(ds_bplus_tree_remove)(ds_bplus_tree_t *tree,
     }
   }
   if (pos < 0) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(tree);
-#endif
     return false;
   }
   if (out_data != NULL) {
@@ -676,8 +601,5 @@ bool FUNC(ds_bplus_tree_remove)(ds_bplus_tree_t *tree,
   if (leaf != tree->root && leaf->num_keys < FUNC(bplus_min_keys)(tree)) {
     FUNC(bplus_fix_underflow)(tree, leaf);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(tree);
-#endif
   return removed;
 }

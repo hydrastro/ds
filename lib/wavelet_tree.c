@@ -93,9 +93,6 @@ FUNC(ds_wavelet_tree_create_alloc)(const size_t *sequence, size_t length,
   if (work != NULL) {
     deallocator(work);
   }
-#ifdef DS_THREAD_SAFE
-  LOCK_INIT_RECURSIVE(wt);
-#endif
   return wt;
 }
 
@@ -115,17 +112,11 @@ static size_t FUNC(wavelet_access_nolock)(ds_wavelet_tree_t *wt, size_t index) {
 
 size_t FUNC(ds_wavelet_tree_access)(ds_wavelet_tree_t *wt, size_t index) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(wt);
-#endif
   if (index >= wt->length) {
     result = DS_WAVELET_NPOS;
   } else {
     result = FUNC(wavelet_access_nolock)(wt, index);
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(wt);
-#endif
   return result;
 }
 
@@ -133,9 +124,6 @@ size_t FUNC(ds_wavelet_tree_rank)(ds_wavelet_tree_t *wt, size_t symbol,
                                   size_t index) {
   ds_wavelet_node_t *node;
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(wt);
-#endif
   if (symbol >= wt->sigma || index > wt->length) {
     result = 0;
   } else {
@@ -152,9 +140,6 @@ size_t FUNC(ds_wavelet_tree_rank)(ds_wavelet_tree_t *wt, size_t symbol,
     }
     result = index;
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(wt);
-#endif
   return result;
 }
 
@@ -164,13 +149,7 @@ size_t FUNC(ds_wavelet_tree_select)(ds_wavelet_tree_t *wt, size_t symbol,
   size_t depth = 0;
   ds_wavelet_node_t *node;
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(wt);
-#endif
   if (symbol >= wt->sigma) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(wt);
-#endif
     return DS_WAVELET_NPOS;
   }
   /* descend to the leaf for `symbol`, recording the path */
@@ -198,9 +177,6 @@ size_t FUNC(ds_wavelet_tree_select)(ds_wavelet_tree_t *wt, size_t symbol,
       break;
     }
   }
-#ifdef DS_THREAD_SAFE
-  UNLOCK(wt);
-#endif
   return result == DS_BITVECTOR_NPOS ? DS_WAVELET_NPOS : result;
 }
 
@@ -208,13 +184,7 @@ size_t FUNC(ds_wavelet_tree_quantile)(ds_wavelet_tree_t *wt, size_t left,
                                       size_t right, size_t k) {
   ds_wavelet_node_t *node;
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(wt);
-#endif
   if (left >= right || right > wt->length || k >= (right - left)) {
-#ifdef DS_THREAD_SAFE
-    UNLOCK(wt);
-#endif
     return DS_WAVELET_NPOS;
   }
   node = wt->root;
@@ -236,21 +206,12 @@ size_t FUNC(ds_wavelet_tree_quantile)(ds_wavelet_tree_t *wt, size_t left,
     }
   }
   result = node->lo;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(wt);
-#endif
   return result;
 }
 
 size_t FUNC(ds_wavelet_tree_length)(ds_wavelet_tree_t *wt) {
   size_t result;
-#ifdef DS_THREAD_SAFE
-  LOCK(wt);
-#endif
   result = wt->length;
-#ifdef DS_THREAD_SAFE
-  UNLOCK(wt);
-#endif
   return result;
 }
 
@@ -269,8 +230,5 @@ static void FUNC(wavelet_destroy_node)(ds_wavelet_tree_t *wt,
 
 void FUNC(ds_wavelet_tree_destroy)(ds_wavelet_tree_t *wt) {
   FUNC(wavelet_destroy_node)(wt, wt->root);
-#ifdef DS_THREAD_SAFE
-  LOCK_DESTROY(wt);
-#endif
   wt->deallocator(wt);
 }

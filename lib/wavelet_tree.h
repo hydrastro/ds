@@ -34,13 +34,9 @@ typedef struct wavelet_tree {
   size_t sigma;  /* alphabet size (symbols are in [0, sigma)) */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-#ifdef DS_THREAD_SAFE
-  mutex_t lock;
-  bool is_thread_safe;
-#endif
 } ds_wavelet_tree_t;
 
-#define DS_WAVELET_NPOS ((size_t)-1)
+#define DS_WAVELET_NPOS ((size_t) - 1)
 
 ds_wavelet_tree_t *FUNC(ds_wavelet_tree_create)(const size_t *sequence,
                                                 size_t length, size_t sigma);
