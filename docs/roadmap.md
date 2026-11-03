@@ -56,6 +56,8 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - augmented treap (pluggable subtree summaries, guided descent) and the
   interval tree built on it
 - `algo/graph_view`: graph algorithms over a pluggable graph view
+- `algo/sort_classic` (twelve classic sorts) and `algo/stringology`
+  (matching, suffix/LCP arrays, palindromes, Lyndon words, edit distances)
 - `algo/`: sorting and selection, searching, sequence and sorted-set
   operations, hashes and checksums, bit manipulation, xoshiro128** RNG and
   alias sampling, number theory and compensated numerics
