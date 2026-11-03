@@ -444,6 +444,63 @@ void ds_radix_sort_ulong(unsigned long *values, size_t count,
                       NULL, scratch);
 }
 
+void ds_nth_element(void *base, size_t count, size_t elem_size, size_t nth,
+                    ds_compare_func_t compare, void *user) {
+  unsigned char *a = (unsigned char *)base;
+  size_t lo = 0;
+  size_t hi = count;
+  size_t depth;
+  size_t p;
+  if (base == NULL || compare == NULL || nth >= count) {
+    return;
+  }
+  depth = 2 * sort_floor_log2(count);
+  while (hi - lo > SORT_INSERTION_CUTOFF) {
+    if (depth == 0) {
+      sort_heap(AT(a, lo, elem_size), hi - lo, elem_size, compare, user);
+      return;
+    }
+    depth--;
+    sort_median_to_front(a, lo, hi, elem_size, compare, user);
+    p = sort_partition(a, lo, hi, elem_size, compare, user);
+    if (p == nth) {
+      return;
+    }
+    if (nth < p) {
+      hi = p;
+    } else {
+      lo = p + 1;
+    }
+  }
+  sort_insertion_range(a, lo, hi, elem_size, compare, user);
+}
+
+void ds_partial_sort(void *base, size_t count, size_t elem_size, size_t k,
+                     ds_compare_func_t compare, void *user) {
+  unsigned char *a = (unsigned char *)base;
+  size_t i;
+  if (base == NULL || compare == NULL || k == 0) {
+    return;
+  }
+  if (k > count) {
+    k = count;
+  }
+  /* Max-heap of the k smallest seen so far, then heapsort it. */
+  for (i = k / 2; i > 0; i--) {
+    sort_sift_down(a, i - 1, k, elem_size, compare, user);
+  }
+  for (i = k; i < count; i++) {
+    if (compare(AT(a, i, elem_size), a, user) < 0) {
+      ds_elem_swap(AT(a, i, elem_size), a, elem_size);
+      sort_sift_down(a, 0, k, elem_size, compare, user);
+    }
+  }
+  for (i = k - 1; i > 0; i--) {
+    ds_elem_swap(a, AT(a, i, elem_size), elem_size);
+    sort_sift_down(a, 0, i, elem_size, compare, user);
+  }
+}
+
 size_t ds_is_sorted_until(const void *base, size_t count, size_t elem_size,
                           ds_compare_func_t compare, void *user) {
   size_t i;

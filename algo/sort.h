@@ -14,6 +14,13 @@
  *   ds_radix_sort_keyed    yes     O(n * w)       n elements of scratch
  *   ds_radix_sort_ulong    yes     O(n * w)       n unsigned longs of scratch
  *
+ * Selection:
+ *   ds_nth_element    put the element that would be at `nth` after sorting
+ *                     there, with no larger element before it and no smaller
+ *                     one after; O(n) average, O(n log n) worst (introselect)
+ *   ds_partial_sort   sort the `k` smallest elements into [0, k);
+ *                     O(n log k), the rest in unspecified order
+ *
  * ds_intro_sort is the general-purpose default (quicksort with
  * median-of-three, a heapsort fallback that bounds the worst case, and
  * insertion sort for small ranges). For a stable sort use ds_merge_sort with
@@ -50,6 +57,11 @@ void ds_radix_sort_keyed(void *base, size_t count, size_t elem_size,
                          ds_key_func_t key, void *user, void *scratch);
 void ds_radix_sort_ulong(unsigned long *values, size_t count,
                          unsigned long *scratch);
+
+void ds_nth_element(void *base, size_t count, size_t elem_size, size_t nth,
+                    ds_compare_func_t compare, void *user);
+void ds_partial_sort(void *base, size_t count, size_t elem_size, size_t k,
+                     ds_compare_func_t compare, void *user);
 
 bool ds_is_sorted(const void *base, size_t count, size_t elem_size,
                   ds_compare_func_t compare, void *user);

@@ -61,6 +61,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 
 - sorting: insertion, Shell (Ciura gaps), heap, intro, stable merge (scratch
   buffer), in-place stable (SymMerge), LSD radix by key
+- selection: nth_element (introselect), partial_sort (top k)
 
 Newer high-level modules:
 
