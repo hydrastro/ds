@@ -14,6 +14,7 @@
 #include "lib/array_deque.h"
 #include "lib/art.h"
 #include "lib/avl.h"
+#include "lib/bip_buffer.h"
 #include "lib/bitset.h"
 #include "lib/bitvector.h"
 #include "lib/bloom_filter.h"
