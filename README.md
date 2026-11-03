@@ -57,6 +57,11 @@ Core mutable containers:
 - Vector (by value; growable or fixed caller buffer, heapsort, binary search)
 - Wavelet tree (succinct sequence: access/rank/select/quantile)
 
+Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
+
+- sorting: insertion, Shell (Ciura gaps), heap, intro, stable merge (scratch
+  buffer), in-place stable (SymMerge), LSD radix by key
+
 Newer high-level modules:
 
 - `ds_status_t`, `ds_error_t`, `ds_diagnostic_t`, and `ds_context_t`

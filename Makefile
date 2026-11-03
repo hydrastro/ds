@@ -31,8 +31,9 @@ TEST_DIR  := test
 BUILD_DIR := build
 DATA_DIR  := data
 EXAMPLE_DIR := examples
+ALGO_DIR  := algo
 TEST_BUILD_DIR := $(BUILD_DIR)/test
-INCLUDES  := -I. -I$(LIB_DIR) -I$(BUILD_DIR)
+INCLUDES  := -I. -I$(LIB_DIR) -I$(ALGO_DIR) -I$(BUILD_DIR)
 
 LIB_SRC := \
   $(LIB_DIR)/allocators.c \
@@ -96,6 +97,13 @@ LIB_SRC := \
   $(LIB_DIR)/timer_wheel.c \
   $(LIB_DIR)/packed_array.c
 
+# Algorithms live in algo/ and are built into the same library.
+ALGO_SRC := \
+  $(ALGO_DIR)/elem.c \
+  $(ALGO_DIR)/sort.c
+
+LIB_SRC += $(ALGO_SRC)
+
 GEN_SRC_C := $(BUILD_DIR)/unicode_tables.c
 GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 
@@ -131,6 +139,8 @@ FORMAT_SRC := \
   $(EXAMPLE_DIR)/heap_priority_queue.c $(EXAMPLE_DIR)/art_dictionary.c \
   $(EXAMPLE_DIR)/sequence_containers.c $(EXAMPLE_DIR)/succinct_structures.c
 
+FORMAT_SRC += ds_algo.h $(wildcard $(ALGO_DIR)/*.c) $(wildcard $(ALGO_DIR)/*.h)
+
 # Every hand-written source and header, excluding generated tables.
 FORMAT_ALL_SRC := ds.h \
   $(filter-out $(LIB_DIR)/unicode_tables.c $(LIB_DIR)/unicode_tables.h \
@@ -138,6 +148,8 @@ FORMAT_ALL_SRC := ds.h \
     $(wildcard $(LIB_DIR)/*.c) $(wildcard $(LIB_DIR)/*.h)) \
   $(wildcard $(TEST_DIR)/*.c) $(wildcard $(TEST_DIR)/*.cpp) \
   $(wildcard $(EXAMPLE_DIR)/*.c)
+
+FORMAT_ALL_SRC += ds_algo.h $(wildcard $(ALGO_DIR)/*.c) $(wildcard $(ALGO_DIR)/*.h)
 
 TEST_UCD_DIR := $(TEST_DIR)/ucd
 TEST_UCD_FILES := \
@@ -181,14 +193,16 @@ EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 all: $(LIB_STATIC) $(LIB_SHARED)
 
 install: all
-	$(INSTALL) -d $(DESTDIR)$(INCLUDEDIR)/lib $(DESTDIR)$(LIBDIR)
-	$(INSTALL) -m 0644 ds.h $(DESTDIR)$(INCLUDEDIR)
+	$(INSTALL) -d $(DESTDIR)$(INCLUDEDIR)/lib $(DESTDIR)$(INCLUDEDIR)/algo $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -m 0644 ds.h ds_algo.h $(DESTDIR)$(INCLUDEDIR)
 	$(INSTALL) -m 0644 $(LIB_DIR)/*.h $(DESTDIR)$(INCLUDEDIR)/lib
+	$(INSTALL) -m 0644 $(ALGO_DIR)/*.h $(DESTDIR)$(INCLUDEDIR)/algo
 	$(INSTALL) -m 0644 $(LIB_STATIC) $(DESTDIR)$(LIBDIR)
 	$(INSTALL) -m 0755 $(LIB_SHARED) $(DESTDIR)$(LIBDIR)
 
 uninstall:
-	rm -f $(DESTDIR)$(INCLUDEDIR)/ds.h
+	rm -f $(DESTDIR)$(INCLUDEDIR)/ds.h $(DESTDIR)$(INCLUDEDIR)/ds_algo.h
+	rm -rf $(DESTDIR)$(INCLUDEDIR)/algo
 	rm -rf $(DESTDIR)$(INCLUDEDIR)/lib
 	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_STATIC)
 	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_SHARED)
@@ -361,7 +375,7 @@ $(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(TEST_LIB_STATIC) | $(EXAMPLE_BUILD_
 examples: $(EXAMPLE_BIN)
 
 clean:
-	rm -f $(LIB_DIR)/*.o $(BUILD_DIR)/*.o \
+	rm -f $(LIB_DIR)/*.o $(ALGO_DIR)/*.o $(BUILD_DIR)/*.o \
 	      $(LIB_STATIC) $(LIB_SHARED) \
 	      $(GEN_BIN)
 	rm -f $(GEN_SRC_C) $(GEN_SRC_H)

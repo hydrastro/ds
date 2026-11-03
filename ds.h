@@ -66,4 +66,6 @@
 #include "lib/str_unicode.h"
 #include "lib/unicode_runtime.h"
 
+#include "ds_algo.h"
+
 #endif /* DS_H */
