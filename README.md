@@ -119,6 +119,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `select`: FIND, MODIFIND, Floyd-Rivest, median of medians, Randomized-Select and introselect behind one dispatcher; median and mode
 - `sort_misc`: configurable quicksort (pivot, partition, cutoff, introspection; q sort, qm sort, balanced), dual-pivot quicksort, two-/three-/k-way and adaptive merge sorts, strand, bingo, Dutch national flag, joke sorts
 - `sort_dist`: bucket/range/pigeonhole/rapid/restricted-universe, histogram (interpolation), address-calculation, flash, linear probing and distributive partitioning sorts; MSD radix, American flag, multikey quicksort and blind sort for byte strings; postman's, shuffle and J sort
+- `sort_heap`: smoothsort, adaptive heap sort, dominance tree sort, tournament sort, tree sort (plain or treap), JSort
 
 Newer high-level modules:
 

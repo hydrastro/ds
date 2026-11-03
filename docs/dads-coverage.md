@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 445 |
-| todo | 260 |
+| done | 451 |
+| todo | 254 |
 | def | 593 |
 | total | 1298 |
 
@@ -52,7 +52,6 @@ Families ordered by how many DADS entries they close.
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `algo/random (extensions)` | 5 | linear congruential generator, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
-| `algo/sort_heap` | 5 | adaptive heap sort, dominance tree sort, smoothsort, tournament sort, tree sort |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
 | `algo/external_sort` | 4 | external merge, external quicksort, external radix sort, external sort |
@@ -84,7 +83,6 @@ Families ordered by how many DADS entries they close.
 | `algo/knapsack` | 1 | set packing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
 | `algo/sequence (extensions)` | 1 | balanced multiway merge |
-| `algo/sort_dist` | 1 | JSort |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
@@ -134,7 +132,7 @@ Families ordered by how many DADS entries they close.
 | active data structure | def |  |
 | acyclic directed graph | def |  |
 | acyclic graph | def |  |
-| adaptive heap sort | todo | `algo/sort_heap` |
+| adaptive heap sort | done | `algo/sort_heap` |
 | adaptive Huffman coding | todo | `algo/compress` |
 | adaptive k-d tree | todo | `lib/kdb_tree` |
 | adaptive sort | done | `algo/sort_misc` |
@@ -463,7 +461,7 @@ Families ordered by how many DADS entries they close.
 | divide and conquer | def |  |
 | divide and marriage before conquest | def |  |
 | domain | def |  |
-| dominance tree sort | todo | `algo/sort_heap` |
+| dominance tree sort | done | `algo/sort_heap` |
 | don't care | def |  |
 | Doomsday rule | done | `algo/number_theory` |
 | double-direction bubble sort | done | `algo/sort_classic` (cocktail) |
@@ -745,7 +743,7 @@ Families ordered by how many DADS entries they close.
 | jelly-fish | def |  |
 | Johnson's algorithm | done | `algo/graph_path` |
 | Johnson-Trotter | done | `algo/combinatorics` |
-| JSort | todo | `algo/sort_dist` |
+| JSort | done | `algo/sort_heap` |
 | J sort | done | `algo/sort_dist` |
 | jump list | todo | `lib/jump_list` |
 | jump search | done | `algo/search` |
@@ -1307,7 +1305,7 @@ Families ordered by how many DADS entries they close.
 | slope selection | done | `algo/geometry` |
 | Smith algorithm † | done | `algo/string_search` |
 | Smith-Waterman algorithm † | todo | `algo/string_approx` |
-| smoothsort † | todo | `algo/sort_heap` |
+| smoothsort † | done | `algo/sort_heap` |
 | solvable † | def |  |
 | sort † | def |  |
 | sorted array † | todo | `lib/sorted_list` |
@@ -1425,7 +1423,7 @@ Families ordered by how many DADS entries they close.
 | total order | def |  |
 | tour | def |  |
 | tournament | done | `algo/kway_merge` |
-| tournament sort † | todo | `algo/sort_heap` |
+| tournament sort † | done | `algo/sort_heap` |
 | towers of Hanoi | done | `algo/combinatorics` |
 | tractable † | def |  |
 | transducer † | def |  |
@@ -1441,7 +1439,7 @@ Families ordered by how many DADS entries they close.
 | tree automaton | def |  |
 | tree contraction | todo | `algo/parallel_sim` |
 | tree editing problem | def |  |
-| tree sort † | todo | `algo/sort_heap` |
+| tree sort † | done | `algo/sort_heap` |
 | tree transducer † | def |  |
 | tree traversal † | done | `lib/bst walks` |
 | triangle inequality | def |  |
