@@ -15,5 +15,6 @@
 #include "algo/graph_view.h"
 #include "algo/sort_classic.h"
 #include "algo/stringology.h"
+#include "algo/hash_family.h"
 
 #endif /* DS_ALGO_H */

@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 225 |
-| todo | 494 |
+| done | 231 |
+| todo | 488 |
 | def | 579 |
 | total | 1298 |
 
@@ -55,7 +55,6 @@ Families ordered by how many DADS entries they close.
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
-| `algo/hash (new functions)` | 6 | incremental hashing, linear hash, multiplication method, order-preserving hash, Pearson's hash, universal hashing |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `algo/phonetic` | 6 | Caverphone, double metaphone, metaphone, NYSIIS, phonetic coding, soundex |
 | `algo/random (extensions)` | 6 | linear congruential generator, Randomized-Select, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
@@ -713,7 +712,7 @@ Families ordered by how many DADS entries they close.
 | inclusion-exclusion principle | def |  |
 | inclusive or | def |  |
 | incompressible string | def |  |
-| incremental hashing | todo | `algo/hash` (new functions) |
+| incremental hashing | done | `algo/hash_family` |
 | in-degree | def |  |
 | independent set | todo | `algo/graph_hard` |
 | index file | def |  |
@@ -822,7 +821,7 @@ Families ordered by how many DADS entries they close.
 | LIFO | done | `lib/stack` |
 | linear | def |  |
 | linear congruential generator | todo | `algo/random` (extensions) |
-| linear hash | todo | `algo/hash` (new functions) |
+| linear hash | done | `algo/hash_family` |
 | linear hashing | done | `lib/linear_hash_map` |
 | linear insertion sort | todo | `algo/sort_misc` |
 | linear order | def |  |
@@ -919,7 +918,7 @@ Families ordered by how many DADS entries they close.
 | multigraph | def |  |
 | multikey Quicksort | todo | `algo/sort_dist` |
 | multilayer grid file | todo | `lib/grid_file` |
-| multiplication method | todo | `algo/hash` (new functions) |
+| multiplication method | done | `algo/hash_family` |
 | multiprefix | todo | `algo/sequence` (extensions) |
 | multiprocessor model | def |  |
 | multi-set | todo | `lib/multiset` |
@@ -1019,7 +1018,7 @@ Families ordered by how many DADS entries they close.
 | ordered binary decision diagram | todo | `lib/bdd` |
 | ordered linked list | todo | `lib/sorted_list` |
 | ordered tree | def |  |
-| order-preserving hash | todo | `algo/hash` (new functions) |
+| order-preserving hash | done | `algo/hash_family` |
 | order-preserving Huffman coding | todo | `algo/compress` |
 | order-preserving minimal perfect hashing | todo | `algo/perfect_hash` |
 | oriented acyclic graph | def |  |
@@ -1064,7 +1063,7 @@ Families ordered by how many DADS entries they close.
 | P-complete | def |  |
 | PCP | def |  |
 | PDA | def |  |
-| Pearson's hash | todo | `algo/hash` (new functions) |
+| Pearson's hash | done | `algo/hash_family` |
 | perfect binary tree | def |  |
 | perfect hashing | todo | `algo/perfect_hash` |
 | perfect k-ary tree | def |  |
@@ -1527,7 +1526,7 @@ Families ordered by how many DADS entries they close.
 | uniform matrix | def |  |
 | union | done | `algo/sequence` (ds_set_union) |
 | union of automata | todo | `lib/automaton` |
-| universal hashing † | todo | `algo/hash` (new functions) |
+| universal hashing † | done | `algo/hash_family` |
 | universal state | def |  |
 | universal Turing machine | def |  |
 | universe | def |  |

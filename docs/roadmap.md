@@ -73,6 +73,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - coalesced hashing with cellar
 - Litwin linear hashing
 - extendible hashing
+- `algo/hash_family`: Pearson, universal and tabulation hashing, rolling hashes
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
