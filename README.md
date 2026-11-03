@@ -51,6 +51,7 @@ Core mutable containers:
 - Order-statistic tree (size-augmented AVL: select/rank)
 - Packed integer array (k-bit values packed into words)
 - Pairing heap
+- Radix heap (monotone priority queue over unsigned long keys)
 - Radix trie (path-compressed)
 - Robin Hood hash map (by-value keys/values, backward-shift deletion, fixed-buffer mode)
 - Rope (chunked string with O(log n) splice)

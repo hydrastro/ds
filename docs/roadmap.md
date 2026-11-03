@@ -65,6 +65,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - meldable heap family (leftist, weight-biased, skew, randomized) with pluggable shape policy
 - weak heap and weak-heap sort
 - van Emde Boas tree with lazily allocated clusters
+- radix heap (monotone priority queue)
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

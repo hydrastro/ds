@@ -54,6 +54,7 @@
 #include "lib/persistent_rbt.h"
 #include "lib/persistent_trie.h"
 #include "lib/queue.h"
+#include "lib/radix_heap.h"
 #include "lib/radix_trie.h"
 #include "lib/rbt.h"
 #include "lib/rh_map.h"

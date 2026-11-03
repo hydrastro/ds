@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 214 |
-| todo | 510 |
+| done | 215 |
+| todo | 509 |
 | def | 574 |
 | total | 1298 |
 
@@ -109,7 +109,6 @@ Families ordered by how many DADS entries they close.
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/octree` | 1 | octree |
 | `lib/pagoda` | 1 | pagoda |
-| `lib/radix_heap` | 1 | monotone priority queue |
 | `lib/scapegoat_tree` | 1 | scapegoat tree |
 | `lib/shadow_heap` | 1 | shadow heap |
 | `lib/ub_tree` | 1 | UB-tree |
@@ -911,7 +910,7 @@ Families ordered by how many DADS entries they close.
 | model of computation | def |  |
 | moderately exponential | def |  |
 | MODIFIND | todo | `algo/select` |
-| monotone priority queue | todo | `lib/radix_heap` |
+| monotone priority queue | done | `lib/radix_heap` |
 | monotonically decreasing | def |  |
 | monotonically increasing | def |  |
 | Monte Carlo algorithm | def |  |
