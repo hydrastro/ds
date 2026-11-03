@@ -169,6 +169,12 @@ between the two builds under one type name, and several modules were never
 covered. Containers are now externally synchronized; lock-free structures
 designed for concurrency belong in a dedicated module.
 
+## DADS coverage
+
+`docs/dads-coverage.md` classifies every NIST DADS entry as done, todo
+(with its target module) or definition-only, and is the checklist for
+the remaining algorithm and data-structure families.
+
 ## Still open / future work
 
 High-value work that remains intentionally open:
