@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 298 |
-| todo | 407 |
+| done | 315 |
+| todo | 390 |
 | def | 593 |
 | total | 1298 |
 
@@ -43,7 +43,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 23 | Ackermann's function, BBP algorithm, Chinese remainder theorem, CORDIC, cube root, Doomsday rule, factorial, Ferguson-Forcade algorithm, Fibonacci number, gamma function, Horner's rule, inverse Ackermann function, kth order Fibonacci numbers, midrange, mode, pth order Fibonacci numbers, reduced basis, Rice's method, secant search, square root, Stirling's approximation, Stirling's formula, Zeller's congruence |
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
-| `algo/geometry` | 16 | bisector, Bresenham's algorithm, Euclidean distance, extreme point, geometric optimization problem, Hausdorff distance, Lm distance, Manhattan distance, Minkowski distance, nearest neighbor, optimal polygon triangulation problem, optimal triangulation problem, orthogonally convex rectilinear polygon, slope selection, star-shaped polygon, Wu's line algorithm |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/combinatorics` | 12 | Collatz problem, combination, derangement, 8 queens, Johnson-Trotter, knight's tour, n queens, partition, Steinhaus-Johnson-Trotter, towers of Hanoi, Trotter-Johnson, unranking |
 | `algo/knapsack` | 12 | binary knapsack problem, bin packing problem, continuous knapsack problem, cutting stock problem, fractional knapsack problem, knapsack problem, matrix-chain multiplication problem, set packing, strip packing, UKP, unbounded knapsack problem, 0/1 knapsack problem |
@@ -57,7 +56,6 @@ Families ordered by how many DADS entries they close.
 | `algo/random (extensions)` | 6 | linear congruential generator, Randomized-Select, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
 | `algo/search (extensions)` | 6 | block search, Bond Sequential Search, Fibonaccian search, interpolation-sequential search, jump search, ternary search |
 | `algo/sort_heap` | 6 | adaptive heap sort, dominance tree sort, smoothsort, tournament, tournament sort, tree sort |
-| `lib/rtree` | 6 | MBB, minimum bounding box, R+-tree, R*-tree, R-tree, spatial access method |
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
@@ -69,6 +67,7 @@ Families ordered by how many DADS entries they close.
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
+| `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `lib/sorted_list` | 4 | ordered linked list, sorted array, sorted list, unsorted list |
 | `lib/sparse_matrix` | 4 | huge sparse array, orthogonal lists, ragged matrix, sparse matrix |
 | `lib/suffix_automaton` | 4 | compact DAWG, DAWG, directed acyclic word graph, suffix automaton |
@@ -87,6 +86,7 @@ Families ordered by how many DADS entries they close.
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
 | `algo/cartesian_tree` | 1 | cartesian tree |
 | `algo/game` | 1 | minimax |
+| `algo/geometry` | 1 | geometric optimization problem |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -246,7 +246,7 @@ Families ordered by how many DADS entries they close.
 | bintree | todo | `lib/quadtree` |
 | bipartite graph | done | `algo/graph_view` (ds_gview_bipartite) |
 | bipartite matching | done | `algo/matching` |
-| bisector | todo | `algo/geometry` |
+| bisector | done | `algo/geometry` |
 | bitonic sort | done | `algo/sort_classic` |
 | bit vector | done | `lib/bitset, lib/bitvector` |
 | Bk tree | done | `lib/binomial_heap` |
@@ -278,7 +278,7 @@ Families ordered by how many DADS entries they close.
 | Bradford's law | def |  |
 | branch and bound | def |  |
 | breadth-first search | done | `algo/graph_view, lib/graph` |
-| Bresenham's algorithm | todo | `algo/geometry` |
+| Bresenham's algorithm | done | `algo/geometry` |
 | bridge | done | `algo/graph_struct` |
 | British Museum technique | def |  |
 | brute force | def |  |
@@ -525,7 +525,7 @@ Families ordered by how many DADS entries they close.
 | ERCW | def |  |
 | EREW | def |  |
 | Euclidean algorithm | done | `algo/numeric` (ds_gcd) |
-| Euclidean distance | todo | `algo/geometry` |
+| Euclidean distance | done | `algo/geometry` |
 | Euclidean Steiner tree | todo | `algo/graph_hard` |
 | Euclidean traveling salesman problem | todo | `algo/graph_hard` |
 | Euclid's algorithm | done | `algo/numeric` |
@@ -559,7 +559,7 @@ Families ordered by how many DADS entries they close.
 | external sort | todo | `algo/external_sort` |
 | extrapolation search | done | `algo/search` (interpolation) |
 | extremal | def |  |
-| extreme point | todo | `algo/geometry` |
+| extreme point | done | `algo/geometry` |
 
 ### F
 
@@ -666,7 +666,7 @@ Families ordered by how many DADS entries they close.
 | hash table | done | `lib/hash_table, lib/rh_map` |
 | hash table delete | done | `lib/hash_table, lib/rh_map` (backward shift) |
 | hash tree | done | `lib/merkle_tree` |
-| Hausdorff distance | todo | `algo/geometry` |
+| Hausdorff distance | done | `algo/geometry` |
 | hB-tree | todo | `lib/hb_tree` |
 | head | def |  |
 | heap | done | `lib/heap` |
@@ -832,7 +832,7 @@ Families ordered by how many DADS entries they close.
 | list | done | `lib/list` |
 | list contraction | todo | `algo/parallel_sim` |
 | little-o notation | def |  |
-| Lm distance | todo | `algo/geometry` |
+| Lm distance | done | `algo/geometry` |
 | load factor | done | `lib/hash_table, lib/rh_map` |
 | local alignment | todo | `algo/string_approx` |
 | locality-sensitive hashing | done | `algo/lsh` |
@@ -853,7 +853,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | Malhotra-Kumar-Maheshwari blocking flow | done | `algo/flow` |
-| Manhattan distance | todo | `algo/geometry` |
+| Manhattan distance | done | `algo/geometry` |
 | many-one reduction | def |  |
 | map | done | `lib/hash_table, lib/rh_map, lib/avl, ...` |
 | Markov chain | def |  |
@@ -872,7 +872,7 @@ Families ordered by how many DADS entries they close.
 | Maximal Shift | todo | `algo/string_search` |
 | maximum bipartite matching | done | `algo/matching` |
 | maximum-flow problem | done | `algo/flow` |
-| MBB | todo | `lib/rtree` |
+| MBB | done | `algo/geometry` |
 | Mealy machine | todo | `lib/automaton` |
 | mean | done | `algo/numeric` (Welford) |
 | median | done | `algo/sort` (nth_element) |
@@ -888,11 +888,11 @@ Families ordered by how many DADS entries they close.
 | min-heap property | def |  |
 | minimal perfect hashing | done | `algo/perfect_hash` |
 | minimax | todo | `algo/game` |
-| minimum bounding box | todo | `lib/rtree` |
+| minimum bounding box | done | `algo/geometry` |
 | minimum cut | done | `algo/flow` |
 | minimum spanning tree | done | `algo/graph_view` (Prim), lib/graph |
 | minimum vertex cut | done | `algo/flow` |
-| Minkowski distance | todo | `algo/geometry` |
+| Minkowski distance | done | `algo/geometry` |
 | mixed integer linear program | todo | `algo/lp` |
 | mode | todo | `algo/numeric` (extensions) |
 | model checking | def |  |
@@ -932,7 +932,7 @@ Families ordered by how many DADS entries they close.
 | nand | def |  |
 | n-ary function | def |  |
 | NC many-one reducibility | def |  |
-| nearest neighbor | todo | `algo/geometry` |
+| nearest neighbor | done | `algo/geometry` |
 | negation | def |  |
 | network flow | done | `algo/flow` |
 | network flow problem | done | `algo/flow` |
@@ -997,11 +997,11 @@ Families ordered by how many DADS entries they close.
 | optimal hashing | done | `algo/perfect_hash` |
 | optimal merge | todo | `algo/sequence` (extensions) |
 | optimal mismatch | todo | `algo/string_search` |
-| optimal polygon triangulation problem | todo | `algo/geometry` |
+| optimal polygon triangulation problem | done | `algo/geometry` |
 | optimal polyphase merge | todo | `algo/sort_misc` |
 | optimal polyphase merge sort | todo | `algo/sort_misc` |
 | optimal solution | def |  |
-| optimal triangulation problem | todo | `algo/geometry` |
+| optimal triangulation problem | done | `algo/geometry` |
 | optimal value | def |  |
 | optimization problem | def |  |
 | or | def |  |
@@ -1021,7 +1021,7 @@ Families ordered by how many DADS entries they close.
 | oriented tree | def |  |
 | orthogonal drawing | def |  |
 | orthogonal lists | todo | `lib/sparse_matrix` |
-| orthogonally convex rectilinear polygon | todo | `algo/geometry` |
+| orthogonally convex rectilinear polygon | done | `algo/geometry` |
 | oscillating merge sort | todo | `algo/sort_misc` |
 | out-degree | def |  |
 
@@ -1307,7 +1307,7 @@ Families ordered by how many DADS entries they close.
 | skew symmetry | def |  |
 | skip list | done | `lib/skip_list` |
 | skip search | todo | `algo/string_search` |
-| slope selection | todo | `algo/geometry` |
+| slope selection | done | `algo/geometry` |
 | Smith algorithm † | todo | `algo/string_search` |
 | Smith-Waterman algorithm † | todo | `algo/string_approx` |
 | smoothsort † | todo | `algo/sort_heap` |
@@ -1336,7 +1336,7 @@ Families ordered by how many DADS entries they close.
 | stack | done | `lib/stack` |
 | stack tree | def |  |
 | star encoding | todo | `algo/compress` |
-| star-shaped polygon | todo | `algo/geometry` |
+| star-shaped polygon | done | `algo/geometry` |
 | start state | def |  |
 | state | def |  |
 | state machine | def |  |
@@ -1570,7 +1570,7 @@ Families ordered by how many DADS entries they close.
 | worst case † | def |  |
 | worst-case cost † | def |  |
 | worst-case minimum access † | def |  |
-| Wu's line algorithm † | todo | `algo/geometry` |
+| Wu's line algorithm † | done | `algo/geometry` |
 
 ### X
 

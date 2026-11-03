@@ -107,6 +107,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - matching: Hopcroft-Karp, Hungarian (assignment), Edmonds blossom, Gale-Shapley stable marriage
 - graph structure: DFS forest and edge classes, articulation points, bridges, biconnected components, Euler trails, condensation, transitive closure and reduction, feedback edge set, tree diameter and centroid
 - graph paths: Johnson APSP, DAG shortest/longest (critical) paths, best-first/A*, Yen k shortest paths, all simple paths, Chu-Liu/Edmonds arborescence, Kruskal, Boruvka, Chinese postman
+- geometry: distances (L_p, Hausdorff), predicates, convex hull (Andrew, Graham, Jarvis, quickhull), rotating calipers, closest pair, polygon kernel, optimal triangulation, slope selection, Bresenham and Wu rasterization
 
 Newer high-level modules:
 

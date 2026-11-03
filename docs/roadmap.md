@@ -82,6 +82,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/matching`: bipartite, assignment, general and stable matchings
 - `algo/graph_struct`: articulation/bridges/blocks, Euler, condensation, closure/reduction
 - `algo/graph_path`: Johnson, DAG paths, A*, Yen, arborescence, Kruskal/Boruvka, Chinese postman
+- `algo/geometry`: hulls, calipers, closest pair, kernels, triangulation, rasterization
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
