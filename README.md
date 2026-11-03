@@ -35,6 +35,7 @@ Core mutable containers:
 - Indexed d-ary heap (priority queue with decrease/increase-key by id)
 - Min-max heap (double-ended priority queue by value)
 - Order-statistic tree (size-augmented AVL: select/rank)
+- Packed integer array (k-bit values packed into words)
 - Pairing heap
 - Radix trie (path-compressed)
 - Rope (chunked string with O(log n) splice)

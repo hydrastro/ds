@@ -35,6 +35,7 @@
 #include "lib/list.h"
 #include "lib/min_max_heap.h"
 #include "lib/order_statistic_tree.h"
+#include "lib/packed_array.h"
 #include "lib/pairing_heap.h"
 #include "lib/persistent_rbt.h"
 #include "lib/persistent_trie.h"
