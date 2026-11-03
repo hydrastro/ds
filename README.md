@@ -102,6 +102,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - strings over bytes: KMP, Rabin-Karp, prefix and Z functions, suffix array (prefix doubling), LCP (Kasai), Manacher, minimal rotation, Lyndon factorization (Duval), Levenshtein, OSA/Damerau, LCS, Hamming
 - hash families: Pearson, multiplicative (Knuth), order-preserving, universal (Carter-Wegman, multiply-shift, tabulation), rolling polynomial hash and buzhash
 - perfect hashing: order-preserving minimal perfect hash (Czech-Havas-Majewski)
+- locality-sensitive hashing: MinHash, banding, SimHash
 
 Newer high-level modules:
 

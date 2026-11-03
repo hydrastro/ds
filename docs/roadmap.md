@@ -77,6 +77,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/perfect_hash`: order-preserving minimal perfect hashing
 - invertible Bloom lookup table
 - Merkle tree with audit proofs
+- `algo/lsh`: MinHash, banding and SimHash
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

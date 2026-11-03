@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 239 |
-| todo | 480 |
+| done | 240 |
+| todo | 479 |
 | def | 579 |
 | total | 1298 |
 
@@ -89,7 +89,6 @@ Families ordered by how many DADS entries they close.
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
 | `algo/cartesian_tree` | 1 | cartesian tree |
 | `algo/game` | 1 | minimax |
-| `algo/lsh` | 1 | locality-sensitive hashing |
 | `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -838,7 +837,7 @@ Families ordered by how many DADS entries they close.
 | Lm distance | todo | `algo/geometry` |
 | load factor | done | `lib/hash_table, lib/rh_map` |
 | local alignment | todo | `algo/string_approx` |
-| locality-sensitive hashing | todo | `algo/lsh` |
+| locality-sensitive hashing | done | `algo/lsh` |
 | local optimum | def |  |
 | logarithmic | def |  |
 | longest common subsequence | done | `algo/stringology` |
