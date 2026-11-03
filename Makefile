@@ -146,7 +146,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/matching.c \
   $(ALGO_DIR)/graph_struct.c \
   $(ALGO_DIR)/graph_path.c \
-  $(ALGO_DIR)/geometry.c
+  $(ALGO_DIR)/geometry.c \
+  $(ALGO_DIR)/combinatorics.c
 
 LIB_SRC += $(ALGO_SRC)
 

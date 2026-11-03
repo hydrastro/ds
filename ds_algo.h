@@ -23,5 +23,6 @@
 #include "algo/graph_struct.h"
 #include "algo/graph_path.h"
 #include "algo/geometry.h"
+#include "algo/combinatorics.h"
 
 #endif /* DS_ALGO_H */
