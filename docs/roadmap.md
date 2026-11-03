@@ -50,6 +50,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - fixed-capacity LRU cache (no allocation after init)
 - HyperLogLog, Count-Min sketch and cuckoo filter (caller-supplied hashes)
 - bip buffer and gap buffer
+- SIEVE cache, monotonic queue, crit-bit tree, implicit k-d tree
 - `algo/`: sorting and selection, searching, sequence and sorted-set
   operations, hashes and checksums, bit manipulation, xoshiro128** RNG and
   alias sampling, number theory and compensated numerics
