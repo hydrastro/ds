@@ -52,6 +52,7 @@
 #include "lib/splay_tree.h"
 #include "lib/stack.h"
 #include "lib/string_map.h"
+#include "lib/timer_wheel.h"
 #include "lib/treap.h"
 #include "lib/trie.h"
 #include "lib/vec.h"

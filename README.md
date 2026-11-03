@@ -49,6 +49,7 @@ Core mutable containers:
 - Sparse table (O(1) static range queries; idempotent and disjoint variants)
 - Splay tree
 - Stack
+- Timer wheel (hierarchical, intrusive timers, O(1) start/cancel, no allocation)
 - Treap
 - Trie
 - Union-find with rollback (snapshot/undo of unions)
