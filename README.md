@@ -47,6 +47,7 @@ Core mutable containers:
 - Implicit treap (sequence with pluggable monoid aggregates and lazy tags; split, append, reverse)
 - Indexed d-ary heap (priority queue with decrease/increase-key by id)
 - Interval tree (closed intervals of any endpoint type, overlap and stabbing queries)
+- Inversion list (range set as sorted boundaries: splice updates, boolean merges by truth table, rank/select, bit-run conversion)
 - Invertible Bloom lookup table (IBLT: listing, set reconciliation by subtraction)
 - k-d tree (implicit static tree; nearest, k-nearest, box and radius queries)
 - Linear hashing (Litwin; split by load or on overflow, incremental growth and shrink)

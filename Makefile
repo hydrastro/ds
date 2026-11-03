@@ -124,7 +124,8 @@ LIB_SRC := \
   $(LIB_DIR)/linear_hash_map.c \
   $(LIB_DIR)/extendible_hash.c \
   $(LIB_DIR)/iblt.c \
-  $(LIB_DIR)/merkle_tree.c
+  $(LIB_DIR)/merkle_tree.c \
+  $(LIB_DIR)/inversion_list.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -162,6 +163,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/inversion_list.c $(LIB_DIR)/inversion_list.h \
   $(LIB_DIR)/merkle_tree.c $(LIB_DIR)/merkle_tree.h \
   $(LIB_DIR)/iblt.c $(LIB_DIR)/iblt.h \
   $(LIB_DIR)/extendible_hash.c $(LIB_DIR)/extendible_hash.h \

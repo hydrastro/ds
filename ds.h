@@ -47,6 +47,7 @@
 #include "lib/implicit_treap.h"
 #include "lib/indexed_heap.h"
 #include "lib/interval_tree.h"
+#include "lib/inversion_list.h"
 #include "lib/kd_tree.h"
 #include "lib/linear_hash_map.h"
 #include "lib/list.h"

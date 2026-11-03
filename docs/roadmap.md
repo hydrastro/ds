@@ -88,6 +88,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/number_theory`: CRT, Fibonacci, Ackermann, day-of-week rules
 - `algo/numerical`: roots, CORDIC, Gamma, Stirling, BBP digits
 - `algo/string_search`: seventeen exact matching algorithms and k-mismatch search
+- inversion list: range sets as sorted boundaries with linear-time boolean merges and a fixed-buffer mode
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
