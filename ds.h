@@ -22,6 +22,7 @@
 #include "lib/btree.h"
 #include "lib/circular_buffer.h"
 #include "lib/count_min_sketch.h"
+#include "lib/cuckoo_filter.h"
 #include "lib/deque.h"
 #include "lib/disjoint_set.h"
 #include "lib/dlist.h"
