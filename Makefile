@@ -152,7 +152,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/knapsack.c \
   $(ALGO_DIR)/number_theory.c \
   $(ALGO_DIR)/numerical.c \
-  $(ALGO_DIR)/string_search.c
+  $(ALGO_DIR)/string_search.c \
+  $(ALGO_DIR)/kway_merge.c
 
 LIB_SRC += $(ALGO_SRC)
 

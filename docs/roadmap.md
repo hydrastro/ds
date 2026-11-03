@@ -89,6 +89,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/numerical`: roots, CORDIC, Gamma, Stirling, BBP digits
 - `algo/string_search`: seventeen exact matching algorithms and k-mismatch search
 - inversion list: range sets as sorted boundaries with linear-time boolean merges and a fixed-buffer mode
+- k-way merge: tournament trees, five selection policies, optimal merge plans
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

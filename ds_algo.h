@@ -28,5 +28,6 @@
 #include "algo/number_theory.h"
 #include "algo/numerical.h"
 #include "algo/string_search.h"
+#include "algo/kway_merge.h"
 
 #endif /* DS_ALGO_H */

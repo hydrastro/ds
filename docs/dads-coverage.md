@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 384 |
-| todo | 321 |
+| done | 389 |
+| todo | 316 |
 | def | 593 |
 | total | 1298 |
 
@@ -44,7 +44,6 @@ Families ordered by how many DADS entries they close.
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
-| `algo/sequence (extensions)` | 10 | balanced multiway merge, Dutch national flag, ideal merge, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
@@ -52,10 +51,11 @@ Families ordered by how many DADS entries they close.
 | `algo/phonetic` | 6 | Caverphone, double metaphone, metaphone, NYSIIS, phonetic coding, soundex |
 | `algo/random (extensions)` | 6 | linear congruential generator, Randomized-Select, random sampling, reservoir sampling, spectral test, unbiased coin flipping algorithm |
 | `algo/search (extensions)` | 6 | block search, Bond Sequential Search, Fibonaccian search, interpolation-sequential search, jump search, ternary search |
-| `algo/sort_heap` | 6 | adaptive heap sort, dominance tree sort, smoothsort, tournament, tournament sort, tree sort |
+| `algo/sequence (extensions)` | 6 | balanced multiway merge, Dutch national flag, multiprefix, parallel prefix computation, prefix sums, scan |
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
+| `algo/sort_heap` | 5 | adaptive heap sort, dominance tree sort, smoothsort, tournament sort, tree sort |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
 | `algo/external_sort` | 4 | external merge, external quicksort, external radix sort, external sort |
@@ -699,7 +699,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | IBLT | done | `lib/iblt` |
-| ideal merge | todo | `algo/sequence` (extensions) |
+| ideal merge | done | `algo/kway_merge` |
 | ideal random shuffle | done | `algo/sequence` (ds_shuffle) |
 | implication | def |  |
 | implies | def |  |
@@ -785,7 +785,7 @@ Families ordered by how many DADS entries they close.
 | kth smallest element | done | `algo/sort` (nth_element) |
 | k²-tree | todo | `lib/k2_tree` |
 | KV diagram | def |  |
-| k-way merge | todo | `algo/sequence` (extensions) |
+| k-way merge | done | `algo/kway_merge` |
 | k-way merge sort | todo | `algo/sort_misc` |
 | k-way tree | def |  |
 
@@ -918,7 +918,7 @@ Families ordered by how many DADS entries they close.
 | multi-set | todo | `lib/multiset` |
 | multi suffix tree | todo | `lib/suffix_tree` |
 | multiway decision | def |  |
-| multiway merge | todo | `algo/sequence` (extensions) |
+| multiway merge | done | `algo/kway_merge` |
 | multiway search tree | done | `lib/btree` |
 | multiway tree | done | `lib/btree` |
 | Munkres' assignment algorithm | done | `algo/matching` |
@@ -994,7 +994,7 @@ Families ordered by how many DADS entries they close.
 | optimal | def |  |
 | optimal cost | def |  |
 | optimal hashing | done | `algo/perfect_hash` |
-| optimal merge | todo | `algo/sequence` (extensions) |
+| optimal merge | done | `algo/kway_merge` |
 | optimal mismatch | todo | `algo/string_search` |
 | optimal polygon triangulation problem | done | `algo/geometry` |
 | optimal polyphase merge | todo | `algo/sort_misc` |
@@ -1426,7 +1426,7 @@ Families ordered by how many DADS entries they close.
 | totally undecidable problem † | def |  |
 | total order | def |  |
 | tour | def |  |
-| tournament | todo | `algo/sort_heap` |
+| tournament | done | `algo/kway_merge` |
 | tournament sort † | todo | `algo/sort_heap` |
 | towers of Hanoi | done | `algo/combinatorics` |
 | tractable † | def |  |
