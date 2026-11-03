@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 211 |
-| todo | 513 |
+| done | 213 |
+| todo | 511 |
 | def | 574 |
 | total | 1298 |
 
@@ -92,7 +92,6 @@ Families ordered by how many DADS entries they close.
 | `lib/rbst` | 2 | randomized binary search tree, RBST |
 | `lib/tst` | 2 | ternary search tree, TST |
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
-| `lib/weak_heap` | 2 | weak-heap, weak-heap sort |
 | `algo/cartesian_tree` | 1 | cartesian tree |
 | `algo/game` | 1 | minimax |
 | `algo/lsh` | 1 | locality-sensitive hashing |
@@ -1570,8 +1569,8 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | walk | def |  |
 | weak cluster † | def |  |
-| weak-heap † | todo | `lib/weak_heap` |
-| weak-heap sort † | todo | `lib/weak_heap` |
+| weak-heap † | done | `lib/weak_heap` |
+| weak-heap sort † | done | `lib/weak_heap` |
 | weight-balanced tree † | todo | `lib/wb_tree` |
 | weighted, directed graph | def |  |
 | weighted graph | def |  |

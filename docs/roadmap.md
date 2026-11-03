@@ -63,6 +63,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
   alias sampling, number theory and compensated numerics
 - intrusive binomial heap with meld, decrease/update/remove by handle
 - meldable heap family (leftist, weight-biased, skew, randomized) with pluggable shape policy
+- weak heap and weak-heap sort
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

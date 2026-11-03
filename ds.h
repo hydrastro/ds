@@ -75,6 +75,7 @@
 #include "lib/trie_stores.h"
 #include "lib/vec.h"
 #include "lib/wavelet_tree.h"
+#include "lib/weak_heap.h"
 
 #include "lib/str.h"
 #include "lib/str_algo.h"

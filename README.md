@@ -73,6 +73,7 @@ Core mutable containers:
 - Union-find with rollback (snapshot/undo of unions)
 - Vector (by value; growable or fixed caller buffer, heapsort, binary search)
 - Wavelet tree (succinct sequence: access/rank/select/quantile)
+- Weak heap (by value, fixed-buffer mode) and weak-heap sort
 
 Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 
