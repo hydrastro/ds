@@ -11,5 +11,6 @@
 #include "algo/hash.h"
 #include "algo/bits.h"
 #include "algo/random.h"
+#include "algo/numeric.h"
 
 #endif /* DS_ALGO_H */

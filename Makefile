@@ -105,7 +105,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/sequence.c \
   $(ALGO_DIR)/hash.c \
   $(ALGO_DIR)/bits.c \
-  $(ALGO_DIR)/random.c
+  $(ALGO_DIR)/random.c \
+  $(ALGO_DIR)/numeric.c
 
 LIB_SRC += $(ALGO_SRC)
 
