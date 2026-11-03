@@ -26,9 +26,9 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 240 |
-| todo | 479 |
-| def | 579 |
+| done | 255 |
+| todo | 450 |
+| def | 593 |
 | total | 1298 |
 
 ## Todo by target module
@@ -37,19 +37,18 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/graph_alg` | 39 | all simple paths, arborescence, articulation point, best-first search, biconnected component, biconnected graph, Boruvka's algorithm, bridge, centroid, Chinese postman problem, critical path problem, cut vertex, DAG shortest paths, DFS forest, diameter, edge connectivity, Euler cycle, Eulerian graph, Eulerian path, feedback edge set, Johnson's algorithm, k-connected graph, Königsberg bridges problem, Kruskal's algorithm, kth shortest path, lowest common ancestor, minimum vertex cut, reduced digraph, shortest path, shortest spanning tree, single-destination shortest-path problem, single-pair shortest-path problem, single-source shortest-path problem, spanning tree, SST, transitive closure, transitive reduction, triconnected graph, vertex connectivity |
 | `algo/string_search` | 36 | Alpha Skip Search algorithm, Apostolico-Crochemore, Apostolico-Giancarlo algorithm, Boyer-Moore, Boyer-Moore-Horspool, brute force string search, brute force string search with mismatches, Colussi, Commentz-Walter, deterministic finite automata string search, exact string matching, Galil-Giancarlo, Galil-Seiferas, Horspool, KmpSkip Search, Maximal Shift, Morris-Pratt algorithm, naive string search, Not So Naive, optimal mismatch, quick search, Raita, Reverse Colussi, Reverse Factor, Shift-Or, skip search, Smith algorithm, string matching, string matching on ordered alphabets, string matching with mismatches, string searching, text searching, Turbo-BM, Turbo Reverse Factor, Two Way algorithm, Zhu-Takaoka |
+| `algo/graph_alg` | 35 | all simple paths, arborescence, articulation point, best-first search, biconnected component, biconnected graph, Boruvka's algorithm, bridge, centroid, Chinese postman problem, critical path problem, cut vertex, DAG shortest paths, DFS forest, diameter, Euler cycle, Eulerian graph, Eulerian path, feedback edge set, Johnson's algorithm, Königsberg bridges problem, Kruskal's algorithm, kth shortest path, lowest common ancestor, reduced digraph, shortest path, shortest spanning tree, single-destination shortest-path problem, single-pair shortest-path problem, single-source shortest-path problem, spanning tree, SST, transitive closure, transitive reduction, triconnected graph |
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
 | `algo/sort_misc` | 32 | adaptive sort, balanced k-way merge sort, balanced merge sort, balanced quicksort, balanced two-way merge sort, bingo sort, blind sort, bogosort, bozo sort, dual-pivot quicksort, k-way merge sort, linear insertion sort, lucky sort, nonbalanced merge, nonbalanced merge sort, optimal polyphase merge, optimal polyphase merge sort, oscillating merge sort, polyphase merge, polyphase merge sort, p-way merge sort, qm sort, q sort, quicksort, rapid sort, shadow merge, shadow merge insert, simple merge, sinking sort, strand sort, three-way merge sort, two-way merge sort |
 | `algo/numeric (extensions)` | 23 | Ackermann's function, BBP algorithm, Chinese remainder theorem, CORDIC, cube root, Doomsday rule, factorial, Ferguson-Forcade algorithm, Fibonacci number, gamma function, Horner's rule, inverse Ackermann function, kth order Fibonacci numbers, midrange, mode, pth order Fibonacci numbers, reduced basis, Rice's method, secant search, square root, Stirling's approximation, Stirling's formula, Zeller's congruence |
-| `algo/flow` | 21 | admissible vertex, augmenting path, blocking flow, capacity, capacity constraint, flow, flow conservation, flow function, flow network, Ford-Fulkerson method, layered graph, Malhotra-Kumar-Maheshwari blocking flow, maximum-flow problem, minimum cut, network flow, network flow problem, saturated edge, skew symmetry, s-t cut, supersink, supersource |
 | `algo/sort_dist` | 21 | address-calculation sort, American flag sort, bin sort, bucket sort, distribution sort, distributive partitioning sort, flash sort, histogram sort, interpolation sort, JSort, J sort, linear probing sort, multikey Quicksort, permutation sort, pigeonhole sort, postman's sort, range sort, restricted universe sort, shuffle sort, three-way radix quicksort, top-down radix sort |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
 | `algo/geometry` | 16 | bisector, Bresenham's algorithm, Euclidean distance, extreme point, geometric optimization problem, Hausdorff distance, Lm distance, Manhattan distance, Minkowski distance, nearest neighbor, optimal polygon triangulation problem, optimal triangulation problem, orthogonally convex rectilinear polygon, slope selection, star-shaped polygon, Wu's line algorithm |
-| `algo/matching` | 15 | alternating path, assignment problem, bipartite matching, blossom, free edge, free vertex, Hungarian algorithm, marriage problem, matched edge, matched vertex, matching, maximum bipartite matching, Munkres' assignment algorithm, perfect matching, stable marriage problem |
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/combinatorics` | 12 | Collatz problem, combination, derangement, 8 queens, Johnson-Trotter, knight's tour, n queens, partition, Steinhaus-Johnson-Trotter, towers of Hanoi, Trotter-Johnson, unranking |
 | `algo/knapsack` | 12 | binary knapsack problem, bin packing problem, continuous knapsack problem, cutting stock problem, fractional knapsack problem, knapsack problem, matrix-chain multiplication problem, set packing, strip packing, UKP, unbounded knapsack problem, 0/1 knapsack problem |
+| `algo/matching` | 11 | alternating path, assignment problem, bipartite matching, blossom, Hungarian algorithm, marriage problem, matching, maximum bipartite matching, Munkres' assignment algorithm, perfect matching, stable marriage problem |
 | `algo/sequence (extensions)` | 11 | balanced multiway merge, Dutch national flag, ideal merge, inversion list, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -147,7 +146,7 @@ Families ordered by how many DADS entries they close.
 | adjacency-list representation | done | `lib/graph, algo/graph_view` (CSR) |
 | adjacency-matrix representation | def |  |
 | adjacent | def |  |
-| admissible vertex | todo | `algo/flow` |
+| admissible vertex | def |  |
 | ADT | def |  |
 | adversary | def |  |
 | Aho-Corasick | done | `lib/aho_corasick` |
@@ -190,7 +189,7 @@ Families ordered by how many DADS entries they close.
 | asymptotic space complexity | def |  |
 | asymptotic time complexity | def |  |
 | asymptotic upper bound | def |  |
-| augmenting path | todo | `algo/flow` |
+| augmenting path | done | `algo/flow` |
 | automaton | def |  |
 | average case | def |  |
 | average-case cost | def |  |
@@ -256,7 +255,7 @@ Families ordered by how many DADS entries they close.
 | blind trie | todo | `lib/elastic_trie` |
 | block | def |  |
 | block addressing index | def |  |
-| blocking flow | todo | `algo/flow` |
+| blocking flow | done | `algo/flow` |
 | block search | todo | `algo/search` (extensions) |
 | Bloom filter | done | `lib/bloom_filter` |
 | blossom | todo | `algo/matching` |
@@ -315,8 +314,8 @@ Families ordered by how many DADS entries they close.
 | candidate verification | def |  |
 | canonical complexity class | def |  |
 | capacitated facility location | todo | `algo/graph_hard` |
-| capacity | todo | `algo/flow` |
-| capacity constraint | todo | `algo/flow` |
+| capacity | def |  |
+| capacity constraint | def |  |
 | cartesian tree | todo | `algo/cartesian_tree` |
 | Caverphone | todo | `algo/phonetic` |
 | CCS | def |  |
@@ -502,7 +501,7 @@ Families ordered by how many DADS entries they close.
 | easy split, hard merge | def |  |
 | edge | def |  |
 | edge coloring | todo | `algo/graph_hard` |
-| edge connectivity | todo | `algo/graph_alg` |
+| edge connectivity | done | `algo/flow` |
 | edge crossing | def |  |
 | edge-weighted graph | def |  |
 | edit distance | done | `algo/stringology` (Levenshtein, OSA) |
@@ -598,13 +597,13 @@ Families ordered by how many DADS entries they close.
 | Fisher-Yates shuffle | done | `algo/sequence` (ds_shuffle) |
 | fixed-grid method | todo | `lib/grid_file` |
 | flash sort | todo | `algo/sort_dist` |
-| flow | todo | `algo/flow` |
-| flow conservation | todo | `algo/flow` |
-| flow function | todo | `algo/flow` |
-| flow network | todo | `algo/flow` |
+| flow | def |  |
+| flow conservation | def |  |
+| flow function | def |  |
+| flow network | done | `algo/flow` |
 | Floyd-Warshall algorithm | done | `algo/graph_view` |
 | Ford-Bellman | done | `algo/graph_view` |
-| Ford-Fulkerson method | todo | `algo/flow` |
+| Ford-Fulkerson method | done | `algo/flow` |
 | forest | def |  |
 | forest editing problem | def |  |
 | formal language | def |  |
@@ -613,9 +612,9 @@ Families ordered by how many DADS entries they close.
 | forward index | def |  |
 | fractional knapsack problem | todo | `algo/knapsack` |
 | fractional solution | def |  |
-| free edge | todo | `algo/matching` |
+| free edge | def |  |
 | free tree | def |  |
-| free vertex | todo | `algo/matching` |
+| free vertex | def |  |
 | frequency count heuristic | todo | `lib/self_org_list` |
 | full array | def |  |
 | full binary tree | def |  |
@@ -767,7 +766,7 @@ Families ordered by how many DADS entries they close.
 | k-ary tree | def |  |
 | k-clustering | todo | `algo/graph_hard` |
 | k-coloring | todo | `algo/graph_hard` |
-| k-connected graph | todo | `algo/graph_alg` |
+| k-connected graph | done | `algo/flow` |
 | k-d-B-tree | todo | `lib/kdb_tree` |
 | k-dimensional | def |  |
 | K-dominant match | todo | `algo/string_approx` |
@@ -801,7 +800,7 @@ Families ordered by how many DADS entries they close.
 | last-in, first-out | done | `lib/stack` |
 | Las Vegas algorithm | def |  |
 | lattice | def |  |
-| layered graph | todo | `algo/flow` |
+| layered graph | done | `algo/flow` |
 | LCFS hashing | done | `lib/open_map` |
 | LCM | done | `algo/numeric` |
 | LCS | done | `algo/stringology` |
@@ -854,7 +853,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| Malhotra-Kumar-Maheshwari blocking flow | todo | `algo/flow` |
+| Malhotra-Kumar-Maheshwari blocking flow | done | `algo/flow` |
 | Manhattan distance | todo | `algo/geometry` |
 | many-one reduction | def |  |
 | map | done | `lib/hash_table, lib/rh_map, lib/avl, ...` |
@@ -862,8 +861,8 @@ Families ordered by how many DADS entries they close.
 | Marlena | def |  |
 | marriage problem | todo | `algo/matching` |
 | Master theorem | def |  |
-| matched edge | todo | `algo/matching` |
-| matched vertex | todo | `algo/matching` |
+| matched edge | def |  |
+| matched vertex | def |  |
 | matching | todo | `algo/matching` |
 | matrix | def |  |
 | matrix-chain multiplication problem | todo | `algo/knapsack` |
@@ -873,7 +872,7 @@ Families ordered by how many DADS entries they close.
 | maximally connected component | def |  |
 | Maximal Shift | todo | `algo/string_search` |
 | maximum bipartite matching | todo | `algo/matching` |
-| maximum-flow problem | todo | `algo/flow` |
+| maximum-flow problem | done | `algo/flow` |
 | MBB | todo | `lib/rtree` |
 | Mealy machine | todo | `lib/automaton` |
 | mean | done | `algo/numeric` (Welford) |
@@ -891,9 +890,9 @@ Families ordered by how many DADS entries they close.
 | minimal perfect hashing | done | `algo/perfect_hash` |
 | minimax | todo | `algo/game` |
 | minimum bounding box | todo | `lib/rtree` |
-| minimum cut | todo | `algo/flow` |
+| minimum cut | done | `algo/flow` |
 | minimum spanning tree | done | `algo/graph_view` (Prim), lib/graph |
-| minimum vertex cut | todo | `algo/graph_alg` |
+| minimum vertex cut | done | `algo/flow` |
 | Minkowski distance | todo | `algo/geometry` |
 | mixed integer linear program | todo | `algo/lp` |
 | mode | todo | `algo/numeric` (extensions) |
@@ -936,8 +935,8 @@ Families ordered by how many DADS entries they close.
 | NC many-one reducibility | def |  |
 | nearest neighbor | todo | `algo/geometry` |
 | negation | def |  |
-| network flow | todo | `algo/flow` |
-| network flow problem | todo | `algo/flow` |
+| network flow | done | `algo/flow` |
+| network flow problem | done | `algo/flow` |
 | next state | def |  |
 | NFA | todo | `lib/automaton` |
 | NFTA | def |  |
@@ -1242,7 +1241,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | saguaro stack | todo | `lib/cactus_stack` |
 | SAM | def |  |
-| saturated edge | todo | `algo/flow` |
+| saturated edge | def |  |
 | SBB tree | done | `lib/rbt` (symmetric binary B-tree = red-black tree) |
 | scan | todo | `algo/sequence` (extensions) |
 | scapegoat tree | todo | `lib/scapegoat_tree` |
@@ -1306,7 +1305,7 @@ Families ordered by how many DADS entries they close.
 | sinking sort † | todo | `algo/sort_misc` |
 | skd-tree † | todo | `lib/kdb_tree` |
 | skew heap † | done | `lib/meldable_heap` |
-| skew symmetry | todo | `algo/flow` |
+| skew symmetry | def |  |
 | skip list | done | `lib/skip_list` |
 | skip search | todo | `algo/string_search` |
 | slope selection | todo | `algo/geometry` |
@@ -1345,7 +1344,7 @@ Families ordered by how many DADS entries they close.
 | state transition | def |  |
 | static | def |  |
 | static Huffman coding | todo | `algo/compress` |
-| s-t cut | todo | `algo/flow` |
+| s-t cut | done | `algo/flow` |
 | st-digraph | def |  |
 | Steiner point | def |  |
 | Steiner ratio | def |  |
@@ -1387,8 +1386,8 @@ Families ordered by how many DADS entries they close.
 | suffix tree † | todo | `lib/suffix_tree` |
 | superimposed code | todo | `lib/bloom_filter` (superimposed codes) |
 | superset | def |  |
-| supersink | todo | `algo/flow` |
-| supersource | todo | `algo/flow` |
+| supersink | def |  |
+| supersource | def |  |
 | symmetric | def |  |
 | symmetrically linked list | done | `lib/dlist` |
 | symmetric binary B-tree † | done | `lib/rbt` |
@@ -1542,7 +1541,7 @@ Families ordered by how many DADS entries they close.
 | Venn diagram † | def |  |
 | vertex | def |  |
 | vertex coloring | todo | `algo/graph_hard` |
-| vertex connectivity | todo | `algo/graph_alg` |
+| vertex connectivity | done | `algo/flow` |
 | vertex cover | todo | `algo/graph_hard` |
 | vertical visibility map | def |  |
 | virtual hashing † | todo | `lib/linear_hash_map` |

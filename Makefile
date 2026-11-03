@@ -141,7 +141,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/stringology.c \
   $(ALGO_DIR)/hash_family.c \
   $(ALGO_DIR)/perfect_hash.c \
-  $(ALGO_DIR)/lsh.c
+  $(ALGO_DIR)/lsh.c \
+  $(ALGO_DIR)/flow.c
 
 LIB_SRC += $(ALGO_SRC)
 

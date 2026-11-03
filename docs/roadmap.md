@@ -78,6 +78,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - invertible Bloom lookup table
 - Merkle tree with audit proofs
 - `algo/lsh`: MinHash, banding and SimHash
+- `algo/flow`: max flow (four algorithms), min cut, min-cost flow, connectivity
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

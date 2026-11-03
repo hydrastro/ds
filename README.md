@@ -103,6 +103,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - hash families: Pearson, multiplicative (Knuth), order-preserving, universal (Carter-Wegman, multiply-shift, tabulation), rolling polynomial hash and buzhash
 - perfect hashing: order-preserving minimal perfect hash (Czech-Havas-Majewski)
 - locality-sensitive hashing: MinHash, banding, SimHash
+- network flow: residual networks; Edmonds-Karp, Dinic, Malhotra-Kumar-Maheshwari and push-relabel max flow; min cut; min-cost flow; edge/vertex connectivity
 
 Newer high-level modules:
 

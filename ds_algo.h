@@ -18,5 +18,6 @@
 #include "algo/hash_family.h"
 #include "algo/perfect_hash.h"
 #include "algo/lsh.h"
+#include "algo/flow.h"
 
 #endif /* DS_ALGO_H */
