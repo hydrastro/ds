@@ -64,6 +64,7 @@ Core mutable containers:
 - Timer wheel (hierarchical, intrusive timers, O(1) start/cancel, no allocation)
 - Treap
 - Trie
+- Trie child stores: Robin Hood map and sorted vector (pluggable via ds_trie_store_ops_t)
 - Union-find with rollback (snapshot/undo of unions)
 - Vector (by value; growable or fixed caller buffer, heapsort, binary search)
 - Wavelet tree (succinct sequence: access/rank/select/quantile)
