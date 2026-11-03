@@ -74,6 +74,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - Litwin linear hashing
 - extendible hashing
 - `algo/hash_family`: Pearson, universal and tabulation hashing, rolling hashes
+- `algo/perfect_hash`: order-preserving minimal perfect hashing
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

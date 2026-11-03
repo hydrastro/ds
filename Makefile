@@ -137,7 +137,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/graph_view.c \
   $(ALGO_DIR)/sort_classic.c \
   $(ALGO_DIR)/stringology.c \
-  $(ALGO_DIR)/hash_family.c
+  $(ALGO_DIR)/hash_family.c \
+  $(ALGO_DIR)/perfect_hash.c
 
 LIB_SRC += $(ALGO_SRC)
 

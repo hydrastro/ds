@@ -16,5 +16,6 @@
 #include "algo/sort_classic.h"
 #include "algo/stringology.h"
 #include "algo/hash_family.h"
+#include "algo/perfect_hash.h"
 
 #endif /* DS_ALGO_H */

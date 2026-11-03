@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 231 |
-| todo | 488 |
+| done | 235 |
+| todo | 484 |
 | def | 579 |
 | total | 1298 |
 
@@ -68,7 +68,6 @@ Families ordered by how many DADS entries they close.
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
 | `algo/external_sort` | 4 | external merge, external quicksort, external radix sort, external sort |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
-| `algo/perfect_hash` | 4 | minimal perfect hashing, optimal hashing, order-preserving minimal perfect hashing, perfect hashing |
 | `algo/select` | 4 | Find, MODIFIND, select and partition, select mode |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
@@ -891,7 +890,7 @@ Families ordered by how many DADS entries they close.
 | midrange | todo | `algo/numeric` (extensions) |
 | Miller-Rabin | done | `algo/numeric` |
 | min-heap property | def |  |
-| minimal perfect hashing | todo | `algo/perfect_hash` |
+| minimal perfect hashing | done | `algo/perfect_hash` |
 | minimax | todo | `algo/game` |
 | minimum bounding box | todo | `lib/rtree` |
 | minimum cut | todo | `algo/flow` |
@@ -999,7 +998,7 @@ Families ordered by how many DADS entries they close.
 | open addressing | done | `lib/hash_table, lib/rh_map` |
 | optimal | def |  |
 | optimal cost | def |  |
-| optimal hashing | todo | `algo/perfect_hash` |
+| optimal hashing | done | `algo/perfect_hash` |
 | optimal merge | todo | `algo/sequence` (extensions) |
 | optimal mismatch | todo | `algo/string_search` |
 | optimal polygon triangulation problem | todo | `algo/geometry` |
@@ -1020,7 +1019,7 @@ Families ordered by how many DADS entries they close.
 | ordered tree | def |  |
 | order-preserving hash | done | `algo/hash_family` |
 | order-preserving Huffman coding | todo | `algo/compress` |
-| order-preserving minimal perfect hashing | todo | `algo/perfect_hash` |
+| order-preserving minimal perfect hashing | done | `algo/perfect_hash` |
 | oriented acyclic graph | def |  |
 | oriented graph | def |  |
 | oriented tree | def |  |
@@ -1065,7 +1064,7 @@ Families ordered by how many DADS entries they close.
 | PDA | def |  |
 | Pearson's hash | done | `algo/hash_family` |
 | perfect binary tree | def |  |
-| perfect hashing | todo | `algo/perfect_hash` |
+| perfect hashing | done | `algo/perfect_hash` |
 | perfect k-ary tree | def |  |
 | perfect matching | todo | `algo/matching` |
 | perfect shuffle | def |  |
