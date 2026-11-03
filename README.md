@@ -104,6 +104,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - perfect hashing: order-preserving minimal perfect hash (Czech-Havas-Majewski)
 - locality-sensitive hashing: MinHash, banding, SimHash
 - network flow: residual networks; Edmonds-Karp, Dinic, Malhotra-Kumar-Maheshwari and push-relabel max flow; min cut; min-cost flow; edge/vertex connectivity
+- matching: Hopcroft-Karp, Hungarian (assignment), Edmonds blossom, Gale-Shapley stable marriage
 
 Newer high-level modules:
 

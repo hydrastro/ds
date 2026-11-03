@@ -79,6 +79,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - Merkle tree with audit proofs
 - `algo/lsh`: MinHash, banding and SimHash
 - `algo/flow`: max flow (four algorithms), min cut, min-cost flow, connectivity
+- `algo/matching`: bipartite, assignment, general and stable matchings
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

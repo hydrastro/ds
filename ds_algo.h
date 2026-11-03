@@ -19,5 +19,6 @@
 #include "algo/perfect_hash.h"
 #include "algo/lsh.h"
 #include "algo/flow.h"
+#include "algo/matching.h"
 
 #endif /* DS_ALGO_H */

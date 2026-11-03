@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 255 |
-| todo | 450 |
+| done | 266 |
+| todo | 439 |
 | def | 593 |
 | total | 1298 |
 
@@ -48,7 +48,6 @@ Families ordered by how many DADS entries they close.
 | `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/combinatorics` | 12 | Collatz problem, combination, derangement, 8 queens, Johnson-Trotter, knight's tour, n queens, partition, Steinhaus-Johnson-Trotter, towers of Hanoi, Trotter-Johnson, unranking |
 | `algo/knapsack` | 12 | binary knapsack problem, bin packing problem, continuous knapsack problem, cutting stock problem, fractional knapsack problem, knapsack problem, matrix-chain multiplication problem, set packing, strip packing, UKP, unbounded knapsack problem, 0/1 knapsack problem |
-| `algo/matching` | 11 | alternating path, assignment problem, bipartite matching, blossom, Hungarian algorithm, marriage problem, matching, maximum bipartite matching, Munkres' assignment algorithm, perfect matching, stable marriage problem |
 | `algo/sequence (extensions)` | 11 | balanced multiway merge, Dutch national flag, ideal merge, inversion list, k-way merge, multiprefix, multiway merge, optimal merge, parallel prefix computation, prefix sums, scan |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -158,7 +157,7 @@ Families ordered by how many DADS entries they close.
 | all simple paths | todo | `algo/graph_alg` |
 | alphabet | def |  |
 | Alpha Skip Search algorithm | todo | `algo/string_search` |
-| alternating path | todo | `algo/matching` |
+| alternating path | done | `algo/matching` |
 | alternating Turing machine | def |  |
 | alternation | def |  |
 | American flag sort | todo | `algo/sort_dist` |
@@ -180,7 +179,7 @@ Families ordered by how many DADS entries they close.
 | array merging | done | `algo/sequence` (ds_merge) |
 | array search | done | `algo/search` |
 | articulation point | todo | `algo/graph_alg` |
-| assignment problem | todo | `algo/matching` |
+| assignment problem | done | `algo/matching` |
 | association list | todo | `lib/association_list` |
 | associative | def |  |
 | associative array | done | `lib/hash_table, lib/rh_map, lib/string_map` |
@@ -246,7 +245,7 @@ Families ordered by how many DADS entries they close.
 | bin sort | todo | `algo/sort_dist` |
 | bintree | todo | `lib/quadtree` |
 | bipartite graph | done | `algo/graph_view` (ds_gview_bipartite) |
-| bipartite matching | todo | `algo/matching` |
+| bipartite matching | done | `algo/matching` |
 | bisector | todo | `algo/geometry` |
 | bitonic sort | done | `algo/sort_classic` |
 | bit vector | done | `lib/bitset, lib/bitvector` |
@@ -258,7 +257,7 @@ Families ordered by how many DADS entries they close.
 | blocking flow | done | `algo/flow` |
 | block search | todo | `algo/search` (extensions) |
 | Bloom filter | done | `lib/bloom_filter` |
-| blossom | todo | `algo/matching` |
+| blossom | done | `algo/matching` |
 | bogosort | todo | `algo/sort_misc` |
 | Bond Sequential Search | todo | `algo/search` (extensions) |
 | boolean | def |  |
@@ -690,7 +689,7 @@ Families ordered by how many DADS entries they close.
 | hsadelta | def |  |
 | Huffman coding | todo | `algo/compress` |
 | huge sparse array | todo | `lib/sparse_matrix` |
-| Hungarian algorithm | todo | `algo/matching` |
+| Hungarian algorithm | done | `algo/matching` |
 | hybrid algorithm | def |  |
 | hyperedge | def |  |
 | hypergraph | def |  |
@@ -859,11 +858,11 @@ Families ordered by how many DADS entries they close.
 | map | done | `lib/hash_table, lib/rh_map, lib/avl, ...` |
 | Markov chain | def |  |
 | Marlena | def |  |
-| marriage problem | todo | `algo/matching` |
+| marriage problem | done | `algo/matching` |
 | Master theorem | def |  |
 | matched edge | def |  |
 | matched vertex | def |  |
-| matching | todo | `algo/matching` |
+| matching | done | `algo/matching` |
 | matrix | def |  |
 | matrix-chain multiplication problem | todo | `algo/knapsack` |
 | matrix multiplication | todo | `algo/matrix` |
@@ -871,7 +870,7 @@ Families ordered by how many DADS entries they close.
 | maximal independent set | todo | `algo/graph_hard` |
 | maximally connected component | def |  |
 | Maximal Shift | todo | `algo/string_search` |
-| maximum bipartite matching | todo | `algo/matching` |
+| maximum bipartite matching | done | `algo/matching` |
 | maximum-flow problem | done | `algo/flow` |
 | MBB | todo | `lib/rtree` |
 | Mealy machine | todo | `lib/automaton` |
@@ -923,7 +922,7 @@ Families ordered by how many DADS entries they close.
 | multiway merge | todo | `algo/sequence` (extensions) |
 | multiway search tree | done | `lib/btree` |
 | multiway tree | done | `lib/btree` |
-| Munkres' assignment algorithm | todo | `algo/matching` |
+| Munkres' assignment algorithm | done | `algo/matching` |
 
 ### N
 
@@ -1063,7 +1062,7 @@ Families ordered by how many DADS entries they close.
 | perfect binary tree | def |  |
 | perfect hashing | done | `algo/perfect_hash` |
 | perfect k-ary tree | def |  |
-| perfect matching | todo | `algo/matching` |
+| perfect matching | done | `algo/matching` |
 | perfect shuffle | def |  |
 | performance guarantee | def |  |
 | performance ratio | def |  |
@@ -1333,7 +1332,7 @@ Families ordered by how many DADS entries they close.
 | square root | todo | `algo/numeric` (extensions) |
 | SST | todo | `algo/graph_alg` |
 | stable | def |  |
-| stable marriage problem † | todo | `algo/matching` |
+| stable marriage problem † | done | `algo/matching` |
 | stack | done | `lib/stack` |
 | stack tree | def |  |
 | star encoding | todo | `algo/compress` |
