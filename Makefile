@@ -100,7 +100,8 @@ LIB_SRC := \
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
   $(ALGO_DIR)/elem.c \
-  $(ALGO_DIR)/sort.c
+  $(ALGO_DIR)/sort.c \
+  $(ALGO_DIR)/search.c
 
 LIB_SRC += $(ALGO_SRC)
 
