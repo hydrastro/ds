@@ -14,6 +14,7 @@ algorithms, and timeline/history utilities.
 Core mutable containers:
 
 - Array deque (by-value ring that grows or lives in a fixed buffer, overwrite mode)
+- Augmented treap (ordered map with pluggable subtree summaries, rank/select, range summary, guided descent)
 - AVL tree
 - Adaptive radix tree (ART, adaptive node sizing + path compression)
 - Aho-Corasick automaton (multi-pattern string matching)
