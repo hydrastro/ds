@@ -9,5 +9,6 @@
 #include "algo/search.h"
 #include "algo/sequence.h"
 #include "algo/hash.h"
+#include "algo/bits.h"
 
 #endif /* DS_ALGO_H */
