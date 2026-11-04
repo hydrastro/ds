@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 487 |
-| todo | 218 |
+| done | 494 |
+| todo | 211 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,7 +38,7 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
-| `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
+| `algo/compress` | 11 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, dynamic Huffman coding, Lempel-Ziv-Welch, LZW compression, move, space-constrained Lempel-Ziv-Welch, star encoding, Vitter's algorithm |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -333,7 +333,7 @@ Families ordered by how many DADS entries they close.
 | coarsening | def |  |
 | cocktail shaker sort | done | `algo/sort_classic` |
 | codeword | def |  |
-| coding tree | todo | `algo/compress` |
+| coding tree | done | `algo/prefix_code` |
 | Collatz problem | done | `algo/combinatorics` |
 | collective recursion | def |  |
 | collision | def |  |
@@ -676,7 +676,7 @@ Families ordered by how many DADS entries they close.
 | Horner's rule | done | `algo/numerical` |
 | Horspool | done | `algo/string_search` |
 | hsadelta | def |  |
-| Huffman coding | todo | `algo/compress` |
+| Huffman coding | done | `algo/prefix_code` |
 | huge sparse array | todo | `lib/sparse_matrix` |
 | Hungarian algorithm | done | `algo/matching` |
 | hybrid algorithm | def |  |
@@ -750,7 +750,7 @@ Families ordered by how many DADS entries they close.
 | Karp-Rabin | done | `algo/stringology` |
 | Karp reduction | def |  |
 | k-ary heap | done | `lib/indexed_heap` (d-ary) |
-| k-ary Huffman coding | todo | `algo/compress` |
+| k-ary Huffman coding | done | `algo/prefix_code` |
 | k-ary tree | def |  |
 | k-clustering | todo | `algo/graph_hard` |
 | k-coloring | todo | `algo/graph_hard` |
@@ -1003,7 +1003,7 @@ Families ordered by how many DADS entries they close.
 | ordered linked list | todo | `lib/sorted_list` |
 | ordered tree | def |  |
 | order-preserving hash | done | `algo/hash_family` |
-| order-preserving Huffman coding | todo | `algo/compress` |
+| order-preserving Huffman coding | done | `algo/prefix_code` |
 | order-preserving minimal perfect hashing | done | `algo/perfect_hash` |
 | oriented acyclic graph | def |  |
 | oriented graph | def |  |
@@ -1091,7 +1091,7 @@ Families ordered by how many DADS entries they close.
 | PRAM | def |  |
 | predicate | def |  |
 | prefix | def |  |
-| prefix code | todo | `algo/compress` |
+| prefix code | done | `algo/prefix_code` |
 | prefix sums | done | `algo/scan` |
 | prefix traversal | def |  |
 | preorder traversal | done | `lib/avl, lib/bst walks` |
@@ -1261,7 +1261,7 @@ Families ordered by how many DADS entries they close.
 | shadow merge | done | `lib/shadow_heap` |
 | shadow merge insert | done | `lib/shadow_heap` |
 | shaker sort | done | `algo/sort_classic` (cocktail) |
-| Shannon-Fano coding | todo | `algo/compress` |
+| Shannon-Fano coding | done | `algo/prefix_code` |
 | Shell sort † | done | `algo/sort` |
 | Shift-Or | done | `algo/string_search` |
 | Shor's algorithm | def |  |
@@ -1331,7 +1331,7 @@ Families ordered by how many DADS entries they close.
 | state machine | def |  |
 | state transition | def |  |
 | static | def |  |
-| static Huffman coding | todo | `algo/compress` |
+| static Huffman coding | done | `algo/prefix_code` |
 | s-t cut | done | `algo/flow` |
 | st-digraph | def |  |
 | Steiner point | def |  |

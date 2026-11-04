@@ -100,6 +100,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - random extensions: linear congruential generators with the Hull-Dobell test, 2D spectral test, reservoir sampling (R, L), selection sampling, von Neumann unbiased coin
 - shadow heap: binary heap with a lazily merged shadow table; shadow merge and shadow merge insert
 - string_approx: alignment, approximate matching, common substrings/super-strings, similarity measures
+- prefix codes: Huffman (k-ary, length-limited), Shannon-Fano, order-preserving Huffman, coding trees, static Huffman compression
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
