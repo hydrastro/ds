@@ -124,6 +124,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `external_sort`: tape ops with memory and FILE backends; balanced, polyphase (perfect distribution, dummy runs), cascade and oscillating merge sorts with load-sort or replacement-selection runs; external radix sort; external quicksort
 - `string_approx`: edit scripts with pluggable costs, Needleman-Wunsch/Smith-Waterman with affine gaps, Sellers/Ukkonen and Myers approximate search, longest common substring, shortest common super-sequence/-string, heaviest common subsequence, dominant matches, Jaro-Winkler, Ratcliff/Obershelp
 - `prefix_code`: binary/k-ary Huffman, Shannon-Fano and Garsia-Wachs alphabetic code lengths, length limiting, canonical/alphabetic codes, coding trees, bit I/O, static Huffman compression
+- `compress`: Witten-Neal-Cleary arithmetic coding with pluggable models, LZW with freeze/reset dictionaries, move-to-front, BSTW, star encoding
 
 Newer high-level modules:
 

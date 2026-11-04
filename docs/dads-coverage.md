@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 494 |
-| todo | 211 |
+| done | 501 |
+| todo | 204 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,7 +38,6 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
-| `algo/compress` | 11 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, dynamic Huffman coding, Lempel-Ziv-Welch, LZW compression, move, space-constrained Lempel-Ziv-Welch, star encoding, Vitter's algorithm |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -51,6 +50,7 @@ Families ordered by how many DADS entries they close.
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
+| `algo/compress` | 4 | adaptive Huffman coding, algorithm FGK, dynamic Huffman coding, Vitter's algorithm |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
@@ -139,7 +139,7 @@ Families ordered by how many DADS entries they close.
 | adversary | def |  |
 | Aho-Corasick | done | `lib/aho_corasick` |
 | algorithm | def |  |
-| algorithm BSTW | todo | `algo/compress` |
+| algorithm BSTW | done | `algo/compress` |
 | algorithm FGK | todo | `algo/compress` |
 | algorithmically solvable | def |  |
 | all pairs shortest path | done | `algo/graph_view` (Floyd-Warshall) |
@@ -162,7 +162,7 @@ Families ordered by how many DADS entries they close.
 | approximation algorithm | def |  |
 | arborescence | done | `algo/graph_path` |
 | arc | def |  |
-| arithmetic coding | todo | `algo/compress` |
+| arithmetic coding | done | `algo/compress` |
 | array | done | `lib/vec` |
 | array index | def |  |
 | array merging | done | `algo/sequence` (ds_merge) |
@@ -797,7 +797,7 @@ Families ordered by how many DADS entries they close.
 | least common multiple | done | `algo/numeric` |
 | leftist tree | done | `lib/meldable_heap` |
 | left rotation | done | `lib/avl, lib/rbt` |
-| Lempel-Ziv-Welch | todo | `algo/compress` |
+| Lempel-Ziv-Welch | done | `algo/compress` |
 | level | def |  |
 | level-order traversal | def |  |
 | Levenshtein distance | done | `algo/stringology` |
@@ -835,7 +835,7 @@ Families ordered by how many DADS entries they close.
 | lowest common ancestor | todo | `algo/graph_alg` |
 | l-reduction | def |  |
 | lucky sort | done | `algo/sort_misc` |
-| LZW compression | todo | `algo/compress` |
+| LZW compression | done | `algo/compress` |
 
 ### M
 
@@ -894,7 +894,7 @@ Families ordered by how many DADS entries they close.
 | Monte Carlo algorithm | def |  |
 | Moore machine | todo | `lib/automaton` |
 | Morris-Pratt algorithm | done | `algo/string_search` |
-| move | todo | `algo/compress` |
+| move | done | `algo/compress` |
 | move-to-front heuristic | todo | `lib/self_org_list` |
 | move-to-root heuristic | todo | `lib/self_org_list` |
 | MST | done | `algo/graph_view, lib/graph` |
@@ -1307,7 +1307,7 @@ Families ordered by how many DADS entries they close.
 | sort in place † | def |  |
 | soundex † | todo | `algo/phonetic` |
 | source | def |  |
-| space-constrained Lempel-Ziv-Welch † | todo | `algo/compress` |
+| space-constrained Lempel-Ziv-Welch † | done | `algo/compress` |
 | spanning tree † | done | `algo/graph_path` |
 | sparse graph | def |  |
 | sparse matrix | todo | `lib/sparse_matrix` |
@@ -1324,7 +1324,7 @@ Families ordered by how many DADS entries they close.
 | stable marriage problem † | done | `algo/matching` |
 | stack | done | `lib/stack` |
 | stack tree | def |  |
-| star encoding | todo | `algo/compress` |
+| star encoding | done | `algo/compress` |
 | star-shaped polygon | done | `algo/geometry` |
 | start state | def |  |
 | state | def |  |

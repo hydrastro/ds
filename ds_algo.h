@@ -37,5 +37,6 @@
 #include "algo/external_sort.h"
 #include "algo/string_approx.h"
 #include "algo/prefix_code.h"
+#include "algo/compress.h"
 
 #endif /* DS_ALGO_H */
