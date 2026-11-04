@@ -99,6 +99,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - external sort: pluggable tapes, balanced/polyphase/cascade/oscillating merging, replacement selection, external radix sort and quicksort
 - random extensions: linear congruential generators with the Hull-Dobell test, 2D spectral test, reservoir sampling (R, L), selection sampling, von Neumann unbiased coin
 - shadow heap: binary heap with a lazily merged shadow table; shadow merge and shadow merge insert
+- string_approx: alignment, approximate matching, common substrings/super-strings, similarity measures
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

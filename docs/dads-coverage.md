@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 474 |
-| todo | 231 |
+| done | 487 |
+| todo | 218 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
 | `algo/compress` | 18 | adaptive Huffman coding, algorithm BSTW, algorithm FGK, arithmetic coding, coding tree, dynamic Huffman coding, Huffman coding, k-ary Huffman coding, Lempel-Ziv-Welch, LZW compression, move, order-preserving Huffman coding, prefix code, Shannon-Fano coding, space-constrained Lempel-Ziv-Welch, star encoding, static Huffman coding, Vitter's algorithm |
-| `algo/string_approx` | 13 | approximate string matching, edit operation, edit script, heaviest common subsequence, Jaro-Winkler, K-dominant match, local alignment, longest common substring, Ratcliff/Obershelp pattern recognition, shortest common supersequence, shortest common superstring, Smith-Waterman algorithm, string matching with errors |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
@@ -159,7 +158,7 @@ Families ordered by how many DADS entries they close.
 | antisymmetric | def |  |
 | Apostolico-Crochemore | done | `algo/string_search` |
 | Apostolico-Giancarlo algorithm | done | `algo/string_search` |
-| approximate string matching | todo | `algo/string_approx` |
+| approximate string matching | done | `algo/string_approx` |
 | approximation algorithm | def |  |
 | arborescence | done | `algo/graph_path` |
 | arc | def |  |
@@ -494,8 +493,8 @@ Families ordered by how many DADS entries they close.
 | edge crossing | def |  |
 | edge-weighted graph | def |  |
 | edit distance | done | `algo/stringology` (Levenshtein, OSA) |
-| edit operation | todo | `algo/string_approx` |
-| edit script | todo | `algo/string_approx` |
+| edit operation | done | `algo/string_approx` |
+| edit script | done | `algo/string_approx` |
 | efficiency | def |  |
 
 ### Symbols and digits
@@ -663,7 +662,7 @@ Families ordered by how many DADS entries they close.
 | heapify | done | `lib/heap` |
 | heap property | def |  |
 | heapsort | done | `algo/sort` |
-| heaviest common subsequence | todo | `algo/string_approx` |
+| heaviest common subsequence | done | `algo/string_approx` |
 | height | def |  |
 | height-balanced binary search tree | done | `lib/avl` |
 | height-balanced tree | done | `lib/avl` |
@@ -734,7 +733,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| Jaro-Winkler | todo | `algo/string_approx` |
+| Jaro-Winkler | done | `algo/string_approx` |
 | jelly-fish | def |  |
 | Johnson's algorithm | done | `algo/graph_path` |
 | Johnson-Trotter | done | `algo/combinatorics` |
@@ -758,7 +757,7 @@ Families ordered by how many DADS entries they close.
 | k-connected graph | done | `algo/flow` |
 | k-d-B-tree | todo | `lib/kdb_tree` |
 | k-dimensional | def |  |
-| K-dominant match | todo | `algo/string_approx` |
+| K-dominant match | done | `algo/string_approx` |
 | k-d tree | done | `lib/kd_tree` |
 | key | def |  |
 | KMP | done | `algo/stringology` |
@@ -824,12 +823,12 @@ Families ordered by how many DADS entries they close.
 | little-o notation | def |  |
 | Lm distance | done | `algo/geometry` |
 | load factor | done | `lib/hash_table, lib/rh_map` |
-| local alignment | todo | `algo/string_approx` |
+| local alignment | done | `algo/string_approx` |
 | locality-sensitive hashing | done | `algo/lsh` |
 | local optimum | def |  |
 | logarithmic | def |  |
 | longest common subsequence | done | `algo/stringology` |
-| longest common substring | todo | `algo/string_approx` |
+| longest common substring | done | `algo/string_approx` |
 | Lotka's law | def |  |
 | lower bound | done | `algo/search` (ds_lower_bound) |
 | lower triangular matrix | todo | `algo/matrix` |
@@ -1165,7 +1164,7 @@ Families ordered by how many DADS entries they close.
 | range sort | done | `algo/sort_dist` |
 | rank | done | `lib/order_statistic_tree, lib/bitvector` |
 | rapid sort | done | `algo/sort_dist` |
-| Ratcliff/Obershelp pattern recognition | todo | `algo/string_approx` |
+| Ratcliff/Obershelp pattern recognition | done | `algo/string_approx` |
 | RBST | todo | `lib/rbst` |
 | reachability | done | `algo/graph_view` (BFS) |
 | reachable | done | `algo/graph_view` (BFS) |
@@ -1267,8 +1266,8 @@ Families ordered by how many DADS entries they close.
 | Shift-Or | done | `algo/string_search` |
 | Shor's algorithm | def |  |
 | shortcutting | todo | `algo/parallel_sim` |
-| shortest common supersequence | todo | `algo/string_approx` |
-| shortest common superstring | todo | `algo/string_approx` |
+| shortest common supersequence | done | `algo/string_approx` |
+| shortest common superstring | done | `algo/string_approx` |
 | shortest path | done | `algo/graph_path` |
 | shortest spanning tree | done | `algo/graph_path` |
 | shuffle | done | `algo/sequence` |
@@ -1299,7 +1298,7 @@ Families ordered by how many DADS entries they close.
 | skip search | done | `algo/string_search` |
 | slope selection | done | `algo/geometry` |
 | Smith algorithm † | done | `algo/string_search` |
-| Smith-Waterman algorithm † | todo | `algo/string_approx` |
+| Smith-Waterman algorithm † | done | `algo/string_approx` |
 | smoothsort † | done | `algo/sort_heap` |
 | solvable † | def |  |
 | sort † | def |  |
@@ -1353,7 +1352,7 @@ Families ordered by how many DADS entries they close.
 | string editing problem | done | `algo/stringology` (edit distances) |
 | string matching † | done | `algo/string_search` |
 | string matching on ordered alphabets † | todo | `algo/string_search` |
-| string matching with errors † | todo | `algo/string_approx` |
+| string matching with errors † | done | `algo/string_approx` |
 | string matching with mismatches † | done | `algo/string_search` |
 | string searching † | done | `algo/string_search` |
 | strip packing | done | `algo/knapsack` |

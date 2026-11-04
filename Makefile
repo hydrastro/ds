@@ -160,7 +160,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/sort_misc.c \
   $(ALGO_DIR)/sort_dist.c \
   $(ALGO_DIR)/sort_heap.c \
-  $(ALGO_DIR)/external_sort.c
+  $(ALGO_DIR)/external_sort.c \
+  $(ALGO_DIR)/string_approx.c
 
 LIB_SRC += $(ALGO_SRC)
 
