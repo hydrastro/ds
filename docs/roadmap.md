@@ -118,6 +118,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/scapegoat_tree: scapegoat trees with pluggable alpha.
 - lib/multiset: hash multisets with the bag algebra.
 - lib/association_list: association lists and property lists.
+- lib/cactus_stack: cactus stacks with reference-counted frames.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

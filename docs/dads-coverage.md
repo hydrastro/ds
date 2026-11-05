@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 575 |
-| todo | 130 |
+| done | 577 |
+| todo | 128 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
-| `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
 | `lib/diet` | 2 | diet, discrete interval encoding tree |
 | `lib/tst` | 2 | ternary search tree, TST |
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
@@ -279,7 +278,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| cactus stack | todo | `lib/cactus_stack` |
+| cactus stack | done | `lib/cactus_stack` |
 | Calculus of Communicating Systems | def |  |
 | calendar queue | done | `lib/calendar_queue` |
 | candidate consistency testing | def |  |
@@ -1211,7 +1210,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| saguaro stack | todo | `lib/cactus_stack` |
+| saguaro stack | done | `lib/cactus_stack` |
 | SAM | def |  |
 | saturated edge | def |  |
 | SBB tree | done | `lib/rbt` (symmetric binary B-tree = red-black tree) |
