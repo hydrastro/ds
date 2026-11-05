@@ -14,6 +14,7 @@
 #include "lib/array_deque.h"
 #include "lib/art.h"
 #include "lib/aug_treap.h"
+#include "lib/automaton.h"
 #include "lib/avl.h"
 #include "lib/binomial_heap.h"
 #include "lib/bip_buffer.h"

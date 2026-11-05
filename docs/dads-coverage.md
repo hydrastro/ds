@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 511 |
-| todo | 194 |
+| done | 522 |
+| todo | 183 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
 | `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
-| `lib/automaton` | 11 | deterministic finite automaton, DFA, finite state automaton, finite state machine, finite state machine minimization, finite state transducer, Mealy machine, Moore machine, NFA, nondeterministic finite automaton, union of automata |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
@@ -415,14 +414,14 @@ Families ordered by how many DADS entries they close.
 | deterministic | def |  |
 | deterministic algorithm | def |  |
 | deterministic finite automata string search | done | `algo/string_search` |
-| deterministic finite automaton | todo | `lib/automaton` |
+| deterministic finite automaton | done | `lib/automaton` |
 | deterministic finite state machine | def |  |
 | deterministic finite tree automaton | def |  |
 | deterministic pushdown automaton | def |  |
 | deterministic random bit generator | done | `algo/random` (xoshiro, not cryptographic) |
 | deterministic tree automaton | def |  |
 | Deutsch-Jozsa algorithm | def |  |
-| DFA | todo | `lib/automaton` |
+| DFA | done | `lib/automaton` |
 | DFS | done | `lib/graph` |
 | DFS forest | done | `algo/graph_struct` |
 | DFTA | def |  |
@@ -573,10 +572,10 @@ Families ordered by how many DADS entries they close.
 | find kth least element | done | `algo/sort` (nth_element) |
 | finitary tree | def |  |
 | finite Fourier transform | todo | `algo/fft` |
-| finite state automaton | todo | `lib/automaton` |
-| finite state machine | todo | `lib/automaton` |
-| finite state machine minimization | todo | `lib/automaton` |
-| finite state transducer | todo | `lib/automaton` |
+| finite state automaton | done | `lib/automaton` |
+| finite state machine | done | `lib/automaton` |
+| finite state machine minimization | done | `lib/automaton` |
+| finite state transducer | done | `lib/automaton` |
 | first child-next sibling binary tree | todo | `lib/binary_tree_repr` |
 | first come, first served | def |  |
 | first-in, first-out | done | `lib/queue` |
@@ -860,7 +859,7 @@ Families ordered by how many DADS entries they close.
 | maximum bipartite matching | done | `algo/matching` |
 | maximum-flow problem | done | `algo/flow` |
 | MBB | done | `algo/geometry` |
-| Mealy machine | todo | `lib/automaton` |
+| Mealy machine | done | `lib/automaton` |
 | mean | done | `algo/numeric` (Welford) |
 | median | done | `algo/sort` (nth_element) |
 | meld | done | `lib/meldable_heap` |
@@ -890,7 +889,7 @@ Families ordered by how many DADS entries they close.
 | monotonically decreasing | def |  |
 | monotonically increasing | def |  |
 | Monte Carlo algorithm | def |  |
-| Moore machine | todo | `lib/automaton` |
+| Moore machine | done | `lib/automaton` |
 | Morris-Pratt algorithm | done | `algo/string_search` |
 | move | done | `algo/compress` |
 | move-to-front heuristic | todo | `lib/self_org_list` |
@@ -924,7 +923,7 @@ Families ordered by how many DADS entries they close.
 | network flow | done | `algo/flow` |
 | network flow problem | done | `algo/flow` |
 | next state | def |  |
-| NFA | todo | `lib/automaton` |
+| NFA | done | `lib/automaton` |
 | NFTA | def |  |
 | NIST | def |  |
 | node | def |  |
@@ -932,7 +931,7 @@ Families ordered by how many DADS entries they close.
 | nonbalanced merge sort | done | `algo/external_sort` |
 | nondeterministic | def |  |
 | nondeterministic algorithm | def |  |
-| nondeterministic finite automaton | todo | `lib/automaton` |
+| nondeterministic finite automaton | done | `lib/automaton` |
 | nondeterministic finite state machine | def |  |
 | nondeterministic finite tree automaton | def |  |
 | nondeterministic polynomial time | def |  |
@@ -1507,7 +1506,7 @@ Families ordered by how many DADS entries they close.
 | uniform hashing † | def |  |
 | uniform matrix | def |  |
 | union | done | `algo/sequence` (ds_set_union) |
-| union of automata | todo | `lib/automaton` |
+| union of automata | done | `lib/automaton` |
 | universal hashing † | done | `algo/hash_family` |
 | universal state | def |  |
 | universal Turing machine | def |  |

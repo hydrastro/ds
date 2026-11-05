@@ -39,6 +39,7 @@ Core mutable containers:
 - Extendible hashing (directory doubling/halving, bucket split/merge)
 - Fenwick tree (binary indexed tree)
 - Fibonacci heap (O(1) amortized insert/merge/decrease-key)
+- Finite automata (DFA/NFA, subset construction, Hopcroft minimization, products, union, equivalence) and transducers (Mealy, Moore, FST)
 - Gap buffer (text buffer with O(1) edits at the cursor)
 - Hash array mapped trie (HAMT, bitmap + popcount sparse nodes)
 - Hash table

@@ -104,6 +104,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - compress: arithmetic coding, LZW (space-constrained), move-to-front, BSTW, star encoding
 - adaptive Huffman coding: FGK and Vitter's algorithm
 - phonetic coding: Soundex, NYSIIS, Metaphone, Double Metaphone, Caverphone
+- automaton: DFAs, NFAs, subset construction, Hopcroft minimization, products, Mealy/Moore machines, finite state transducers
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
