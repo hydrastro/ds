@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 501 |
-| todo | 204 |
+| done | 505 |
+| todo | 200 |
 | def | 593 |
 | total | 1298 |
 
@@ -50,7 +50,6 @@ Families ordered by how many DADS entries they close.
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
-| `algo/compress` | 4 | adaptive Huffman coding, algorithm FGK, dynamic Huffman coding, Vitter's algorithm |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
@@ -127,7 +126,7 @@ Families ordered by how many DADS entries they close.
 | acyclic directed graph | def |  |
 | acyclic graph | def |  |
 | adaptive heap sort | done | `algo/sort_heap` |
-| adaptive Huffman coding | todo | `algo/compress` |
+| adaptive Huffman coding | done | `algo/adaptive_huffman` |
 | adaptive k-d tree | todo | `lib/kdb_tree` |
 | adaptive sort | done | `algo/sort_misc` |
 | address-calculation sort | done | `algo/sort_dist` |
@@ -140,7 +139,7 @@ Families ordered by how many DADS entries they close.
 | Aho-Corasick | done | `lib/aho_corasick` |
 | algorithm | def |  |
 | algorithm BSTW | done | `algo/compress` |
-| algorithm FGK | todo | `algo/compress` |
+| algorithm FGK | done | `algo/adaptive_huffman` |
 | algorithmically solvable | def |  |
 | all pairs shortest path | done | `algo/graph_view` (Floyd-Warshall) |
 | all simple paths | done | `algo/graph_path` |
@@ -478,7 +477,7 @@ Families ordered by how many DADS entries they close.
 | dynamic | def |  |
 | dynamic array | done | `lib/vec` |
 | dynamic hashing | done | `lib/linear_hash_map` |
-| dynamic Huffman coding | todo | `algo/compress` |
+| dynamic Huffman coding | done | `algo/adaptive_huffman` |
 | dynamic programming | def |  |
 | dynamization transformation | def |  |
 
@@ -1536,7 +1535,7 @@ Families ordered by how many DADS entries they close.
 | visibility map | def |  |
 | visible | def |  |
 | Viterbi algorithm | todo | `algo/hmm` |
-| Vitter's algorithm | todo | `algo/compress` |
+| Vitter's algorithm | done | `algo/adaptive_huffman` |
 | VRP | todo | `algo/graph_hard` |
 
 ### W

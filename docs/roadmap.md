@@ -102,6 +102,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - string_approx: alignment, approximate matching, common substrings/super-strings, similarity measures
 - prefix codes: Huffman (k-ary, length-limited), Shannon-Fano, order-preserving Huffman, coding trees, static Huffman compression
 - compress: arithmetic coding, LZW (space-constrained), move-to-front, BSTW, star encoding
+- adaptive Huffman coding: FGK and Vitter's algorithm
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

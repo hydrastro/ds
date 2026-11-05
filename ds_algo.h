@@ -38,5 +38,6 @@
 #include "algo/string_approx.h"
 #include "algo/prefix_code.h"
 #include "algo/compress.h"
+#include "algo/adaptive_huffman.h"
 
 #endif /* DS_ALGO_H */

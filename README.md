@@ -125,6 +125,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `string_approx`: edit scripts with pluggable costs, Needleman-Wunsch/Smith-Waterman with affine gaps, Sellers/Ukkonen and Myers approximate search, longest common substring, shortest common super-sequence/-string, heaviest common subsequence, dominant matches, Jaro-Winkler, Ratcliff/Obershelp
 - `prefix_code`: binary/k-ary Huffman, Shannon-Fano and Garsia-Wachs alphabetic code lengths, length limiting, canonical/alphabetic codes, coding trees, bit I/O, static Huffman compression
 - `compress`: Witten-Neal-Cleary arithmetic coding with pluggable models, LZW with freeze/reset dictionaries, move-to-front, BSTW, star encoding
+- `adaptive_huffman`: dynamic Huffman coding with FGK or Vitter updates, fixed-array trees, invariant check
 
 Newer high-level modules:
 
