@@ -96,6 +96,7 @@
 #include "lib/veb_tree.h"
 #include "lib/vec.h"
 #include "lib/wavelet_tree.h"
+#include "lib/wb_tree.h"
 #include "lib/weak_heap.h"
 
 #include "lib/str.h"

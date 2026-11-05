@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 565 |
-| todo | 140 |
+| done | 568 |
+| todo | 137 |
 | def | 593 |
 | total | 1298 |
 
@@ -53,7 +53,6 @@ Families ordered by how many DADS entries they close.
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
-| `lib/wb_tree` | 3 | BB(α) tree, root balance, weight-balanced tree |
 | `lib/association_list` | 2 | association list, property list |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
@@ -192,7 +191,7 @@ Families ordered by how many DADS entries they close.
 | BANG file | todo | `lib/grid_file` |
 | Batcher sort | done | `algo/sort_classic` (bitonic) |
 | Baum Welch algorithm | todo | `algo/hmm` |
-| BB(α) tree | todo | `lib/wb_tree` |
+| BB(α) tree | done | `lib/wb_tree` |
 | BBP algorithm | done | `algo/numerical` |
 | BDD | done | `lib/bdd` |
 | BD-tree | todo | `lib/hb_tree` |
@@ -1200,7 +1199,7 @@ Families ordered by how many DADS entries they close.
 | ROBDD | done | `lib/bdd` |
 | Robin Hood hashing | done | `lib/rh_map` |
 | root | def |  |
-| root balance | todo | `lib/wb_tree` |
+| root balance | done | `lib/wb_tree` |
 | rooted tree | def |  |
 | rotate left | done | `lib/avl, lib/rbt` |
 | rotate right | done | `lib/avl, lib/rbt` |
@@ -1536,7 +1535,7 @@ Families ordered by how many DADS entries they close.
 | weak cluster † | def |  |
 | weak-heap † | done | `lib/weak_heap` |
 | weak-heap sort † | done | `lib/weak_heap` |
-| weight-balanced tree † | todo | `lib/wb_tree` |
+| weight-balanced tree † | done | `lib/wb_tree` |
 | weighted, directed graph | def |  |
 | weighted graph | def |  |
 | window † | def |  |
