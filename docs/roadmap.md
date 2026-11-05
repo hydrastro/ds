@@ -115,6 +115,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/threaded_tree: threaded and right-threaded trees, stackless traversals.
 - lib/wb_tree: weight-balanced BB[alpha] trees with order statistics.
 - lib/rbst: randomized binary search trees with split, join and order statistics.
+- lib/scapegoat_tree: scapegoat trees with pluggable alpha.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

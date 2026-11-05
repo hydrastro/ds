@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 570 |
-| todo | 135 |
+| done | 571 |
+| todo | 134 |
 | def | 593 |
 | total | 1298 |
 
@@ -75,7 +75,6 @@ Families ordered by how many DADS entries they close.
 | `lib/merkle_tree` | 1 | linked data signature |
 | `lib/octree` | 1 | octree |
 | `lib/pagoda` | 1 | pagoda |
-| `lib/scapegoat_tree` | 1 | scapegoat tree |
 | `lib/ub_tree` | 1 | UB-tree |
 
 ## Index A-Z
@@ -1219,7 +1218,7 @@ Families ordered by how many DADS entries they close.
 | saturated edge | def |  |
 | SBB tree | done | `lib/rbt` (symmetric binary B-tree = red-black tree) |
 | scan | done | `algo/scan` |
-| scapegoat tree | todo | `lib/scapegoat_tree` |
+| scapegoat tree | done | `lib/scapegoat_tree` |
 | scatter storage | def |  |
 | Schorr-Waite graph marking algorithm | todo | `algo/schorr_waite` |
 | search | def |  |
