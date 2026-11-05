@@ -106,6 +106,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - phonetic coding: Soundex, NYSIIS, Metaphone, Double Metaphone, Caverphone
 - automaton: DFAs, NFAs, subset construction, Hopcroft minimization, products, Mealy/Moore machines, finite state transducers
 - suffix automaton (DAWG) and compact DAWG
+- suffix trees (Ukkonen, generalized), Burrows-Wheeler transform, inverse suffix array
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

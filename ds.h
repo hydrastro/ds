@@ -82,6 +82,7 @@
 #include "lib/stack.h"
 #include "lib/string_map.h"
 #include "lib/suffix_automaton.h"
+#include "lib/suffix_tree.h"
 #include "lib/swiss_map.h"
 #include "lib/timer_wheel.h"
 #include "lib/treap.h"

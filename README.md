@@ -79,6 +79,7 @@ Core mutable containers:
 - Splay tree
 - Stack
 - Suffix automaton / DAWG (online construction, occurrence counts, distinct substrings, LCS) and compact DAWG
+- Suffix tree (Ukkonen; generalized multi-string trees, occurrences, longest repeat/common substring, suffix array) plus BWT, inverse BWT and inverse suffix array
 - Swiss table (Abseil-style control bytes, word-parallel group probing, in-place tombstone rehash, fixed-buffer mode)
 - Timer wheel (hierarchical, intrusive timers, O(1) start/cancel, no allocation)
 - Treap

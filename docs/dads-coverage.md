@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 526 |
-| todo | 179 |
+| done | 531 |
+| todo | 174 |
 | def | 593 |
 | total | 1298 |
 
@@ -47,7 +47,6 @@ Families ordered by how many DADS entries they close.
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
-| `lib/suffix_tree` | 5 | Burrows-Wheeler transform, BWT, inverse suffix array, multi suffix tree, suffix tree |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
@@ -281,10 +280,10 @@ Families ordered by how many DADS entries they close.
 | buddy system | todo | `lib/buddy_allocator` |
 | buddy tree | todo | `lib/hb_tree` |
 | build-heap | done | `lib/heap, algo/sort` (heap sort) |
-| Burrows-Wheeler transform | todo | `lib/suffix_tree` |
+| Burrows-Wheeler transform | done | `lib/suffix_tree` |
 | busy beaver | def |  |
 | BV-tree | todo | `lib/hb_tree` |
-| BWT | todo | `lib/suffix_tree` |
+| BWT | done | `lib/suffix_tree` |
 | Byzantine generals | def |  |
 
 ### C
@@ -716,7 +715,7 @@ Families ordered by how many DADS entries they close.
 | introsort | done | `algo/sort` |
 | introspective sort | done | `algo/sort` |
 | inverse Ackermann function | done | `algo/number_theory` |
-| inverse suffix array | todo | `lib/suffix_tree` |
+| inverse suffix array | done | `lib/suffix_tree` |
 | inversion list | done | `lib/inversion_list` |
 | inverted file index | def |  |
 | inverted index | def |  |
@@ -902,7 +901,7 @@ Families ordered by how many DADS entries they close.
 | multiprefix | done | `algo/scan` |
 | multiprocessor model | def |  |
 | multi-set | todo | `lib/multiset` |
-| multi suffix tree | todo | `lib/suffix_tree` |
+| multi suffix tree | done | `lib/suffix_tree` |
 | multiway decision | def |  |
 | multiway merge | done | `algo/kway_merge` |
 | multiway search tree | done | `lib/btree` |
@@ -1367,7 +1366,7 @@ Families ordered by how many DADS entries they close.
 | suffix † | def |  |
 | suffix array † | done | `algo/stringology` |
 | suffix automaton | done | `lib/suffix_automaton` |
-| suffix tree † | todo | `lib/suffix_tree` |
+| suffix tree † | done | `lib/suffix_tree` |
 | superimposed code | todo | `lib/bloom_filter` (superimposed codes) |
 | superset | def |  |
 | supersink | def |  |
