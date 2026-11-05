@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 573 |
-| todo | 132 |
+| done | 575 |
+| todo | 130 |
 | def | 593 |
 | total | 1298 |
 
@@ -53,7 +53,6 @@ Families ordered by how many DADS entries they close.
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
-| `lib/association_list` | 2 | association list, property list |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
 | `lib/diet` | 2 | diet, discrete interval encoding tree |
@@ -154,7 +153,7 @@ Families ordered by how many DADS entries they close.
 | array search | done | `algo/search` |
 | articulation point | done | `algo/graph_struct` |
 | assignment problem | done | `algo/matching` |
-| association list | todo | `lib/association_list` |
+| association list | done | `lib/association_list` |
 | associative | def |  |
 | associative array | done | `lib/hash_table, lib/rh_map, lib/string_map` |
 | asymptotically tight bound | def |  |
@@ -1098,7 +1097,7 @@ Families ordered by how many DADS entries they close.
 | proper binary tree | def |  |
 | proper coloring | def |  |
 | proper subset | def |  |
-| property list | todo | `lib/association_list` |
+| property list | done | `lib/association_list` |
 | prune and search | def |  |
 | pseudo-random number generator | done | `algo/random` |
 | PTAS | def |  |

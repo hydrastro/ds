@@ -13,6 +13,7 @@
 #include "lib/aho_corasick.h"
 #include "lib/array_deque.h"
 #include "lib/art.h"
+#include "lib/association_list.h"
 #include "lib/aug_treap.h"
 #include "lib/automaton.h"
 #include "lib/avl.h"

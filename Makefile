@@ -138,7 +138,8 @@ LIB_SRC := \
   $(LIB_DIR)/wb_tree.c \
   $(LIB_DIR)/rbst.c \
   $(LIB_DIR)/scapegoat_tree.c \
-  $(LIB_DIR)/multiset.c
+  $(LIB_DIR)/multiset.c \
+  $(LIB_DIR)/association_list.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -188,6 +189,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/association_list.c $(LIB_DIR)/association_list.h \
   $(LIB_DIR)/multiset.c $(LIB_DIR)/multiset.h \
   $(LIB_DIR)/scapegoat_tree.c $(LIB_DIR)/scapegoat_tree.h \
   $(LIB_DIR)/rbst.c $(LIB_DIR)/rbst.h \
