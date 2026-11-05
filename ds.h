@@ -73,6 +73,7 @@
 #include "lib/rollback_union_find.h"
 #include "lib/rope.h"
 #include "lib/segment_tree.h"
+#include "lib/self_org_list.h"
 #include "lib/shadow_heap.h"
 #include "lib/sieve_cache.h"
 #include "lib/skip_list.h"

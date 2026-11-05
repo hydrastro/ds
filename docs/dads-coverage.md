@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 547 |
-| todo | 158 |
+| done | 553 |
+| todo | 152 |
 | def | 593 |
 | total | 1298 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
-| `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
@@ -596,7 +595,7 @@ Families ordered by how many DADS entries they close.
 | free edge | def |  |
 | free tree | def |  |
 | free vertex | def |  |
-| frequency count heuristic | todo | `lib/self_org_list` |
+| frequency count heuristic | done | `lib/self_org_list` |
 | full array | def |  |
 | full binary tree | def |  |
 | full inverted index | def |  |
@@ -888,8 +887,8 @@ Families ordered by how many DADS entries they close.
 | Moore machine | done | `lib/automaton` |
 | Morris-Pratt algorithm | done | `algo/string_search` |
 | move | done | `algo/compress` |
-| move-to-front heuristic | todo | `lib/self_org_list` |
-| move-to-root heuristic | todo | `lib/self_org_list` |
+| move-to-front heuristic | done | `lib/self_org_list` |
+| move-to-root heuristic | done | `lib/self_org_list` |
 | MST | done | `algo/graph_view, lib/graph` |
 | multi-commodity flow | def |  |
 | multigraph | def |  |
@@ -1241,8 +1240,8 @@ Families ordered by how many DADS entries they close.
 | select kth element | done | `algo/sort` (nth_element) |
 | select mode | done | `algo/select` |
 | self-loop | def |  |
-| self-organizing list | todo | `lib/self_org_list` |
-| self-organizing sequential search | todo | `lib/self_org_list` |
+| self-organizing list | done | `lib/self_org_list` |
+| self-organizing sequential search | done | `lib/self_org_list` |
 | semidefinite programming | def |  |
 | separate chaining | done | `lib/hash_table` |
 | separation theorem | def |  |
@@ -1419,7 +1418,7 @@ Families ordered by how many DADS entries they close.
 | transitive | def |  |
 | transitive closure | done | `algo/graph_struct` |
 | transitive reduction | done | `algo/graph_struct` |
-| transpose sequential search † | todo | `lib/self_org_list` |
+| transpose sequential search † | done | `lib/self_org_list` |
 | traveling salesman | todo | `algo/graph_hard` |
 | treap † | done | `lib/treap` |
 | tree † | done | `lib/bst` |
