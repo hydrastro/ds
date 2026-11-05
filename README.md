@@ -14,6 +14,7 @@ algorithms, and timeline/history utilities.
 Core mutable containers:
 
 - - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees
+- - `lib/sorted_list`: sorted arrays (binary search, bounds, merge), ordered linked lists and unsorted lists
 - Array deque (by-value ring that grows or lives in a fixed buffer, overwrite mode)
 - Augmented treap (ordered map with pluggable subtree summaries, rank/select, range summary, guided descent)
 - AVL tree

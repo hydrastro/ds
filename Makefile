@@ -131,7 +131,8 @@ LIB_SRC := \
   $(LIB_DIR)/suffix_automaton.c \
   $(LIB_DIR)/suffix_tree.c \
   $(LIB_DIR)/bdd.c \
-  $(LIB_DIR)/self_org_list.c
+  $(LIB_DIR)/self_org_list.c \
+  $(LIB_DIR)/sorted_list.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -181,6 +182,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/sorted_list.c $(LIB_DIR)/sorted_list.h \
   $(LIB_DIR)/self_org_list.c $(LIB_DIR)/self_org_list.h \
   $(LIB_DIR)/bdd.c $(LIB_DIR)/bdd.h \
   $(LIB_DIR)/suffix_tree.c $(LIB_DIR)/suffix_tree.h \

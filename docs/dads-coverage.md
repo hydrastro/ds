@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 553 |
-| todo | 152 |
+| done | 557 |
+| todo | 148 |
 | def | 593 |
 | total | 1298 |
 
@@ -49,7 +49,6 @@ Families ordered by how many DADS entries they close.
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
-| `lib/sorted_list` | 4 | ordered linked list, sorted array, sorted list, unsorted list |
 | `lib/sparse_matrix` | 4 | huge sparse array, orthogonal lists, ragged matrix, sparse matrix |
 | `lib/threaded_tree` | 4 | Cupif-Giannini tree traversal, right-threaded tree, threaded binary tree, threaded tree |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
@@ -992,7 +991,7 @@ Families ordered by how many DADS entries they close.
 | order | def |  |
 | ordered array | done | `lib/vec` (sort, binary search) |
 | ordered binary decision diagram | done | `lib/bdd` |
-| ordered linked list | todo | `lib/sorted_list` |
+| ordered linked list | done | `lib/sorted_list` |
 | ordered tree | def |  |
 | order-preserving hash | done | `algo/hash_family` |
 | order-preserving Huffman coding | done | `algo/prefix_code` |
@@ -1294,8 +1293,8 @@ Families ordered by how many DADS entries they close.
 | smoothsort † | done | `algo/sort_heap` |
 | solvable † | def |  |
 | sort † | def |  |
-| sorted array † | todo | `lib/sorted_list` |
-| sorted list † | todo | `lib/sorted_list` |
+| sorted array † | done | `lib/sorted_list` |
+| sorted list † | done | `lib/sorted_list` |
 | sort in place † | def |  |
 | soundex † | done | `algo/phonetic` |
 | source | def |  |
@@ -1508,7 +1507,7 @@ Families ordered by how many DADS entries they close.
 | universe | def |  |
 | unranking | done | `algo/combinatorics` |
 | unsolvable problem † | def |  |
-| unsorted list † | todo | `lib/sorted_list` |
+| unsorted list † | done | `lib/sorted_list` |
 | upper triangular matrix | todo | `algo/matrix` |
 
 ### V
