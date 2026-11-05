@@ -18,6 +18,7 @@ Core mutable containers:
 - AVL tree
 - Adaptive radix tree (ART, adaptive node sizing + path compression)
 - Aho-Corasick automaton (multi-pattern string matching)
+- Binary decision diagrams (reduced ordered, hash-consed, pluggable variable order, iterative ITE/apply, quantifiers, sat counting)
 - Binary search tree
 - Binomial heap (intrusive mergeable heap; decrease, update and remove by handle)
 - Bip buffer (circular byte buffer with contiguous reserve/read regions)

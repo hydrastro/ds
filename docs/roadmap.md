@@ -107,6 +107,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - automaton: DFAs, NFAs, subset construction, Hopcroft minimization, products, Mealy/Moore machines, finite state transducers
 - suffix automaton (DAWG) and compact DAWG
 - suffix trees (Ukkonen, generalized), Burrows-Wheeler transform, inverse suffix array
+- BDD: reduced ordered binary decision diagrams with ITE, apply, quantification and sat counting
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

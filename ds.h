@@ -16,6 +16,7 @@
 #include "lib/aug_treap.h"
 #include "lib/automaton.h"
 #include "lib/avl.h"
+#include "lib/bdd.h"
 #include "lib/binomial_heap.h"
 #include "lib/bip_buffer.h"
 #include "lib/bitset.h"

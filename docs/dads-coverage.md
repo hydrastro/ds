@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 531 |
-| todo | 174 |
+| done | 536 |
+| todo | 169 |
 | def | 593 |
 | total | 1298 |
 
@@ -46,7 +46,6 @@ Families ordered by how many DADS entries they close.
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
-| `lib/bdd` | 5 | BDD, OBDD, ordered binary decision diagram, reduced ordered binary decision diagram, ROBDD |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
@@ -200,7 +199,7 @@ Families ordered by how many DADS entries they close.
 | Baum Welch algorithm | todo | `algo/hmm` |
 | BB(α) tree | todo | `lib/wb_tree` |
 | BBP algorithm | done | `algo/numerical` |
-| BDD | todo | `lib/bdd` |
+| BDD | done | `lib/bdd` |
 | BD-tree | todo | `lib/hb_tree` |
 | Bellman-Ford algorithm | done | `algo/graph_view, lib/graph` |
 | Benford's law | def |  |
@@ -953,7 +952,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | O | def |  |
-| OBDD | todo | `lib/bdd` |
+| OBDD | done | `lib/bdd` |
 | objective function | def |  |
 | oblivious algorithm | def |  |
 | occurrence | def |  |
@@ -994,7 +993,7 @@ Families ordered by how many DADS entries they close.
 | oracle Turing machine | def |  |
 | order | def |  |
 | ordered array | done | `lib/vec` (sort, binary search) |
-| ordered binary decision diagram | todo | `lib/bdd` |
+| ordered binary decision diagram | done | `lib/bdd` |
 | ordered linked list | todo | `lib/sorted_list` |
 | ordered tree | def |  |
 | order-preserving hash | done | `algo/hash_family` |
@@ -1182,7 +1181,7 @@ Families ordered by how many DADS entries they close.
 | red-black tree | done | `lib/rbt, lib/persistent_rbt` |
 | reduced basis | todo | `algo/numeric` (extensions) |
 | reduced digraph | done | `algo/graph_struct` |
-| reduced ordered binary decision diagram | todo | `lib/bdd` |
+| reduced ordered binary decision diagram | done | `lib/bdd` |
 | reduction | def |  |
 | reflexive | def |  |
 | regular decomposition | todo | `lib/quadtree` |
@@ -1203,7 +1202,7 @@ Families ordered by how many DADS entries they close.
 | right rotation | done | `lib/avl, lib/rbt` |
 | right-threaded tree | todo | `lib/threaded_tree` |
 | RNG | done | `algo/random` |
-| ROBDD | todo | `lib/bdd` |
+| ROBDD | done | `lib/bdd` |
 | Robin Hood hashing | done | `lib/rh_map` |
 | root | def |  |
 | root balance | todo | `lib/wb_tree` |
