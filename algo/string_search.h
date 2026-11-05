@@ -32,7 +32,26 @@
  *                        lookup per text byte
  *   Skip Search          buckets of byte positions, windows of m bytes
  *   Alpha Skip Search    the same with factors of length ceil(log256 m)
+ *   KmpSkip Search       Skip Search with KMP to avoid rescanning, linear
+ *   Colussi              refined KMP: "no hole" positions first, at most
+ *                        1.5n comparisons
+ *   Reverse Colussi      Boyer-Moore family, compares in an order derived
+ *                        from the pattern's periods, at most 2n
+ *   Galil-Giancarlo      Colussi skipping runs of the first byte, at most
+ *                        4n/3
+ *   Galil-Seiferas       linear time, constant extra space
+ *   Maximal Shift        positions compared by decreasing minimal shift
+ *   Optimal Mismatch     positions compared rarest text byte first
+ *   Reverse Factor       suffix automaton of the reversed pattern, optimal
+ *                        O(n log m / m) on average
+ *   Turbo Reverse Factor Reverse Factor remembering the matched prefix,
+ *                        linear worst case
+ *   ordered alphabets    Crochemore: maximal suffixes on the fly, constant
+ *                        extra space
  *   ds_kmismatch_search  occurrences with at most k mismatches
+ *   ds_commentz_walter_search  several patterns at once: Boyer-Moore shifts
+ *                        over the trie of the reversed patterns; reports
+ *                        (pattern, position) by increasing end position
  *
  * Scratch comes from the ds_context_t (NULL for the default).
  */
@@ -64,6 +83,16 @@ typedef enum ds_string_search_algorithm {
   DS_SEARCH_DFA,
   DS_SEARCH_SKIP,
   DS_SEARCH_ALPHA_SKIP,
+  DS_SEARCH_KMP_SKIP,
+  DS_SEARCH_COLUSSI,
+  DS_SEARCH_REVERSE_COLUSSI,
+  DS_SEARCH_GALIL_GIANCARLO,
+  DS_SEARCH_GALIL_SEIFERAS,
+  DS_SEARCH_MAXIMAL_SHIFT,
+  DS_SEARCH_OPTIMAL_MISMATCH,
+  DS_SEARCH_REVERSE_FACTOR,
+  DS_SEARCH_TURBO_REVERSE_FACTOR,
+  DS_SEARCH_ORDERED_ALPHABET,
   DS_SEARCH_ALGORITHM_COUNT
 } ds_string_search_algorithm_t;
 
@@ -79,6 +108,20 @@ const char *ds_string_search_name(ds_string_search_algorithm_t algorithm);
 size_t ds_kmismatch_search(const unsigned char *text, size_t n,
                            const unsigned char *pattern, size_t m, size_t k,
                            ds_match_func_t on_match, void *user);
+
+/* Multi-pattern match: pattern index and start position. */
+typedef bool (*ds_multi_match_func_t)(size_t pattern, size_t position,
+                                      void *user);
+
+/* Commentz-Walter over count patterns (empty ones never match): every
+ * occurrence, ordered by end position (patterns ending at the same place
+ * shortest first, ties by index descending). Returns the number reported;
+ * 0 on allocation failure. */
+size_t ds_commentz_walter_search(const unsigned char *text, size_t n,
+                                 const unsigned char *const *patterns,
+                                 const size_t *lengths, size_t count,
+                                 ds_multi_match_func_t on_match, void *user,
+                                 ds_context_t *context);
 
 #ifdef __cplusplus
 }

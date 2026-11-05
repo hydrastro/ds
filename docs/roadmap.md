@@ -108,6 +108,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - suffix automaton (DAWG) and compact DAWG
 - suffix trees (Ukkonen, generalized), Burrows-Wheeler transform, inverse suffix array
 - BDD: reduced ordered binary decision diagrams with ITE, apply, quantification and sat counting
+- algo/string_search: KmpSkip, Colussi, Reverse Colussi, Galil-Giancarlo, Galil-Seiferas, Maximal Shift, Optimal Mismatch, Reverse Factor, Turbo Reverse Factor, ordered-alphabet matching, and Commentz-Walter multi-pattern search.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

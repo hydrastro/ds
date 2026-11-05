@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 536 |
-| todo | 169 |
+| done | 547 |
+| todo | 158 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,7 +38,6 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
-| `algo/string_search` | 11 | Colussi, Commentz-Walter, Galil-Giancarlo, Galil-Seiferas, KmpSkip Search, Maximal Shift, optimal mismatch, Reverse Colussi, Reverse Factor, string matching on ordered alphabets, Turbo Reverse Factor |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
@@ -332,10 +331,10 @@ Families ordered by how many DADS entries they close.
 | collective recursion | def |  |
 | collision | def |  |
 | collision resolution scheme | done | `lib/hash_table, lib/rh_map` |
-| Colussi | todo | `algo/string_search` |
+| Colussi | done | `algo/string_search` |
 | combination | done | `algo/combinatorics` |
 | comb sort | done | `algo/sort_classic` |
-| Commentz-Walter | todo | `algo/string_search` |
+| Commentz-Walter | done | `algo/string_search` |
 | Communicating Sequential Processes | def |  |
 | commutative | def |  |
 | compact data structure | def |  |
@@ -611,8 +610,8 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| Galil-Giancarlo | todo | `algo/string_search` |
-| Galil-Seiferas | todo | `algo/string_search` |
+| Galil-Giancarlo | done | `algo/string_search` |
+| Galil-Seiferas | done | `algo/string_search` |
 | gamma function | done | `algo/numerical` |
 | GBD-tree | todo | `lib/hb_tree` |
 | GCD | done | `algo/numeric` |
@@ -755,7 +754,7 @@ Families ordered by how many DADS entries they close.
 | k-d tree | done | `lib/kd_tree` |
 | key | def |  |
 | KMP | done | `algo/stringology` |
-| KmpSkip Search | todo | `algo/string_search` |
+| KmpSkip Search | done | `algo/string_search` |
 | knapsack problem | done | `algo/knapsack` |
 | knight's tour | done | `algo/combinatorics` |
 | Knuth-Morris-Pratt algorithm | done | `algo/stringology` |
@@ -852,7 +851,7 @@ Families ordered by how many DADS entries they close.
 | max-heap property | def |  |
 | maximal independent set | todo | `algo/graph_hard` |
 | maximally connected component | def |  |
-| Maximal Shift | todo | `algo/string_search` |
+| Maximal Shift | done | `algo/string_search` |
 | maximum bipartite matching | done | `algo/matching` |
 | maximum-flow problem | done | `algo/flow` |
 | MBB | done | `algo/geometry` |
@@ -979,7 +978,7 @@ Families ordered by how many DADS entries they close.
 | optimal cost | def |  |
 | optimal hashing | done | `algo/perfect_hash` |
 | optimal merge | done | `algo/kway_merge` |
-| optimal mismatch | todo | `algo/string_search` |
+| optimal mismatch | done | `algo/string_search` |
 | optimal polygon triangulation problem | done | `algo/geometry` |
 | optimal polyphase merge | done | `algo/external_sort` |
 | optimal polyphase merge sort | done | `algo/external_sort` |
@@ -1195,8 +1194,8 @@ Families ordered by how many DADS entries they close.
 | rescalable | def |  |
 | reservoir sampling | done | `algo/random` |
 | restricted universe sort | done | `algo/sort_dist` |
-| Reverse Colussi | todo | `algo/string_search` |
-| Reverse Factor | todo | `algo/string_search` |
+| Reverse Colussi | done | `algo/string_search` |
+| Reverse Factor | done | `algo/string_search` |
 | R-file | todo | `lib/grid_file` |
 | Rice's method | todo | `algo/numeric` (extensions) |
 | right rotation | done | `lib/avl, lib/rbt` |
@@ -1345,7 +1344,7 @@ Families ordered by how many DADS entries they close.
 | string | done | `lib/str` |
 | string editing problem | done | `algo/stringology` (edit distances) |
 | string matching † | done | `algo/string_search` |
-| string matching on ordered alphabets † | todo | `algo/string_search` |
+| string matching on ordered alphabets † | done | `algo/string_search` |
 | string matching with errors † | done | `algo/string_approx` |
 | string matching with mismatches † | done | `algo/string_search` |
 | string searching † | done | `algo/string_search` |
@@ -1439,7 +1438,7 @@ Families ordered by how many DADS entries they close.
 | TSP | todo | `algo/graph_hard` |
 | TST † | todo | `lib/tst` |
 | Turbo-BM † | done | `algo/string_search` |
-| Turbo Reverse Factor † | todo | `algo/string_search` |
+| Turbo Reverse Factor † | done | `algo/string_search` |
 | Turing machine | def |  |
 | Turing reduction † | def |  |
 | Turing transducer † | def |  |
