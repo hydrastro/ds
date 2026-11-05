@@ -112,6 +112,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/self_org_list: self-organizing lists with pluggable policies and move-to-root trees.
 - lib/sorted_list: sorted arrays, ordered linked lists and unsorted lists.
 - lib/binary_tree_repr: binary tree representation of trees and doubly-chained tries.
+- lib/threaded_tree: threaded and right-threaded trees, stackless traversals.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

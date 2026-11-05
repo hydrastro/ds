@@ -88,6 +88,7 @@
 #include "lib/suffix_automaton.h"
 #include "lib/suffix_tree.h"
 #include "lib/swiss_map.h"
+#include "lib/threaded_tree.h"
 #include "lib/timer_wheel.h"
 #include "lib/treap.h"
 #include "lib/trie.h"

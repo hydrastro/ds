@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 561 |
-| todo | 144 |
+| done | 565 |
+| todo | 140 |
 | def | 593 |
 | total | 1298 |
 
@@ -49,7 +49,6 @@ Families ordered by how many DADS entries they close.
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `lib/sparse_matrix` | 4 | huge sparse array, orthogonal lists, ragged matrix, sparse matrix |
-| `lib/threaded_tree` | 4 | Cupif-Giannini tree traversal, right-threaded tree, threaded binary tree, threaded tree |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
@@ -373,7 +372,7 @@ Families ordered by how many DADS entries they close.
 | CTL | def |  |
 | cube root | done | `algo/numerical` |
 | cuckoo hashing | done | `lib/cuckoo_map` |
-| Cupif-Giannini tree traversal | todo | `lib/threaded_tree` |
+| Cupif-Giannini tree traversal | done | `lib/threaded_tree` |
 | cut | def |  |
 | cutting plane | todo | `algo/lp` |
 | cutting stock problem | done | `algo/knapsack` |
@@ -1196,7 +1195,7 @@ Families ordered by how many DADS entries they close.
 | R-file | todo | `lib/grid_file` |
 | Rice's method | todo | `algo/numeric` (extensions) |
 | right rotation | done | `lib/avl, lib/rbt` |
-| right-threaded tree | todo | `lib/threaded_tree` |
+| right-threaded tree | done | `lib/threaded_tree` |
 | RNG | done | `algo/random` |
 | ROBDD | done | `lib/bdd` |
 | Robin Hood hashing | done | `lib/rh_map` |
@@ -1388,8 +1387,8 @@ Families ordered by how many DADS entries they close.
 | text | done | `lib/str, lib/rope, lib/gap_buffer` |
 | text searching † | done | `algo/string_search` |
 | theta | def |  |
-| threaded binary tree † | todo | `lib/threaded_tree` |
-| threaded tree † | todo | `lib/threaded_tree` |
+| threaded binary tree † | done | `lib/threaded_tree` |
+| threaded tree † | done | `lib/threaded_tree` |
 | three-dimensional | def |  |
 | three-way merge sort † | done | `algo/sort_misc` |
 | three-way radix quicksort † | done | `algo/sort_dist` |
