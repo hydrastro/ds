@@ -103,6 +103,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - prefix codes: Huffman (k-ary, length-limited), Shannon-Fano, order-preserving Huffman, coding trees, static Huffman compression
 - compress: arithmetic coding, LZW (space-constrained), move-to-front, BSTW, star encoding
 - adaptive Huffman coding: FGK and Vitter's algorithm
+- phonetic coding: Soundex, NYSIIS, Metaphone, Double Metaphone, Caverphone
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

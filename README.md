@@ -126,6 +126,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `prefix_code`: binary/k-ary Huffman, Shannon-Fano and Garsia-Wachs alphabetic code lengths, length limiting, canonical/alphabetic codes, coding trees, bit I/O, static Huffman compression
 - `compress`: Witten-Neal-Cleary arithmetic coding with pluggable models, LZW with freeze/reset dictionaries, move-to-front, BSTW, star encoding
 - `adaptive_huffman`: dynamic Huffman coding with FGK or Vitter updates, fixed-array trees, invariant check
+- `phonetic`: Soundex, NYSIIS, Metaphone, Double Metaphone, Caverphone 2.0 behind one dispatcher
 
 Newer high-level modules:
 

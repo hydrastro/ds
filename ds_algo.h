@@ -39,5 +39,6 @@
 #include "algo/prefix_code.h"
 #include "algo/compress.h"
 #include "algo/adaptive_huffman.h"
+#include "algo/phonetic.h"
 
 #endif /* DS_ALGO_H */

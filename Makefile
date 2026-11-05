@@ -164,7 +164,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/string_approx.c \
   $(ALGO_DIR)/prefix_code.c \
   $(ALGO_DIR)/compress.c \
-  $(ALGO_DIR)/adaptive_huffman.c
+  $(ALGO_DIR)/adaptive_huffman.c \
+  $(ALGO_DIR)/phonetic.c
 
 LIB_SRC += $(ALGO_SRC)
 

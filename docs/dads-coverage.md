@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 505 |
-| todo | 200 |
+| done | 511 |
+| todo | 194 |
 | def | 593 |
 | total | 1298 |
 
@@ -44,7 +44,6 @@ Families ordered by how many DADS entries they close.
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
-| `algo/phonetic` | 6 | Caverphone, double metaphone, metaphone, NYSIIS, phonetic coding, soundex |
 | `lib/self_org_list` | 6 | frequency count heuristic, move-to-front heuristic, move-to-root heuristic, self-organizing list, self-organizing sequential search, transpose sequential search |
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
@@ -304,7 +303,7 @@ Families ordered by how many DADS entries they close.
 | capacity | def |  |
 | capacity constraint | def |  |
 | cartesian tree | todo | `algo/cartesian_tree` |
-| Caverphone | todo | `algo/phonetic` |
+| Caverphone | done | `algo/phonetic` |
 | CCS | def |  |
 | cell probe model | def |  |
 | cell tree | todo | `lib/hb_tree` |
@@ -461,7 +460,7 @@ Families ordered by how many DADS entries they close.
 | double-ended priority queue | done | `lib/min_max_heap` |
 | double hashing | done | `lib/open_map` |
 | double left rotation | done | `lib/avl` |
-| double metaphone | todo | `algo/phonetic` |
+| double metaphone | done | `algo/phonetic` |
 | double right rotation | done | `lib/avl` |
 | doubly-chained tree | todo | `lib/binary_tree_repr` |
 | doubly-ended queue | done | `lib/deque` |
@@ -870,7 +869,7 @@ Families ordered by how many DADS entries they close.
 | merge sort | done | `algo/sort` |
 | Merkle tree | done | `lib/merkle_tree` |
 | metaheuristic | def |  |
-| metaphone | todo | `algo/phonetic` |
+| metaphone | done | `algo/phonetic` |
 | midrange | done | `algo/numerical` |
 | Miller-Rabin | done | `algo/numeric` |
 | min-heap property | def |  |
@@ -950,7 +949,7 @@ Families ordered by how many DADS entries they close.
 | n queens | done | `algo/combinatorics` |
 | nullary function | def |  |
 | null tree | def |  |
-| NYSIIS | todo | `algo/phonetic` |
+| NYSIIS | done | `algo/phonetic` |
 
 ### O
 
@@ -1057,7 +1056,7 @@ Families ordered by how many DADS entries they close.
 | permutation | done | `algo/sequence` (next/prev permutation) |
 | permutation sort | done | `algo/sort_misc` |
 | persistent data structure | done | `lib/persistent_rbt, lib/persistent_trie` |
-| phonetic coding | todo | `algo/phonetic` |
+| phonetic coding | done | `algo/phonetic` |
 | pigeonhole sort | done | `algo/sort_dist` |
 | pile | def |  |
 | pipelined divide and conquer | def |  |
@@ -1304,7 +1303,7 @@ Families ordered by how many DADS entries they close.
 | sorted array † | todo | `lib/sorted_list` |
 | sorted list † | todo | `lib/sorted_list` |
 | sort in place † | def |  |
-| soundex † | todo | `algo/phonetic` |
+| soundex † | done | `algo/phonetic` |
 | source | def |  |
 | space-constrained Lempel-Ziv-Welch † | done | `algo/compress` |
 | spanning tree † | done | `algo/graph_path` |
