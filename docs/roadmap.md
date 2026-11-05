@@ -114,6 +114,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/binary_tree_repr: binary tree representation of trees and doubly-chained tries.
 - lib/threaded_tree: threaded and right-threaded trees, stackless traversals.
 - lib/wb_tree: weight-balanced BB[alpha] trees with order statistics.
+- lib/rbst: randomized binary search trees with split, join and order statistics.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

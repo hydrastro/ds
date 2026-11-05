@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 568 |
-| todo | 137 |
+| done | 570 |
+| todo | 135 |
 | def | 593 |
 | total | 1298 |
 
@@ -58,7 +58,6 @@ Families ordered by how many DADS entries they close.
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
 | `lib/diet` | 2 | diet, discrete interval encoding tree |
 | `lib/multiset` | 2 | bag, multi-set |
-| `lib/rbst` | 2 | randomized binary search tree, RBST |
 | `lib/tst` | 2 | ternary search tree, TST |
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
 | `algo/cartesian_tree` | 1 | cartesian tree |
@@ -1139,7 +1138,7 @@ Families ordered by how many DADS entries they close.
 | random access machine | def |  |
 | randomization | def |  |
 | randomized algorithm | def |  |
-| randomized binary search tree | todo | `lib/rbst` |
+| randomized binary search tree | done | `lib/rbst` |
 | randomized complexity | def |  |
 | randomized polynomial time | def |  |
 | randomized rounding | def |  |
@@ -1153,7 +1152,7 @@ Families ordered by how many DADS entries they close.
 | rank | done | `lib/order_statistic_tree, lib/bitvector` |
 | rapid sort | done | `algo/sort_dist` |
 | Ratcliff/Obershelp pattern recognition | done | `algo/string_approx` |
-| RBST | todo | `lib/rbst` |
+| RBST | done | `lib/rbst` |
 | reachability | done | `algo/graph_view` (BFS) |
 | reachable | done | `algo/graph_view` (BFS) |
 | rebalance | done | `lib/avl, lib/rbt` |

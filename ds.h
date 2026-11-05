@@ -68,6 +68,7 @@
 #include "lib/queue.h"
 #include "lib/radix_heap.h"
 #include "lib/radix_trie.h"
+#include "lib/rbst.h"
 #include "lib/rbt.h"
 #include "lib/rh_map.h"
 #include "lib/ring_list.h"
