@@ -17,6 +17,7 @@
 #include "lib/automaton.h"
 #include "lib/avl.h"
 #include "lib/bdd.h"
+#include "lib/binary_tree_repr.h"
 #include "lib/binomial_heap.h"
 #include "lib/bip_buffer.h"
 #include "lib/bitset.h"

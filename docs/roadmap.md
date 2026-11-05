@@ -111,6 +111,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/string_search: KmpSkip, Colussi, Reverse Colussi, Galil-Giancarlo, Galil-Seiferas, Maximal Shift, Optimal Mismatch, Reverse Factor, Turbo Reverse Factor, ordered-alphabet matching, and Commentz-Walter multi-pattern search.
 - lib/self_org_list: self-organizing lists with pluggable policies and move-to-root trees.
 - lib/sorted_list: sorted arrays, ordered linked lists and unsorted lists.
+- lib/binary_tree_repr: binary tree representation of trees and doubly-chained tries.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

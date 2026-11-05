@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 557 |
-| todo | 148 |
+| done | 561 |
+| todo | 144 |
 | def | 593 |
 | total | 1298 |
 
@@ -45,7 +45,6 @@ Families ordered by how many DADS entries they close.
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
-| `lib/binary_tree_repr` | 4 | binary tree representation of trees, doubly-chained tree, filial-heir chain, first child-next sibling binary tree |
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
@@ -217,7 +216,7 @@ Families ordered by how many DADS entries they close.
 | binary search | done | `algo/search` |
 | binary search tree | done | `lib/bst` |
 | binary tree | done | `lib/bst` |
-| binary tree representation of trees | todo | `lib/binary_tree_repr` |
+| binary tree representation of trees | done | `lib/binary_tree_repr` |
 | bingo sort | done | `algo/sort_misc` |
 | binomial heap | done | `lib/binomial_heap` |
 | binomial tree | done | `lib/binomial_heap` |
@@ -455,7 +454,7 @@ Families ordered by how many DADS entries they close.
 | double left rotation | done | `lib/avl` |
 | double metaphone | done | `algo/phonetic` |
 | double right rotation | done | `lib/avl` |
-| doubly-chained tree | todo | `lib/binary_tree_repr` |
+| doubly-chained tree | done | `lib/binary_tree_repr` |
 | doubly-ended queue | done | `lib/deque` |
 | doubly linked list | done | `lib/dlist` |
 | DPDA | def |  |
@@ -561,7 +560,7 @@ Families ordered by how many DADS entries they close.
 | Fibonacci number | done | `algo/number_theory` |
 | Fibonacci tree | def |  |
 | FIFO | done | `lib/queue` |
-| filial-heir chain | todo | `lib/binary_tree_repr` |
+| filial-heir chain | done | `lib/binary_tree_repr` |
 | Find | done | `algo/select` |
 | find kth least element | done | `algo/sort` (nth_element) |
 | finitary tree | def |  |
@@ -570,7 +569,7 @@ Families ordered by how many DADS entries they close.
 | finite state machine | done | `lib/automaton` |
 | finite state machine minimization | done | `lib/automaton` |
 | finite state transducer | done | `lib/automaton` |
-| first child-next sibling binary tree | todo | `lib/binary_tree_repr` |
+| first child-next sibling binary tree | done | `lib/binary_tree_repr` |
 | first come, first served | def |  |
 | first-in, first-out | done | `lib/queue` |
 | Fisher-Yates shuffle | done | `algo/sequence` (ds_shuffle) |
