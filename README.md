@@ -78,6 +78,7 @@ Core mutable containers:
 - Sparse table (O(1) static range queries; idempotent and disjoint variants)
 - Splay tree
 - Stack
+- Suffix automaton / DAWG (online construction, occurrence counts, distinct substrings, LCS) and compact DAWG
 - Swiss table (Abseil-style control bytes, word-parallel group probing, in-place tombstone rehash, fixed-buffer mode)
 - Timer wheel (hierarchical, intrusive timers, O(1) start/cancel, no allocation)
 - Treap

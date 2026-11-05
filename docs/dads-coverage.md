@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 522 |
-| todo | 183 |
+| done | 526 |
+| todo | 179 |
 | def | 593 |
 | total | 1298 |
 
@@ -55,7 +55,6 @@ Families ordered by how many DADS entries they close.
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `lib/sorted_list` | 4 | ordered linked list, sorted array, sorted list, unsorted list |
 | `lib/sparse_matrix` | 4 | huge sparse array, orthogonal lists, ragged matrix, sparse matrix |
-| `lib/suffix_automaton` | 4 | compact DAWG, DAWG, directed acyclic word graph, suffix automaton |
 | `lib/threaded_tree` | 4 | Cupif-Giannini tree traversal, right-threaded tree, threaded binary tree, threaded tree |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
@@ -342,7 +341,7 @@ Families ordered by how many DADS entries they close.
 | Communicating Sequential Processes | def |  |
 | commutative | def |  |
 | compact data structure | def |  |
-| compact DAWG | todo | `lib/suffix_automaton` |
+| compact DAWG | done | `lib/suffix_automaton` |
 | compact trie | todo | `lib/elastic_trie` |
 | comparison sort | done | `algo/sort, algo/sort_classic` |
 | competitive analysis | def |  |
@@ -397,7 +396,7 @@ Families ordered by how many DADS entries they close.
 | DAG | def |  |
 | DAG shortest paths | done | `algo/graph_path` |
 | data structure | def |  |
-| DAWG | todo | `lib/suffix_automaton` |
+| DAWG | done | `lib/suffix_automaton` |
 | decidable language | def |  |
 | decidable problem | def |  |
 | decimation | def |  |
@@ -440,7 +439,7 @@ Families ordered by how many DADS entries they close.
 | dining philosophers | def |  |
 | direct chaining | done | `lib/hash_table` |
 | directed acyclic graph | def |  |
-| directed acyclic word graph | todo | `lib/suffix_automaton` |
+| directed acyclic word graph | done | `lib/suffix_automaton` |
 | directed graph | done | `lib/graph` |
 | discrete interval encoding tree | todo | `lib/diet` |
 | discrete p-center | todo | `algo/graph_hard` |
@@ -1367,7 +1366,7 @@ Families ordered by how many DADS entries they close.
 | succinct data structure † | def |  |
 | suffix † | def |  |
 | suffix array † | done | `algo/stringology` |
-| suffix automaton | todo | `lib/suffix_automaton` |
+| suffix automaton | done | `lib/suffix_automaton` |
 | suffix tree † | todo | `lib/suffix_tree` |
 | superimposed code | todo | `lib/bloom_filter` (superimposed codes) |
 | superset | def |  |
