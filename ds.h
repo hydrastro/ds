@@ -59,6 +59,7 @@
 #include "lib/merkle_tree.h"
 #include "lib/min_max_heap.h"
 #include "lib/monotonic_queue.h"
+#include "lib/multiset.h"
 #include "lib/open_map.h"
 #include "lib/order_statistic_tree.h"
 #include "lib/packed_array.h"

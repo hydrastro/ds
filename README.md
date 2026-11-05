@@ -14,6 +14,7 @@ algorithms, and timeline/history utilities.
 Core mutable containers:
 
 - - `lib/binary_tree_repr`: first child-next sibling (filial-heir) trees and doubly-chained (de la Briandais) tries
+- - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
 - - `lib/scapegoat_tree`: scapegoat trees with pluggable α
 - - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees

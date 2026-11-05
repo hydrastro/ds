@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 571 |
-| todo | 134 |
+| done | 573 |
+| todo | 132 |
 | def | 593 |
 | total | 1298 |
 
@@ -57,7 +57,6 @@ Families ordered by how many DADS entries they close.
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `lib/cactus_stack` | 2 | cactus stack, saguaro stack |
 | `lib/diet` | 2 | diet, discrete interval encoding tree |
-| `lib/multiset` | 2 | bag, multi-set |
 | `lib/tst` | 2 | ternary search tree, TST |
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
 | `algo/cartesian_tree` | 1 | cartesian tree |
@@ -175,7 +174,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | backtracking | def |  |
-| bag | todo | `lib/multiset` |
+| bag | done | `lib/multiset` |
 | balance | def |  |
 | balanced binary search tree | done | `lib/avl, lib/rbt, lib/treap` |
 | balanced binary tree | done | `lib/avl, lib/rbt` |
@@ -891,7 +890,7 @@ Families ordered by how many DADS entries they close.
 | multiplication method | done | `algo/hash_family` |
 | multiprefix | done | `algo/scan` |
 | multiprocessor model | def |  |
-| multi-set | todo | `lib/multiset` |
+| multi-set | done | `lib/multiset` |
 | multi suffix tree | done | `lib/suffix_tree` |
 | multiway decision | def |  |
 | multiway merge | done | `algo/kway_merge` |

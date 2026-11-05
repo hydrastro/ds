@@ -116,6 +116,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/wb_tree: weight-balanced BB[alpha] trees with order statistics.
 - lib/rbst: randomized binary search trees with split, join and order statistics.
 - lib/scapegoat_tree: scapegoat trees with pluggable alpha.
+- lib/multiset: hash multisets with the bag algebra.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
