@@ -160,6 +160,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - matrices: naive, blocked and Strassen multiplication; packed (strictly) lower/upper triangular matrices
 - - hidden Markov models: scaled forward-backward, posteriors, Viterbi, Baum-Welch
 - - PRAM simulations: pointer jumping, recursive doubling, shortcutting, list contraction, tree contraction
+- - lowest common ancestors: binary lifting, Euler tour + sparse table, Tarjan's offline LCA
 
 Newer high-level modules:
 

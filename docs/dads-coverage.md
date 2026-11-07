@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 621 |
-| todo | 84 |
+| done | 622 |
+| todo | 83 |
 | def | 593 |
 | total | 1298 |
 
@@ -44,8 +44,8 @@ Families ordered by how many DADS entries they close.
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
-| `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
+| `algo/graph_alg` | 2 | single-destination shortest-path problem, triconnected graph |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -796,7 +796,7 @@ Families ordered by how many DADS entries they close.
 | Lotka's law | def |  |
 | lower bound | done | `algo/search` (ds_lower_bound) |
 | lower triangular matrix | done | `algo/matrix` |
-| lowest common ancestor | todo | `algo/graph_alg` |
+| lowest common ancestor | done | `algo/lca` |
 | l-reduction | def |  |
 | lucky sort | done | `algo/sort_misc` |
 | LZW compression | done | `algo/compress` |

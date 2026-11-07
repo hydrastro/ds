@@ -138,6 +138,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/matrix: matrix multiplication and packed triangular matrices.
 - algo/hmm: hidden Markov models, Viterbi and Baum-Welch.
 - algo/parallel_sim: pointer jumping, recursive doubling, shortcutting, list and tree contraction.
+- algo/lca: lowest common ancestors three ways.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
