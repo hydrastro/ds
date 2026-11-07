@@ -27,6 +27,7 @@ Core mutable containers:
 - - `lib/grid_file`: fixed grids, grid files, twin, two-level and multilayer grid files
 - - `lib/hash_heap`: hash heaps (priority queues addressable by key)
 - - `lib/hb_tree`: hB-trees, buddy trees, BD-trees, GBD-trees, BV-trees
+- - `lib/jump_list`: jump lists (uniquely represented, O(n^(1/3)))
 - - `lib/k2_tree`: k^2-trees (compact adjacency matrices)
 - - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
 - - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion

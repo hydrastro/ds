@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 699 |
-| todo | 6 |
+| done | 700 |
+| todo | 5 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
-| `lib/jump_list` | 1 | jump list |
 | `lib/merkle_tree` | 1 | linked data signature |
 
 ## Index A-Z
@@ -690,7 +689,7 @@ Families ordered by how many DADS entries they close.
 | Johnson-Trotter | done | `algo/combinatorics` |
 | JSort | done | `algo/sort_heap` |
 | J sort | done | `algo/sort_dist` |
-| jump list | todo | `lib/jump_list` |
+| jump list | done | `lib/jump_list` |
 | jump search | done | `algo/search` |
 
 ### K
