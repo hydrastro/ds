@@ -165,6 +165,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - NP-hard graph problems: cliques, independent sets, vertex cover, (edge) colouring, chromatic number/index, Hamiltonian paths, path cover, feedback vertex set, (sub)graph isomorphism, bisection
 - - traveling salesman: Held-Karp, nearest neighbour, 2-opt, Christofides, Euclidean and bottleneck TSP; Clarke-Wright vehicle routing
 - - covering and location: set cover, set packing, (capacitated) facility location, discrete p-center, k-clustering
+- - Steiner trees: Dreyfus-Wagner, KMB 2-approximation, rectilinear (Hanan grid), Euclidean heuristic
 
 Newer high-level modules:
 

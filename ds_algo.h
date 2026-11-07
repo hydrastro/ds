@@ -52,5 +52,6 @@
 #include "algo/graph_np.h"
 #include "algo/tsp.h"
 #include "algo/facility.h"
+#include "algo/steiner.h"
 
 #endif /* DS_ALGO_H */

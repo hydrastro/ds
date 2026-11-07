@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 655 |
-| todo | 50 |
+| done | 658 |
+| todo | 47 |
 | def | 593 |
 | total | 1298 |
 
@@ -43,7 +43,6 @@ Families ordered by how many DADS entries they close.
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
-| `algo/graph_hard` | 3 | Euclidean Steiner tree, rectilinear Steiner tree, Steiner tree |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -477,7 +476,7 @@ Families ordered by how many DADS entries they close.
 | EREW | def |  |
 | Euclidean algorithm | done | `algo/numeric` (ds_gcd) |
 | Euclidean distance | done | `algo/geometry` |
-| Euclidean Steiner tree | todo | `algo/graph_hard` |
+| Euclidean Steiner tree | done | `algo/steiner` |
 | Euclidean traveling salesman problem | done | `algo/tsp` |
 | Euclid's algorithm | done | `algo/numeric` |
 | Euler cycle | done | `algo/graph_struct` |
@@ -1134,7 +1133,7 @@ Families ordered by how many DADS entries they close.
 | recognizer | def |  |
 | rectangular matrix | def |  |
 | rectilinear | def |  |
-| rectilinear Steiner tree | todo | `algo/graph_hard` |
+| rectilinear Steiner tree | done | `algo/steiner` |
 | recurrence equations | def |  |
 | recurrence relation | def |  |
 | recursion | def |  |
@@ -1298,7 +1297,7 @@ Families ordered by how many DADS entries they close.
 | st-digraph | def |  |
 | Steiner point | def |  |
 | Steiner ratio | def |  |
-| Steiner tree | todo | `algo/graph_hard` |
+| Steiner tree | done | `algo/steiner` |
 | Steiner vertex | def |  |
 | Steinhaus-Johnson-Trotter | done | `algo/combinatorics` |
 | Stirling's approximation | done | `algo/numerical` |
