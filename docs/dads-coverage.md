@@ -17,19 +17,17 @@ Status legend:
 Several DADS entries are cross-references ("see ..."); they are listed
 under their own name and classified like their target.
 
-Entries marked † come from the tail of the index (after "shaker sort"),
-which was assembled from the DADS by-area index plus the per-entry pages
-rather than read off the A-Z page; they should be rechecked against the
-live index.
+The tail of the index (after "shaker sort"), which the A-Z page cuts
+off, was checked against DADS's second-level index pages (t42 to t53).
 
 ## Summary
 
 | status | entries |
 |---|---|
-| done | 705 |
-| todo | 0 |
-| def | 593 |
-| total | 1298 |
+| done | 709 |
+| todo | 46 |
+| def | 552 |
+| total | 1307 |
 
 ## Todo by target module
 
@@ -37,6 +35,28 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
+| `lib/tree_automaton` | 8 | deterministic finite tree automaton, deterministic tree automaton, DFTA, NFTA, nondeterministic finite tree automaton, nondeterministic tree automaton, top-down tree automaton, tree automaton |
+| `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
+| `lib/pushdown` | 5 | deterministic pushdown automaton, DPDA, PDA, pushdown automaton, pushdown transducer |
+| `lib/turing_machine` | 4 | busy beaver, nondeterministic Turing machine, Turing machine, Turing transducer |
+| `algo/model_check` | 3 | CTL, Kripke structure, model checking |
+| `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
+| `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
+| `lib/sstable` | 2 | sorted-string table, SSTable |
+| `algo/anneal` | 1 | simulated annealing |
+| `algo/dynamization` | 1 | dynamization transformation |
+| `algo/hash_family (extensions)` | 1 | twisted tabulation hashing |
+| `algo/markov` | 1 | Markov chain |
+| `algo/sort_dist (extensions)` | 1 | UnShuffle sort |
+| `algo/sort_misc (extensions)` | 1 | taco sort |
+| `algo/space_order` | 1 | space ordering method |
+| `lib/binary_tree_repr (extensions)` | 1 | stack tree |
+| `lib/cellular_automaton` | 1 | cellular automaton |
+| `lib/confluent_list` | 1 | confluently persistent data structure |
+| `lib/plop_hash` | 1 | PLOP-hashing |
+| `lib/spiral_storage` | 1 | spiral storage |
+| `lib/topology_tree` | 1 | topology tree |
+| `lib/zipper` | 1 | zipper |
 
 ## Index A-Z
 
@@ -189,7 +209,7 @@ Families ordered by how many DADS entries they close.
 | blind sort | done | `algo/sort_dist` |
 | blind trie | done | `lib/elastic_trie` |
 | block | def |  |
-| block addressing index | def |  |
+| block addressing index | todo | `lib/inverted_index` |
 | blocking flow | done | `algo/flow` |
 | block search | done | `algo/search` |
 | Bloom filter | done | `lib/bloom_filter` |
@@ -233,7 +253,7 @@ Families ordered by how many DADS entries they close.
 | buddy tree | done | `lib/hb_tree` |
 | build-heap | done | `lib/heap, algo/sort` (heap sort) |
 | Burrows-Wheeler transform | done | `lib/suffix_tree` |
-| busy beaver | def |  |
+| busy beaver | todo | `lib/turing_machine` |
 | BV-tree | done | `lib/hb_tree` |
 | BWT | done | `lib/suffix_tree` |
 | Byzantine generals | def |  |
@@ -256,7 +276,7 @@ Families ordered by how many DADS entries they close.
 | CCS | def |  |
 | cell probe model | def |  |
 | cell tree | done | `lib/bsp_tree` |
-| cellular automaton | def |  |
+| cellular automaton | todo | `lib/cellular_automaton` |
 | centroid | done | `algo/graph_struct` |
 | certificate | def |  |
 | chain | def |  |
@@ -311,7 +331,7 @@ Families ordered by how many DADS entries they close.
 | concurrent flow | def |  |
 | concurrent read, concurrent write | def |  |
 | concurrent read, exclusive write | def |  |
-| confluently persistent data structure | def |  |
+| confluently persistent data structure | todo | `lib/confluent_list` |
 | conjunction | def |  |
 | connected components | done | `lib/graph` (weak components) |
 | connected graph | def |  |
@@ -327,7 +347,7 @@ Families ordered by how many DADS entries they close.
 | CREW | def |  |
 | critical path problem | done | `algo/graph_path` |
 | CSP | def |  |
-| CTL | def |  |
+| CTL | todo | `algo/model_check` |
 | cube root | done | `algo/numerical` |
 | cuckoo hashing | done | `lib/cuckoo_map` |
 | Cupif-Giannini tree traversal | done | `lib/threaded_tree` |
@@ -366,15 +386,15 @@ Families ordered by how many DADS entries they close.
 | deterministic finite automata string search | done | `algo/string_search` |
 | deterministic finite automaton | done | `lib/automaton` |
 | deterministic finite state machine | def |  |
-| deterministic finite tree automaton | def |  |
-| deterministic pushdown automaton | def |  |
+| deterministic finite tree automaton | todo | `lib/tree_automaton` |
+| deterministic pushdown automaton | todo | `lib/pushdown` |
 | deterministic random bit generator | done | `algo/random` (xoshiro, not cryptographic) |
-| deterministic tree automaton | def |  |
+| deterministic tree automaton | todo | `lib/tree_automaton` |
 | Deutsch-Jozsa algorithm | def |  |
 | DFA | done | `lib/automaton` |
 | DFS | done | `lib/graph` |
 | DFS forest | done | `algo/graph_struct` |
-| DFTA | def |  |
+| DFTA | todo | `lib/tree_automaton` |
 | diagonalization | def |  |
 | diameter | done | `algo/graph_struct` |
 | Dianna | def |  |
@@ -414,7 +434,7 @@ Families ordered by how many DADS entries they close.
 | doubly-chained tree | done | `lib/binary_tree_repr` |
 | doubly-ended queue | done | `lib/deque` |
 | doubly linked list | done | `lib/dlist` |
-| DPDA | def |  |
+| DPDA | todo | `lib/pushdown` |
 | DRBG | done | `algo/random` |
 | D-tree | done | `lib/d_tree` |
 | dual | def |  |
@@ -427,7 +447,7 @@ Families ordered by how many DADS entries they close.
 | dynamic hashing | done | `lib/linear_hash_map` |
 | dynamic Huffman coding | done | `algo/adaptive_huffman` |
 | dynamic programming | def |  |
-| dynamization transformation | def |  |
+| dynamization transformation | todo | `algo/dynamization` |
 
 ### E
 
@@ -540,11 +560,11 @@ Families ordered by how many DADS entries they close.
 | Ford-Bellman | done | `algo/graph_view` |
 | Ford-Fulkerson method | done | `algo/flow` |
 | forest | def |  |
-| forest editing problem | def |  |
+| forest editing problem | todo | `algo/tree_edit` |
 | formal language | def |  |
 | formal methods | def |  |
 | formal verification | def |  |
-| forward index | def |  |
+| forward index | todo | `lib/inverted_index` |
 | fractional knapsack problem | done | `algo/knapsack` |
 | fractional solution | def |  |
 | free edge | def |  |
@@ -553,7 +573,7 @@ Families ordered by how many DADS entries they close.
 | frequency count heuristic | done | `lib/self_org_list` |
 | full array | def |  |
 | full binary tree | def |  |
-| full inverted index | def |  |
+| full inverted index | todo | `lib/inverted_index` |
 | fully dynamic graph problem | def |  |
 | fully persistent data structure | done | `lib/history` (branching timelines) |
 | fully polynomial approximation scheme | def |  |
@@ -619,7 +639,7 @@ Families ordered by how many DADS entries they close.
 | histogram sort | done | `algo/sort_dist` |
 | HMM | done | `algo/hmm` |
 | homeomorphic | def |  |
-| horizontal visibility map | def |  |
+| horizontal visibility map | todo | `algo/visibility` |
 | Horner's rule | done | `algo/numerical` |
 | Horspool | done | `algo/string_search` |
 | hsadelta | def |  |
@@ -669,8 +689,8 @@ Families ordered by how many DADS entries they close.
 | inverse Ackermann function | done | `algo/number_theory` |
 | inverse suffix array | done | `lib/suffix_tree` |
 | inversion list | done | `lib/inversion_list` |
-| inverted file index | def |  |
-| inverted index | def |  |
+| inverted file index | todo | `lib/inverted_index` |
+| inverted index | todo | `lib/inverted_index` |
 | invertible Bloom lookup table | done | `lib/iblt` |
 | irreflexive | def |  |
 | isomorphic | def |  |
@@ -715,7 +735,7 @@ Families ordered by how many DADS entries they close.
 | Königsberg bridges problem | done | `algo/graph_struct` |
 | Kolmogorov complexity | def |  |
 | Kraft's inequality | def |  |
-| Kripke structure | def |  |
+| Kripke structure | todo | `algo/model_check` |
 | Kruskal's algorithm | done | `algo/graph_path` |
 | kth order Fibonacci numbers | done | `algo/number_theory` |
 | kth shortest path | done | `algo/graph_path` |
@@ -792,7 +812,7 @@ Families ordered by how many DADS entries they close.
 | Manhattan distance | done | `algo/geometry` |
 | many-one reduction | def |  |
 | map | done | `lib/hash_table, lib/rh_map, lib/avl, ...` |
-| Markov chain | def |  |
+| Markov chain | todo | `algo/markov` |
 | Marlena | def |  |
 | marriage problem | done | `algo/matching` |
 | Master theorem | def |  |
@@ -831,7 +851,7 @@ Families ordered by how many DADS entries they close.
 | Minkowski distance | done | `algo/geometry` |
 | mixed integer linear program | done | `algo/lp` |
 | mode | done | `algo/numerical` |
-| model checking | def |  |
+| model checking | todo | `algo/model_check` |
 | model of computation | def |  |
 | moderately exponential | def |  |
 | MODIFIND | done | `algo/select` |
@@ -874,7 +894,7 @@ Families ordered by how many DADS entries they close.
 | network flow problem | done | `algo/flow` |
 | next state | def |  |
 | NFA | done | `lib/automaton` |
-| NFTA | def |  |
+| NFTA | todo | `lib/tree_automaton` |
 | NIST | def |  |
 | node | def |  |
 | nonbalanced merge | done | `algo/external_sort` |
@@ -883,10 +903,10 @@ Families ordered by how many DADS entries they close.
 | nondeterministic algorithm | def |  |
 | nondeterministic finite automaton | done | `lib/automaton` |
 | nondeterministic finite state machine | def |  |
-| nondeterministic finite tree automaton | def |  |
+| nondeterministic finite tree automaton | todo | `lib/tree_automaton` |
 | nondeterministic polynomial time | def |  |
-| nondeterministic tree automaton | def |  |
-| nondeterministic Turing machine | def |  |
+| nondeterministic tree automaton | todo | `lib/tree_automaton` |
+| nondeterministic Turing machine | todo | `lib/turing_machine` |
 | nonterminal node | def |  |
 | nor | def |  |
 | not | def |  |
@@ -993,7 +1013,7 @@ Families ordered by how many DADS entries they close.
 | pattern element | def |  |
 | P-complete | def |  |
 | PCP | def |  |
-| PDA | def |  |
+| PDA | todo | `lib/pushdown` |
 | Pearson's hash | done | `algo/hash_family` |
 | perfect binary tree | def |  |
 | perfect hashing | done | `algo/perfect_hash` |
@@ -1012,7 +1032,7 @@ Families ordered by how many DADS entries they close.
 | planar graph | def |  |
 | planarization | def |  |
 | planar straight-line graph | def |  |
-| PLOP-hashing | def |  |
+| PLOP-hashing | todo | `lib/plop_hash` |
 | point access method | done | `lib/quadtree` |
 | pointer jumping | done | `algo/parallel_sim` |
 | pointer machine | def |  |
@@ -1067,8 +1087,8 @@ Families ordered by how many DADS entries they close.
 | pth order Fibonacci numbers | done | `algo/number_theory` |
 | P-tree | done | `lib/p_tree` |
 | purely functional language | def |  |
-| pushdown automaton | def |  |
-| pushdown transducer | def |  |
+| pushdown automaton | todo | `lib/pushdown` |
+| pushdown transducer | todo | `lib/pushdown` |
 | p-way merge sort | done | `algo/sort_misc` |
 
 ### Q
@@ -1208,8 +1228,10 @@ Families ordered by how many DADS entries they close.
 | shadow merge | done | `lib/shadow_heap` |
 | shadow merge insert | done | `lib/shadow_heap` |
 | shaker sort | done | `algo/sort_classic` (cocktail) |
+| shaker sort | done | `algo/sort_classic` (cocktail) |
 | Shannon-Fano coding | done | `algo/prefix_code` |
-| Shell sort † | done | `algo/sort` |
+| shared memory | def |  |
+| Shell sort | done | `algo/sort` |
 | Shift-Or | done | `algo/string_search` |
 | Shor's algorithm | def |  |
 | shortcutting | done | `algo/parallel_sim` |
@@ -1218,59 +1240,60 @@ Families ordered by how many DADS entries they close.
 | shortest path | done | `algo/graph_path` |
 | shortest spanning tree | done | `algo/graph_path` |
 | shuffle | done | `algo/sequence` |
-| shuffle sort † | done | `algo/sort_dist` |
-| sibling † | def |  |
+| shuffle sort | done | `algo/sort_dist` |
+| sibling | def |  |
 | sieve of Eratosthenes | done | `algo/numeric` |
-| sift up † | def |  |
+| sift up | done | `lib/heap` |
 | signature | def |  |
 | Simon's algorithm | def |  |
-| simple merge † | done | `algo/sequence` |
+| simple merge | done | `algo/sequence` |
 | simple path | def |  |
 | simple uniform hashing | def |  |
 | simplex | done | `algo/lp` |
-| simulated annealing | def |  |
-| simulation theorem † | def |  |
+| simulated annealing | todo | `algo/anneal` |
+| simulation theorem | def |  |
 | single-destination shortest-path problem | done | `algo/graph_conn` |
 | single-pair shortest-path problem | done | `algo/graph_path` |
 | single program multiple data | def |  |
 | single-source shortest-path problem | done | `algo/graph_path` |
 | singly linked list | done | `lib/list` |
-| singularity analysis † | def |  |
+| singularity analysis | def |  |
 | sink | def |  |
-| sinking sort † | done | `algo/sort_classic` |
-| skd-tree † | done | `lib/kdb_tree` |
-| skew heap † | done | `lib/meldable_heap` |
+| sinking sort | done | `algo/sort_classic` |
+| skd-tree | done | `lib/kdb_tree` |
 | skew symmetry | def |  |
 | skip list | done | `lib/skip_list` |
 | skip search | done | `algo/string_search` |
 | slope selection | done | `algo/geometry` |
-| Smith algorithm † | done | `algo/string_search` |
-| Smith-Waterman algorithm † | done | `algo/string_approx` |
-| smoothsort † | done | `algo/sort_heap` |
-| solvable † | def |  |
-| sort † | def |  |
-| sorted array † | done | `lib/sorted_list` |
-| sorted list † | done | `lib/sorted_list` |
-| sort in place † | def |  |
-| soundex † | done | `algo/phonetic` |
+| Smith algorithm | done | `algo/string_search` |
+| Smith-Waterman algorithm | done | `algo/string_approx` |
+| smoothsort | done | `algo/sort_heap` |
+| solvable | def |  |
+| sort | def |  |
+| sorted array | done | `lib/sorted_list` |
+| sorted list | done | `lib/sorted_list` |
+| sorted-string table | todo | `lib/sstable` |
+| sort in place | def |  |
+| soundex | done | `algo/phonetic` |
 | source | def |  |
-| space-constrained Lempel-Ziv-Welch † | done | `algo/compress` |
-| spanning tree † | done | `algo/graph_path` |
+| space-constructible function | def |  |
+| space ordering method | todo | `algo/space_order` |
+| spanning tree | done | `algo/graph_path` |
 | sparse graph | def |  |
 | sparse matrix | done | `lib/sparse_matrix` |
 | sparsification | def |  |
-| sparsity † | def |  |
-| spatial access method † | done | `lib/rtree` |
-| spectral test † | done | `algo/random` |
-| splay tree † | done | `lib/splay_tree` |
+| sparsity | def |  |
+| spatial access method | done | `lib/rtree` |
+| spiral storage | todo | `lib/spiral_storage` |
+| splay tree | done | `lib/splay_tree` |
 | SPMD | def |  |
 | square matrix | def |  |
 | square root | done | `algo/numerical` |
 | SST | done | `algo/graph_path` |
+| SSTable | todo | `lib/sstable` |
 | stable | def |  |
-| stable marriage problem † | done | `algo/matching` |
 | stack | done | `lib/stack` |
-| stack tree | def |  |
+| stack tree | todo | `lib/binary_tree_repr` (extensions) |
 | star encoding | done | `algo/compress` |
 | star-shaped polygon | done | `algo/geometry` |
 | start state | def |  |
@@ -1288,121 +1311,123 @@ Families ordered by how many DADS entries they close.
 | Steinhaus-Johnson-Trotter | done | `algo/combinatorics` |
 | Stirling's approximation | done | `algo/numerical` |
 | Stirling's formula | done | `algo/numerical` |
-| stooge sort † | done | `algo/sort_classic` |
+| stooge sort | done | `algo/sort_classic` |
 | straight-line drawing | def |  |
-| strand sort † | done | `algo/sort_misc` |
+| strand sort | done | `algo/sort_misc` |
 | strictly decreasing | def |  |
 | strictly increasing | def |  |
 | strictly lower triangular matrix | done | `algo/matrix` |
 | strictly upper triangular matrix | done | `algo/matrix` |
 | string | done | `lib/str` |
 | string editing problem | done | `algo/stringology` (edit distances) |
-| string matching † | done | `algo/string_search` |
-| string matching on ordered alphabets † | done | `algo/string_search` |
-| string matching with errors † | done | `algo/string_approx` |
-| string matching with mismatches † | done | `algo/string_search` |
-| string searching † | done | `algo/string_search` |
+| string matching | done | `algo/string_search` |
+| string matching on ordered alphabets | done | `algo/string_search` |
+| string matching with errors | done | `algo/string_approx` |
+| string matching with mismatches | done | `algo/string_search` |
+| string searching | done | `algo/string_search` |
 | strip packing | done | `algo/knapsack` |
 | strongly connected component | done | `algo/graph_view` (Tarjan), lib/graph |
 | strongly connected graph | def |  |
-| strongly NP-hard † | def |  |
-| subadditive ergodic theorem † | def |  |
+| strongly NP-hard | def |  |
+| strsrch | done | `algo/string_search` (brute force) |
+| stupid sort | done | `algo/sort_classic` (gnome sort), algo/sort_misc (bogosort) |
+| subadditive ergodic theorem | def |  |
 | subgraph | def |  |
 | subgraph isomorphism | done | `algo/graph_np` |
-| sublinear time algorithm † | def |  |
-| subsequence † | def |  |
+| sublinear time algorithm | def |  |
+| subsequence | def |  |
 | subset | def |  |
-| substring † | def |  |
-| subtree † | def |  |
-| succinct data structure † | def |  |
-| suffix † | def |  |
-| suffix array † | done | `algo/stringology` |
+| substring | def |  |
+| subtree | def |  |
+| suffix | def |  |
+| suffix array | done | `algo/stringology` |
 | suffix automaton | done | `lib/suffix_automaton` |
-| suffix tree † | done | `lib/suffix_tree` |
+| suffix tree | done | `lib/suffix_tree` |
 | superimposed code | done | `lib/signature_file` |
 | superset | def |  |
 | supersink | def |  |
 | supersource | def |  |
 | symmetric | def |  |
 | symmetrically linked list | done | `lib/dlist` |
-| symmetric binary B-tree † | done | `lib/rbt` |
+| symmetric binary B-tree | done | `lib/rbt` |
 | symmetric set difference | done | `algo/sequence` (ds_set_symmetric_difference) |
+| symmetric traversal | done | `lib/bst` (in-order traversal) |
 | symmetry breaking | def |  |
 
 ### T
 
 | entry | status | module |
 |---|---|---|
-| taco sort † | def |  |
+| tabulation hashing | done | `algo/hash_family` |
+| taco sort | todo | `algo/sort_misc` (extensions) |
 | tail | def |  |
 | tail recursion | def |  |
 | target | def |  |
-| temporal logic † | def |  |
+| temporal logic | def |  |
 | terminal | def |  |
-| terminal node † | def |  |
-| ternary search † | done | `algo/search` |
-| ternary search tree † | done | `lib/tst` |
+| terminal node | def |  |
+| ternary search tree | done | `lib/tst` |
 | text | done | `lib/str, lib/rope, lib/gap_buffer` |
-| text searching † | done | `algo/string_search` |
+| text searching | done | `algo/string_search` |
 | theta | def |  |
-| threaded binary tree † | done | `lib/threaded_tree` |
-| threaded tree † | done | `lib/threaded_tree` |
+| threaded binary tree | done | `lib/threaded_tree` |
+| threaded tree | done | `lib/threaded_tree` |
 | three-dimensional | def |  |
-| three-way merge sort † | done | `algo/sort_misc` |
-| three-way radix quicksort † | done | `algo/sort_dist` |
-| time-constructible function † | def |  |
-| time/space complexity † | def |  |
-| top-down radix sort † | done | `algo/sort_dist` |
-| top-down tree automaton | def |  |
+| three-way merge sort | done | `algo/sort_misc` |
+| three-way radix quicksort | done | `algo/sort_dist` |
+| time-constructible function | def |  |
+| time/space complexity | def |  |
+| top-down radix sort | done | `algo/sort_dist` |
+| top-down tree automaton | todo | `lib/tree_automaton` |
 | topological order | done | `algo/graph_view` |
-| topological sort † | done | `algo/graph_view, lib/graph` |
-| topology tree † | def |  |
-| total function † | def |  |
-| totally decidable language † | def |  |
-| totally decidable problem † | def |  |
-| totally undecidable problem † | def |  |
+| topological sort | done | `algo/graph_view, lib/graph` |
+| topology tree | todo | `lib/topology_tree` |
+| total function | def |  |
+| totally decidable language | def |  |
+| totally decidable problem | def |  |
+| totally undecidable problem | def |  |
 | total order | def |  |
 | tour | def |  |
 | tournament | done | `algo/kway_merge` |
-| tournament sort † | done | `algo/sort_heap` |
+| tournament sort | done | `algo/sort_heap` |
 | towers of Hanoi | done | `algo/combinatorics` |
-| tractable † | def |  |
-| transducer † | def |  |
+| tractable | def |  |
 | transition | def |  |
 | transition function | def |  |
 | transitive | def |  |
 | transitive closure | done | `algo/graph_struct` |
 | transitive reduction | done | `algo/graph_struct` |
-| transpose sequential search † | done | `lib/self_org_list` |
+| transpose sequential search | done | `lib/self_org_list` |
 | traveling salesman | done | `algo/tsp` |
-| treap † | done | `lib/treap` |
-| tree † | done | `lib/bst` |
-| tree automaton | def |  |
+| treap | done | `lib/treap` |
+| tree | done | `lib/bst` |
+| tree automaton | todo | `lib/tree_automaton` |
 | tree contraction | done | `algo/parallel_sim` |
-| tree editing problem | def |  |
-| tree sort † | done | `algo/sort_heap` |
-| tree transducer † | def |  |
-| tree traversal † | done | `lib/bst walks` |
+| tree editing problem | todo | `algo/tree_edit` |
+| treesort (1) | done | `algo/sort_heap` (tree sort) |
+| treesort (2) | done | `algo/sort_heap` (heapsort variants, tournament sort) |
+| tree traversal | done | `lib/bst walks` |
 | triangle inequality | def |  |
 | triconnected graph | done | `algo/graph_conn` |
-| trie † | done | `lib/trie` |
+| trie | done | `lib/trie` |
 | trinary function | def |  |
-| tripartition | def |  |
+| tripartition | done | `algo/sort_misc` (Dutch national flag) |
 | Trotter-Johnson | done | `algo/combinatorics` |
 | TSP | done | `algo/tsp` |
-| TST † | done | `lib/tst` |
-| Turbo-BM † | done | `algo/string_search` |
-| Turbo Reverse Factor † | done | `algo/string_search` |
-| Turing machine | def |  |
-| Turing reduction † | def |  |
-| Turing transducer † | def |  |
-| twin grid file † | done | `lib/grid_file` |
+| TST | done | `lib/tst` |
+| Turbo-BM | done | `algo/string_search` |
+| Turbo Reverse Factor | done | `algo/string_search` |
+| Turing machine | todo | `lib/turing_machine` |
+| Turing reduction | def |  |
+| Turing transducer | todo | `lib/turing_machine` |
+| twin grid file | done | `lib/grid_file` |
+| twisted tabulation hashing | todo | `algo/hash_family` (extensions) |
 
 ### Symbols and digits
 
 | entry | status | module |
 |---|---|---|
-| 2-choice hashing † | done | `lib/two_choice_map` |
+| 2-choice hashing | done | `lib/two_choice_map` |
 
 ### T
 
@@ -1414,73 +1439,76 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| 2-left hashing † | done | `lib/two_choice_map` |
+| 2-left hashing | done | `lib/two_choice_map` |
 
 ### T
 
 | entry | status | module |
 |---|---|---|
-| two-level grid file † | done | `lib/grid_file` |
+| two-level grid file | done | `lib/grid_file` |
 
 ### Symbols and digits
 
 | entry | status | module |
 |---|---|---|
-| 2-3-4 tree † | done | `lib/mway_btree` |
-| 2-3 tree † | done | `lib/mway_btree` |
+| 2-3-4 tree | done | `lib/mway_btree` |
+| 2-3 tree | done | `lib/mway_btree` |
 
 ### T
 
 | entry | status | module |
 |---|---|---|
-| Two Way algorithm † | done | `algo/string_search` |
+| Two Way algorithm | done | `algo/string_search` |
 | two-way linked list | done | `lib/dlist` |
-| two-way merge sort † | done | `algo/sort_misc` |
+| two-way merge sort | done | `algo/sort_misc` |
 
 ### U
 
 | entry | status | module |
 |---|---|---|
-| UB-tree † | done | `lib/ub_tree` |
+| UB-tree | done | `lib/ub_tree` |
 | UKP | done | `algo/knapsack` |
 | unary function | def |  |
 | unbiased coin flipping algorithm | done | `algo/random` |
 | unbounded knapsack problem | done | `algo/knapsack` |
-| uncomputable function † | def |  |
-| uncomputable problem † | def |  |
-| undecidable language † | def |  |
-| undecidable problem † | def |  |
+| uncomputable function | def |  |
+| uncomputable problem | def |  |
+| undecidable language | def |  |
+| undecidable problem | def |  |
 | undirected graph | def |  |
-| uniform circuit complexity † | def |  |
-| uniform circuit family † | def |  |
-| uniform hashing † | def |  |
+| uniform circuit complexity | def |  |
+| uniform circuit family | def |  |
+| uniform hashing | def |  |
 | uniform matrix | def |  |
 | union | done | `algo/sequence` (ds_set_union) |
 | union of automata | done | `lib/automaton` |
-| universal hashing † | done | `algo/hash_family` |
+| universal B-tree | done | `lib/ub_tree` |
+| universal hashing | done | `algo/hash_family` |
 | universal state | def |  |
 | universal Turing machine | def |  |
 | universe | def |  |
+| unlimited branching tree | done | `lib/ub_tree` |
 | unranking | done | `algo/combinatorics` |
-| unsolvable problem † | def |  |
-| unsorted list † | done | `lib/sorted_list` |
+| UnShuffle sort | todo | `algo/sort_dist` (extensions) |
+| unsolvable problem | def |  |
+| unsorted list | done | `lib/sorted_list` |
 | upper triangular matrix | done | `algo/matrix` |
 
 ### V
 
 | entry | status | module |
 |---|---|---|
-| van Emde Boas priority queue † | done | `lib/veb_tree` |
+| van Emde-Boas priority queue | done | `lib/veb_tree` |
 | vehicle routing problem | done | `algo/tsp` |
 | Veitch diagram | def |  |
-| Venn diagram † | def |  |
+| Venn diagram | def |  |
 | vertex | def |  |
 | vertex coloring | done | `algo/graph_np` |
 | vertex connectivity | done | `algo/flow` |
 | vertex cover | done | `algo/graph_np` |
-| vertical visibility map | def |  |
-| virtual hashing † | done | `lib/dynamic_hash` |
-| visibility map | def |  |
+| vertical visibility map | todo | `algo/visibility` |
+| virtual hashing | done | `lib/dynamic_hash` |
+| visibility map | todo | `algo/visibility` |
 | visible | def |  |
 | Viterbi algorithm | done | `algo/hmm` |
 | Vitter's algorithm | done | `algo/adaptive_huffman` |
@@ -1491,22 +1519,22 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | walk | def |  |
-| weak cluster † | def |  |
-| weak-heap † | done | `lib/weak_heap` |
-| weak-heap sort † | done | `lib/weak_heap` |
-| weight-balanced tree † | done | `lib/wb_tree` |
+| WCET | def |  |
+| weak-heap | done | `lib/weak_heap` |
+| weak-heap sort | done | `lib/weak_heap` |
+| weight-balanced tree | done | `lib/wb_tree` |
 | weighted, directed graph | def |  |
 | weighted graph | def |  |
-| window † | def |  |
+| window | def |  |
 | witness | def |  |
 | work | def |  |
 | work-depth model | def |  |
 | work-efficient | def |  |
 | work-preserving | def |  |
-| worst case † | def |  |
-| worst-case cost † | def |  |
-| worst-case minimum access † | def |  |
-| Wu's line algorithm † | done | `algo/geometry` |
+| worst case | def |  |
+| worst-case cost | def |  |
+| worst-case execution time | def |  |
+| worst-case minimum access | def |  |
 
 ### X
 
@@ -1530,15 +1558,16 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| 0-ary function † | def |  |
-| 0-based indexing † | def |  |
-| 0/1 knapsack problem † | done | `algo/knapsack` |
+| 0-ary function | def |  |
+| 0-based indexing | def |  |
+| 0-1 knapsack problem | done | `algo/knapsack` |
 
 ### Z
 
 | entry | status | module |
 |---|---|---|
-| Zhu-Takaoka † | done | `algo/string_search` |
+| Zhu-Takaoka | done | `algo/string_search` |
 | Zipfian distribution | def |  |
 | Zipf's law | def |  |
-| ZPP † | def |  |
+| zipper | todo | `lib/zipper` |
+| ZPP | def |  |
