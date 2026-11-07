@@ -24,9 +24,9 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 713 |
+| done | 715 |
 | todo | 43 |
-| def | 551 |
+| def | 549 |
 | total | 1307 |
 
 ## Todo by target module
@@ -1543,7 +1543,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| Yule distribution | def |  |
+| Yule distribution | done | `algo/random` |
 
 ### Z
 
@@ -1564,7 +1564,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | Zhu-Takaoka | done | `algo/string_search` |
-| Zipfian distribution | def |  |
+| Zipfian distribution | done | `algo/random` |
 | Zipf's law | def |  |
 | zipper | todo | `lib/zipper` |
 | ZPP | def |  |

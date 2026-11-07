@@ -164,6 +164,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/hash_family`: twisted tabulation hashing.
 - `algo/sort_dist`, `algo/sort_misc`: UnShuffle sort, taco sort.
 - `algo/sequence`: in-place perfect shuffle and unshuffle.
+- `algo/random`: Zipfian distribution sampling (rejection-inversion).
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

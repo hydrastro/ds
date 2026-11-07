@@ -23,6 +23,11 @@
  *                            multiplication; presets for MINSTD and the
  *                            Numerical Recipes generator; Hull-Dobell
  *                            full-period test
+ *   ds_zipf_t                Zipfian (Zipf / Yule) distribution on 1..n with
+ *                            exponent s > 0: P(k) proportional to k^-s,
+ *                            sampled in O(1) expected time by Hoermann and
+ *                            Derflinger's rejection-inversion, with the
+ *                            probability mass function alongside
  *   ds_spectral_test_2d      the spectral test in two dimensions: nu_2, the
  *                            largest distance between the parallel lines
  *                            covering the points (x_n, x_n+1), inverted to
@@ -103,6 +108,21 @@ bool ds_lcg_full_period(unsigned long a, unsigned long c, unsigned long m);
  * m < 2^26): out_nu = nu_2, out_mu = pi nu_2^2 / m (may be NULL). */
 ds_status_t ds_spectral_test_2d(unsigned long a, unsigned long m,
                                 double *out_nu, double *out_mu);
+
+typedef struct ds_zipf {
+  unsigned long n;
+  double s;
+  double h_x1;    /* H(1.5) - 1 */
+  double h_n;     /* H(n + 0.5) */
+  double squeeze; /* 2 - H^-1(H(2.5) - h(2)) */
+  double norm;    /* generalised harmonic number H_{n,s} (0 until needed) */
+} ds_zipf_t;
+
+/* n >= 1, s > 0 (finite). */
+ds_status_t ds_zipf_init(ds_zipf_t *z, unsigned long n, double s);
+unsigned long ds_zipf_sample(const ds_zipf_t *z, ds_rng_t *rng);
+/* P(K = k) (0 outside 1..n); the first call sums the normaliser, O(n). */
+double ds_zipf_pmf(ds_zipf_t *z, unsigned long k);
 
 typedef enum ds_reservoir_algorithm {
   DS_RESERVOIR_R = 0,

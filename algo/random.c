@@ -564,3 +564,88 @@ int ds_von_neumann_bit(ds_coin_func_t biased, void *state) {
     }
   }
 }
+
+/* ---- Zipf distribution ------------------------------------------------------
+ */
+
+/* log(1 + x) / x and (exp(x) - 1) / x, accurate near 0 */
+static double rz_helper1(double x) {
+  if (fabs(x) > 1e-8) {
+    return log(1.0 + x) / x;
+  }
+  return 1.0 - x * (0.5 - x * (1.0 / 3.0 - 0.25 * x));
+}
+
+static double rz_helper2(double x) {
+  if (fabs(x) > 1e-8) {
+    return (exp(x) - 1.0) / x;
+  }
+  return 1.0 + x * 0.5 * (1.0 + x / 3.0 * (1.0 + 0.25 * x));
+}
+
+static double rz_h(double s, double x) { return exp(-s * log(x)); }
+
+static double rz_hint(double s, double x) {
+  double lx = log(x);
+  return rz_helper2((1.0 - s) * lx) * lx;
+}
+
+static double rz_hinv(double s, double x) {
+  double t = x * (1.0 - s);
+  if (t < -1.0) {
+    t = -1.0;
+  }
+  return exp(rz_helper1(t) * x);
+}
+
+ds_status_t ds_zipf_init(ds_zipf_t *z, unsigned long n, double s) {
+  if (z == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (n == 0 || !(s > 0.0) || !(s < HUGE_VAL)) {
+    return DS_ERR_INVALID;
+  }
+  z->n = n;
+  z->s = s;
+  z->h_x1 = rz_hint(s, 1.5) - 1.0;
+  z->h_n = rz_hint(s, (double)n + 0.5);
+  z->squeeze = 2.0 - rz_hinv(s, rz_hint(s, 2.5) - rz_h(s, 2.0));
+  z->norm = 0.0;
+  return DS_OK;
+}
+
+unsigned long ds_zipf_sample(const ds_zipf_t *z, ds_rng_t *rng) {
+  if (z == NULL || rng == NULL) {
+    return 0;
+  }
+  for (;;) {
+    double u = z->h_n + ds_rng_double(rng) * (z->h_x1 - z->h_n);
+    double x = rz_hinv(z->s, u);
+    double kd = floor(x + 0.5);
+    unsigned long k;
+    if (kd < 1.0) {
+      kd = 1.0;
+    } else if (kd > (double)z->n) {
+      kd = (double)z->n;
+    }
+    k = (unsigned long)kd;
+    if (kd - x <= z->squeeze || u >= rz_hint(z->s, kd + 0.5) - rz_h(z->s, kd)) {
+      return k;
+    }
+  }
+}
+
+double ds_zipf_pmf(ds_zipf_t *z, unsigned long k) {
+  if (z == NULL || k == 0 || k > z->n) {
+    return 0.0;
+  }
+  if (!(z->norm > 0.0)) {
+    unsigned long i;
+    double sum = 0.0;
+    for (i = z->n; i >= 1; i--) {
+      sum += rz_h(z->s, (double)i); /* small terms first */
+    }
+    z->norm = sum;
+  }
+  return rz_h(z->s, (double)k) / z->norm;
+}
