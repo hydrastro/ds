@@ -202,7 +202,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/lca.c \
   $(ALGO_DIR)/graph_conn.c \
   $(ALGO_DIR)/graph_np.c \
-  $(ALGO_DIR)/tsp.c
+  $(ALGO_DIR)/tsp.c \
+  $(ALGO_DIR)/facility.c
 
 LIB_SRC += $(ALGO_SRC)
 

@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 649 |
-| todo | 56 |
+| done | 655 |
+| todo | 50 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,16 +37,15 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/graph_hard` | 8 | capacitated facility location, discrete p-center, Euclidean Steiner tree, facility location, k-clustering, rectilinear Steiner tree, set cover, Steiner tree |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
+| `algo/graph_hard` | 3 | Euclidean Steiner tree, rectilinear Steiner tree, Steiner tree |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
-| `algo/knapsack` | 1 | set packing |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
@@ -264,7 +263,7 @@ Families ordered by how many DADS entries they close.
 | candidate consistency testing | def |  |
 | candidate verification | def |  |
 | canonical complexity class | def |  |
-| capacitated facility location | todo | `algo/graph_hard` |
+| capacitated facility location | done | `algo/facility` |
 | capacity | def |  |
 | capacity constraint | def |  |
 | cartesian tree | done | `algo/cartesian_tree` |
@@ -409,7 +408,7 @@ Families ordered by how many DADS entries they close.
 | directed acyclic word graph | done | `lib/suffix_automaton` |
 | directed graph | done | `lib/graph` |
 | discrete interval encoding tree | done | `lib/diet` |
-| discrete p-center | todo | `algo/graph_hard` |
+| discrete p-center | done | `algo/facility` |
 | disjoint set | done | `lib/disjoint_set, lib/rollback_union_find` |
 | disjunction | def |  |
 | distributional complexity | def |  |
@@ -517,7 +516,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| facility location | todo | `algo/graph_hard` |
+| facility location | done | `algo/facility` |
 | factor | def |  |
 | factorial | done | `algo/combinatorics` |
 | fast fourier transform | done | `algo/fft` |
@@ -715,7 +714,7 @@ Families ordered by how many DADS entries they close.
 | k-ary heap | done | `lib/indexed_heap` (d-ary) |
 | k-ary Huffman coding | done | `algo/prefix_code` |
 | k-ary tree | def |  |
-| k-clustering | todo | `algo/graph_hard` |
+| k-clustering | done | `algo/facility` |
 | k-coloring | done | `algo/graph_np` |
 | k-connected graph | done | `algo/flow` |
 | k-d-B-tree | todo | `lib/kdb_tree` |
@@ -1218,8 +1217,8 @@ Families ordered by how many DADS entries they close.
 | separation theorem | def |  |
 | sequential search | done | `algo/search` |
 | set | done | `lib/bitset, lib/sparse_set, lib/string_map` (string set) |
-| set cover | todo | `algo/graph_hard` |
-| set packing | todo | `algo/knapsack` |
+| set cover | done | `algo/facility` |
+| set packing | done | `algo/facility` |
 | shadow heap | done | `lib/shadow_heap` |
 | shadow merge | done | `lib/shadow_heap` |
 | shadow merge insert | done | `lib/shadow_heap` |

@@ -142,6 +142,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/graph_conn: single-destination shortest paths and triconnectivity.
 - algo/graph_np: exact and approximate NP-hard graph algorithms.
 - algo/tsp: TSP (exact, heuristic, Christofides), bottleneck TSP, VRP.
+- algo/facility: set cover/packing, facility location, p-center, k-clustering.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

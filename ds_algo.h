@@ -51,5 +51,6 @@
 #include "algo/graph_conn.h"
 #include "algo/graph_np.h"
 #include "algo/tsp.h"
+#include "algo/facility.h"
 
 #endif /* DS_ALGO_H */
