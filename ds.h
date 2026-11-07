@@ -39,6 +39,7 @@
 #include "lib/diet.h"
 #include "lib/disjoint_set.h"
 #include "lib/dlist.h"
+#include "lib/elastic_trie.h"
 #include "lib/extendible_hash.h"
 #include "lib/fenwick_tree.h"
 #include "lib/fibonacci_heap.h"

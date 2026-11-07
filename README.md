@@ -17,6 +17,7 @@ Core mutable containers:
 - - `lib/binary_tree_repr`: first child-next sibling (filial-heir) trees and doubly-chained (de la Briandais) tries
 - - `lib/cactus_stack`: cactus (saguaro, spaghetti) stacks with reference-counted shared frames
 - - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
+- - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
 - - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
 - - `lib/scapegoat_tree`: scapegoat trees with pluggable α

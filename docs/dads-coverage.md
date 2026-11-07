@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 590 |
-| todo | 115 |
+| done | 594 |
+| todo | 111 |
 | def | 593 |
 | total | 1298 |
 
@@ -45,7 +45,6 @@ Families ordered by how many DADS entries they close.
 | `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
-| `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
@@ -216,7 +215,7 @@ Families ordered by how many DADS entries they close.
 | bit vector | done | `lib/bitset, lib/bitvector` |
 | Bk tree | done | `lib/binomial_heap` |
 | blind sort | done | `algo/sort_dist` |
-| blind trie | todo | `lib/elastic_trie` |
+| blind trie | done | `lib/elastic_trie` |
 | block | def |  |
 | block addressing index | def |  |
 | blocking flow | done | `algo/flow` |
@@ -257,7 +256,7 @@ Families ordered by how many DADS entries they close.
 | bucket array | def |  |
 | bucketing method | def |  |
 | bucket sort | done | `algo/sort_dist` |
-| bucket trie | todo | `lib/elastic_trie` |
+| bucket trie | done | `lib/elastic_trie` |
 | buddy system | todo | `lib/buddy_allocator` |
 | buddy tree | todo | `lib/hb_tree` |
 | build-heap | done | `lib/heap, algo/sort` (heap sort) |
@@ -322,7 +321,7 @@ Families ordered by how many DADS entries they close.
 | commutative | def |  |
 | compact data structure | def |  |
 | compact DAWG | done | `lib/suffix_automaton` |
-| compact trie | todo | `lib/elastic_trie` |
+| compact trie | done | `lib/elastic_trie` |
 | comparison sort | done | `algo/sort, algo/sort_classic` |
 | competitive analysis | def |  |
 | competitive ratio | def |  |
@@ -483,7 +482,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| elastic-bucket trie | todo | `lib/elastic_trie` |
+| elastic-bucket trie | done | `lib/elastic_trie` |
 | element uniqueness | done | `algo/sequence` (ds_unique after sort) |
 | end-of-string | def |  |
 | enfilade | todo | `lib/enfilade` |
