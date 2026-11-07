@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 597 |
-| todo | 108 |
+| done | 599 |
+| todo | 106 |
 | def | 593 |
 | total | 1298 |
 
@@ -50,7 +50,6 @@ Families ordered by how many DADS entries they close.
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
-| `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
@@ -1453,8 +1452,8 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| 2-3-4 tree † | todo | `lib/btree` (2-3 / 2-3-4 presets) |
-| 2-3 tree † | todo | `lib/btree` (2-3 / 2-3-4 presets) |
+| 2-3-4 tree † | done | `lib/mway_btree` |
+| 2-3 tree † | done | `lib/mway_btree` |
 
 ### T
 
