@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 601 |
-| todo | 104 |
+| done | 602 |
+| todo | 103 |
 | def | 593 |
 | total | 1298 |
 
@@ -55,7 +55,6 @@ Families ordered by how many DADS entries they close.
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/enfilade` | 1 | enfilade |
-| `lib/indexed_heap (hash index)` | 1 | hash heap |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
@@ -622,7 +621,7 @@ Families ordered by how many DADS entries they close.
 | hash | done | `algo/hash` |
 | hashbelt | done | `lib/dynamic_hash` |
 | hash function | done | `algo/hash` |
-| hash heap | todo | `lib/indexed_heap` (hash index) |
+| hash heap | done | `lib/hash_heap` |
 | hash table | done | `lib/hash_table, lib/rh_map` |
 | hash table delete | done | `lib/hash_table, lib/rh_map` (backward shift) |
 | hash tree | done | `lib/merkle_tree` |

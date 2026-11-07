@@ -131,6 +131,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/mway_btree: order-m B-trees, 2-3 and 2-3-4 trees.
 - lib/pagoda: pagoda meldable priority queues.
 - lib/buddy_allocator: the binary buddy system.
+- lib/hash_heap: hash heaps addressable by key.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
