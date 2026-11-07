@@ -200,7 +200,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/hmm.c \
   $(ALGO_DIR)/parallel_sim.c \
   $(ALGO_DIR)/lca.c \
-  $(ALGO_DIR)/graph_conn.c
+  $(ALGO_DIR)/graph_conn.c \
+  $(ALGO_DIR)/graph_np.c
 
 LIB_SRC += $(ALGO_SRC)
 

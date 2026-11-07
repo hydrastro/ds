@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 624 |
-| todo | 81 |
+| done | 642 |
+| todo | 63 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,7 +37,7 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/graph_hard` | 33 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, chromatic index, chromatic number, clique, clique problem, discrete p-center, edge coloring, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, feedback vertex set, graph coloring, graph isomorphism, graph partition, Hamiltonian cycle, Hamiltonian path, independent set, k-clustering, k-coloring, maximal independent set, path cover, rectilinear Steiner tree, set cover, Steiner tree, subgraph isomorphism, traveling salesman, TSP, vehicle routing problem, vertex coloring, vertex cover, VRP |
+| `algo/graph_hard` | 15 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, discrete p-center, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, k-clustering, rectilinear Steiner tree, set cover, Steiner tree, traveling salesman, TSP, vehicle routing problem, VRP |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
@@ -281,15 +281,15 @@ Families ordered by how many DADS entries they close.
 | Chinese postman problem | done | `algo/graph_path` |
 | Chinese remainder theorem | done | `algo/number_theory` |
 | Christofides algorithm | todo | `algo/graph_hard` |
-| chromatic index | todo | `algo/graph_hard` |
-| chromatic number | todo | `algo/graph_hard` |
+| chromatic index | done | `algo/graph_np` |
+| chromatic number | done | `algo/graph_np` |
 | circuit | def |  |
 | circuit complexity | def |  |
 | circuit value problem | def |  |
 | circular list | done | `lib/ring_list` |
 | circular queue | done | `lib/circular_buffer` |
-| clique | todo | `algo/graph_hard` |
-| clique problem | todo | `algo/graph_hard` |
+| clique | done | `algo/graph_np` |
+| clique problem | done | `algo/graph_np` |
 | clustering | def |  |
 | clustering free | def |  |
 | coalesced chaining | done | `lib/coalesced_map` |
@@ -451,7 +451,7 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | easy split, hard merge | def |  |
 | edge | def |  |
-| edge coloring | todo | `algo/graph_hard` |
+| edge coloring | done | `algo/graph_np` |
 | edge connectivity | done | `algo/flow` |
 | edge crossing | def |  |
 | edge-weighted graph | def |  |
@@ -525,7 +525,7 @@ Families ordered by how many DADS entries they close.
 | feasible region | def |  |
 | feasible solution | def |  |
 | feedback edge set | done | `algo/graph_struct` |
-| feedback vertex set | todo | `algo/graph_hard` |
+| feedback vertex set | done | `algo/graph_np` |
 | Ferguson-Forcade algorithm | todo | `algo/numeric` (extensions) |
 | FFT | done | `algo/fft` |
 | Fibonaccian search | done | `algo/search` |
@@ -589,11 +589,11 @@ Families ordered by how many DADS entries they close.
 | global optimum | def |  |
 | gnome sort | done | `algo/sort_classic` |
 | graph | def |  |
-| graph coloring | todo | `algo/graph_hard` |
+| graph coloring | done | `algo/graph_np` |
 | graph concentration | def |  |
 | graph drawing | def |  |
-| graph isomorphism | todo | `algo/graph_hard` |
-| graph partition | todo | `algo/graph_hard` |
+| graph isomorphism | done | `algo/graph_np` |
+| graph partition | done | `algo/graph_np` |
 | Gray code | done | `algo/bits` |
 | greatest common divisor | done | `algo/numeric` |
 | greedy algorithm | def |  |
@@ -607,8 +607,8 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | halting problem | def |  |
-| Hamiltonian cycle | todo | `algo/graph_hard` |
-| Hamiltonian path | todo | `algo/graph_hard` |
+| Hamiltonian cycle | done | `algo/graph_np` |
+| Hamiltonian path | done | `algo/graph_np` |
 | Hamming distance | done | `algo/stringology` |
 | hard split, easy merge | def |  |
 | hash | done | `algo/hash` |
@@ -661,7 +661,7 @@ Families ordered by how many DADS entries they close.
 | incompressible string | def |  |
 | incremental hashing | done | `algo/hash_family` |
 | in-degree | def |  |
-| independent set | todo | `algo/graph_hard` |
+| independent set | done | `algo/graph_np` |
 | index file | def |  |
 | information theoretic bound | def |  |
 | in-order traversal | done | `lib/avl, lib/rbt, lib/bst walks` |
@@ -716,7 +716,7 @@ Families ordered by how many DADS entries they close.
 | k-ary Huffman coding | done | `algo/prefix_code` |
 | k-ary tree | def |  |
 | k-clustering | todo | `algo/graph_hard` |
-| k-coloring | todo | `algo/graph_hard` |
+| k-coloring | done | `algo/graph_np` |
 | k-connected graph | done | `algo/flow` |
 | k-d-B-tree | todo | `lib/kdb_tree` |
 | k-dimensional | def |  |
@@ -819,7 +819,7 @@ Families ordered by how many DADS entries they close.
 | matrix-chain multiplication problem | done | `algo/knapsack` |
 | matrix multiplication | done | `algo/matrix` |
 | max-heap property | def |  |
-| maximal independent set | todo | `algo/graph_hard` |
+| maximal independent set | done | `algo/graph_np` |
 | maximally connected component | def |  |
 | Maximal Shift | done | `algo/string_search` |
 | maximum bipartite matching | done | `algo/matching` |
@@ -1002,7 +1002,7 @@ Families ordered by how many DADS entries they close.
 | partition | done | `algo/combinatorics` |
 | passive data structure | def |  |
 | path | def |  |
-| path cover | todo | `algo/graph_hard` |
+| path cover | done | `algo/graph_np` |
 | path system problem | def |  |
 | Patricia tree | done | `lib/radix_trie, lib/critbit_tree` |
 | pattern | def |  |
@@ -1324,7 +1324,7 @@ Families ordered by how many DADS entries they close.
 | strongly NP-hard † | def |  |
 | subadditive ergodic theorem † | def |  |
 | subgraph | def |  |
-| subgraph isomorphism | todo | `algo/graph_hard` |
+| subgraph isomorphism | done | `algo/graph_np` |
 | sublinear time algorithm † | def |  |
 | subsequence † | def |  |
 | subset | def |  |
@@ -1491,9 +1491,9 @@ Families ordered by how many DADS entries they close.
 | Veitch diagram | def |  |
 | Venn diagram † | def |  |
 | vertex | def |  |
-| vertex coloring | todo | `algo/graph_hard` |
+| vertex coloring | done | `algo/graph_np` |
 | vertex connectivity | done | `algo/flow` |
-| vertex cover | todo | `algo/graph_hard` |
+| vertex cover | done | `algo/graph_np` |
 | vertical visibility map | def |  |
 | virtual hashing † | done | `lib/dynamic_hash` |
 | visibility map | def |  |

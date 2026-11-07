@@ -49,5 +49,6 @@
 #include "algo/parallel_sim.h"
 #include "algo/lca.h"
 #include "algo/graph_conn.h"
+#include "algo/graph_np.h"
 
 #endif /* DS_ALGO_H */

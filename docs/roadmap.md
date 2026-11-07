@@ -140,6 +140,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/parallel_sim: pointer jumping, recursive doubling, shortcutting, list and tree contraction.
 - algo/lca: lowest common ancestors three ways.
 - algo/graph_conn: single-destination shortest paths and triconnectivity.
+- algo/graph_np: exact and approximate NP-hard graph algorithms.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
