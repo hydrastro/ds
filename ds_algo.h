@@ -52,6 +52,7 @@
 #include "algo/sort_dist.h"
 #include "algo/sort_heap.h"
 #include "algo/sort_misc.h"
+#include "algo/space_order.h"
 #include "algo/steiner.h"
 #include "algo/string_approx.h"
 #include "algo/string_search.h"

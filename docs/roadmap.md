@@ -166,6 +166,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/sequence`: in-place perfect shuffle and unshuffle.
 - `algo/random`: Zipfian distribution sampling (rejection-inversion).
 - `lib/binary_tree_repr`: stack trees (check and build).
+- algo/space_order: space ordering methods.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

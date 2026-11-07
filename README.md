@@ -183,6 +183,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `algo/lattice`: LLL reduced bases, shortest vectors, spectral test in t dimensions, integer relations (PSLQ / Ferguson-Forcade, LLL)
 - `algo/rice_integral`: Rice's method (Norlund-Rice integrals for alternating binomial sums)
 - `algo/geo_opt`: geometric optimisation (Welzl, Megiddo prune and search, Seidel 2-D LP, Weiszfeld)
+- `algo/space_order`: space ordering methods (row, row-prime, Morton, Hilbert, Gray, double Gray, U, Cantor, spiral; k-D Morton and Hilbert)
 
 Newer high-level modules:
 

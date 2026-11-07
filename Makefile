@@ -221,7 +221,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/lp.c \
   $(ALGO_DIR)/lattice.c \
   $(ALGO_DIR)/rice_integral.c \
-  $(ALGO_DIR)/geo_opt.c
+  $(ALGO_DIR)/geo_opt.c \
+  $(ALGO_DIR)/space_order.c
 
 LIB_SRC += $(ALGO_SRC)
 
