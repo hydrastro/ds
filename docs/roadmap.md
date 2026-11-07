@@ -159,6 +159,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/jump_list: jump lists.
 - lib/ld_signature: linked data signatures (canonical N-Quads, SHA-256, HMAC).
 - algo/lattice: LLL, shortest vectors, spectral test, integer relations.
+- algo/rice_integral: Rice's method.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

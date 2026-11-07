@@ -181,6 +181,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - Steiner trees: Dreyfus-Wagner, KMB 2-approximation, rectilinear (Hanan grid), Euclidean heuristic
 - - linear programming: two-phase simplex with duals, dual programs, branch and bound and Gomory cutting planes for (mixed) integer programs
 - - `algo/lattice`: LLL reduced bases, shortest vectors, spectral test in t dimensions, integer relations (PSLQ / Ferguson-Forcade, LLL)
+- - `algo/rice_integral`: Rice's method (Norlund-Rice integrals for alternating binomial sums)
 
 Newer high-level modules:
 

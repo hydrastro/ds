@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 703 |
-| todo | 2 |
+| done | 704 |
+| todo | 1 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,7 +38,6 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/geometry` | 1 | geometric optimization problem |
-| `algo/numeric (extensions)` | 1 | Rice's method |
 
 ## Index A-Z
 
@@ -1153,7 +1152,7 @@ Families ordered by how many DADS entries they close.
 | Reverse Colussi | done | `algo/string_search` |
 | Reverse Factor | done | `algo/string_search` |
 | R-file | done | `lib/bang_file` |
-| Rice's method | todo | `algo/numeric` (extensions) |
+| Rice's method | done | `algo/rice_integral` |
 | right rotation | done | `lib/avl, lib/rbt` |
 | right-threaded tree | done | `lib/threaded_tree` |
 | RNG | done | `algo/random` |

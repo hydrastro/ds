@@ -55,5 +55,6 @@
 #include "algo/steiner.h"
 #include "algo/lp.h"
 #include "algo/lattice.h"
+#include "algo/rice_integral.h"
 
 #endif /* DS_ALGO_H */
