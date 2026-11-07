@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 583 |
-| todo | 122 |
+| done | 584 |
+| todo | 121 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
-| `algo/cartesian_tree` | 1 | cartesian tree |
 | `algo/game` | 1 | minimax |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
@@ -284,7 +283,7 @@ Families ordered by how many DADS entries they close.
 | capacitated facility location | todo | `algo/graph_hard` |
 | capacity | def |  |
 | capacity constraint | def |  |
-| cartesian tree | todo | `algo/cartesian_tree` |
+| cartesian tree | done | `algo/cartesian_tree` |
 | Caverphone | done | `algo/phonetic` |
 | CCS | def |  |
 | cell probe model | def |  |

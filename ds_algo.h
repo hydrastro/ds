@@ -40,5 +40,6 @@
 #include "algo/compress.h"
 #include "algo/adaptive_huffman.h"
 #include "algo/phonetic.h"
+#include "algo/cartesian_tree.h"
 
 #endif /* DS_ALGO_H */

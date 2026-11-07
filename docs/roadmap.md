@@ -122,6 +122,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/diet: discrete interval encoding trees.
 - lib/tst: ternary search trees with partial-match and near-neighbour search.
 - lib/two_choice_map: 2-choice / d-choice and d-left hashing.
+- algo/cartesian_tree: Cartesian trees, RMQ and Cartesian tree sort.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
