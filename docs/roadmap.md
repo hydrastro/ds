@@ -141,6 +141,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/lca: lowest common ancestors three ways.
 - algo/graph_conn: single-destination shortest paths and triconnectivity.
 - algo/graph_np: exact and approximate NP-hard graph algorithms.
+- algo/tsp: TSP (exact, heuristic, Christofides), bottleneck TSP, VRP.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

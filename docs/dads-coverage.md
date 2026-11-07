@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 642 |
-| todo | 63 |
+| done | 649 |
+| todo | 56 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,7 +37,7 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/graph_hard` | 15 | bottleneck traveling salesman, capacitated facility location, Christofides algorithm, discrete p-center, Euclidean Steiner tree, Euclidean traveling salesman problem, facility location, k-clustering, rectilinear Steiner tree, set cover, Steiner tree, traveling salesman, TSP, vehicle routing problem, VRP |
+| `algo/graph_hard` | 8 | capacitated facility location, discrete p-center, Euclidean Steiner tree, facility location, k-clustering, rectilinear Steiner tree, set cover, Steiner tree |
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
@@ -217,7 +217,7 @@ Families ordered by how many DADS entries they close.
 | boolean function | def |  |
 | border | def |  |
 | Boruvka's algorithm | done | `algo/graph_path` |
-| bottleneck traveling salesman | todo | `algo/graph_hard` |
+| bottleneck traveling salesman | done | `algo/tsp` |
 | boundary-based representation | def |  |
 | bounded error probability in polynomial time | def |  |
 | bounded queue | done | `lib/circular_buffer, lib/array_deque` (fixed buffer) |
@@ -280,7 +280,7 @@ Families ordered by how many DADS entries they close.
 | child | def |  |
 | Chinese postman problem | done | `algo/graph_path` |
 | Chinese remainder theorem | done | `algo/number_theory` |
-| Christofides algorithm | todo | `algo/graph_hard` |
+| Christofides algorithm | done | `algo/tsp` |
 | chromatic index | done | `algo/graph_np` |
 | chromatic number | done | `algo/graph_np` |
 | circuit | def |  |
@@ -479,7 +479,7 @@ Families ordered by how many DADS entries they close.
 | Euclidean algorithm | done | `algo/numeric` (ds_gcd) |
 | Euclidean distance | done | `algo/geometry` |
 | Euclidean Steiner tree | todo | `algo/graph_hard` |
-| Euclidean traveling salesman problem | todo | `algo/graph_hard` |
+| Euclidean traveling salesman problem | done | `algo/tsp` |
 | Euclid's algorithm | done | `algo/numeric` |
 | Euler cycle | done | `algo/graph_struct` |
 | Eulerian graph | done | `algo/graph_struct` |
@@ -1390,7 +1390,7 @@ Families ordered by how many DADS entries they close.
 | transitive closure | done | `algo/graph_struct` |
 | transitive reduction | done | `algo/graph_struct` |
 | transpose sequential search † | done | `lib/self_org_list` |
-| traveling salesman | todo | `algo/graph_hard` |
+| traveling salesman | done | `algo/tsp` |
 | treap † | done | `lib/treap` |
 | tree † | done | `lib/bst` |
 | tree automaton | def |  |
@@ -1405,7 +1405,7 @@ Families ordered by how many DADS entries they close.
 | trinary function | def |  |
 | tripartition | def |  |
 | Trotter-Johnson | done | `algo/combinatorics` |
-| TSP | todo | `algo/graph_hard` |
+| TSP | done | `algo/tsp` |
 | TST † | done | `lib/tst` |
 | Turbo-BM † | done | `algo/string_search` |
 | Turbo Reverse Factor † | done | `algo/string_search` |
@@ -1487,7 +1487,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | van Emde Boas priority queue † | done | `lib/veb_tree` |
-| vehicle routing problem | todo | `algo/graph_hard` |
+| vehicle routing problem | done | `algo/tsp` |
 | Veitch diagram | def |  |
 | Venn diagram † | def |  |
 | vertex | def |  |
@@ -1500,7 +1500,7 @@ Families ordered by how many DADS entries they close.
 | visible | def |  |
 | Viterbi algorithm | done | `algo/hmm` |
 | Vitter's algorithm | done | `algo/adaptive_huffman` |
-| VRP | todo | `algo/graph_hard` |
+| VRP | done | `algo/tsp` |
 
 ### W
 

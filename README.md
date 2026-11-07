@@ -163,6 +163,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - lowest common ancestors: binary lifting, Euler tour + sparse table, Tarjan's offline LCA
 - - graph connectivity: reverse graphs, single-destination shortest paths, separation pairs, triconnectivity
 - - NP-hard graph problems: cliques, independent sets, vertex cover, (edge) colouring, chromatic number/index, Hamiltonian paths, path cover, feedback vertex set, (sub)graph isomorphism, bisection
+- - traveling salesman: Held-Karp, nearest neighbour, 2-opt, Christofides, Euclidean and bottleneck TSP; Clarke-Wright vehicle routing
 
 Newer high-level modules:
 
