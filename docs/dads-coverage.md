@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 622 |
-| todo | 83 |
+| done | 624 |
+| todo | 81 |
 | def | 593 |
 | total | 1298 |
 
@@ -45,7 +45,6 @@ Families ordered by how many DADS entries they close.
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
-| `algo/graph_alg` | 2 | single-destination shortest-path problem, triconnected graph |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -1247,7 +1246,7 @@ Families ordered by how many DADS entries they close.
 | simplex | todo | `algo/lp` |
 | simulated annealing | def |  |
 | simulation theorem † | def |  |
-| single-destination shortest-path problem | todo | `algo/graph_alg` |
+| single-destination shortest-path problem | done | `algo/graph_conn` |
 | single-pair shortest-path problem | done | `algo/graph_path` |
 | single program multiple data | def |  |
 | single-source shortest-path problem | done | `algo/graph_path` |
@@ -1401,7 +1400,7 @@ Families ordered by how many DADS entries they close.
 | tree transducer † | def |  |
 | tree traversal † | done | `lib/bst walks` |
 | triangle inequality | def |  |
-| triconnected graph | todo | `algo/graph_alg` |
+| triconnected graph | done | `algo/graph_conn` |
 | trie † | done | `lib/trie` |
 | trinary function | def |  |
 | tripartition | def |  |

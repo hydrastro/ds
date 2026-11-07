@@ -161,6 +161,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - hidden Markov models: scaled forward-backward, posteriors, Viterbi, Baum-Welch
 - - PRAM simulations: pointer jumping, recursive doubling, shortcutting, list contraction, tree contraction
 - - lowest common ancestors: binary lifting, Euler tour + sparse table, Tarjan's offline LCA
+- - graph connectivity: reverse graphs, single-destination shortest paths, separation pairs, triconnectivity
 
 Newer high-level modules:
 

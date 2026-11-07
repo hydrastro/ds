@@ -139,6 +139,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/hmm: hidden Markov models, Viterbi and Baum-Welch.
 - algo/parallel_sim: pointer jumping, recursive doubling, shortcutting, list and tree contraction.
 - algo/lca: lowest common ancestors three ways.
+- algo/graph_conn: single-destination shortest paths and triconnectivity.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
