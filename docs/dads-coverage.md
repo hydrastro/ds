@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 709 |
-| todo | 46 |
+| done | 710 |
+| todo | 45 |
 | def | 552 |
 | total | 1307 |
 
@@ -45,7 +45,6 @@ Families ordered by how many DADS entries they close.
 | `lib/sstable` | 2 | sorted-string table, SSTable |
 | `algo/anneal` | 1 | simulated annealing |
 | `algo/dynamization` | 1 | dynamization transformation |
-| `algo/hash_family (extensions)` | 1 | twisted tabulation hashing |
 | `algo/markov` | 1 | Markov chain |
 | `algo/sort_dist (extensions)` | 1 | UnShuffle sort |
 | `algo/sort_misc (extensions)` | 1 | taco sort |
@@ -1421,7 +1420,7 @@ Families ordered by how many DADS entries they close.
 | Turing reduction | def |  |
 | Turing transducer | todo | `lib/turing_machine` |
 | twin grid file | done | `lib/grid_file` |
-| twisted tabulation hashing | todo | `algo/hash_family` (extensions) |
+| twisted tabulation hashing | done | `algo/hash_family` |
 
 ### Symbols and digits
 

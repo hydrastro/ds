@@ -26,6 +26,11 @@
  *   ds_tabulation_hash_t  simple tabulation (Zobrist; Patrascu-Thorup):
  *                         XOR of four random tables indexed by the key's
  *                         bytes, 3-independent
+ *   ds_twisted_tabulation_hash_t
+ *                         twisted tabulation (Patrascu-Thorup): the tables
+ *                         of characters 2..c also yield a twister, XORed
+ *                         into the first character before its lookup,
+ *                         which gives Chernoff-style concentration
  *
  * Incremental (rolling) hashes for sliding windows, the basis of
  * Rabin-Karp and content-defined chunking:
@@ -93,6 +98,23 @@ unsigned long ds_tabulation_hash(const ds_tabulation_hash_t *h,
  */
 unsigned long ds_tabulation_hash_bytes(const ds_tabulation_hash_t *h,
                                        const void *data, size_t length);
+
+typedef struct ds_twisted_tabulation_hash {
+  unsigned long table[4][256]; /* hash parts (table 0: the first byte) */
+  unsigned char twist[4][256]; /* twisters of tables 1..3 */
+} ds_twisted_tabulation_hash_t;
+
+void ds_twisted_tabulation_hash_init(ds_twisted_tabulation_hash_t *h,
+                                     ds_random_func_t random,
+                                     void *random_state);
+/* (t, r) = XOR of T_i[x_i] over bytes 1..3; h = r ^ T_0[x_0 ^ t]. */
+unsigned long ds_twisted_tabulation_hash(const ds_twisted_tabulation_hash_t *h,
+                                         unsigned long key);
+/* Byte strings: the twister of bytes 1..n-1 (tables reused cyclically,
+ * position mixed in) twists the first byte. */
+unsigned long
+ds_twisted_tabulation_hash_bytes(const ds_twisted_tabulation_hash_t *h,
+                                 const void *data, size_t length);
 
 typedef struct ds_rolling_hash {
   unsigned long base;  /* < p */

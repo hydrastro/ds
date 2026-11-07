@@ -141,7 +141,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - graphs over any representation (ds_gview_t view, CSR helper): BFS, Dijkstra, Bellman-Ford with negative-cycle detection, topological sort, Tarjan SCC (iterative), bipartite check, Prim MST forest, Floyd-Warshall with paths
 - classic sorts: bubble, cocktail shaker, selection, gnome, binary insertion, comb, odd-even transposition, cycle (minimum writes), pancake, bitonic (any n), stooge, counting sort
 - strings over bytes: KMP, Rabin-Karp, prefix and Z functions, suffix array (prefix doubling), LCP (Kasai), Manacher, minimal rotation, Lyndon factorization (Duval), Levenshtein, OSA/Damerau, LCS, Hamming
-- hash families: Pearson, multiplicative (Knuth), order-preserving, universal (Carter-Wegman, multiply-shift, tabulation), rolling polynomial hash and buzhash
+- hash families: Pearson, multiplicative (Knuth), order-preserving, universal (Carter-Wegman, multiply-shift, tabulation, twisted tabulation), rolling polynomial hash and buzhash
 - perfect hashing: order-preserving minimal perfect hash (Czech-Havas-Majewski)
 - locality-sensitive hashing: MinHash, banding, SimHash
 - network flow: residual networks; Edmonds-Karp, Dinic, Malhotra-Kumar-Maheshwari and push-relabel max flow; min cut; min-cost flow; edge/vertex connectivity

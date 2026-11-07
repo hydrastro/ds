@@ -177,6 +177,50 @@ unsigned long ds_tabulation_hash_bytes(const ds_tabulation_hash_t *h,
   return x;
 }
 
+void ds_twisted_tabulation_hash_init(ds_twisted_tabulation_hash_t *h,
+                                     ds_random_func_t random,
+                                     void *random_state) {
+  unsigned int t;
+  unsigned int i;
+  for (t = 0; t < 4; t++) {
+    for (i = 0; i < 256; i++) {
+      unsigned long r = random(random_state);
+      h->table[t][i] = r & HF_MASK32;
+      h->twist[t][i] = (unsigned char)(random(random_state) & 0xFFUL);
+    }
+  }
+}
+
+unsigned long ds_twisted_tabulation_hash(const ds_twisted_tabulation_hash_t *h,
+                                         unsigned long key) {
+  unsigned int tw;
+  unsigned long r;
+  unsigned int c1 = (unsigned int)((key >> 8) & 0xFFUL);
+  unsigned int c2 = (unsigned int)((key >> 16) & 0xFFUL);
+  unsigned int c3 = (unsigned int)((key >> 24) & 0xFFUL);
+  tw = (unsigned int)(h->twist[1][c1] ^ h->twist[2][c2] ^ h->twist[3][c3]);
+  r = h->table[1][c1] ^ h->table[2][c2] ^ h->table[3][c3];
+  return r ^ h->table[0][(unsigned int)(key & 0xFFUL) ^ tw];
+}
+
+unsigned long
+ds_twisted_tabulation_hash_bytes(const ds_twisted_tabulation_hash_t *h,
+                                 const void *data, size_t length) {
+  const unsigned char *p = (const unsigned char *)data;
+  unsigned long r = h->table[1][length & 0xFFUL];
+  unsigned int tw = h->twist[1][length & 0xFFUL];
+  size_t i;
+  if (length == 0) {
+    return r;
+  }
+  for (i = 1; i < length; i++) {
+    unsigned int t = 1U + (unsigned int)(i % 3);
+    r = hf_rotl32(r, 5) ^ h->table[t][p[i]];
+    tw = (tw ^ h->twist[t][p[i]]) & 0xFFU;
+  }
+  return r ^ h->table[0][(unsigned int)p[0] ^ tw];
+}
+
 void ds_rolling_hash_init(ds_rolling_hash_t *h, unsigned long base) {
   h->base = base == 0 ? 256 : base % HF_P;
   h->value = 0;

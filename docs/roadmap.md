@@ -161,6 +161,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/lattice: LLL, shortest vectors, spectral test, integer relations.
 - algo/rice_integral: Rice's method.
 - algo/geo_opt: geometric optimisation problems.
+- `algo/hash_family`: twisted tabulation hashing.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
