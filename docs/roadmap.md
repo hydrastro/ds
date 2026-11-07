@@ -154,6 +154,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/bsp_tree: BSP-trees and cell trees (convex pieces in a line partition).
 - lib/p_tree: P-trees (polyhedral trees).
 - lib/d_tree: D-trees for planar point queries.
+- lib/ub_tree: universal B-trees and unlimited branching trees.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

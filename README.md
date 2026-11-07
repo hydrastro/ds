@@ -43,6 +43,7 @@ Core mutable containers:
 - - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
 - - `lib/tst`: ternary search trees with prefix, partial-match and near-neighbour searches
 - - `lib/two_choice_map`: d-choice (2-choice) and d-left hash maps
+- - `lib/ub_tree`: universal B-trees (Z-order, BIGMIN) and unlimited branching trees
 - - `lib/wb_tree`: weight-balanced BB[α] trees with pluggable (δ, γ), select/rank and root balance
 - Array deque (by-value ring that grows or lives in a fixed buffer, overwrite mode)
 - Augmented treap (ordered map with pluggable subtree summaries, rank/select, range summary, guided descent)

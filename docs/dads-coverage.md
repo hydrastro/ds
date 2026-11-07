@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 697 |
-| todo | 8 |
+| done | 698 |
+| todo | 7 |
 | def | 593 |
 | total | 1298 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
-| `lib/ub_tree` | 1 | UB-tree |
 
 ## Index A-Z
 
@@ -1447,7 +1446,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| UB-tree † | todo | `lib/ub_tree` |
+| UB-tree † | done | `lib/ub_tree` |
 | UKP | done | `algo/knapsack` |
 | unary function | def |  |
 | unbiased coin flipping algorithm | done | `algo/random` |

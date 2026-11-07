@@ -119,6 +119,7 @@
 #include "lib/trie_stores.h"
 #include "lib/tst.h"
 #include "lib/two_choice_map.h"
+#include "lib/ub_tree.h"
 #include "lib/veb_tree.h"
 #include "lib/vec.h"
 #include "lib/wavelet_tree.h"
