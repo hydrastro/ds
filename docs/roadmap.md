@@ -133,6 +133,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/buddy_allocator: the binary buddy system.
 - lib/hash_heap: hash heaps addressable by key.
 - lib/enfilade: enfilades with retrieval by address and rearrange.
+- lib/signature_file: superimposed coding and signature files.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

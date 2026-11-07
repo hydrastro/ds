@@ -28,6 +28,7 @@ Core mutable containers:
 - - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
 - - `lib/scapegoat_tree`: scapegoat trees with pluggable α
 - - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees
+- - `lib/signature_file`: superimposed codes and signature files
 - - `lib/sorted_list`: sorted arrays (binary search, bounds, merge), ordered linked lists and unsorted lists
 - - `lib/sparse_matrix`: orthogonal-list sparse matrices (sum, product, transpose, CSR), ragged matrices, huge sparse arrays
 - - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal

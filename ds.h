@@ -90,6 +90,7 @@
 #include "lib/self_org_list.h"
 #include "lib/shadow_heap.h"
 #include "lib/sieve_cache.h"
+#include "lib/signature_file.h"
 #include "lib/skip_list.h"
 #include "lib/slot_map.h"
 #include "lib/sorted_list.h"

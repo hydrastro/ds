@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 603 |
-| todo | 102 |
+| done | 604 |
+| todo | 101 |
 | def | 593 |
 | total | 1298 |
 
@@ -52,7 +52,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
-| `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
@@ -1341,7 +1340,7 @@ Families ordered by how many DADS entries they close.
 | suffix array † | done | `algo/stringology` |
 | suffix automaton | done | `lib/suffix_automaton` |
 | suffix tree † | done | `lib/suffix_tree` |
-| superimposed code | todo | `lib/bloom_filter` (superimposed codes) |
+| superimposed code | done | `lib/signature_file` |
 | superset | def |  |
 | supersink | def |  |
 | supersource | def |  |
