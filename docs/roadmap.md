@@ -123,6 +123,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/tst: ternary search trees with partial-match and near-neighbour search.
 - lib/two_choice_map: 2-choice / d-choice and d-left hashing.
 - algo/cartesian_tree: Cartesian trees, RMQ and Cartesian tree sort.
+- algo/schorr_waite: stackless pointer-reversal graph marking.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

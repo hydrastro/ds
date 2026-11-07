@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 584 |
-| todo | 121 |
+| done | 585 |
+| todo | 120 |
 | def | 593 |
 | total | 1298 |
 
@@ -57,7 +57,6 @@ Families ordered by how many DADS entries they close.
 | `algo/game` | 1 | minimax |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
-| `algo/schorr_waite` | 1 | Schorr-Waite graph marking algorithm |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/buddy_allocator` | 1 | buddy system |
@@ -1213,7 +1212,7 @@ Families ordered by how many DADS entries they close.
 | scan | done | `algo/scan` |
 | scapegoat tree | done | `lib/scapegoat_tree` |
 | scatter storage | def |  |
-| Schorr-Waite graph marking algorithm | todo | `algo/schorr_waite` |
+| Schorr-Waite graph marking algorithm | done | `algo/schorr_waite` |
 | search | def |  |
 | search tree | def |  |
 | search tree property | def |  |

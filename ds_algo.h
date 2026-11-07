@@ -41,5 +41,6 @@
 #include "algo/adaptive_huffman.h"
 #include "algo/phonetic.h"
 #include "algo/cartesian_tree.h"
+#include "algo/schorr_waite.h"
 
 #endif /* DS_ALGO_H */
