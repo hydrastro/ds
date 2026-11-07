@@ -136,6 +136,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/signature_file: superimposed coding and signature files.
 - algo/fft: DFT, FFT for any length, convolution, NTT.
 - algo/matrix: matrix multiplication and packed triangular matrices.
+- algo/hmm: hidden Markov models, Viterbi and Baum-Welch.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

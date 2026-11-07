@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 612 |
-| todo | 93 |
+| done | 616 |
+| todo | 89 |
 | def | 593 |
 | total | 1298 |
 
@@ -43,7 +43,6 @@ Families ordered by how many DADS entries they close.
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
-| `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
@@ -168,7 +167,7 @@ Families ordered by how many DADS entries they close.
 | balanced two-way merge sort | done | `algo/external_sort` |
 | BANG file | todo | `lib/grid_file` |
 | Batcher sort | done | `algo/sort_classic` (bitonic) |
-| Baum Welch algorithm | todo | `algo/hmm` |
+| Baum Welch algorithm | done | `algo/hmm` |
 | BB(α) tree | done | `lib/wb_tree` |
 | BBP algorithm | done | `algo/numerical` |
 | BDD | done | `lib/bdd` |
@@ -633,10 +632,10 @@ Families ordered by how many DADS entries they close.
 | height-balanced binary search tree | done | `lib/avl` |
 | height-balanced tree | done | `lib/avl` |
 | heuristic | def |  |
-| hidden Markov model | todo | `algo/hmm` |
+| hidden Markov model | done | `algo/hmm` |
 | highest common factor | done | `algo/numeric` |
 | histogram sort | done | `algo/sort_dist` |
-| HMM | todo | `algo/hmm` |
+| HMM | done | `algo/hmm` |
 | homeomorphic | def |  |
 | horizontal visibility map | def |  |
 | Horner's rule | done | `algo/numerical` |
@@ -1501,7 +1500,7 @@ Families ordered by how many DADS entries they close.
 | virtual hashing † | done | `lib/dynamic_hash` |
 | visibility map | def |  |
 | visible | def |  |
-| Viterbi algorithm | todo | `algo/hmm` |
+| Viterbi algorithm | done | `algo/hmm` |
 | Vitter's algorithm | done | `algo/adaptive_huffman` |
 | VRP | todo | `algo/graph_hard` |
 

@@ -196,7 +196,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/schorr_waite.c \
   $(ALGO_DIR)/game.c \
   $(ALGO_DIR)/fft.c \
-  $(ALGO_DIR)/matrix.c
+  $(ALGO_DIR)/matrix.c \
+  $(ALGO_DIR)/hmm.c
 
 LIB_SRC += $(ALGO_SRC)
 
