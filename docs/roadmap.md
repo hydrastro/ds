@@ -145,6 +145,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/facility: set cover/packing, facility location, p-center, k-clustering.
 - algo/steiner: graph, rectilinear and Euclidean Steiner trees.
 - algo/lp: simplex, duality, MILP by branch and bound and cutting planes.
+- lib/quadtree: PR quadtrees, octrees, bintrees, point and linear quadtrees.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

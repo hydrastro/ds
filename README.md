@@ -25,6 +25,7 @@ Core mutable containers:
 - - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
 - - `lib/pagoda`: pagoda meldable priority queues
+- - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
 - - `lib/scapegoat_tree`: scapegoat trees with pluggable α
 - - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees

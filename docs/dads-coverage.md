@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 664 |
-| todo | 41 |
+| done | 672 |
+| todo | 33 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
-| `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
@@ -48,7 +47,6 @@ Families ordered by how many DADS entries they close.
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
-| `lib/octree` | 1 | octree |
 | `lib/ub_tree` | 1 | UB-tree |
 
 ## Index A-Z
@@ -192,7 +190,7 @@ Families ordered by how many DADS entries they close.
 | binomial tree | done | `lib/binomial_heap` |
 | bin packing problem | done | `algo/knapsack` |
 | bin sort | done | `algo/sort_dist` |
-| bintree | todo | `lib/quadtree` |
+| bintree | done | `lib/quadtree` |
 | bipartite graph | done | `algo/graph_view` (ds_gview_bipartite) |
 | bipartite matching | done | `algo/matching` |
 | bisector | done | `algo/geometry` |
@@ -773,7 +771,7 @@ Families ordered by how many DADS entries they close.
 | linear probing sort | done | `algo/sort_dist` |
 | linear product | def |  |
 | linear program | done | `algo/lp` |
-| linear quadtree | todo | `lib/quadtree` |
+| linear quadtree | done | `lib/quadtree` |
 | linear search | done | `algo/search` (ds_find) |
 | link | def |  |
 | linked data signature | todo | `lib/merkle_tree` |
@@ -922,7 +920,7 @@ Families ordered by how many DADS entries they close.
 | objective function | def |  |
 | oblivious algorithm | def |  |
 | occurrence | def |  |
-| octree | todo | `lib/octree` |
+| octree | done | `lib/quadtree` |
 | off-line algorithm | def |  |
 | offset | def |  |
 | omega | def |  |
@@ -983,7 +981,7 @@ Families ordered by how many DADS entries they close.
 | padding argument | def |  |
 | pagoda | done | `lib/pagoda` |
 | pairing heap | done | `lib/pairing_heap` |
-| PAM | todo | `lib/quadtree` |
+| PAM | done | `lib/quadtree` |
 | parallel computation thesis | def |  |
 | parallel prefix computation | done | `algo/scan` |
 | parallel random-access machine | def |  |
@@ -1026,7 +1024,7 @@ Families ordered by how many DADS entries they close.
 | planarization | def |  |
 | planar straight-line graph | def |  |
 | PLOP-hashing | def |  |
-| point access method | todo | `lib/quadtree` |
+| point access method | done | `lib/quadtree` |
 | pointer jumping | done | `algo/parallel_sim` |
 | pointer machine | def |  |
 | poissonization | def |  |
@@ -1091,9 +1089,9 @@ Families ordered by how many DADS entries they close.
 | qm sort | done | `algo/sort_misc` |
 | q sort | done | `algo/sort_misc` |
 | quadratic probing | done | `lib/hash_table` |
-| quadtree | todo | `lib/quadtree` |
+| quadtree | done | `lib/quadtree` |
 | quadtree complexity theorem | def |  |
-| quad trie | todo | `lib/quadtree` |
+| quad trie | done | `lib/quadtree` |
 | quantum computation | def |  |
 | queue | done | `lib/queue` |
 | quick search | done | `algo/string_search` |
@@ -1150,7 +1148,7 @@ Families ordered by how many DADS entries they close.
 | reduced ordered binary decision diagram | done | `lib/bdd` |
 | reduction | def |  |
 | reflexive | def |  |
-| regular decomposition | todo | `lib/quadtree` |
+| regular decomposition | done | `lib/quadtree` |
 | rehashing | done | `lib/open_map` |
 | relation | def |  |
 | relational structure | def |  |
