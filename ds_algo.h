@@ -31,6 +31,7 @@
 #include "algo/lca.h"
 #include "algo/lp.h"
 #include "algo/lsh.h"
+#include "algo/markov.h"
 #include "algo/matching.h"
 #include "algo/matrix.h"
 #include "algo/number_theory.h"

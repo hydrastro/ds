@@ -170,6 +170,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/spiral_storage: spiral storage.
 - lib/sstable: SSTables.
 - lib/zipper: zippers over persistent binary trees
+- algo/markov: Markov chain analysis
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

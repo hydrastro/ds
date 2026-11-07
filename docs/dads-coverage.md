@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 721 |
-| todo | 37 |
+| done | 722 |
+| todo | 36 |
 | def | 549 |
 | total | 1307 |
 
@@ -44,7 +44,6 @@ Families ordered by how many DADS entries they close.
 | `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
 | `algo/anneal` | 1 | simulated annealing |
 | `algo/dynamization` | 1 | dynamization transformation |
-| `algo/markov` | 1 | Markov chain |
 | `lib/cellular_automaton` | 1 | cellular automaton |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
@@ -804,7 +803,7 @@ Families ordered by how many DADS entries they close.
 | Manhattan distance | done | `algo/geometry` |
 | many-one reduction | def |  |
 | map | done | `lib/hash_table, lib/rh_map, lib/avl, ...` |
-| Markov chain | todo | `algo/markov` |
+| Markov chain | done | `algo/markov` |
 | Marlena | def |  |
 | marriage problem | done | `algo/matching` |
 | Master theorem | def |  |
