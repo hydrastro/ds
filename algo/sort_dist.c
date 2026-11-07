@@ -1384,3 +1384,174 @@ ds_status_t ds_j_sort(void *base, size_t count, size_t elem_size,
   ds_context_free(context, scratch);
   return st;
 }
+
+/* ---- UnShuffle sort
+ * ---------------------------------------------------------- */
+
+/* A pile is a deque of element indices: the front part is kept reversed in
+ * its own array, so the pile reads front[nf-1..0] then back[0..nb-1]. */
+typedef struct sd_pile {
+  size_t *front;
+  size_t nf;
+  size_t cf;
+  size_t *back;
+  size_t nb;
+  size_t cb;
+  size_t pos; /* merge cursor */
+} sd_pile_t;
+
+static size_t sd_pile_at(const sd_pile_t *p, size_t i) {
+  return i < p->nf ? p->front[p->nf - 1 - i] : p->back[i - p->nf];
+}
+
+static size_t sd_pile_len(const sd_pile_t *p) { return p->nf + p->nb; }
+
+static ds_status_t sd_push(ds_context_t *ctx, size_t **a, size_t *n,
+                           size_t *cap, size_t v) {
+  if (*n == *cap) {
+    size_t nc = *cap < 4 ? 8 : *cap * 2;
+    void *q = ds_context_realloc(ctx, *a, nc * sizeof(size_t));
+    if (q == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    *a = (size_t *)q;
+    *cap = nc;
+  }
+  (*a)[(*n)++] = v;
+  return DS_OK;
+}
+
+ds_status_t ds_unshuffle_sort(void *base, size_t count, size_t elem_size,
+                              ds_compare_func_t compare, void *user,
+                              size_t *out_piles, ds_context_t *context) {
+  unsigned char *copy = NULL;
+  sd_pile_t *piles = NULL;
+  size_t np = 0;
+  size_t pcap = 0;
+  size_t *heap = NULL;
+  size_t hn = 0;
+  size_t i;
+  size_t k;
+  ds_status_t st = DS_OK;
+  if (out_piles != NULL) {
+    *out_piles = 0;
+  }
+  if (base == NULL || compare == NULL) {
+    return count < 2 ? DS_OK : DS_ERR_NULL;
+  }
+  if (count < 2 || elem_size == 0) {
+    if (out_piles != NULL) {
+      *out_piles = count;
+    }
+    return DS_OK;
+  }
+  copy = (unsigned char *)ds_context_alloc(context, count * elem_size);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  memcpy(copy, base, count * elem_size);
+  /* deal: the most recently used pile is tried first */
+  for (i = 0; i < count && st == DS_OK; i++) {
+    const void *x = CAT(copy, i, elem_size);
+    size_t p;
+    bool placed = false;
+    for (k = 0; k < np && !placed; k++) {
+      sd_pile_t *q;
+      size_t last;
+      size_t first;
+      p = np - 1 - k;
+      q = &piles[p];
+      last = sd_pile_at(q, sd_pile_len(q) - 1);
+      first = sd_pile_at(q, 0);
+      if (compare(x, CAT(copy, last, elem_size), user) >= 0) {
+        st = sd_push(context, &q->back, &q->nb, &q->cb, i);
+        placed = true;
+      } else if (compare(x, CAT(copy, first, elem_size), user) < 0) {
+        st = sd_push(context, &q->front, &q->nf, &q->cf, i);
+        placed = true;
+      }
+    }
+    if (!placed && st == DS_OK) {
+      if (np == pcap) {
+        size_t nc = pcap < 4 ? 8 : pcap * 2;
+        void *q = ds_context_realloc(context, piles, nc * sizeof(sd_pile_t));
+        if (q == NULL) {
+          st = DS_ERR_ALLOC;
+          break;
+        }
+        piles = (sd_pile_t *)q;
+        pcap = nc;
+      }
+      memset(&piles[np], 0, sizeof(sd_pile_t));
+      st = sd_push(context, &piles[np].back, &piles[np].nb, &piles[np].cb, i);
+      np++;
+    }
+  }
+  /* merge: a binary heap of piles keyed by their next element (ties by
+   * pile number) */
+  if (st == DS_OK) {
+    heap = (size_t *)ds_context_alloc(context, np * sizeof(size_t));
+    if (heap == NULL) {
+      st = DS_ERR_ALLOC;
+    }
+  }
+  if (st == DS_OK) {
+    size_t out = 0;
+#define SD_KEY(p) CAT(copy, sd_pile_at(&piles[p], piles[p].pos), elem_size)
+#define SD_LESS(a, b)                                                          \
+  (compare(SD_KEY(a), SD_KEY(b), user) < 0 ||                                  \
+   (compare(SD_KEY(a), SD_KEY(b), user) == 0 && (a) < (b)))
+    for (k = 0; k < np; k++) {
+      size_t j = hn++;
+      heap[j] = k;
+      while (j > 0 && SD_LESS(heap[j], heap[(j - 1) / 2])) {
+        size_t t = heap[j];
+        heap[j] = heap[(j - 1) / 2];
+        heap[(j - 1) / 2] = t;
+        j = (j - 1) / 2;
+      }
+    }
+    while (hn > 0) {
+      size_t p = heap[0];
+      size_t j = 0;
+      memcpy(AT(base, out++, elem_size), SD_KEY(p), elem_size);
+      piles[p].pos++;
+      if (piles[p].pos == sd_pile_len(&piles[p])) {
+        heap[0] = heap[--hn];
+      }
+      for (;;) {
+        size_t l = 2 * j + 1;
+        size_t r = l + 1;
+        size_t m = j;
+        if (l < hn && SD_LESS(heap[l], heap[m])) {
+          m = l;
+        }
+        if (r < hn && SD_LESS(heap[r], heap[m])) {
+          m = r;
+        }
+        if (m == j) {
+          break;
+        }
+        {
+          size_t t = heap[j];
+          heap[j] = heap[m];
+          heap[m] = t;
+        }
+        j = m;
+      }
+    }
+#undef SD_KEY
+#undef SD_LESS
+  }
+  if (out_piles != NULL && st == DS_OK) {
+    *out_piles = np;
+  }
+  for (k = 0; k < np; k++) {
+    ds_context_free(context, piles[k].front);
+    ds_context_free(context, piles[k].back);
+  }
+  ds_context_free(context, piles);
+  ds_context_free(context, heap);
+  ds_context_free(context, copy);
+  return st;
+}

@@ -44,7 +44,10 @@
  * source; each returns whether the result is sorted: ds_bogosort
  * (shuffle until sorted), ds_bozo_sort (swap two random elements until
  * sorted), ds_permutation_sort (try every permutation, Heap's algorithm),
- * ds_lucky_sort (does nothing; tells you whether you were lucky).
+ * ds_lucky_sort (does nothing; tells you whether you were lucky),
+ * ds_taco_sort_ulong (Michael Bernard's taco sort: set a random item to a
+ * random k-bit value until the array is a sorted permutation of its
+ * original contents; expected n 2^(n k) steps).
  */
 
 #include "../lib/context.h"
@@ -150,6 +153,11 @@ bool ds_permutation_sort(void *base, size_t count, size_t elem_size,
                          unsigned long max_steps, ds_context_t *context);
 bool ds_lucky_sort(void *base, size_t count, size_t elem_size,
                    ds_compare_func_t compare, void *user);
+/* values are k-bit (1 <= bits <= 32); false when the budget runs out (the
+ * array then holds the last random state) or on allocation failure. */
+bool ds_taco_sort_ulong(unsigned long *values, size_t count, unsigned bits,
+                        ds_random_func_t random, void *random_state,
+                        unsigned long max_steps, ds_context_t *context);
 
 #ifdef __cplusplus
 }

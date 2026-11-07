@@ -2,6 +2,7 @@
 #include "kway_merge.h"
 #include "select.h"
 #include "sort.h"
+#include <stdlib.h>
 #include <string.h>
 
 #define AT(base, i, es) ((unsigned char *)(base) + (size_t)(i) * (es))
@@ -1109,4 +1110,49 @@ bool ds_permutation_sort(void *base, size_t count, size_t elem_size,
   }
   ds_context_free(context, c);
   return sorted;
+}
+
+static int sm_cmp_ulong(const void *a, const void *b) {
+  unsigned long x = *(const unsigned long *)a;
+  unsigned long y = *(const unsigned long *)b;
+  return (x > y) - (x < y);
+}
+
+bool ds_taco_sort_ulong(unsigned long *values, size_t count, unsigned bits,
+                        ds_random_func_t random, void *random_state,
+                        unsigned long max_steps, ds_context_t *context) {
+  unsigned long *target;
+  unsigned long mask;
+  unsigned long steps = 0;
+  unsigned long own = 7654321UL;
+  bool done;
+  if (values == NULL || count < 2) {
+    return true;
+  }
+  if (bits == 0 || bits > 32) {
+    return false;
+  }
+  mask = bits == 32 ? 0xFFFFFFFFUL : (1UL << bits) - 1UL;
+  if (random == NULL) {
+    random = sm_xorshift;
+    random_state = &own;
+  }
+  target =
+      (unsigned long *)ds_context_alloc(context, count * sizeof(unsigned long));
+  if (target == NULL) {
+    return false;
+  }
+  memcpy(target, values, count * sizeof(unsigned long));
+  qsort(target, count, sizeof(unsigned long), sm_cmp_ulong);
+  for (;;) {
+    done = memcmp(values, target, count * sizeof(unsigned long)) == 0;
+    if (done || (max_steps != 0 && steps >= max_steps)) {
+      break;
+    }
+    values[sm_bounded(random, random_state, count)] =
+        random(random_state) & mask;
+    steps++;
+  }
+  ds_context_free(context, target);
+  return done;
 }

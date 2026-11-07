@@ -162,6 +162,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/rice_integral: Rice's method.
 - algo/geo_opt: geometric optimisation problems.
 - `algo/hash_family`: twisted tabulation hashing.
+- `algo/sort_dist`, `algo/sort_misc`: UnShuffle sort, taco sort.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

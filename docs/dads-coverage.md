@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 710 |
-| todo | 45 |
+| done | 712 |
+| todo | 43 |
 | def | 552 |
 | total | 1307 |
 
@@ -46,8 +46,6 @@ Families ordered by how many DADS entries they close.
 | `algo/anneal` | 1 | simulated annealing |
 | `algo/dynamization` | 1 | dynamization transformation |
 | `algo/markov` | 1 | Markov chain |
-| `algo/sort_dist (extensions)` | 1 | UnShuffle sort |
-| `algo/sort_misc (extensions)` | 1 | taco sort |
 | `algo/space_order` | 1 | space ordering method |
 | `lib/binary_tree_repr (extensions)` | 1 | stack tree |
 | `lib/cellular_automaton` | 1 | cellular automaton |
@@ -1358,7 +1356,7 @@ Families ordered by how many DADS entries they close.
 | entry | status | module |
 |---|---|---|
 | tabulation hashing | done | `algo/hash_family` |
-| taco sort | todo | `algo/sort_misc` (extensions) |
+| taco sort | done | `algo/sort_misc` |
 | tail | def |  |
 | tail recursion | def |  |
 | target | def |  |
@@ -1488,7 +1486,7 @@ Families ordered by how many DADS entries they close.
 | universe | def |  |
 | unlimited branching tree | done | `lib/ub_tree` |
 | unranking | done | `algo/combinatorics` |
-| UnShuffle sort | todo | `algo/sort_dist` (extensions) |
+| UnShuffle sort | done | `algo/sort_dist` |
 | unsolvable problem | def |  |
 | unsorted list | done | `lib/sorted_list` |
 | upper triangular matrix | done | `algo/matrix` |

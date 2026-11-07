@@ -51,6 +51,15 @@
  * Every sort is iterative or recurses only O(log n) deep. Stability is
  * noted per function. Buffers are caller-provided where a size is known
  * up front; otherwise working memory comes from the ds_context_t.
+ *
+ * Runs:
+ *   ds_unshuffle_sort     Kagel's UnShuffle sort: items are dealt onto
+ *                         piles (double-ended queues kept in order, an
+ *                         item going to the back or front of the first
+ *                         pile that takes it, else onto a new pile), then
+ *                         the piles are merged through a heap of their
+ *                         heads; Theta(n) on sorted input, about
+ *                         n K / 2 + n log K for K piles
  */
 
 #include "../lib/context.h"
@@ -160,6 +169,12 @@ ds_status_t ds_shuffle_sort(void *base, size_t count, size_t elem_size,
 ds_status_t ds_j_sort(void *base, size_t count, size_t elem_size,
                       ds_compare_func_t compare, void *user,
                       ds_context_t *context);
+
+/* out_piles (may be NULL) receives the number of piles. Needs O(n)
+ * scratch from the context. */
+ds_status_t ds_unshuffle_sort(void *base, size_t count, size_t elem_size,
+                              ds_compare_func_t compare, void *user,
+                              size_t *out_piles, ds_context_t *context);
 
 #ifdef __cplusplus
 }
