@@ -151,6 +151,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/grid_file: fixed-grid method, grid files, twin, two-level and multilayer grid files.
 - lib/bang_file: EXCELL, BANG files and R-files.
 - lib/hb_tree: hB-trees, buddy trees, BD-trees, GBD-trees and BV-trees.
+- lib/bsp_tree: BSP-trees and cell trees (convex pieces in a line partition).
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -16,6 +16,7 @@ Core mutable containers:
 - - `lib/association_list`: association lists (shadowing bindings) and property lists
 - - `lib/bang_file`: EXCELL, BANG files and R-files
 - - `lib/binary_tree_repr`: first child-next sibling (filial-heir) trees and doubly-chained (de la Briandais) tries
+- - `lib/bsp_tree`: BSP-trees and cell trees
 - - `lib/buddy_allocator`: binary buddy system allocator (in-place realloc, context hook)
 - - `lib/cactus_stack`: cactus (saguaro, spaghetti) stacks with reference-counted shared frames
 - - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)

@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 693 |
-| todo | 12 |
+| done | 695 |
+| todo | 10 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,9 +38,8 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
-| `lib/hb_tree` | 3 | cell tree, D-tree, P-tree |
+| `lib/hb_tree` | 2 | D-tree, P-tree |
 | `algo/geometry` | 1 | geometric optimization problem |
-| `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
@@ -228,7 +227,7 @@ Families ordered by how many DADS entries they close.
 | brute force | def |  |
 | brute force string search | done | `algo/string_search` |
 | brute force string search with mismatches | done | `algo/string_search` |
-| BSP-tree | todo | `lib/bsp_tree` |
+| BSP-tree | done | `lib/bsp_tree` |
 | B*-tree | done | `lib/bplus_tree` (B* split policy) |
 | B-tree | done | `lib/btree` |
 | bubble sort | done | `algo/sort_classic` |
@@ -263,7 +262,7 @@ Families ordered by how many DADS entries they close.
 | Caverphone | done | `algo/phonetic` |
 | CCS | def |  |
 | cell probe model | def |  |
-| cell tree | todo | `lib/hb_tree` |
+| cell tree | done | `lib/bsp_tree` |
 | cellular automaton | def |  |
 | centroid | done | `algo/graph_struct` |
 | certificate | def |  |

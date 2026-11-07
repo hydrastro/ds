@@ -26,6 +26,7 @@
 #include "lib/bitvector.h"
 #include "lib/bloom_filter.h"
 #include "lib/bplus_tree.h"
+#include "lib/bsp_tree.h"
 #include "lib/bst.h"
 #include "lib/btree.h"
 #include "lib/buddy_allocator.h"
