@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 698 |
-| todo | 7 |
+| done | 699 |
+| todo | 6 |
 | def | 593 |
 | total | 1298 |
 
@@ -40,7 +40,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `lib/jump_list` | 1 | jump list |
-| `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
 
 ## Index A-Z
@@ -725,7 +724,7 @@ Families ordered by how many DADS entries they close.
 | kth order Fibonacci numbers | done | `algo/number_theory` |
 | kth shortest path | done | `algo/graph_path` |
 | kth smallest element | done | `algo/sort` (nth_element) |
-| k²-tree | todo | `lib/k2_tree` |
+| k²-tree | done | `lib/k2_tree` |
 | KV diagram | def |  |
 | k-way merge | done | `algo/kway_merge` |
 | k-way merge sort | done | `algo/sort_misc` |

@@ -64,6 +64,7 @@
 #include "lib/indexed_heap.h"
 #include "lib/interval_tree.h"
 #include "lib/inversion_list.h"
+#include "lib/k2_tree.h"
 #include "lib/kd_tree.h"
 #include "lib/kdb_tree.h"
 #include "lib/linear_hash_map.h"

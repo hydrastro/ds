@@ -155,6 +155,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/p_tree: P-trees (polyhedral trees).
 - lib/d_tree: D-trees for planar point queries.
 - lib/ub_tree: universal B-trees and unlimited branching trees.
+- lib/k2_tree: k^2-trees for compact sparse matrices.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
