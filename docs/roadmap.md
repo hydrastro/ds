@@ -158,6 +158,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/k2_tree: k^2-trees for compact sparse matrices.
 - lib/jump_list: jump lists.
 - lib/ld_signature: linked data signatures (canonical N-Quads, SHA-256, HMAC).
+- algo/lattice: LLL, shortest vectors, spectral test, integer relations.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

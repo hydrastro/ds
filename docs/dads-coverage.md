@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 701 |
-| todo | 4 |
+| done | 703 |
+| todo | 2 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,8 +37,8 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
+| `algo/numeric (extensions)` | 1 | Rice's method |
 
 ## Index A-Z
 
@@ -512,7 +512,7 @@ Families ordered by how many DADS entries they close.
 | feasible solution | def |  |
 | feedback edge set | done | `algo/graph_struct` |
 | feedback vertex set | done | `algo/graph_np` |
-| Ferguson-Forcade algorithm | todo | `algo/numeric` (extensions) |
+| Ferguson-Forcade algorithm | done | `algo/lattice` |
 | FFT | done | `algo/fft` |
 | Fibonaccian search | done | `algo/search` |
 | Fibonacci heap | done | `lib/fibonacci_heap` |
@@ -1134,7 +1134,7 @@ Families ordered by how many DADS entries they close.
 | recursively enumerable language | def |  |
 | recursively solvable | def |  |
 | red-black tree | done | `lib/rbt, lib/persistent_rbt` |
-| reduced basis | todo | `algo/numeric` (extensions) |
+| reduced basis | done | `algo/lattice` |
 | reduced digraph | done | `algo/graph_struct` |
 | reduced ordered binary decision diagram | done | `lib/bdd` |
 | reduction | def |  |

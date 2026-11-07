@@ -218,7 +218,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/tsp.c \
   $(ALGO_DIR)/facility.c \
   $(ALGO_DIR)/steiner.c \
-  $(ALGO_DIR)/lp.c
+  $(ALGO_DIR)/lp.c \
+  $(ALGO_DIR)/lattice.c
 
 LIB_SRC += $(ALGO_SRC)
 

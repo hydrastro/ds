@@ -54,5 +54,6 @@
 #include "algo/facility.h"
 #include "algo/steiner.h"
 #include "algo/lp.h"
+#include "algo/lattice.h"
 
 #endif /* DS_ALGO_H */
