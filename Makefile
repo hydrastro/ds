@@ -148,7 +148,8 @@ LIB_SRC := \
   $(LIB_DIR)/elastic_trie.c \
   $(LIB_DIR)/dynamic_hash.c \
   $(LIB_DIR)/mway_btree.c \
-  $(LIB_DIR)/pagoda.c
+  $(LIB_DIR)/pagoda.c \
+  $(LIB_DIR)/buddy_allocator.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -201,6 +202,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/buddy_allocator.c $(LIB_DIR)/buddy_allocator.h \
   $(LIB_DIR)/pagoda.c $(LIB_DIR)/pagoda.h \
   $(LIB_DIR)/mway_btree.c $(LIB_DIR)/mway_btree.h \
   $(LIB_DIR)/dynamic_hash.c $(LIB_DIR)/dynamic_hash.h \

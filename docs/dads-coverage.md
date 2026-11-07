@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 600 |
-| todo | 105 |
+| done | 601 |
+| todo | 104 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/knapsack` | 1 | set packing |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
-| `lib/buddy_allocator` | 1 | buddy system |
 | `lib/enfilade` | 1 | enfilade |
 | `lib/indexed_heap (hash index)` | 1 | hash heap |
 | `lib/jump_list` | 1 | jump list |
@@ -254,7 +253,7 @@ Families ordered by how many DADS entries they close.
 | bucketing method | def |  |
 | bucket sort | done | `algo/sort_dist` |
 | bucket trie | done | `lib/elastic_trie` |
-| buddy system | todo | `lib/buddy_allocator` |
+| buddy system | done | `lib/buddy_allocator` |
 | buddy tree | todo | `lib/hb_tree` |
 | build-heap | done | `lib/heap, algo/sort` (heap sort) |
 | Burrows-Wheeler transform | done | `lib/suffix_tree` |

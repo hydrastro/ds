@@ -27,6 +27,7 @@
 #include "lib/bplus_tree.h"
 #include "lib/bst.h"
 #include "lib/btree.h"
+#include "lib/buddy_allocator.h"
 #include "lib/cactus_stack.h"
 #include "lib/calendar_queue.h"
 #include "lib/circular_buffer.h"

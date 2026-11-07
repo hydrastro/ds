@@ -15,6 +15,7 @@ Core mutable containers:
 
 - - `lib/association_list`: association lists (shadowing bindings) and property lists
 - - `lib/binary_tree_repr`: first child-next sibling (filial-heir) trees and doubly-chained (de la Briandais) tries
+- - `lib/buddy_allocator`: binary buddy system allocator (in-place realloc, context hook)
 - - `lib/cactus_stack`: cactus (saguaro, spaghetti) stacks with reference-counted shared frames
 - - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
 - - `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
