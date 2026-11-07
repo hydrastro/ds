@@ -381,9 +381,7 @@ void ds_excell_destroy(ds_excell_t *e) {
   memset(e, 0, sizeof(*e));
 }
 
-size_t ds_excell_size(const ds_excell_t *e) {
-  return e == NULL ? 0 : e->size;
-}
+size_t ds_excell_size(const ds_excell_t *e) { return e == NULL ? 0 : e->size; }
 
 size_t ds_excell_depth(const ds_excell_t *e) {
   return e == NULL ? 0 : e->depth;

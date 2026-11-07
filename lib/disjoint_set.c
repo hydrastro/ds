@@ -77,6 +77,4 @@ size_t ds_disjoint_set_count(ds_disjoint_set_t *set) {
   return result;
 }
 
-void ds_disjoint_set_destroy(ds_disjoint_set_t *set) {
-  set->deallocator(set);
-}
+void ds_disjoint_set_destroy(ds_disjoint_set_t *set) { set->deallocator(set); }

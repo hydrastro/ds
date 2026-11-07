@@ -117,6 +117,4 @@ ds_status_t ds_hll_merge(ds_hll_t *dst, const ds_hll_t *src) {
   return DS_OK;
 }
 
-void ds_hll_clear(ds_hll_t *hll) {
-  memset(hll->registers, 0, hll->count);
-}
+void ds_hll_clear(ds_hll_t *hll) { memset(hll->registers, 0, hll->count); }

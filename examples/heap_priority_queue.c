@@ -18,9 +18,7 @@ static int compare_jobs(ds_heap_node_t *a, ds_heap_node_t *b) {
   return CAST(a, job_t)->cost - CAST(b, job_t)->cost;
 }
 
-static void free_job(ds_heap_node_t *node) {
-  free(node);
-}
+static void free_job(ds_heap_node_t *node) { free(node); }
 
 static job_t *make_job(int cost) {
   job_t *j = (job_t *)malloc(sizeof(job_t));

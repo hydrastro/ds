@@ -1,14 +1,14 @@
 #ifndef DS_H
 #define DS_H
 
-#include "lib/common.h"
-#include "lib/status.h"
-#include "lib/error.h"
-#include "lib/diagnostic.h"
-#include "lib/context.h"
 #include "lib/allocators.h"
-#include "lib/result.h"
+#include "lib/common.h"
+#include "lib/context.h"
+#include "lib/diagnostic.h"
+#include "lib/error.h"
 #include "lib/iter.h"
+#include "lib/result.h"
+#include "lib/status.h"
 
 #include "lib/aho_corasick.h"
 #include "lib/array_deque.h"

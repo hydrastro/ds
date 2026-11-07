@@ -60,9 +60,7 @@ static void *tiny_clone(void *state, void *clone_data) {
   return copy;
 }
 
-static void tiny_destroy(void *state) {
-  free(state);
-}
+static void tiny_destroy(void *state) { free(state); }
 
 static int tiny_apply(void *state, const ds_history_operation_t *op) {
   struct tiny_state *tiny;

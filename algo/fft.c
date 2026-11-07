@@ -34,9 +34,7 @@ ds_status_t ds_dft(const ds_complex_t *in, ds_complex_t *out, size_t n,
   return DS_OK;
 }
 
-static bool ft_pow2(size_t n) {
-  return n != 0 && (n & (n - 1)) == 0;
-}
+static bool ft_pow2(size_t n) { return n != 0 && (n & (n - 1)) == 0; }
 
 /* Radix-2 iterative FFT, no scaling. */
 static void ft_radix2(ds_complex_t *a, size_t n, bool inverse) {

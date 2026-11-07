@@ -560,9 +560,7 @@ ds_status_t ds_cuckoo_map_reserve(ds_cuckoo_map_t *map, size_t count) {
   return ck_rehash(map, b);
 }
 
-size_t ds_cuckoo_map_size(const ds_cuckoo_map_t *map) {
-  return map->size;
-}
+size_t ds_cuckoo_map_size(const ds_cuckoo_map_t *map) { return map->size; }
 
 size_t ds_cuckoo_map_capacity(const ds_cuckoo_map_t *map) {
   return ck_slots(map);

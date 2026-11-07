@@ -100,13 +100,9 @@ static unsigned long history_branch_insert_with_id(ds_history_branch_t *branch,
                                                    void *payload);
 static size_t history_branch_operation_count(ds_history_branch_t *branch);
 
-static void *history_default_allocator(size_t size) {
-  return malloc(size);
-}
+static void *history_default_allocator(size_t size) { return malloc(size); }
 
-static void history_default_deallocator(void *ptr) {
-  free(ptr);
-}
+static void history_default_deallocator(void *ptr) { free(ptr); }
 
 static char *history_strdup(ds_history_t *history, const char *str) {
   size_t len;
@@ -1674,9 +1670,7 @@ static void *history_archive_default_allocator(size_t size) {
   return malloc(size);
 }
 
-static void history_archive_default_deallocator(void *ptr) {
-  free(ptr);
-}
+static void history_archive_default_deallocator(void *ptr) { free(ptr); }
 
 void ds_history_archive_init(ds_history_archive_t *archive) {
   ds_history_archive_init_alloc(archive, history_archive_default_allocator,

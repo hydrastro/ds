@@ -27,9 +27,7 @@ int compare_nodes(ds_rbt_node_t *node1, ds_rbt_node_t *node2) {
   return CAST(node1, my_node_t)->data - CAST(node2, my_node_t)->data;
 }
 
-void print_node(void *node) {
-  printf("%d ", (CAST(node, my_node_t))->data);
-}
+void print_node(void *node) { printf("%d ", (CAST(node, my_node_t))->data); }
 
 void destroy_node(ds_rbt_node_t *node) {
   my_node_t *my_node = CAST(node, my_node_t);

@@ -78,9 +78,7 @@ static size_t om_round(size_t n) {
   return (n + OM_ALIGN - 1) / OM_ALIGN * OM_ALIGN;
 }
 
-static size_t om_max_load(size_t capacity) {
-  return capacity - capacity / 8;
-}
+static size_t om_max_load(size_t capacity) { return capacity - capacity / 8; }
 
 static size_t om_pos(const ds_open_map_t *map, unsigned long h, size_t i) {
   return map->config.probe->position(h, i, map->capacity - 1,
@@ -543,13 +541,9 @@ ds_status_t ds_open_map_reserve(ds_open_map_t *map, size_t count) {
   return om_resize(map, c);
 }
 
-size_t ds_open_map_size(const ds_open_map_t *map) {
-  return map->size;
-}
+size_t ds_open_map_size(const ds_open_map_t *map) { return map->size; }
 
-size_t ds_open_map_capacity(const ds_open_map_t *map) {
-  return map->capacity;
-}
+size_t ds_open_map_capacity(const ds_open_map_t *map) { return map->capacity; }
 
 size_t ds_open_map_probe_length(const ds_open_map_t *map, const void *key) {
   size_t pos;

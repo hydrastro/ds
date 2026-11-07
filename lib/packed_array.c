@@ -233,9 +233,7 @@ ds_status_t ds_packed_array_resize(ds_packed_array_t *array, size_t size) {
   return DS_OK;
 }
 
-void ds_packed_array_clear(ds_packed_array_t *array) {
-  array->size = 0;
-}
+void ds_packed_array_clear(ds_packed_array_t *array) { array->size = 0; }
 
 size_t ds_packed_array_size(const ds_packed_array_t *array) {
   return array->size;

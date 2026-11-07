@@ -56,9 +56,7 @@ static bool hamt_slot_occupied(unsigned long bitmap, size_t slot) {
   return (bitmap & (1UL << slot)) != 0UL;
 }
 
-ds_hamt_t *ds_hamt_create(void) {
-  return ds_hamt_create_alloc(malloc, free);
-}
+ds_hamt_t *ds_hamt_create(void) { return ds_hamt_create_alloc(malloc, free); }
 
 static ds_hamt_node_t *hamt_new_branch(ds_hamt_t *hamt) {
   ds_hamt_node_t *node =

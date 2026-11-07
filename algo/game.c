@@ -23,9 +23,7 @@ static long gm_eval(gm_t *s, bool max_view) {
   return v == LONG_MIN ? LONG_MAX : -v;
 }
 
-static long gm_neg(long v) {
-  return v == LONG_MIN ? LONG_MAX : -v;
-}
+static long gm_neg(long v) { return v == LONG_MIN ? LONG_MAX : -v; }
 
 /* Generates the moves of this level; 0 when terminal or none. */
 static size_t gm_moves(gm_t *s, size_t level, size_t depth) {

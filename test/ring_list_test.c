@@ -24,9 +24,7 @@ static ds_ring_list_node_t *clone_node(ds_ring_list_node_t *node) {
   return &copy->node;
 }
 
-static void destroy_node(ds_ring_list_node_t *node) {
-  free(node);
-}
+static void destroy_node(ds_ring_list_node_t *node) { free(node); }
 
 int main(void) {
   int_node_t nodes[5];

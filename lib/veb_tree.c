@@ -41,9 +41,7 @@ static bool veb_is_leaf(const ds_veb_node_t *n) {
   return n->bits <= VEB_LEAF_BITS;
 }
 
-static unsigned int veb_lo_bits(const ds_veb_node_t *n) {
-  return n->bits / 2;
-}
+static unsigned int veb_lo_bits(const ds_veb_node_t *n) { return n->bits / 2; }
 
 static unsigned int veb_hi_bits(const ds_veb_node_t *n) {
   return n->bits - n->bits / 2;
@@ -470,9 +468,7 @@ void ds_veb_tree_destroy(ds_veb_tree_t *tree) {
   }
 }
 
-void ds_veb_tree_clear(ds_veb_tree_t *tree) {
-  ds_veb_tree_destroy(tree);
-}
+void ds_veb_tree_clear(ds_veb_tree_t *tree) { ds_veb_tree_destroy(tree); }
 
 ds_status_t ds_veb_tree_insert(ds_veb_tree_t *tree, unsigned long key) {
   ds_status_t status;
@@ -582,13 +578,9 @@ ds_status_t ds_veb_tree_predecessor(const ds_veb_tree_t *tree,
   return DS_OK;
 }
 
-size_t ds_veb_tree_size(const ds_veb_tree_t *tree) {
-  return tree->size;
-}
+size_t ds_veb_tree_size(const ds_veb_tree_t *tree) { return tree->size; }
 
-bool ds_veb_tree_is_empty(const ds_veb_tree_t *tree) {
-  return tree->size == 0;
-}
+bool ds_veb_tree_is_empty(const ds_veb_tree_t *tree) { return tree->size == 0; }
 
 unsigned int ds_veb_tree_universe_bits(const ds_veb_tree_t *tree) {
   return tree->root.bits;

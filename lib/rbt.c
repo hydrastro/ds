@@ -11,9 +11,7 @@ void ds_rbt_set_parent_color(ds_rbt_node_t *node, ds_rbt_node_t *parent,
   node->parent_color = (unsigned long)parent + (long unsigned int)color;
 }
 
-ds_rbt_t *ds_rbt_create(void) {
-  return ds_rbt_create_alloc(malloc, free);
-}
+ds_rbt_t *ds_rbt_create(void) { return ds_rbt_create_alloc(malloc, free); }
 
 ds_rbt_t *ds_rbt_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {

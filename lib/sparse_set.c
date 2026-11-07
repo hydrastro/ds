@@ -96,13 +96,9 @@ ds_status_t ds_sparse_set_index_of(const ds_sparse_set_t *set, size_t value,
   return DS_OK;
 }
 
-void ds_sparse_set_clear(ds_sparse_set_t *set) {
-  set->size = 0;
-}
+void ds_sparse_set_clear(ds_sparse_set_t *set) { set->size = 0; }
 
-size_t ds_sparse_set_size(const ds_sparse_set_t *set) {
-  return set->size;
-}
+size_t ds_sparse_set_size(const ds_sparse_set_t *set) { return set->size; }
 
 size_t ds_sparse_set_universe(const ds_sparse_set_t *set) {
   return set->universe;

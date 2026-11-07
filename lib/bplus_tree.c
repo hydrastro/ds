@@ -10,9 +10,7 @@
  * full, yielding ~2/3 minimum fill instead of ~1/2.
  */
 
-static int bplus_max_keys(ds_bplus_tree_t *tree) {
-  return tree->order - 1;
-}
+static int bplus_max_keys(ds_bplus_tree_t *tree) { return tree->order - 1; }
 
 static int bplus_min_keys(ds_bplus_tree_t *tree) {
   if (tree->bstar) {

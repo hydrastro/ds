@@ -142,9 +142,7 @@ static const ds_trie_store_ops_t ts_rh_ops = {
     ts_rh_search,  ts_rh_create, ts_rh_insert, ts_rh_remove, ts_rh_remove,
     ts_rh_destroy, ts_rh_size,   ts_rh_apply,  ts_rh_clone};
 
-const ds_trie_store_ops_t *ds_trie_rh_map_store_ops(void) {
-  return &ts_rh_ops;
-}
+const ds_trie_store_ops_t *ds_trie_rh_map_store_ops(void) { return &ts_rh_ops; }
 
 /* ---- sorted vector store: children ordered by slice ---- */
 

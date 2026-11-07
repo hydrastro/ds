@@ -22,9 +22,7 @@ static void print_key(ds_avl_node_t *node) {
   printf("%d ", CAST(node, entry_t)->key);
 }
 
-static void free_entry(ds_avl_node_t *node) {
-  free(node);
-}
+static void free_entry(ds_avl_node_t *node) { free(node); }
 
 static entry_t *make_entry(int key) {
   entry_t *e = (entry_t *)malloc(sizeof(entry_t));

@@ -18,13 +18,9 @@ int string_compare(void *key1, void *key2) {
   return strcmp((char *)key1, (char *)key2);
 }
 
-void *clone_key(void *key) {
-  return (void *)strdup(key);
-}
+void *clone_key(void *key) { return (void *)strdup(key); }
 
-void *clone_value(void *value) {
-  return (void *)strdup(value);
-}
+void *clone_value(void *value) { return (void *)strdup(value); }
 
 void destroy_node(ds_hash_node_t *node) {
   free(node->key);

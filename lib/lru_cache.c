@@ -217,9 +217,7 @@ void ds_lru_cache_clear(ds_lru_cache_t *cache) {
   lru_reset_free_list(cache);
 }
 
-size_t ds_lru_cache_size(const ds_lru_cache_t *cache) {
-  return cache->size;
-}
+size_t ds_lru_cache_size(const ds_lru_cache_t *cache) { return cache->size; }
 
 size_t ds_lru_cache_capacity(const ds_lru_cache_t *cache) {
   return cache->capacity;

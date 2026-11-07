@@ -196,9 +196,7 @@ void ds_p_tree_destroy(ds_p_tree_t *t) {
   memset(t, 0, sizeof(*t));
 }
 
-size_t ds_p_tree_size(const ds_p_tree_t *t) {
-  return t == NULL ? 0 : t->size;
-}
+size_t ds_p_tree_size(const ds_p_tree_t *t) { return t == NULL ? 0 : t->size; }
 
 size_t ds_p_tree_height(const ds_p_tree_t *t) {
   return t == NULL ? 0 : t->height;

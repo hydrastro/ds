@@ -18,9 +18,8 @@ typedef struct bitset {
 } ds_bitset_t;
 
 ds_bitset_t *ds_bitset_create(size_t num_bits);
-ds_bitset_t *ds_bitset_create_alloc(size_t num_bits,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *));
+ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
+                                    void (*deallocator)(void *));
 void ds_bitset_set(ds_bitset_t *bitset, size_t index);
 void ds_bitset_clear(ds_bitset_t *bitset, size_t index);
 void ds_bitset_flip(ds_bitset_t *bitset, size_t index);
@@ -44,7 +43,7 @@ ds_bitset_t *ds_bitset_clone(ds_bitset_t *bitset);
 void ds_bitset_destroy(ds_bitset_t *bitset);
 
 /* sentinel returned by find_first / find_next when no set bit exists */
-#define DS_BITSET_NPOS ((size_t)-1)
+#define DS_BITSET_NPOS ((size_t) - 1)
 
 #ifdef __cplusplus
 }

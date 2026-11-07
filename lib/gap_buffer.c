@@ -89,9 +89,7 @@ size_t ds_gap_buffer_length(const ds_gap_buffer_t *gb) {
   return gb->capacity - gb_gap(gb);
 }
 
-size_t ds_gap_buffer_cursor(const ds_gap_buffer_t *gb) {
-  return gb->gap_start;
-}
+size_t ds_gap_buffer_cursor(const ds_gap_buffer_t *gb) { return gb->gap_start; }
 
 ds_status_t ds_gap_buffer_move_to(ds_gap_buffer_t *gb, size_t position) {
   size_t n;

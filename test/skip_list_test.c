@@ -26,9 +26,7 @@ static int compare_nodes(ds_skip_list_node_t *a, ds_skip_list_node_t *b) {
   return 0;
 }
 
-static void destroy_node(ds_skip_list_node_t *node) {
-  free(node);
-}
+static void destroy_node(ds_skip_list_node_t *node) { free(node); }
 
 static ds_skip_list_node_t *clone_node(ds_skip_list_node_t *node) {
   return &create_int_node(CAST(node, int_node_t)->value)->node;

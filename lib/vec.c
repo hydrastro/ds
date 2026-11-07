@@ -119,25 +119,15 @@ void ds_vec_destroy(ds_vec_t *vec) {
   vec->size = 0;
 }
 
-size_t ds_vec_size(const ds_vec_t *vec) {
-  return vec->size;
-}
+size_t ds_vec_size(const ds_vec_t *vec) { return vec->size; }
 
-size_t ds_vec_capacity(const ds_vec_t *vec) {
-  return vec->capacity;
-}
+size_t ds_vec_capacity(const ds_vec_t *vec) { return vec->capacity; }
 
-bool ds_vec_is_empty(const ds_vec_t *vec) {
-  return vec->size == 0;
-}
+bool ds_vec_is_empty(const ds_vec_t *vec) { return vec->size == 0; }
 
-bool ds_vec_is_full(const ds_vec_t *vec) {
-  return vec->size == vec->capacity;
-}
+bool ds_vec_is_full(const ds_vec_t *vec) { return vec->size == vec->capacity; }
 
-void *ds_vec_data(ds_vec_t *vec) {
-  return vec->data;
-}
+void *ds_vec_data(ds_vec_t *vec) { return vec->data; }
 
 void *ds_vec_at(ds_vec_t *vec, size_t index) {
   if (index >= vec->size) {
@@ -146,9 +136,7 @@ void *ds_vec_at(ds_vec_t *vec, size_t index) {
   return vec_ptr(vec, index);
 }
 
-void *ds_vec_front(ds_vec_t *vec) {
-  return vec->size == 0 ? NULL : vec->data;
-}
+void *ds_vec_front(ds_vec_t *vec) { return vec->size == 0 ? NULL : vec->data; }
 
 void *ds_vec_back(ds_vec_t *vec) {
   return vec->size == 0 ? NULL : vec_ptr(vec, vec->size - 1);
@@ -212,9 +200,7 @@ ds_status_t ds_vec_resize(ds_vec_t *vec, size_t size, const void *fill) {
   return DS_OK;
 }
 
-void ds_vec_clear(ds_vec_t *vec) {
-  vec->size = 0;
-}
+void ds_vec_clear(ds_vec_t *vec) { vec->size = 0; }
 
 ds_status_t ds_vec_push(ds_vec_t *vec, const void *elem) {
   ds_status_t status;

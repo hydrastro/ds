@@ -4,12 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void *diag_default_alloc(size_t size) {
-  return malloc(size);
-}
-static void diag_default_free(void *ptr) {
-  free(ptr);
-}
+static void *diag_default_alloc(size_t size) { return malloc(size); }
+static void diag_default_free(void *ptr) { free(ptr); }
 static void diagnostics_collector_emit(ds_diagnostic_sink_t *sink,
                                        const ds_diagnostic_t *diagnostic);
 

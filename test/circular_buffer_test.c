@@ -17,9 +17,7 @@ static ds_circular_buffer_node_t *clone_node(ds_circular_buffer_node_t *node) {
   return &copy->node;
 }
 
-static void free_clone(ds_circular_buffer_node_t *node) {
-  free(node);
-}
+static void free_clone(ds_circular_buffer_node_t *node) { free(node); }
 
 int main(void) {
   ds_circular_buffer_t *buffer = ds_circular_buffer_create(4);

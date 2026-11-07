@@ -1,5 +1,5 @@
-#include "../lib/history.h"
 #include "../lib/hash_table.h"
+#include "../lib/history.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,9 +72,7 @@ static struct test_kv_payload *test_remove_payload(const char *key) {
   return test_payload_create(key, NULL);
 }
 
-static size_t test_hash(void *key) {
-  return hash_func_string_djb2(key);
-}
+static size_t test_hash(void *key) { return hash_func_string_djb2(key); }
 
 static int test_compare(void *left, void *right) {
   return strcmp((const char *)left, (const char *)right);

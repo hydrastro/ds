@@ -39,9 +39,7 @@ static int cq_rec_cmp(const void *a, const void *b, void *user) {
   return (sa > sb) - (sa < sb);
 }
 
-static double cq_day_of(double width, double t) {
-  return floor(t / width);
-}
+static double cq_day_of(double width, double t) { return floor(t / width); }
 
 static size_t cq_bucket_of_day(size_t count, double day) {
   double m = fmod(day, (double)count);

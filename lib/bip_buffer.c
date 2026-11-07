@@ -167,6 +167,4 @@ size_t ds_bip_buffer_capacity(const ds_bip_buffer_t *bip) {
   return bip->capacity;
 }
 
-void ds_bip_buffer_clear(ds_bip_buffer_t *bip) {
-  bip_reset(bip);
-}
+void ds_bip_buffer_clear(ds_bip_buffer_t *bip) { bip_reset(bip); }

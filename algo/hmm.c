@@ -22,9 +22,7 @@ static ds_status_t hm_check(const ds_hmm_t *h, const size_t *obs, size_t t) {
   return DS_OK;
 }
 
-static bool hm_positive(double x) {
-  return x > 0.0;
-}
+static bool hm_positive(double x) { return x > 0.0; }
 
 /* Forward pass into caller arrays (alpha T x N, scale T). */
 static ds_status_t hm_forward(const ds_hmm_t *h, const size_t *obs, size_t t,
@@ -180,9 +178,7 @@ ds_status_t ds_hmm_posterior(const ds_hmm_t *h, const size_t *obs, size_t t,
   return st;
 }
 
-static double hm_log(double x) {
-  return hm_positive(x) ? log(x) : -HUGE_VAL;
-}
+static double hm_log(double x) { return hm_positive(x) ? log(x) : -HUGE_VAL; }
 
 ds_status_t ds_hmm_viterbi(const ds_hmm_t *h, const size_t *obs, size_t t,
                            size_t *path, double *out_logprob,

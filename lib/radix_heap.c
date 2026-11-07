@@ -186,9 +186,7 @@ ds_status_t ds_radix_heap_peek(ds_radix_heap_t *heap, unsigned long *out_key,
   return DS_OK;
 }
 
-size_t ds_radix_heap_size(const ds_radix_heap_t *heap) {
-  return heap->size;
-}
+size_t ds_radix_heap_size(const ds_radix_heap_t *heap) { return heap->size; }
 
 bool ds_radix_heap_is_empty(const ds_radix_heap_t *heap) {
   return heap->size == 0;

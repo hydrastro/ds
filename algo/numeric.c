@@ -315,9 +315,7 @@ void ds_welford_add(ds_welford_t *w, double x) {
   w->m2 += delta * (x - w->mean);
 }
 
-double ds_welford_mean(const ds_welford_t *w) {
-  return w->mean;
-}
+double ds_welford_mean(const ds_welford_t *w) { return w->mean; }
 
 double ds_welford_variance(const ds_welford_t *w) {
   return w->count == 0 ? 0.0 : w->m2 / (double)w->count;

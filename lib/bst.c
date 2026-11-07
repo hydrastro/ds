@@ -1,9 +1,7 @@
 #include "bst.h"
 #include <stdlib.h>
 
-ds_bst_t *ds_bst_create(void) {
-  return ds_bst_create_alloc(malloc, free);
-}
+ds_bst_t *ds_bst_create(void) { return ds_bst_create_alloc(malloc, free); }
 
 ds_bst_t *ds_bst_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {

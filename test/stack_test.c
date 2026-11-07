@@ -13,9 +13,7 @@ int_node_t *create_int_node(int value) {
   return new_node;
 }
 
-void destroy_node(ds_stack_node_t *node) {
-  free(node);
-}
+void destroy_node(ds_stack_node_t *node) { free(node); }
 
 ds_stack_node_t *clone_node(ds_stack_node_t *node) {
   int_node_t *new_node = (int_node_t *)malloc(sizeof(int_node_t));

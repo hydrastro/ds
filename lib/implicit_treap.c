@@ -32,9 +32,7 @@ static bool it_has_sum(const ds_itreap_t *t) {
   return t->config.summary_size > 0;
 }
 
-static bool it_has_tag(const ds_itreap_t *t) {
-  return t->config.tag_size > 0;
-}
+static bool it_has_tag(const ds_itreap_t *t) { return t->config.tag_size > 0; }
 
 static void it_swap_bytes(unsigned char *a, unsigned char *b, size_t n) {
   unsigned char tmp;

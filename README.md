@@ -290,8 +290,8 @@ make lint-style    # cppcheck style suggestions for the maintained structures
 make lint-all      # informational cppcheck over the whole library
 ```
 
-Formatting follows the `.clang-format` at the repository root (LLVM base,
-two-space indent, 80-column limit, pointers bound to the identifier). `make
+Formatting is clang-format's default LLVM style (there is no `.clang-format`
+file: two-space indent, 80-column limit, pointers bound to the identifier). `make
 format` and `make lint` are scoped to the actively maintained structures so
 they stay green in CI; the `-all` variants cover the wider tree on demand. Both
 clang-format and cppcheck are optional: if the tool is absent, the target prints

@@ -31,9 +31,7 @@ static ds_splay_tree_node_t *clone_node(ds_splay_tree_node_t *node) {
   return &copy->node;
 }
 
-static void destroy_node(ds_splay_tree_node_t *node) {
-  free(node);
-}
+static void destroy_node(ds_splay_tree_node_t *node) { free(node); }
 
 int main(void) {
   int input[] = {50, 20, 70, 10, 30, 60, 80, 5, 25, 35};

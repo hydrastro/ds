@@ -342,6 +342,4 @@ ds_status_t ds_kd_tree_radius(const ds_kd_tree_t *tree, const double *centre,
   return kd_radius_search(tree, &r, 0, tree->count, 0) ? DS_OK : DS_STOP;
 }
 
-size_t ds_kd_tree_size(const ds_kd_tree_t *tree) {
-  return tree->count;
-}
+size_t ds_kd_tree_size(const ds_kd_tree_t *tree) { return tree->count; }

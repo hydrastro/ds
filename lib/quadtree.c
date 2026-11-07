@@ -842,9 +842,7 @@ ds_status_t ds_point_quadtree_insert(ds_point_quadtree_t *t, double x, double y,
   return DS_OK;
 }
 
-static bool pq_same(double a, double b) {
-  return !(a < b) && !(a > b);
-}
+static bool pq_same(double a, double b) { return !(a < b) && !(a > b); }
 
 ds_status_t ds_point_quadtree_find(ds_point_quadtree_t *t, double x, double y,
                                    size_t *out_value) {

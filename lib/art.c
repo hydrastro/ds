@@ -57,9 +57,7 @@ static bool art_is_leaf(ds_art_node_t *node) {
   return node != NULL && node->type == DS_ART_LEAF;
 }
 
-ds_art_t *ds_art_create(void) {
-  return ds_art_create_alloc(malloc, free);
-}
+ds_art_t *ds_art_create(void) { return ds_art_create_alloc(malloc, free); }
 
 ds_art_t *ds_art_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {

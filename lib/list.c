@@ -1,9 +1,7 @@
 #include "list.h"
 #include <stdlib.h>
 
-ds_list_t *ds_list_create(void) {
-  return ds_list_create_alloc(malloc, free);
-}
+ds_list_t *ds_list_create(void) { return ds_list_create_alloc(malloc, free); }
 
 ds_list_t *ds_list_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *)) {

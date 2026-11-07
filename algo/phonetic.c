@@ -518,9 +518,7 @@ static void dm_add2(dm_t *d, const char *main, const char *alt) {
   }
 }
 
-static void dm_add(dm_t *d, const char *both) {
-  dm_add2(d, both, both);
-}
+static void dm_add(dm_t *d, const char *both) { dm_add2(d, both, both); }
 
 static void dm_run(dm_t *d) {
   long cur = 0;

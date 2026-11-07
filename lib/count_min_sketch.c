@@ -126,9 +126,7 @@ unsigned long ds_cms_estimate(const ds_cms_t *cms, unsigned long hash) {
   return best;
 }
 
-unsigned long ds_cms_total(const ds_cms_t *cms) {
-  return cms->total;
-}
+unsigned long ds_cms_total(const ds_cms_t *cms) { return cms->total; }
 
 ds_status_t ds_cms_merge(ds_cms_t *dst, const ds_cms_t *src) {
   size_t i;

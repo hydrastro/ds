@@ -37,9 +37,7 @@ static int avl_compare(ds_avl_node_t *a, ds_avl_node_t *b) {
   return ((int_avl_node_t *)a)->key - ((int_avl_node_t *)b)->key;
 }
 
-static void avl_destroy(ds_avl_node_t *node) {
-  free(node);
-}
+static void avl_destroy(ds_avl_node_t *node) { free(node); }
 
 static int avl_validate_rec(ds_avl_t *tree, ds_avl_node_t *node, int *prev,
                             int *height) {
@@ -92,20 +90,14 @@ static int btree_compare(ds_btree_node_t *a, ds_btree_node_t *b) {
   return ((int_btree_node_t *)a)->key - ((int_btree_node_t *)b)->key;
 }
 
-static void btree_destroy(ds_btree_node_t *node) {
-  free(node);
-}
-static void btree_walk_noop(ds_btree_node_t *node) {
-  (void)node;
-}
+static void btree_destroy(ds_btree_node_t *node) { free(node); }
+static void btree_walk_noop(ds_btree_node_t *node) { (void)node; }
 
 static int heap_compare(ds_heap_node_t *a, ds_heap_node_t *b) {
   return ((int_heap_node_t *)a)->key - ((int_heap_node_t *)b)->key;
 }
 
-static void heap_node_destroy(ds_heap_node_t *node) {
-  free(node);
-}
+static void heap_node_destroy(ds_heap_node_t *node) { free(node); }
 
 static void test_format_bounds(void) {
   ds_error_t error;

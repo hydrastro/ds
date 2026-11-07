@@ -2,9 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-ds_avl_t *ds_avl_create(void) {
-  return ds_avl_create_alloc(malloc, free);
-}
+ds_avl_t *ds_avl_create(void) { return ds_avl_create_alloc(malloc, free); }
 
 ds_avl_t *ds_avl_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {

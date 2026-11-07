@@ -467,9 +467,7 @@ void ds_lp_owned_destroy(ds_lp_owned_t *o) {
 /* ---- integer programming ----------------------------------------------------
  */
 
-static bool lp_is_int(double v) {
-  return fabs(v - floor(v + 0.5)) < 1e-6;
-}
+static bool lp_is_int(double v) { return fabs(v - floor(v + 0.5)) < 1e-6; }
 
 /* Gomory fractional cut from the optimal tableau, written over the
  * original variables into row/rhs (>=). False when no row qualifies. */

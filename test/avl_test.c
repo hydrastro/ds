@@ -24,9 +24,7 @@ my_data_t *create_data(int key) {
   return new_data;
 }
 
-void destroy(ds_avl_node_t *node) {
-  free(node);
-}
+void destroy(ds_avl_node_t *node) { free(node); }
 
 void draw_avl_tree_recursive(ds_avl_t *tree, ds_avl_node_t *node,
                              char *prefix) {

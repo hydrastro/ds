@@ -37,9 +37,7 @@ int_node_t *create_int_node(int value) {
   return node;
 }
 
-void destroy_int_node(void *node) {
-  free(node);
-}
+void destroy_int_node(void *node) { free(node); }
 
 ds_heap_node_t *clone_node(ds_heap_node_t *node) {
   int_node_t *new_node = (int_node_t *)malloc(sizeof(int_node_t));

@@ -105,9 +105,7 @@ double ds_geo_orient(ds_point2_t a, ds_point2_t b, ds_point2_t c) {
   return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
-static int geo_sign(double v) {
-  return (v > 0) - (v < 0);
-}
+static int geo_sign(double v) { return (v > 0) - (v < 0); }
 
 static bool geo_on_segment(ds_point2_t a, ds_point2_t b, ds_point2_t p) {
   return (p.x >= (a.x < b.x ? a.x : b.x)) && (p.x <= (a.x > b.x ? a.x : b.x)) &&
@@ -210,9 +208,7 @@ static void geo_msort(size_t *idx, size_t *tmp, size_t n,
   }
 }
 
-static int geo_cmp_double(double x, double y) {
-  return (x > y) - (x < y);
-}
+static int geo_cmp_double(double x, double y) { return (x > y) - (x < y); }
 
 static int geo_icmp_xy(const ds_point2_t *pts, size_t a, size_t b,
                        const void *extra) {
@@ -1262,12 +1258,8 @@ void ds_geo_bresenham_circle(long cx, long cy, long r, ds_geo_plot_func_t plot,
   }
 }
 
-static double geo_fpart(double x) {
-  return x - floor(x);
-}
-static double geo_rfpart(double x) {
-  return 1 - geo_fpart(x);
-}
+static double geo_fpart(double x) { return x - floor(x); }
+static double geo_rfpart(double x) { return 1 - geo_fpart(x); }
 
 static void geo_wu_plot(ds_geo_plot_aa_func_t plot, void *user, bool steep,
                         double x, double y, double c) {

@@ -191,9 +191,7 @@ ds_status_t ds_bdd_nvar(ds_bdd_t *m, size_t v, size_t *out) {
   return bdd_mk(m, v, DS_BDD_TRUE, DS_BDD_FALSE, out);
 }
 
-static int bdd_valid(const ds_bdd_t *m, size_t n) {
-  return n < m->nodes;
-}
+static int bdd_valid(const ds_bdd_t *m, size_t n) { return n < m->nodes; }
 
 static ds_status_t bdd_push(ds_bdd_t *m, size_t *top, size_t f, size_t g,
                             size_t h) {

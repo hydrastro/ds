@@ -47,9 +47,7 @@ static void itv_combine(void *out, const void *left, const void *right,
   memcpy(out, itv_cmp(t, left, right) >= 0 ? left : right, t->endpoint_size);
 }
 
-static size_t itv_round(size_t n, size_t a) {
-  return (n + a - 1) / a * a;
-}
+static size_t itv_round(size_t n, size_t a) { return (n + a - 1) / a * a; }
 
 ds_status_t ds_interval_tree_init(ds_interval_tree_t *tree,
                                   size_t endpoint_size, size_t value_size,

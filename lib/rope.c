@@ -36,9 +36,7 @@ static ds_rope_node_t *rope_new_internal(ds_rope_t *rope, ds_rope_node_t *left,
   return node;
 }
 
-ds_rope_t *ds_rope_create(void) {
-  return ds_rope_create_alloc(malloc, free);
-}
+ds_rope_t *ds_rope_create(void) { return ds_rope_create_alloc(malloc, free); }
 
 ds_rope_t *ds_rope_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *)) {

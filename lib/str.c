@@ -1,9 +1,9 @@
 #include "str.h"
+#include <limits.h>
+#include <stdarg.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdarg.h>
 
 int ds__ensure_exact(ds_str_t *s, size_t need_cap) {
   char *nbuf;
@@ -80,9 +80,7 @@ int ds__ensure(ds_str_t *s, size_t need_cap) {
   return 0;
 }
 
-ds_str_t *ds_str_create(void) {
-  return ds_str_create_alloc(malloc, free);
-}
+ds_str_t *ds_str_create(void) { return ds_str_create_alloc(malloc, free); }
 
 ds_str_t *ds_str_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {
@@ -152,9 +150,7 @@ void ds_str_clear(ds_str_t *s) {
     s->buf[0] = '\0';
 }
 
-void ds_str_delete(ds_str_t *s) {
-  ds_str_clear(s);
-}
+void ds_str_delete(ds_str_t *s) { ds_str_clear(s); }
 
 int ds_str_reserve(ds_str_t *s, size_t need) {
   int r;
@@ -319,9 +315,7 @@ int ds_str_cmp(ds_str_t *a, ds_str_t *b) {
   return 0;
 }
 
-int ds_str_eq(ds_str_t *a, ds_str_t *b) {
-  return ds_str_cmp(a, b) == 0;
-}
+int ds_str_eq(ds_str_t *a, ds_str_t *b) { return ds_str_cmp(a, b) == 0; }
 
 long ds_str_find(ds_str_t *s, const void *needle, size_t n, size_t start) {
   const unsigned char *h;

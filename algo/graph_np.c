@@ -34,9 +34,7 @@ typedef struct np_bk {
   void *user;
 } np_bk_t;
 
-static size_t *bk_p(np_bk_t *b, size_t l) {
-  return b->buf + l * 3 * b->n;
-}
+static size_t *bk_p(np_bk_t *b, size_t l) { return b->buf + l * 3 * b->n; }
 
 static size_t *bk_x(np_bk_t *b, size_t l) {
   return b->buf + l * 3 * b->n + b->n;

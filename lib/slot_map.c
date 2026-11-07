@@ -246,17 +246,11 @@ ds_status_t ds_slot_map_reserve(ds_slot_map_t *map, size_t capacity) {
   return slot_map_set_capacity(map, capacity);
 }
 
-size_t ds_slot_map_size(const ds_slot_map_t *map) {
-  return map->size;
-}
+size_t ds_slot_map_size(const ds_slot_map_t *map) { return map->size; }
 
-size_t ds_slot_map_capacity(const ds_slot_map_t *map) {
-  return map->capacity;
-}
+size_t ds_slot_map_capacity(const ds_slot_map_t *map) { return map->capacity; }
 
-void *ds_slot_map_data(ds_slot_map_t *map) {
-  return map->values;
-}
+void *ds_slot_map_data(ds_slot_map_t *map) { return map->values; }
 
 ds_status_t ds_slot_map_handle_at(const ds_slot_map_t *map, size_t dense_index,
                                   ds_slot_map_handle_t *out_handle) {

@@ -1,27 +1,21 @@
 #include "unicode_runtime.h"
-#include "str_unicode.h"
 #include "str.h"
 #include "str_io.h"
+#include "str_unicode.h"
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 
 #include "unicode_tables.h"
 
-int ucd_do_init(void) {
-  return 0;
-}
-int ucd_init_once(void) {
-  return 0;
-}
+int ucd_do_init(void) { return 0; }
+int ucd_init_once(void) { return 0; }
 void ensure_ucd_once_lock(void) {}
 
 int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp) {
   return ds_str_u8_next(buf, len, ioff, out_cp, DS_U8_STRICT);
 }
-int u8_push(ds_str_t *s, unsigned long cp) {
-  return ds_str_u8_push_cp(s, cp);
-}
+int u8_push(ds_str_t *s, unsigned long cp) { return ds_str_u8_push_cp(s, cp); }
 
 int is_Hangul_S(unsigned long cp) {
   return (cp >= SBase && cp < SBase + SCount);
@@ -697,9 +691,7 @@ int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
   return rc;
 }
 
-int ds__is_mark(unsigned long cp) {
-  return get_ccc(cp) != 0ul;
-}
+int ds__is_mark(unsigned long cp) { return get_ccc(cp) != 0ul; }
 
 int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src,
                         unsigned int flags) {

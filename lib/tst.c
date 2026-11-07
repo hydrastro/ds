@@ -28,9 +28,7 @@ void ds_tst_destroy(ds_tst_t *t) {
   ds_tst_init(t, t->context);
 }
 
-size_t ds_tst_size(const ds_tst_t *t) {
-  return t == NULL ? 0 : t->keys;
-}
+size_t ds_tst_size(const ds_tst_t *t) { return t == NULL ? 0 : t->keys; }
 
 static ds_status_t ts_stack(ds_tst_t *t, size_t need) {
   size_t cap;

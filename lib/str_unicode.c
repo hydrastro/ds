@@ -1,8 +1,8 @@
 #include "str_unicode.h"
-#include <string.h>
-#include <stdlib.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 int ds__is_nonchar(unsigned long cp) {
   if (cp >= 0xFDD0ul && cp <= 0xFDEFul)
@@ -393,9 +393,7 @@ int ds_str_u8_ascii_casefold(ds_str_t *dst, const ds_str_t *src) {
   return ds_str_u8_ascii_tolower(dst, src);
 }
 
-unsigned char ds__ascii_fold(unsigned char c) {
-  return ds__ascii_lower(c);
-}
+unsigned char ds__ascii_fold(unsigned char c) { return ds__ascii_lower(c); }
 
 long ds_str_find_ascii_folded(ds_str_t *s, const void *needle, size_t n,
                               size_t start) {

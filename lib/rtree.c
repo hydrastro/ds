@@ -237,9 +237,7 @@ void ds_rtree_destroy(ds_rtree_t *t) {
   t->free_list = RT_NONE;
 }
 
-size_t ds_rtree_size(const ds_rtree_t *t) {
-  return t == NULL ? 0 : t->size;
-}
+size_t ds_rtree_size(const ds_rtree_t *t) { return t == NULL ? 0 : t->size; }
 
 size_t ds_rtree_height(const ds_rtree_t *t) {
   return t == NULL ? 0 : t->height;

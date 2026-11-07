@@ -9,9 +9,7 @@ static size_t ost_node_size(ds_ost_t *tree, ds_ost_node_t *node) {
   return node == tree->nil ? 0 : node->size;
 }
 
-static int ost_max_int(int a, int b) {
-  return a > b ? a : b;
-}
+static int ost_max_int(int a, int b) { return a > b ? a : b; }
 
 static void ost_update(ds_ost_t *tree, ds_ost_node_t *node) {
   if (node == tree->nil) {

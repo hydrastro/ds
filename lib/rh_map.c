@@ -22,9 +22,7 @@ static unsigned long rh_mix(unsigned long h) {
   return h;
 }
 
-static size_t rh_max_size(size_t capacity) {
-  return capacity - capacity / 8;
-}
+static size_t rh_max_size(size_t capacity) { return capacity - capacity / 8; }
 
 static unsigned char *rh_key(const ds_rh_map_t *map, size_t i) {
   return map->keys + i * map->key_size;
@@ -390,13 +388,9 @@ ds_status_t ds_rh_map_reserve(ds_rh_map_t *map, size_t count) {
   return rh_rehash(map, capacity);
 }
 
-size_t ds_rh_map_size(const ds_rh_map_t *map) {
-  return map->size;
-}
+size_t ds_rh_map_size(const ds_rh_map_t *map) { return map->size; }
 
-size_t ds_rh_map_capacity(const ds_rh_map_t *map) {
-  return map->capacity;
-}
+size_t ds_rh_map_capacity(const ds_rh_map_t *map) { return map->capacity; }
 
 bool ds_rh_map_next(const ds_rh_map_t *map, size_t *cursor,
                     const void **out_key, void **out_value) {

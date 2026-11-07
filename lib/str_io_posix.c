@@ -1,8 +1,8 @@
 #include "str_io_posix.h"
 #include <errno.h>
+#include <string.h>
 #include <sys/uio.h>
 #include <unistd.h>
-#include <string.h>
 
 long ds_posix_write_cb(void *ud, const void *buf, size_t n) {
   int fd = (int)(long)ud;

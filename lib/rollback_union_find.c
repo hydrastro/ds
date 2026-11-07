@@ -141,9 +141,7 @@ size_t ds_rollback_uf_components(const ds_rollback_uf_t *uf) {
   return uf->components;
 }
 
-size_t ds_rollback_uf_count(const ds_rollback_uf_t *uf) {
-  return uf->count;
-}
+size_t ds_rollback_uf_count(const ds_rollback_uf_t *uf) { return uf->count; }
 
 size_t ds_rollback_uf_snapshot(const ds_rollback_uf_t *uf) {
   return uf->history_len;

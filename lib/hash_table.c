@@ -349,9 +349,7 @@ size_t hash_func_size_t(void *key) {
   return num;
 }
 
-size_t hash_func_pointer(void *key) {
-  return (size_t)key;
-}
+size_t hash_func_pointer(void *key) { return (size_t)key; }
 
 size_t hash_func_double(void *key) {
   double num;
@@ -367,9 +365,7 @@ size_t hash_func_double(void *key) {
   return hash;
 }
 
-size_t hash_func_default(void *key) {
-  return (size_t)key;
-}
+size_t hash_func_default(void *key) { return (size_t)key; }
 
 ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                  void *value) {
@@ -626,9 +622,7 @@ void ds_hash_table_for_each(ds_hash_table_t *table,
   }
 }
 
-bool ds_hash_table_is_empty(ds_hash_table_t *table) {
-  return table->size == 0;
-}
+bool ds_hash_table_is_empty(ds_hash_table_t *table) { return table->size == 0; }
 
 void hash_table_destroy(ds_hash_table_t *table,
                         void (*destroy)(ds_hash_node_t *)) {

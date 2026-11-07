@@ -255,9 +255,7 @@ bool ds_weak_heap_is_empty(const ds_weak_heap_t *heap) {
   return heap->items.size == 0;
 }
 
-void ds_weak_heap_clear(ds_weak_heap_t *heap) {
-  ds_vec_clear(&heap->items);
-}
+void ds_weak_heap_clear(ds_weak_heap_t *heap) { ds_vec_clear(&heap->items); }
 
 ds_status_t ds_weak_heap_sort(void *base, size_t count, size_t elem_size,
                               ds_weak_heap_compare_func_t compare, void *user,

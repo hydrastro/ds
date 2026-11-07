@@ -533,9 +533,7 @@ ds_status_t ds_swiss_map_reserve(ds_swiss_map_t *map, size_t count) {
   return sw_resize(map, c);
 }
 
-size_t ds_swiss_map_size(const ds_swiss_map_t *map) {
-  return map->size;
-}
+size_t ds_swiss_map_size(const ds_swiss_map_t *map) { return map->size; }
 
 size_t ds_swiss_map_capacity(const ds_swiss_map_t *map) {
   return map->capacity;

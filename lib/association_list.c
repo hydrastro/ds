@@ -43,9 +43,7 @@ void ds_alist_clear(ds_alist_t *l) {
   }
 }
 
-size_t ds_alist_size(const ds_alist_t *l) {
-  return l == NULL ? 0 : l->size;
-}
+size_t ds_alist_size(const ds_alist_t *l) { return l == NULL ? 0 : l->size; }
 
 static unsigned char *al_key(const ds_alist_t *l, size_t v) {
   return l->keys + v * l->key_size;

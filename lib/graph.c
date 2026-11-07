@@ -45,9 +45,7 @@ static ds_status_t graph_reserve_edges(ds_graph_t *graph, size_t vertex,
   return DS_OK;
 }
 
-ds_graph_t *ds_graph_create(void) {
-  return ds_graph_create_ctx(NULL);
-}
+ds_graph_t *ds_graph_create(void) { return ds_graph_create_ctx(NULL); }
 
 ds_graph_t *ds_graph_create_ctx(ds_context_t *context) {
   ds_graph_t *graph;

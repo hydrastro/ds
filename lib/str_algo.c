@@ -1,6 +1,6 @@
 #include "str_algo.h"
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 int ds__in_set(unsigned char c, const unsigned char *set, size_t n) {
   size_t i;

@@ -119,9 +119,7 @@ void *ds_heap_peek_root(ds_heap_t *heap) {
   return heap->data[0];
 }
 
-bool ds_heap_is_empty(ds_heap_t *heap) {
-  return heap->size == 0;
-}
+bool ds_heap_is_empty(ds_heap_t *heap) { return heap->size == 0; }
 
 void ds_heap_destroy(ds_heap_t *heap, void (*destroy)(ds_heap_node_t *)) {
   size_t i;

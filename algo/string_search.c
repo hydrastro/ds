@@ -27,12 +27,8 @@ static void ss_report(ss_t *s, ss_i pos) {
   }
 }
 
-static ss_i ss_max(ss_i a, ss_i b) {
-  return a > b ? a : b;
-}
-static ss_i ss_min(ss_i a, ss_i b) {
-  return a < b ? a : b;
-}
+static ss_i ss_max(ss_i a, ss_i b) { return a > b ? a : b; }
+static ss_i ss_min(ss_i a, ss_i b) { return a < b ? a : b; }
 
 static void *ss_alloc(ss_t *s, size_t count, size_t size) {
   if (count == 0) {

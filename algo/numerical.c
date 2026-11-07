@@ -352,9 +352,7 @@ double ds_stirling(double n) {
   return sqrt(2 * NM_PI * n) * pow(n / exp(1.0), n) * c;
 }
 
-double ds_log_factorial(unsigned long n) {
-  return ds_lgamma((double)n + 1);
-}
+double ds_log_factorial(unsigned long n) { return ds_lgamma((double)n + 1); }
 
 /* ---- BBP ----------------------------------------------------------------- */
 

@@ -37,9 +37,7 @@ static ds_bplus_tree_node_t *clone_node(ds_bplus_tree_node_t *node) {
   return &copy->node;
 }
 
-static void destroy_node(ds_bplus_tree_node_t *node) {
-  free(node);
-}
+static void destroy_node(ds_bplus_tree_node_t *node) { free(node); }
 
 static void run_suite(bool bstar, const char *label) {
   int n = 400;

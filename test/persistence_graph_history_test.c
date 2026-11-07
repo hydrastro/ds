@@ -105,9 +105,7 @@ static void *h_clone(void *state, void *clone_data) {
   return copy;
 }
 
-static void h_destroy(void *state) {
-  free(state);
-}
+static void h_destroy(void *state) { free(state); }
 
 static int h_apply(void *state, const ds_history_operation_t *op) {
   struct hstate *s;

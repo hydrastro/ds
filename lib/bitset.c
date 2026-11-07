@@ -135,9 +135,7 @@ bool ds_bitset_any(ds_bitset_t *bitset) {
   return result;
 }
 
-bool ds_bitset_none(ds_bitset_t *bitset) {
-  return !ds_bitset_any(bitset);
-}
+bool ds_bitset_none(ds_bitset_t *bitset) { return !ds_bitset_any(bitset); }
 
 bool ds_bitset_all(ds_bitset_t *bitset) {
   bool result = true;

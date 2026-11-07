@@ -12,9 +12,7 @@ static double lt_dot(const double *a, const double *b, size_t m) {
   return s;
 }
 
-static double lt_round(double x) {
-  return floor(x + 0.5);
-}
+static double lt_round(double x) { return floor(x + 0.5); }
 
 /* Gram-Schmidt: bstar (n x m), mu (n x n), b2 (n) */
 static void lt_gram_schmidt(const double *b, size_t n, size_t m, double *bs,

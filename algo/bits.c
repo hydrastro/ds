@@ -61,17 +61,11 @@ unsigned int ds_ctz(unsigned long x) {
 #endif
 }
 
-bool ds_parity(unsigned long x) {
-  return (ds_popcount(x) & 1U) != 0;
-}
+bool ds_parity(unsigned long x) { return (ds_popcount(x) & 1U) != 0; }
 
-unsigned long ds_lowest_set_bit(unsigned long x) {
-  return x & (~x + 1UL);
-}
+unsigned long ds_lowest_set_bit(unsigned long x) { return x & (~x + 1UL); }
 
-bool ds_is_pow2(size_t x) {
-  return x != 0 && (x & (x - 1)) == 0;
-}
+bool ds_is_pow2(size_t x) { return x != 0 && (x & (x - 1)) == 0; }
 
 size_t ds_next_pow2(size_t x) {
   size_t p = 1;
@@ -123,9 +117,7 @@ unsigned long ds_bit_reverse32(unsigned long x) {
   return x & M32;
 }
 
-unsigned long ds_gray_encode(unsigned long x) {
-  return x ^ (x >> 1);
-}
+unsigned long ds_gray_encode(unsigned long x) { return x ^ (x >> 1); }
 
 unsigned long ds_gray_decode(unsigned long gray) {
   unsigned long x = gray;

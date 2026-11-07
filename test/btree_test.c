@@ -12,9 +12,7 @@ int compare_int(ds_btree_node_t *a, ds_btree_node_t *b) {
   return CAST(a, my_node_t)->data - CAST(b, my_node_t)->data;
 }
 
-void destroy_int(ds_btree_node_t *data) {
-  free(data);
-}
+void destroy_int(ds_btree_node_t *data) { free(data); }
 
 void print_btree_node(ds_btree_internal_node_t *node, int level,
                       void (*print_data)(ds_btree_node_t *)) {

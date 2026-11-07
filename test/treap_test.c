@@ -46,9 +46,7 @@ static ds_treap_node_t *clone_node(ds_treap_node_t *node) {
   return &copy->node;
 }
 
-static void destroy_node(ds_treap_node_t *node) {
-  free(node);
-}
+static void destroy_node(ds_treap_node_t *node) { free(node); }
 
 int main(void) {
   int n = 64;
