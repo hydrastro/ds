@@ -21,6 +21,7 @@ Core mutable containers:
 - - `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
 - - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
 - - `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
+- - `lib/grid_file`: fixed grids, grid files, twin, two-level and multilayer grid files
 - - `lib/hash_heap`: hash heaps (priority queues addressable by key)
 - - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
 - - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion

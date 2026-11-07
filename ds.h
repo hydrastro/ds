@@ -48,6 +48,7 @@
 #include "lib/fibonacci_heap.h"
 #include "lib/gap_buffer.h"
 #include "lib/graph.h"
+#include "lib/grid_file.h"
 #include "lib/hamt.h"
 #include "lib/hash_heap.h"
 #include "lib/hash_table.h"

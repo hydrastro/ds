@@ -148,6 +148,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/quadtree: PR quadtrees, octrees, bintrees, point and linear quadtrees.
 - lib/rtree: R-trees, R*-trees and R+-trees.
 - lib/kdb_tree: k-d-B-trees, adaptive, extended and spatial (skd) k-d trees.
+- lib/grid_file: fixed-grid method, grid files, twin, two-level and multilayer grid files.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

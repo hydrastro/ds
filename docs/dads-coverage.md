@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 680 |
-| todo | 25 |
+| done | 685 |
+| todo | 20 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,9 +37,9 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
+| `lib/grid_file` | 3 | BANG file, EXCELL, R-file |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/jump_list` | 1 | jump list |
@@ -539,7 +539,7 @@ Families ordered by how many DADS entries they close.
 | first come, first served | def |  |
 | first-in, first-out | done | `lib/queue` |
 | Fisher-Yates shuffle | done | `algo/sequence` (ds_shuffle) |
-| fixed-grid method | todo | `lib/grid_file` |
+| fixed-grid method | done | `lib/grid_file` |
 | flash sort | done | `algo/sort_dist` |
 | flow | def |  |
 | flow conservation | def |  |
@@ -592,7 +592,7 @@ Families ordered by how many DADS entries they close.
 | greedy algorithm | def |  |
 | greedy heuristic | def |  |
 | grid drawing | def |  |
-| grid file | todo | `lib/grid_file` |
+| grid file | done | `lib/grid_file` |
 | Grover's algorithm | def |  |
 
 ### H
@@ -857,7 +857,7 @@ Families ordered by how many DADS entries they close.
 | multi-commodity flow | def |  |
 | multigraph | def |  |
 | multikey Quicksort | done | `algo/sort_dist` |
-| multilayer grid file | todo | `lib/grid_file` |
+| multilayer grid file | done | `lib/grid_file` |
 | multiplication method | done | `algo/hash_family` |
 | multiprefix | done | `algo/scan` |
 | multiprocessor model | def |  |
@@ -1405,7 +1405,7 @@ Families ordered by how many DADS entries they close.
 | Turing machine | def |  |
 | Turing reduction † | def |  |
 | Turing transducer † | def |  |
-| twin grid file † | todo | `lib/grid_file` |
+| twin grid file † | done | `lib/grid_file` |
 
 ### Symbols and digits
 
@@ -1429,7 +1429,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| two-level grid file † | todo | `lib/grid_file` |
+| two-level grid file † | done | `lib/grid_file` |
 
 ### Symbols and digits
 
