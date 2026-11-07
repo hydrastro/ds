@@ -182,6 +182,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - linear programming: two-phase simplex with duals, dual programs, branch and bound and Gomory cutting planes for (mixed) integer programs
 - - `algo/lattice`: LLL reduced bases, shortest vectors, spectral test in t dimensions, integer relations (PSLQ / Ferguson-Forcade, LLL)
 - - `algo/rice_integral`: Rice's method (Norlund-Rice integrals for alternating binomial sums)
+- - `algo/geo_opt`: geometric optimisation (Welzl, Megiddo prune and search, Seidel 2-D LP, Weiszfeld)
 
 Newer high-level modules:
 

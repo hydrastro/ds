@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 704 |
-| todo | 1 |
+| done | 705 |
+| todo | 0 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,7 +37,6 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/geometry` | 1 | geometric optimization problem |
 
 ## Index A-Z
 
@@ -570,7 +569,7 @@ Families ordered by how many DADS entries they close.
 | gamma function | done | `algo/numerical` |
 | GBD-tree | done | `lib/hb_tree` |
 | GCD | done | `algo/numeric` |
-| geometric optimization problem | todo | `algo/geometry` |
+| geometric optimization problem | done | `algo/geo_opt` |
 | global optimum | def |  |
 | gnome sort | done | `algo/sort_classic` |
 | graph | def |  |

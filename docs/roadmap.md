@@ -160,6 +160,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/ld_signature: linked data signatures (canonical N-Quads, SHA-256, HMAC).
 - algo/lattice: LLL, shortest vectors, spectral test, integer relations.
 - algo/rice_integral: Rice's method.
+- algo/geo_opt: geometric optimisation problems.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

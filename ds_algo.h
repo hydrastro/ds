@@ -56,5 +56,6 @@
 #include "algo/lp.h"
 #include "algo/lattice.h"
 #include "algo/rice_integral.h"
+#include "algo/geo_opt.h"
 
 #endif /* DS_ALGO_H */
