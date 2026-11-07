@@ -53,6 +53,7 @@
 #include "lib/hamt.h"
 #include "lib/hash_heap.h"
 #include "lib/hash_table.h"
+#include "lib/hb_tree.h"
 #include "lib/heap.h"
 #include "lib/history.h"
 #include "lib/hyperloglog.h"

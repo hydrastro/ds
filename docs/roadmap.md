@@ -150,6 +150,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/kdb_tree: k-d-B-trees, adaptive, extended and spatial (skd) k-d trees.
 - lib/grid_file: fixed-grid method, grid files, twin, two-level and multilayer grid files.
 - lib/bang_file: EXCELL, BANG files and R-files.
+- lib/hb_tree: hB-trees, buddy trees, BD-trees, GBD-trees and BV-trees.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

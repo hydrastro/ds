@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 688 |
-| todo | 17 |
+| done | 693 |
+| todo | 12 |
 | def | 593 |
 | total | 1298 |
 
@@ -37,8 +37,8 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
+| `lib/hb_tree` | 3 | cell tree, D-tree, P-tree |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/jump_list` | 1 | jump list |
@@ -161,7 +161,7 @@ Families ordered by how many DADS entries they close.
 | BB(α) tree | done | `lib/wb_tree` |
 | BBP algorithm | done | `algo/numerical` |
 | BDD | done | `lib/bdd` |
-| BD-tree | todo | `lib/hb_tree` |
+| BD-tree | done | `lib/hb_tree` |
 | Bellman-Ford algorithm | done | `algo/graph_view, lib/graph` |
 | Benford's law | def |  |
 | best case | def |  |
@@ -238,11 +238,11 @@ Families ordered by how many DADS entries they close.
 | bucket sort | done | `algo/sort_dist` |
 | bucket trie | done | `lib/elastic_trie` |
 | buddy system | done | `lib/buddy_allocator` |
-| buddy tree | todo | `lib/hb_tree` |
+| buddy tree | done | `lib/hb_tree` |
 | build-heap | done | `lib/heap, algo/sort` (heap sort) |
 | Burrows-Wheeler transform | done | `lib/suffix_tree` |
 | busy beaver | def |  |
-| BV-tree | todo | `lib/hb_tree` |
+| BV-tree | done | `lib/hb_tree` |
 | BWT | done | `lib/suffix_tree` |
 | Byzantine generals | def |  |
 
@@ -575,7 +575,7 @@ Families ordered by how many DADS entries they close.
 | Galil-Giancarlo | done | `algo/string_search` |
 | Galil-Seiferas | done | `algo/string_search` |
 | gamma function | done | `algo/numerical` |
-| GBD-tree | todo | `lib/hb_tree` |
+| GBD-tree | done | `lib/hb_tree` |
 | GCD | done | `algo/numeric` |
 | geometric optimization problem | todo | `algo/geometry` |
 | global optimum | def |  |
@@ -611,7 +611,7 @@ Families ordered by how many DADS entries they close.
 | hash table delete | done | `lib/hash_table, lib/rh_map` (backward shift) |
 | hash tree | done | `lib/merkle_tree` |
 | Hausdorff distance | done | `algo/geometry` |
-| hB-tree | todo | `lib/hb_tree` |
+| hB-tree | done | `lib/hb_tree` |
 | head | def |  |
 | heap | done | `lib/heap` |
 | heapify | done | `lib/heap` |

@@ -157,7 +157,8 @@ LIB_SRC := \
   $(LIB_DIR)/rtree.c \
   $(LIB_DIR)/kdb_tree.c \
   $(LIB_DIR)/grid_file.c \
-  $(LIB_DIR)/bang_file.c
+  $(LIB_DIR)/bang_file.c \
+  $(LIB_DIR)/hb_tree.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -221,6 +222,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/hb_tree.c $(LIB_DIR)/hb_tree.h \
   $(LIB_DIR)/bang_file.c $(LIB_DIR)/bang_file.h \
   $(LIB_DIR)/grid_file.c $(LIB_DIR)/grid_file.h \
   $(LIB_DIR)/kdb_tree.c $(LIB_DIR)/kdb_tree.h \
