@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 599 |
-| todo | 106 |
+| done | 600 |
+| todo | 105 |
 | def | 593 |
 | total | 1298 |
 
@@ -61,7 +61,6 @@ Families ordered by how many DADS entries they close.
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
 | `lib/octree` | 1 | octree |
-| `lib/pagoda` | 1 | pagoda |
 | `lib/ub_tree` | 1 | UB-tree |
 
 ## Index A-Z
@@ -994,7 +993,7 @@ Families ordered by how many DADS entries they close.
 | P | def |  |
 | packing | def |  |
 | padding argument | def |  |
-| pagoda | todo | `lib/pagoda` |
+| pagoda | done | `lib/pagoda` |
 | pairing heap | done | `lib/pairing_heap` |
 | PAM | todo | `lib/quadtree` |
 | parallel computation thesis | def |  |

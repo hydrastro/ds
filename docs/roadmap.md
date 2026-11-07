@@ -129,6 +129,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/elastic_trie: bucket, compact, elastic-bucket and blind tries.
 - lib/dynamic_hash: virtual hashing, expandable hashing, hashbelts.
 - lib/mway_btree: order-m B-trees, 2-3 and 2-3-4 trees.
+- lib/pagoda: pagoda meldable priority queues.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

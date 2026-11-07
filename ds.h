@@ -69,6 +69,7 @@
 #include "lib/open_map.h"
 #include "lib/order_statistic_tree.h"
 #include "lib/packed_array.h"
+#include "lib/pagoda.h"
 #include "lib/pairing_heap.h"
 #include "lib/persistent_rbt.h"
 #include "lib/persistent_trie.h"
