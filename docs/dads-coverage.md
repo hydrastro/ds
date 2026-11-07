@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 594 |
-| todo | 111 |
+| done | 597 |
+| todo | 108 |
 | def | 593 |
 | total | 1298 |
 
@@ -50,7 +50,6 @@ Families ordered by how many DADS entries they close.
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
-| `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
@@ -505,7 +504,7 @@ Families ordered by how many DADS entries they close.
 | exclusive read, exclusive write | def |  |
 | exhaustive search | def |  |
 | existential state | def |  |
-| expandable hashing | todo | `lib/linear_hash_map` |
+| expandable hashing | done | `lib/dynamic_hash` |
 | expander graph | def |  |
 | exponential | def |  |
 | extended binary tree | def |  |
@@ -624,7 +623,7 @@ Families ordered by how many DADS entries they close.
 | Hamming distance | done | `algo/stringology` |
 | hard split, easy merge | def |  |
 | hash | done | `algo/hash` |
-| hashbelt | todo | `lib/linear_hash_map` |
+| hashbelt | done | `lib/dynamic_hash` |
 | hash function | done | `algo/hash` |
 | hash heap | todo | `lib/indexed_heap` (hash index) |
 | hash table | done | `lib/hash_table, lib/rh_map` |
@@ -1507,7 +1506,7 @@ Families ordered by how many DADS entries they close.
 | vertex connectivity | done | `algo/flow` |
 | vertex cover | todo | `algo/graph_hard` |
 | vertical visibility map | def |  |
-| virtual hashing † | todo | `lib/linear_hash_map` |
+| virtual hashing † | done | `lib/dynamic_hash` |
 | visibility map | def |  |
 | visible | def |  |
 | Viterbi algorithm | todo | `algo/hmm` |
