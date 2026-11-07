@@ -146,6 +146,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `phonetic`: Soundex, NYSIIS, Metaphone, Double Metaphone, Caverphone 2.0 behind one dispatcher
 - - Cartesian trees: linear construction, RMQ via LCA, adaptive Cartesian tree sort
 - - Schorr-Waite (Deutsch-Schorr-Waite) stackless graph marking by pointer reversal
+- - game-tree search: minimax, alpha-beta, negamax with move ordering
 
 Newer high-level modules:
 

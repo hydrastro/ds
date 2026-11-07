@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 585 |
-| todo | 120 |
+| done | 586 |
+| todo | 119 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
-| `algo/game` | 1 | minimax |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `algo/knapsack` | 1 | set packing |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
@@ -854,7 +853,7 @@ Families ordered by how many DADS entries they close.
 | Miller-Rabin | done | `algo/numeric` |
 | min-heap property | def |  |
 | minimal perfect hashing | done | `algo/perfect_hash` |
-| minimax | todo | `algo/game` |
+| minimax | done | `algo/game` |
 | minimum bounding box | done | `algo/geometry` |
 | minimum cut | done | `algo/flow` |
 | minimum spanning tree | done | `algo/graph_view` (Prim), lib/graph |

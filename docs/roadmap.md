@@ -124,6 +124,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/two_choice_map: 2-choice / d-choice and d-left hashing.
 - algo/cartesian_tree: Cartesian trees, RMQ and Cartesian tree sort.
 - algo/schorr_waite: stackless pointer-reversal graph marking.
+- algo/game: minimax, alpha-beta and negamax game-tree search.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

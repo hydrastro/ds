@@ -42,5 +42,6 @@
 #include "algo/phonetic.h"
 #include "algo/cartesian_tree.h"
 #include "algo/schorr_waite.h"
+#include "algo/game.h"
 
 #endif /* DS_ALGO_H */

@@ -184,7 +184,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/adaptive_huffman.c \
   $(ALGO_DIR)/phonetic.c \
   $(ALGO_DIR)/cartesian_tree.c \
-  $(ALGO_DIR)/schorr_waite.c
+  $(ALGO_DIR)/schorr_waite.c \
+  $(ALGO_DIR)/game.c
 
 LIB_SRC += $(ALGO_SRC)
 
