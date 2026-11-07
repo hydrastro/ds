@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 581 |
-| todo | 124 |
+| done | 583 |
+| todo | 122 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
-| `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
 | `algo/cartesian_tree` | 1 | cartesian tree |
 | `algo/game` | 1 | minimax |
 | `algo/geometry` | 1 | geometric optimization problem |
@@ -1436,7 +1435,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| 2-choice hashing † | todo | `lib/two_choice_map` |
+| 2-choice hashing † | done | `lib/two_choice_map` |
 
 ### T
 
@@ -1448,7 +1447,7 @@ Families ordered by how many DADS entries they close.
 
 | entry | status | module |
 |---|---|---|
-| 2-left hashing † | todo | `lib/two_choice_map` |
+| 2-left hashing † | done | `lib/two_choice_map` |
 
 ### T
 
