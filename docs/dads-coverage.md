@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 658 |
-| todo | 47 |
+| done | 664 |
+| todo | 41 |
 | def | 593 |
 | total | 1298 |
 
@@ -40,7 +40,6 @@ Families ordered by how many DADS entries they close.
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
-| `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
@@ -346,7 +345,7 @@ Families ordered by how many DADS entries they close.
 | cuckoo hashing | done | `lib/cuckoo_map` |
 | Cupif-Giannini tree traversal | done | `lib/threaded_tree` |
 | cut | def |  |
-| cutting plane | todo | `algo/lp` |
+| cutting plane | done | `algo/lp` |
 | cutting stock problem | done | `algo/knapsack` |
 | cutting theorem | def |  |
 | cut vertex | done | `algo/graph_struct` |
@@ -432,7 +431,7 @@ Families ordered by how many DADS entries they close.
 | DRBG | done | `algo/random` |
 | D-tree | todo | `lib/hb_tree` |
 | dual | def |  |
-| dual linear program | todo | `algo/lp` |
+| dual linear program | done | `algo/lp` |
 | dual-pivot quicksort | done | `algo/sort_misc` |
 | Dutch national flag | done | `algo/sort_misc` |
 | dyadic tree | def |  |
@@ -665,7 +664,7 @@ Families ordered by how many DADS entries they close.
 | in-order traversal | done | `lib/avl, lib/rbt, lib/bst walks` |
 | in-place sort | done | `algo/sort` |
 | insertion sort | done | `algo/sort` |
-| integer linear program | todo | `algo/lp` |
+| integer linear program | done | `algo/lp` |
 | integer multi-commodity flow | def |  |
 | integer polyhedron | def |  |
 | interactive proof system | def |  |
@@ -773,7 +772,7 @@ Families ordered by how many DADS entries they close.
 | linear probing | done | `lib/hash_table, lib/rh_map` |
 | linear probing sort | done | `algo/sort_dist` |
 | linear product | def |  |
-| linear program | todo | `algo/lp` |
+| linear program | done | `algo/lp` |
 | linear quadtree | todo | `lib/quadtree` |
 | linear search | done | `algo/search` (ds_find) |
 | link | def |  |
@@ -843,7 +842,7 @@ Families ordered by how many DADS entries they close.
 | minimum spanning tree | done | `algo/graph_view` (Prim), lib/graph |
 | minimum vertex cut | done | `algo/flow` |
 | Minkowski distance | done | `algo/geometry` |
-| mixed integer linear program | todo | `algo/lp` |
+| mixed integer linear program | done | `algo/lp` |
 | mode | done | `algo/numerical` |
 | model checking | def |  |
 | model of computation | def |  |
@@ -1241,7 +1240,7 @@ Families ordered by how many DADS entries they close.
 | simple merge † | done | `algo/sequence` |
 | simple path | def |  |
 | simple uniform hashing | def |  |
-| simplex | todo | `algo/lp` |
+| simplex | done | `algo/lp` |
 | simulated annealing | def |  |
 | simulation theorem † | def |  |
 | single-destination shortest-path problem | done | `algo/graph_conn` |

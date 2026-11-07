@@ -144,6 +144,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/tsp: TSP (exact, heuristic, Christofides), bottleneck TSP, VRP.
 - algo/facility: set cover/packing, facility location, p-center, k-clustering.
 - algo/steiner: graph, rectilinear and Euclidean Steiner trees.
+- algo/lp: simplex, duality, MILP by branch and bound and cutting planes.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

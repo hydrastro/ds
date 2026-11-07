@@ -53,5 +53,6 @@
 #include "algo/tsp.h"
 #include "algo/facility.h"
 #include "algo/steiner.h"
+#include "algo/lp.h"
 
 #endif /* DS_ALGO_H */
