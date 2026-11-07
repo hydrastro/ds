@@ -157,6 +157,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/ub_tree: universal B-trees and unlimited branching trees.
 - lib/k2_tree: k^2-trees for compact sparse matrices.
 - lib/jump_list: jump lists.
+- lib/ld_signature: linked data signatures (canonical N-Quads, SHA-256, HMAC).
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

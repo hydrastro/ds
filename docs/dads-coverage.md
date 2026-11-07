@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 700 |
-| todo | 5 |
+| done | 701 |
+| todo | 4 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
-| `lib/merkle_tree` | 1 | linked data signature |
 
 ## Index A-Z
 
@@ -766,7 +765,7 @@ Families ordered by how many DADS entries they close.
 | linear quadtree | done | `lib/quadtree` |
 | linear search | done | `algo/search` (ds_find) |
 | link | def |  |
-| linked data signature | todo | `lib/merkle_tree` |
+| linked data signature | done | `lib/ld_signature` |
 | linked list | done | `lib/list, lib/dlist` |
 | list | done | `lib/list` |
 | list contraction | done | `algo/parallel_sim` |

@@ -68,6 +68,7 @@
 #include "lib/k2_tree.h"
 #include "lib/kd_tree.h"
 #include "lib/kdb_tree.h"
+#include "lib/ld_signature.h"
 #include "lib/linear_hash_map.h"
 #include "lib/list.h"
 #include "lib/lru_cache.h"
