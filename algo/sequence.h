@@ -8,7 +8,12 @@
  *   ds_rotate, ds_next_permutation, ds_prev_permutation, ds_shuffle
  *   (Fisher-Yates with a caller RNG), ds_unique (collapse runs of equal
  *   neighbours, returns the new count), ds_partition (unstable, O(n)),
- *   ds_stable_partition (O(n log n) by rotations).
+ *   ds_stable_partition (O(n log n) by rotations), ds_perfect_shuffle and
+ *   ds_perfect_unshuffle (the riffle of two halves and its inverse, in
+ *   place in O(n) time and O(1) space by Jain's cycle-leader algorithm:
+ *   the prefix of length 3^k - 1 is a single family of cycles led by
+ *   1, 3, 9, ...; an in-shuffle puts the second half's first element
+ *   first, an out-shuffle keeps the first element on top).
  *
  * Sorted-sequence operations write into `out` (which must not overlap the
  * inputs and must have room for the worst case) and return the number of
@@ -41,6 +46,11 @@ bool ds_prev_permutation(void *base, size_t count, size_t elem_size,
                          ds_compare_func_t compare, void *user);
 void ds_shuffle(void *base, size_t count, size_t elem_size,
                 ds_random_func_t random, void *random_state);
+/* count must be even. */
+ds_status_t ds_perfect_shuffle(void *base, size_t count, size_t elem_size,
+                               bool in_shuffle);
+ds_status_t ds_perfect_unshuffle(void *base, size_t count, size_t elem_size,
+                                 bool in_shuffle);
 size_t ds_unique(void *base, size_t count, size_t elem_size,
                  ds_compare_func_t compare, void *user);
 size_t ds_partition(void *base, size_t count, size_t elem_size,

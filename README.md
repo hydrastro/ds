@@ -133,7 +133,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
   buffer), in-place stable (SymMerge), LSD radix by key
 - selection: nth_element (introselect), partial_sort (top k)
 - searching: lower/upper bound, equal range, binary, exponential (galloping), interpolation, jump/block, Fibonaccian, ternary, interpolation-sequential, Bond two-key search, find/count/min/max
-- sequences: rotate, next/prev permutation, shuffle, unique, (stable) partition, merge and multiset set operations, inversions, LIS, majority vote, max subarray
+- sequences: rotate, next/prev permutation, shuffle, perfect shuffle (in place, O(n)), unique, (stable) partition, merge and multiset set operations, inversions, LIS, majority vote, max subarray
 - hashing: FNV-1a, MurmurHash3, xxHash32, integer mixer; checksums CRC-32, CRC-32C, Adler-32, Fletcher-16
 - bits: popcount, clz/ctz, parity, power-of-two and log2 helpers, rotations, bit reversal, Gray code, Morton (Z-order) codes
 - random: xoshiro128** generator with jump, unbiased bounded/range draws, uniform/normal/exponential/Bernoulli variates, Vose alias tables, linear congruential generators with full-period and 2D spectral tests, reservoir (R, L) and selection sampling, von Neumann unbiased coin

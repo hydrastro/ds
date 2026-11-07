@@ -24,9 +24,9 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 712 |
+| done | 713 |
 | todo | 43 |
-| def | 552 |
+| def | 551 |
 | total | 1307 |
 
 ## Todo by target module
@@ -1016,7 +1016,7 @@ Families ordered by how many DADS entries they close.
 | perfect hashing | done | `algo/perfect_hash` |
 | perfect k-ary tree | def |  |
 | perfect matching | done | `algo/matching` |
-| perfect shuffle | def |  |
+| perfect shuffle | done | `algo/sequence` |
 | performance guarantee | def |  |
 | performance ratio | def |  |
 | permutation | done | `algo/sequence` (next/prev permutation) |

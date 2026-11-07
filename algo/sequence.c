@@ -452,3 +452,107 @@ long ds_max_subarray_long(const long *values, size_t count, size_t *out_first,
   }
   return best;
 }
+
+/* ---- perfect shuffle --------------------------------------------------------
+ */
+
+/* the riffle of the 2m elements at a (1-based positions): i -> 2i mod
+ * (2m + 1) when forward, i -> (m + 1) i mod (2m + 1) when inverse; for
+ * 2m + 1 = 3^k the cycles are led by 1, 3, ..., 3^(k-1) */
+static void sq_cycles(unsigned char *a, size_t m, size_t elem_size,
+                      bool forward) {
+  size_t mod = 2 * m + 1;
+  size_t mult = forward ? 2 : m + 1;
+  size_t s;
+  for (s = 1; s < mod; s *= 3) {
+    size_t j = s * mult % mod;
+    while (j != s) {
+      ds_elem_swap(a + (s - 1) * elem_size, a + (j - 1) * elem_size, elem_size);
+      j = j * mult % mod;
+    }
+  }
+}
+
+/* largest m with 2m + 1 = 3^k <= 2n + 1 */
+static size_t sq_block(size_t n) {
+  size_t p = 1;
+  while (p <= (2 * n + 1) / 3) {
+    p *= 3;
+  }
+  return (p - 1) / 2;
+}
+
+static void sq_in_shuffle(unsigned char *a, size_t n, size_t es) {
+  while (n > 0) {
+    size_t m = sq_block(n);
+    /* bring the first m of the second half next to the first m */
+    ds_rotate(a + m * es, n, es, n - m);
+    sq_cycles(a, m, es, true);
+    a += 2 * m * es;
+    n -= m;
+  }
+}
+
+static void sq_in_unshuffle(unsigned char *a, size_t n, size_t es) {
+  size_t steps[64];
+  size_t offs[64];
+  size_t ns[64];
+  size_t k = 0;
+  size_t off = 0;
+  while (n > 0 && k < 64) {
+    size_t m = sq_block(n);
+    steps[k] = m;
+    offs[k] = off;
+    ns[k] = n;
+    k++;
+    off += 2 * m;
+    n -= m;
+  }
+  while (k-- > 0) {
+    unsigned char *b = a + offs[k] * es;
+    size_t m = steps[k];
+    sq_cycles(b, m, es, false);
+    ds_rotate(b + m * es, ns[k], es, m);
+  }
+}
+
+ds_status_t ds_perfect_shuffle(void *base, size_t count, size_t elem_size,
+                               bool in_shuffle) {
+  unsigned char *a = (unsigned char *)base;
+  if (base == NULL && count > 0) {
+    return DS_ERR_NULL;
+  }
+  if (count % 2 != 0) {
+    return DS_ERR_INVALID;
+  }
+  if (count < 4 && !in_shuffle) {
+    return DS_OK;
+  }
+  if (in_shuffle) {
+    sq_in_shuffle(a, count / 2, elem_size);
+  } else {
+    /* out-shuffle: the first and last stay, the middle is in-shuffled */
+    sq_in_shuffle(a + elem_size, count / 2 - 1, elem_size);
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_perfect_unshuffle(void *base, size_t count, size_t elem_size,
+                                 bool in_shuffle) {
+  unsigned char *a = (unsigned char *)base;
+  if (base == NULL && count > 0) {
+    return DS_ERR_NULL;
+  }
+  if (count % 2 != 0) {
+    return DS_ERR_INVALID;
+  }
+  if (count < 4 && !in_shuffle) {
+    return DS_OK;
+  }
+  if (in_shuffle) {
+    sq_in_unshuffle(a, count / 2, elem_size);
+  } else {
+    sq_in_unshuffle(a + elem_size, count / 2 - 1, elem_size);
+  }
+  return DS_OK;
+}
