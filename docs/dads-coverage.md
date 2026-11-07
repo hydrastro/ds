@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 604 |
-| todo | 101 |
+| done | 607 |
+| todo | 98 |
 | def | 593 |
 | total | 1298 |
 
@@ -47,7 +47,6 @@ Families ordered by how many DADS entries they close.
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
-| `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
@@ -525,14 +524,14 @@ Families ordered by how many DADS entries they close.
 | facility location | todo | `algo/graph_hard` |
 | factor | def |  |
 | factorial | done | `algo/combinatorics` |
-| fast fourier transform | todo | `algo/fft` |
+| fast fourier transform | done | `algo/fft` |
 | fathoming | def |  |
 | feasible region | def |  |
 | feasible solution | def |  |
 | feedback edge set | done | `algo/graph_struct` |
 | feedback vertex set | todo | `algo/graph_hard` |
 | Ferguson-Forcade algorithm | todo | `algo/numeric` (extensions) |
-| FFT | todo | `algo/fft` |
+| FFT | done | `algo/fft` |
 | Fibonaccian search | done | `algo/search` |
 | Fibonacci heap | done | `lib/fibonacci_heap` |
 | Fibonacci number | done | `algo/number_theory` |
@@ -542,7 +541,7 @@ Families ordered by how many DADS entries they close.
 | Find | done | `algo/select` |
 | find kth least element | done | `algo/sort` (nth_element) |
 | finitary tree | def |  |
-| finite Fourier transform | todo | `algo/fft` |
+| finite Fourier transform | done | `algo/fft` |
 | finite state automaton | done | `lib/automaton` |
 | finite state machine | done | `lib/automaton` |
 | finite state machine minimization | done | `lib/automaton` |

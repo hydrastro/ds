@@ -43,5 +43,6 @@
 #include "algo/cartesian_tree.h"
 #include "algo/schorr_waite.h"
 #include "algo/game.h"
+#include "algo/fft.h"
 
 #endif /* DS_ALGO_H */
