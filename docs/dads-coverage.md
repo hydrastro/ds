@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 715 |
-| todo | 43 |
+| done | 716 |
+| todo | 42 |
 | def | 549 |
 | total | 1307 |
 
@@ -47,7 +47,6 @@ Families ordered by how many DADS entries they close.
 | `algo/dynamization` | 1 | dynamization transformation |
 | `algo/markov` | 1 | Markov chain |
 | `algo/space_order` | 1 | space ordering method |
-| `lib/binary_tree_repr (extensions)` | 1 | stack tree |
 | `lib/cellular_automaton` | 1 | cellular automaton |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
@@ -1290,7 +1289,7 @@ Families ordered by how many DADS entries they close.
 | SSTable | todo | `lib/sstable` |
 | stable | def |  |
 | stack | done | `lib/stack` |
-| stack tree | todo | `lib/binary_tree_repr` (extensions) |
+| stack tree | done | `lib/binary_tree_repr` |
 | star encoding | done | `algo/compress` |
 | star-shaped polygon | done | `algo/geometry` |
 | start state | def |  |

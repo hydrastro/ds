@@ -782,3 +782,103 @@ done:
   ds_context_free(t->context, stack);
   return st;
 }
+
+/* ---- stack trees ------------------------------------------------------------
+ */
+
+bool ds_binary_tree_is_stack_tree(const size_t *left, const size_t *right,
+                                  size_t n, size_t root,
+                                  ds_context_t *context) {
+  size_t none = ~(size_t)0;
+  size_t *stack;
+  unsigned char *seen;
+  size_t top = 0;
+  bool ok = true;
+  if (left == NULL || right == NULL || root >= n) {
+    return false;
+  }
+  stack = (size_t *)ds_context_alloc(context, (n + 1) * sizeof(size_t));
+  seen = (unsigned char *)ds_context_calloc(context, n, 1);
+  if (stack == NULL || seen == NULL) {
+    ds_context_free(context, stack);
+    ds_context_free(context, seen);
+    return false;
+  }
+  stack[top++] = root;
+  while (top > 0 && ok) {
+    size_t v = stack[--top];
+    size_t c[2];
+    size_t inner = 0;
+    size_t k;
+    if (v >= n || seen[v]) {
+      ok = false; /* out of range or shared: not a tree */
+      break;
+    }
+    seen[v] = 1;
+    c[0] = left[v];
+    c[1] = right[v];
+    for (k = 0; k < 2; k++) {
+      if (c[k] == none) {
+        continue;
+      }
+      if (c[k] >= n) {
+        ok = false;
+        break;
+      }
+      if (left[c[k]] != none || right[c[k]] != none) {
+        inner++;
+      }
+      stack[top++] = c[k];
+    }
+    if (v != root && inner > 1) {
+      ok = false;
+    }
+  }
+  ds_context_free(context, stack);
+  ds_context_free(context, seen);
+  return ok;
+}
+
+ds_status_t ds_stack_tree_build(size_t internal, size_t *left, size_t *right) {
+  size_t none = ~(size_t)0;
+  size_t total;
+  size_t i;
+  size_t next;
+  size_t spine[2];
+  size_t remaining;
+  size_t side = 0;
+  if (left == NULL || right == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (internal == 0 || internal > (none - 1) / 2) {
+    return DS_ERR_INVALID;
+  }
+  total = 2 * internal + 1;
+  for (i = 0; i < total; i++) {
+    left[i] = right[i] = none;
+  }
+  /* node 0 is the root; its children start two spines, alternately
+   * extended; every spine node gets one leaf and one spine child */
+  next = 1;
+  remaining = internal - 1;
+  spine[0] = spine[1] = 0;
+  if (remaining == 0) {
+    left[0] = next++;
+    right[0] = next++;
+    return DS_OK;
+  }
+  left[0] = next++;
+  right[0] = next++;
+  spine[0] = left[0];
+  spine[1] = right[0];
+  /* the two children are internal or leaves: give the rest out */
+  while (remaining > 0) {
+    size_t v = spine[side];
+    left[v] = next++;  /* a leaf */
+    right[v] = next++; /* the spine goes on (a leaf if it ends here) */
+    spine[side] = right[v];
+    remaining--;
+    side = remaining > 0 && spine[1 - side] != 0 ? 1 - side : side;
+  }
+  return DS_OK;
+}

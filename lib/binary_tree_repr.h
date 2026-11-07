@@ -18,6 +18,13 @@
  * over byte strings whose children are kept in a sorted sibling chain, so
  * each node needs only two links. Each key carries a size_t value.
  *
+ * Stack trees: binary trees in which no node except the root has more than
+ * one non-leaf child (the topology of simple fault-tolerant bus networks).
+ * ds_binary_tree_is_stack_tree checks a binary tree given by child arrays
+ * (any links, e.g. the binary view of an lcrs tree), and
+ * ds_stack_tree_build lays one out with a chosen number of internal nodes:
+ * two spines from the root, every spine node with one leaf child.
+ *
  * Concurrency: a structure may be used by one thread at a time.
  */
 
@@ -122,6 +129,14 @@ ds_status_t ds_dc_trie_prefix(const ds_dc_trie_t *t,
                               const unsigned char *prefix, size_t len,
                               unsigned char *buf, size_t buf_len,
                               ds_dc_trie_visit_func_t visit, void *user);
+
+/* left/right: n entries, (size_t)-1 for no child. false also when the
+ * links do not form a tree rooted at root. */
+bool ds_binary_tree_is_stack_tree(const size_t *left, const size_t *right,
+                                  size_t n, size_t root, ds_context_t *context);
+/* internal >= 1 internal nodes, 2 internal + 1 nodes in all (a full binary
+ * tree): left/right need that many entries; the root is node 0. */
+ds_status_t ds_stack_tree_build(size_t internal, size_t *left, size_t *right);
 
 #ifdef __cplusplus
 }
