@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 577 |
-| todo | 128 |
+| done | 579 |
+| todo | 126 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
-| `lib/diet` | 2 | diet, discrete interval encoding tree |
 | `lib/tst` | 2 | ternary search tree, TST |
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
 | `algo/cartesian_tree` | 1 | cartesian tree |
@@ -416,7 +415,7 @@ Families ordered by how many DADS entries they close.
 | Dianna | def |  |
 | dichotomic search | done | `algo/search` |
 | dictionary | done | `lib/hash_table, lib/rh_map, lib/avl, ...` |
-| diet | todo | `lib/diet` |
+| diet | done | `lib/diet` |
 | difference | done | `algo/sequence` (ds_set_difference) |
 | digital search tree | done | `lib/trie` |
 | digital tree | done | `lib/trie` |
@@ -428,7 +427,7 @@ Families ordered by how many DADS entries they close.
 | directed acyclic graph | def |  |
 | directed acyclic word graph | done | `lib/suffix_automaton` |
 | directed graph | done | `lib/graph` |
-| discrete interval encoding tree | todo | `lib/diet` |
+| discrete interval encoding tree | done | `lib/diet` |
 | discrete p-center | todo | `algo/graph_hard` |
 | disjoint set | done | `lib/disjoint_set, lib/rollback_union_find` |
 | disjunction | def |  |

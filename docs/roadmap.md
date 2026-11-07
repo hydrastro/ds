@@ -119,6 +119,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/multiset: hash multisets with the bag algebra.
 - lib/association_list: association lists and property lists.
 - lib/cactus_stack: cactus stacks with reference-counted frames.
+- lib/diet: discrete interval encoding trees.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
