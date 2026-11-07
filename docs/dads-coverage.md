@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 718 |
-| todo | 40 |
+| done | 720 |
+| todo | 38 |
 | def | 549 |
 | total | 1307 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `algo/model_check` | 3 | CTL, Kripke structure, model checking |
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
 | `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
-| `lib/sstable` | 2 | sorted-string table, SSTable |
 | `algo/anneal` | 1 | simulated annealing |
 | `algo/dynamization` | 1 | dynamization transformation |
 | `algo/markov` | 1 | Markov chain |
@@ -1266,7 +1265,7 @@ Families ordered by how many DADS entries they close.
 | sort | def |  |
 | sorted array | done | `lib/sorted_list` |
 | sorted list | done | `lib/sorted_list` |
-| sorted-string table | todo | `lib/sstable` |
+| sorted-string table | done | `lib/sstable` |
 | sort in place | def |  |
 | soundex | done | `algo/phonetic` |
 | source | def |  |
@@ -1284,7 +1283,7 @@ Families ordered by how many DADS entries they close.
 | square matrix | def |  |
 | square root | done | `algo/numerical` |
 | SST | done | `algo/graph_path` |
-| SSTable | todo | `lib/sstable` |
+| SSTable | done | `lib/sstable` |
 | stable | def |  |
 | stack | done | `lib/stack` |
 | stack tree | done | `lib/binary_tree_repr` |

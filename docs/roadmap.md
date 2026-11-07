@@ -168,6 +168,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `lib/binary_tree_repr`: stack trees (check and build).
 - algo/space_order: space ordering methods.
 - lib/spiral_storage: spiral storage.
+- lib/sstable: SSTables.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

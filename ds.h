@@ -111,6 +111,7 @@
 #include "lib/sparse_table.h"
 #include "lib/spiral_storage.h"
 #include "lib/splay_tree.h"
+#include "lib/sstable.h"
 #include "lib/stack.h"
 #include "lib/string_map.h"
 #include "lib/suffix_automaton.h"
