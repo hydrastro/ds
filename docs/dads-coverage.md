@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 695 |
-| todo | 10 |
+| done | 696 |
+| todo | 9 |
 | def | 593 |
 | total | 1298 |
 
@@ -38,8 +38,8 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
-| `lib/hb_tree` | 2 | D-tree, P-tree |
 | `algo/geometry` | 1 | geometric optimization problem |
+| `lib/hb_tree` | 1 | D-tree |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
@@ -1072,7 +1072,7 @@ Families ordered by how many DADS entries they close.
 | pseudo-random number generator | done | `algo/random` |
 | PTAS | def |  |
 | pth order Fibonacci numbers | done | `algo/number_theory` |
-| P-tree | todo | `lib/hb_tree` |
+| P-tree | done | `lib/p_tree` |
 | purely functional language | def |  |
 | pushdown automaton | def |  |
 | pushdown transducer | def |  |

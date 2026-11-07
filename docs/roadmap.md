@@ -152,6 +152,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/bang_file: EXCELL, BANG files and R-files.
 - lib/hb_tree: hB-trees, buddy trees, BD-trees, GBD-trees and BV-trees.
 - lib/bsp_tree: BSP-trees and cell trees (convex pieces in a line partition).
+- lib/p_tree: P-trees (polyhedral trees).
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -29,6 +29,7 @@ Core mutable containers:
 - - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
 - - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
+- - `lib/p_tree`: P-trees (k-DOP bounded R-trees)
 - - `lib/pagoda`: pagoda meldable priority queues
 - - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
