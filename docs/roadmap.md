@@ -137,6 +137,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/fft: DFT, FFT for any length, convolution, NTT.
 - algo/matrix: matrix multiplication and packed triangular matrices.
 - algo/hmm: hidden Markov models, Viterbi and Baum-Welch.
+- algo/parallel_sim: pointer jumping, recursive doubling, shortcutting, list and tree contraction.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

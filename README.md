@@ -159,6 +159,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - Fourier transforms: DFT, FFT (radix-2, Bluestein), FFT convolution, number-theoretic transform
 - - matrices: naive, blocked and Strassen multiplication; packed (strictly) lower/upper triangular matrices
 - - hidden Markov models: scaled forward-backward, posteriors, Viterbi, Baum-Welch
+- - PRAM simulations: pointer jumping, recursive doubling, shortcutting, list contraction, tree contraction
 
 Newer high-level modules:
 

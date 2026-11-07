@@ -46,5 +46,6 @@
 #include "algo/fft.h"
 #include "algo/matrix.h"
 #include "algo/hmm.h"
+#include "algo/parallel_sim.h"
 
 #endif /* DS_ALGO_H */

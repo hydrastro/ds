@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 616 |
-| todo | 89 |
+| done | 621 |
+| todo | 84 |
 | def | 593 |
 | total | 1298 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
-| `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
@@ -784,7 +783,7 @@ Families ordered by how many DADS entries they close.
 | linked data signature | todo | `lib/merkle_tree` |
 | linked list | done | `lib/list, lib/dlist` |
 | list | done | `lib/list` |
-| list contraction | todo | `algo/parallel_sim` |
+| list contraction | done | `algo/parallel_sim` |
 | little-o notation | def |  |
 | Lm distance | done | `algo/geometry` |
 | load factor | done | `lib/hash_table, lib/rh_map` |
@@ -1032,7 +1031,7 @@ Families ordered by how many DADS entries they close.
 | planar straight-line graph | def |  |
 | PLOP-hashing | def |  |
 | point access method | todo | `lib/quadtree` |
-| pointer jumping | todo | `algo/parallel_sim` |
+| pointer jumping | done | `algo/parallel_sim` |
 | pointer machine | def |  |
 | poissonization | def |  |
 | polychotomy | def |  |
@@ -1145,7 +1144,7 @@ Families ordered by how many DADS entries they close.
 | recursion tree | def |  |
 | recursive | def |  |
 | recursive data structure | def |  |
-| recursive doubling | todo | `algo/parallel_sim` |
+| recursive doubling | done | `algo/parallel_sim` |
 | recursive language | def |  |
 | recursively enumerable language | def |  |
 | recursively solvable | def |  |
@@ -1230,7 +1229,7 @@ Families ordered by how many DADS entries they close.
 | Shell sort † | done | `algo/sort` |
 | Shift-Or | done | `algo/string_search` |
 | Shor's algorithm | def |  |
-| shortcutting | todo | `algo/parallel_sim` |
+| shortcutting | done | `algo/parallel_sim` |
 | shortest common supersequence | done | `algo/string_approx` |
 | shortest common superstring | done | `algo/string_approx` |
 | shortest path | done | `algo/graph_path` |
@@ -1396,7 +1395,7 @@ Families ordered by how many DADS entries they close.
 | treap † | done | `lib/treap` |
 | tree † | done | `lib/bst` |
 | tree automaton | def |  |
-| tree contraction | todo | `algo/parallel_sim` |
+| tree contraction | done | `algo/parallel_sim` |
 | tree editing problem | def |  |
 | tree sort † | done | `algo/sort_heap` |
 | tree transducer † | def |  |
