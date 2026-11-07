@@ -13,41 +13,41 @@ algorithms, and timeline/history utilities.
 
 Core mutable containers:
 
-- - `lib/association_list`: association lists (shadowing bindings) and property lists
-- - `lib/bang_file`: EXCELL, BANG files and R-files
-- - `lib/binary_tree_repr`: first child-next sibling (filial-heir) trees and doubly-chained (de la Briandais) tries
-- - `lib/bsp_tree`: BSP-trees and cell trees
-- - `lib/buddy_allocator`: binary buddy system allocator (in-place realloc, context hook)
-- - `lib/cactus_stack`: cactus (saguaro, spaghetti) stacks with reference-counted shared frames
-- - `lib/d_tree`: D-trees (planar point location over subdivisions)
-- - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
-- - `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
-- - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
-- - `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
-- - `lib/grid_file`: fixed grids, grid files, twin, two-level and multilayer grid files
-- - `lib/hash_heap`: hash heaps (priority queues addressable by key)
-- - `lib/hb_tree`: hB-trees, buddy trees, BD-trees, GBD-trees, BV-trees
-- - `lib/jump_list`: jump lists (uniquely represented, O(n^(1/3)))
-- - `lib/k2_tree`: k^2-trees (compact adjacency matrices)
-- - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
-- - `lib/ld_signature`: linked data signatures, SHA-256, HMAC-SHA256
-- - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
-- - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
-- - `lib/p_tree`: P-trees (k-DOP bounded R-trees)
-- - `lib/pagoda`: pagoda meldable priority queues
-- - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
-- - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
-- - `lib/rtree`: R-trees (Guttman, R*) and bulk R+-trees
-- - `lib/scapegoat_tree`: scapegoat trees with pluggable α
-- - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees
-- - `lib/signature_file`: superimposed codes and signature files
-- - `lib/sorted_list`: sorted arrays (binary search, bounds, merge), ordered linked lists and unsorted lists
-- - `lib/sparse_matrix`: orthogonal-list sparse matrices (sum, product, transpose, CSR), ragged matrices, huge sparse arrays
-- - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
-- - `lib/tst`: ternary search trees with prefix, partial-match and near-neighbour searches
-- - `lib/two_choice_map`: d-choice (2-choice) and d-left hash maps
-- - `lib/ub_tree`: universal B-trees (Z-order, BIGMIN) and unlimited branching trees
-- - `lib/wb_tree`: weight-balanced BB[α] trees with pluggable (δ, γ), select/rank and root balance
+- `lib/association_list`: association lists (shadowing bindings) and property lists
+- `lib/bang_file`: EXCELL, BANG files and R-files
+- `lib/binary_tree_repr`: first child-next sibling (filial-heir) trees and doubly-chained (de la Briandais) tries
+- `lib/bsp_tree`: BSP-trees and cell trees
+- `lib/buddy_allocator`: binary buddy system allocator (in-place realloc, context hook)
+- `lib/cactus_stack`: cactus (saguaro, spaghetti) stacks with reference-counted shared frames
+- `lib/d_tree`: D-trees (planar point location over subdivisions)
+- `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
+- `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
+- `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
+- `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
+- `lib/grid_file`: fixed grids, grid files, twin, two-level and multilayer grid files
+- `lib/hash_heap`: hash heaps (priority queues addressable by key)
+- `lib/hb_tree`: hB-trees, buddy trees, BD-trees, GBD-trees, BV-trees
+- `lib/jump_list`: jump lists (uniquely represented, O(n^(1/3)))
+- `lib/k2_tree`: k^2-trees (compact adjacency matrices)
+- `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
+- `lib/ld_signature`: linked data signatures, SHA-256, HMAC-SHA256
+- `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
+- `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
+- `lib/p_tree`: P-trees (k-DOP bounded R-trees)
+- `lib/pagoda`: pagoda meldable priority queues
+- `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
+- `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
+- `lib/rtree`: R-trees (Guttman, R*) and bulk R+-trees
+- `lib/scapegoat_tree`: scapegoat trees with pluggable α
+- `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees
+- `lib/signature_file`: superimposed codes and signature files
+- `lib/sorted_list`: sorted arrays (binary search, bounds, merge), ordered linked lists and unsorted lists
+- `lib/sparse_matrix`: orthogonal-list sparse matrices (sum, product, transpose, CSR), ragged matrices, huge sparse arrays
+- `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
+- `lib/tst`: ternary search trees with prefix, partial-match and near-neighbour searches
+- `lib/two_choice_map`: d-choice (2-choice) and d-left hash maps
+- `lib/ub_tree`: universal B-trees (Z-order, BIGMIN) and unlimited branching trees
+- `lib/wb_tree`: weight-balanced BB[α] trees with pluggable (δ, γ), select/rank and root balance
 - Array deque (by-value ring that grows or lives in a fixed buffer, overwrite mode)
 - Augmented treap (ordered map with pluggable subtree summaries, rank/select, range summary, guided descent)
 - AVL tree
@@ -166,23 +166,23 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `compress`: Witten-Neal-Cleary arithmetic coding with pluggable models, LZW with freeze/reset dictionaries, move-to-front, BSTW, star encoding
 - `adaptive_huffman`: dynamic Huffman coding with FGK or Vitter updates, fixed-array trees, invariant check
 - `phonetic`: Soundex, NYSIIS, Metaphone, Double Metaphone, Caverphone 2.0 behind one dispatcher
-- - Cartesian trees: linear construction, RMQ via LCA, adaptive Cartesian tree sort
-- - Schorr-Waite (Deutsch-Schorr-Waite) stackless graph marking by pointer reversal
-- - game-tree search: minimax, alpha-beta, negamax with move ordering
-- - Fourier transforms: DFT, FFT (radix-2, Bluestein), FFT convolution, number-theoretic transform
-- - matrices: naive, blocked and Strassen multiplication; packed (strictly) lower/upper triangular matrices
-- - hidden Markov models: scaled forward-backward, posteriors, Viterbi, Baum-Welch
-- - PRAM simulations: pointer jumping, recursive doubling, shortcutting, list contraction, tree contraction
-- - lowest common ancestors: binary lifting, Euler tour + sparse table, Tarjan's offline LCA
-- - graph connectivity: reverse graphs, single-destination shortest paths, separation pairs, triconnectivity
-- - NP-hard graph problems: cliques, independent sets, vertex cover, (edge) colouring, chromatic number/index, Hamiltonian paths, path cover, feedback vertex set, (sub)graph isomorphism, bisection
-- - traveling salesman: Held-Karp, nearest neighbour, 2-opt, Christofides, Euclidean and bottleneck TSP; Clarke-Wright vehicle routing
-- - covering and location: set cover, set packing, (capacitated) facility location, discrete p-center, k-clustering
-- - Steiner trees: Dreyfus-Wagner, KMB 2-approximation, rectilinear (Hanan grid), Euclidean heuristic
-- - linear programming: two-phase simplex with duals, dual programs, branch and bound and Gomory cutting planes for (mixed) integer programs
-- - `algo/lattice`: LLL reduced bases, shortest vectors, spectral test in t dimensions, integer relations (PSLQ / Ferguson-Forcade, LLL)
-- - `algo/rice_integral`: Rice's method (Norlund-Rice integrals for alternating binomial sums)
-- - `algo/geo_opt`: geometric optimisation (Welzl, Megiddo prune and search, Seidel 2-D LP, Weiszfeld)
+- Cartesian trees: linear construction, RMQ via LCA, adaptive Cartesian tree sort
+- Schorr-Waite (Deutsch-Schorr-Waite) stackless graph marking by pointer reversal
+- game-tree search: minimax, alpha-beta, negamax with move ordering
+- Fourier transforms: DFT, FFT (radix-2, Bluestein), FFT convolution, number-theoretic transform
+- matrices: naive, blocked and Strassen multiplication; packed (strictly) lower/upper triangular matrices
+- hidden Markov models: scaled forward-backward, posteriors, Viterbi, Baum-Welch
+- PRAM simulations: pointer jumping, recursive doubling, shortcutting, list contraction, tree contraction
+- lowest common ancestors: binary lifting, Euler tour + sparse table, Tarjan's offline LCA
+- graph connectivity: reverse graphs, single-destination shortest paths, separation pairs, triconnectivity
+- NP-hard graph problems: cliques, independent sets, vertex cover, (edge) colouring, chromatic number/index, Hamiltonian paths, path cover, feedback vertex set, (sub)graph isomorphism, bisection
+- traveling salesman: Held-Karp, nearest neighbour, 2-opt, Christofides, Euclidean and bottleneck TSP; Clarke-Wright vehicle routing
+- covering and location: set cover, set packing, (capacitated) facility location, discrete p-center, k-clustering
+- Steiner trees: Dreyfus-Wagner, KMB 2-approximation, rectilinear (Hanan grid), Euclidean heuristic
+- linear programming: two-phase simplex with duals, dual programs, branch and bound and Gomory cutting planes for (mixed) integer programs
+- `algo/lattice`: LLL reduced bases, shortest vectors, spectral test in t dimensions, integer relations (PSLQ / Ferguson-Forcade, LLL)
+- `algo/rice_integral`: Rice's method (Norlund-Rice integrals for alternating binomial sums)
+- `algo/geo_opt`: geometric optimisation (Welzl, Megiddo prune and search, Seidel 2-D LP, Weiszfeld)
 
 Newer high-level modules:
 
