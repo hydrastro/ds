@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 685 |
-| todo | 20 |
+| done | 688 |
+| todo | 17 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
-| `lib/grid_file` | 3 | BANG file, EXCELL, R-file |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `lib/bsp_tree` | 1 | BSP-tree |
 | `lib/jump_list` | 1 | jump list |
@@ -156,7 +155,7 @@ Families ordered by how many DADS entries they close.
 | balanced quicksort | done | `algo/sort_misc` |
 | balanced tree | done | `lib/avl, lib/rbt, lib/btree` |
 | balanced two-way merge sort | done | `algo/external_sort` |
-| BANG file | todo | `lib/grid_file` |
+| BANG file | done | `lib/bang_file` |
 | Batcher sort | done | `algo/sort_classic` (bitonic) |
 | Baum Welch algorithm | done | `algo/hmm` |
 | BB(α) tree | done | `lib/wb_tree` |
@@ -479,7 +478,7 @@ Families ordered by how many DADS entries they close.
 | Eulerian path | done | `algo/graph_struct` |
 | Euler's formula | def |  |
 | exact string matching | done | `algo/string_search` |
-| EXCELL | todo | `lib/grid_file` |
+| EXCELL | done | `lib/bang_file` |
 | exchange sort | done | `algo/sort_classic` (bubble) |
 | exclusive or | def |  |
 | exclusive read, concurrent write | def |  |
@@ -1159,7 +1158,7 @@ Families ordered by how many DADS entries they close.
 | restricted universe sort | done | `algo/sort_dist` |
 | Reverse Colussi | done | `algo/string_search` |
 | Reverse Factor | done | `algo/string_search` |
-| R-file | todo | `lib/grid_file` |
+| R-file | done | `lib/bang_file` |
 | Rice's method | todo | `algo/numeric` (extensions) |
 | right rotation | done | `lib/avl, lib/rbt` |
 | right-threaded tree | done | `lib/threaded_tree` |

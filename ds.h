@@ -17,6 +17,7 @@
 #include "lib/aug_treap.h"
 #include "lib/automaton.h"
 #include "lib/avl.h"
+#include "lib/bang_file.h"
 #include "lib/bdd.h"
 #include "lib/binary_tree_repr.h"
 #include "lib/binomial_heap.h"
