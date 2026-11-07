@@ -157,6 +157,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - - Schorr-Waite (Deutsch-Schorr-Waite) stackless graph marking by pointer reversal
 - - game-tree search: minimax, alpha-beta, negamax with move ordering
 - - Fourier transforms: DFT, FFT (radix-2, Bluestein), FFT convolution, number-theoretic transform
+- - matrices: naive, blocked and Strassen multiplication; packed (strictly) lower/upper triangular matrices
 
 Newer high-level modules:
 

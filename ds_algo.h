@@ -44,5 +44,6 @@
 #include "algo/schorr_waite.h"
 #include "algo/game.h"
 #include "algo/fft.h"
+#include "algo/matrix.h"
 
 #endif /* DS_ALGO_H */

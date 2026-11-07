@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 607 |
-| todo | 98 |
+| done | 612 |
+| todo | 93 |
 | def | 593 |
 | total | 1298 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/quadtree` | 7 | bintree, linear quadtree, PAM, point access method, quadtree, quad trie, regular decomposition |
 | `algo/lp` | 6 | cutting plane, dual linear program, integer linear program, linear program, mixed integer linear program, simplex |
-| `algo/matrix` | 5 | lower triangular matrix, matrix multiplication, strictly lower triangular matrix, strictly upper triangular matrix, upper triangular matrix |
 | `algo/parallel_sim` | 5 | list contraction, pointer jumping, recursive doubling, shortcutting, tree contraction |
 | `algo/hmm` | 4 | Baum Welch algorithm, hidden Markov model, HMM, Viterbi algorithm |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
@@ -798,7 +797,7 @@ Families ordered by how many DADS entries they close.
 | longest common substring | done | `algo/string_approx` |
 | Lotka's law | def |  |
 | lower bound | done | `algo/search` (ds_lower_bound) |
-| lower triangular matrix | todo | `algo/matrix` |
+| lower triangular matrix | done | `algo/matrix` |
 | lowest common ancestor | todo | `algo/graph_alg` |
 | l-reduction | def |  |
 | lucky sort | done | `algo/sort_misc` |
@@ -821,7 +820,7 @@ Families ordered by how many DADS entries they close.
 | matching | done | `algo/matching` |
 | matrix | def |  |
 | matrix-chain multiplication problem | done | `algo/knapsack` |
-| matrix multiplication | todo | `algo/matrix` |
+| matrix multiplication | done | `algo/matrix` |
 | max-heap property | def |  |
 | maximal independent set | todo | `algo/graph_hard` |
 | maximally connected component | def |  |
@@ -1313,8 +1312,8 @@ Families ordered by how many DADS entries they close.
 | strand sort † | done | `algo/sort_misc` |
 | strictly decreasing | def |  |
 | strictly increasing | def |  |
-| strictly lower triangular matrix | todo | `algo/matrix` |
-| strictly upper triangular matrix | todo | `algo/matrix` |
+| strictly lower triangular matrix | done | `algo/matrix` |
+| strictly upper triangular matrix | done | `algo/matrix` |
 | string | done | `lib/str` |
 | string editing problem | done | `algo/stringology` (edit distances) |
 | string matching † | done | `algo/string_search` |
@@ -1484,7 +1483,7 @@ Families ordered by how many DADS entries they close.
 | unranking | done | `algo/combinatorics` |
 | unsolvable problem † | def |  |
 | unsorted list † | done | `lib/sorted_list` |
-| upper triangular matrix | todo | `algo/matrix` |
+| upper triangular matrix | done | `algo/matrix` |
 
 ### V
 

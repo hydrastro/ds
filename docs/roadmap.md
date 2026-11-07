@@ -135,6 +135,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/enfilade: enfilades with retrieval by address and rearrange.
 - lib/signature_file: superimposed coding and signature files.
 - algo/fft: DFT, FFT for any length, convolution, NTT.
+- algo/matrix: matrix multiplication and packed triangular matrices.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
