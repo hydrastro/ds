@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 676 |
-| todo | 29 |
+| done | 680 |
+| todo | 25 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
-| `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -85,7 +84,7 @@ Families ordered by how many DADS entries they close.
 | acyclic graph | def |  |
 | adaptive heap sort | done | `algo/sort_heap` |
 | adaptive Huffman coding | done | `algo/adaptive_huffman` |
-| adaptive k-d tree | todo | `lib/kdb_tree` |
+| adaptive k-d tree | done | `lib/kdb_tree` |
 | adaptive sort | done | `algo/sort_misc` |
 | address-calculation sort | done | `algo/sort_dist` |
 | adjacency-list representation | done | `lib/graph, algo/graph_view` (CSR) |
@@ -492,7 +491,7 @@ Families ordered by how many DADS entries they close.
 | exponential | def |  |
 | extended binary tree | def |  |
 | extended Euclid's algorithm | done | `algo/numeric` (ds_ext_gcd) |
-| extended k-d tree | todo | `lib/kdb_tree` |
+| extended k-d tree | done | `lib/kdb_tree` |
 | extendible hashing | done | `lib/extendible_hash` |
 | external chaining | done | `lib/hash_table` |
 | external index | def |  |
@@ -712,7 +711,7 @@ Families ordered by how many DADS entries they close.
 | k-clustering | done | `algo/facility` |
 | k-coloring | done | `algo/graph_np` |
 | k-connected graph | done | `algo/flow` |
-| k-d-B-tree | todo | `lib/kdb_tree` |
+| k-d-B-tree | done | `lib/kdb_tree` |
 | k-dimensional | def |  |
 | K-dominant match | done | `algo/string_approx` |
 | k-d tree | done | `lib/kd_tree` |
@@ -1248,7 +1247,7 @@ Families ordered by how many DADS entries they close.
 | singularity analysis † | def |  |
 | sink | def |  |
 | sinking sort † | done | `algo/sort_classic` |
-| skd-tree † | todo | `lib/kdb_tree` |
+| skd-tree † | done | `lib/kdb_tree` |
 | skew heap † | done | `lib/meldable_heap` |
 | skew symmetry | def |  |
 | skip list | done | `lib/skip_list` |
