@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 579 |
-| todo | 126 |
+| done | 581 |
+| todo | 124 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `lib/linear_hash_map` | 3 | expandable hashing, hashbelt, virtual hashing |
 | `lib/btree (2-3 / 2-3-4 presets)` | 2 | 2-3-4 tree, 2-3 tree |
-| `lib/tst` | 2 | ternary search tree, TST |
 | `lib/two_choice_map` | 2 | 2-choice hashing, 2-left hashing |
 | `algo/cartesian_tree` | 1 | cartesian tree |
 | `algo/game` | 1 | minimax |
@@ -1376,7 +1375,7 @@ Families ordered by how many DADS entries they close.
 | terminal | def |  |
 | terminal node † | def |  |
 | ternary search † | done | `algo/search` |
-| ternary search tree † | todo | `lib/tst` |
+| ternary search tree † | done | `lib/tst` |
 | text | done | `lib/str, lib/rope, lib/gap_buffer` |
 | text searching † | done | `algo/string_search` |
 | theta | def |  |
@@ -1425,7 +1424,7 @@ Families ordered by how many DADS entries they close.
 | tripartition | def |  |
 | Trotter-Johnson | done | `algo/combinatorics` |
 | TSP | todo | `algo/graph_hard` |
-| TST † | todo | `lib/tst` |
+| TST † | done | `lib/tst` |
 | Turbo-BM † | done | `algo/string_search` |
 | Turbo Reverse Factor † | done | `algo/string_search` |
 | Turing machine | def |  |
