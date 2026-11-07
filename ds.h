@@ -86,6 +86,7 @@
 #include "lib/skip_list.h"
 #include "lib/slot_map.h"
 #include "lib/sorted_list.h"
+#include "lib/sparse_matrix.h"
 #include "lib/sparse_set.h"
 #include "lib/sparse_table.h"
 #include "lib/splay_tree.h"

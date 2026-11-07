@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 586 |
-| todo | 119 |
+| done | 590 |
+| todo | 115 |
 | def | 593 |
 | total | 1298 |
 
@@ -48,7 +48,6 @@ Families ordered by how many DADS entries they close.
 | `lib/elastic_trie` | 4 | blind trie, bucket trie, compact trie, elastic-bucket trie |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
 | `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
-| `lib/sparse_matrix` | 4 | huge sparse array, orthogonal lists, ragged matrix, sparse matrix |
 | `algo/fft` | 3 | fast fourier transform, FFT, finite Fourier transform |
 | `algo/graph_alg` | 3 | lowest common ancestor, single-destination shortest-path problem, triconnected graph |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
@@ -654,7 +653,7 @@ Families ordered by how many DADS entries they close.
 | Horspool | done | `algo/string_search` |
 | hsadelta | def |  |
 | Huffman coding | done | `algo/prefix_code` |
-| huge sparse array | todo | `lib/sparse_matrix` |
+| huge sparse array | done | `lib/sparse_matrix` |
 | Hungarian algorithm | done | `algo/matching` |
 | hybrid algorithm | def |  |
 | hyperedge | def |  |
@@ -986,7 +985,7 @@ Families ordered by how many DADS entries they close.
 | oriented graph | def |  |
 | oriented tree | def |  |
 | orthogonal drawing | def |  |
-| orthogonal lists | todo | `lib/sparse_matrix` |
+| orthogonal lists | done | `lib/sparse_matrix` |
 | orthogonally convex rectilinear polygon | done | `algo/geometry` |
 | oscillating merge sort | done | `algo/external_sort` |
 | out-degree | def |  |
@@ -1123,7 +1122,7 @@ Families ordered by how many DADS entries they close.
 | Rabin-Karp | done | `algo/stringology` |
 | radix sort | done | `algo/sort` (LSD radix) |
 | radix tree | done | `lib/radix_trie` |
-| ragged matrix | todo | `lib/sparse_matrix` |
+| ragged matrix | done | `lib/sparse_matrix` |
 | Raita | done | `algo/string_search` |
 | random access machine | def |  |
 | randomization | def |  |
@@ -1287,7 +1286,7 @@ Families ordered by how many DADS entries they close.
 | space-constrained Lempel-Ziv-Welch † | done | `algo/compress` |
 | spanning tree † | done | `algo/graph_path` |
 | sparse graph | def |  |
-| sparse matrix | todo | `lib/sparse_matrix` |
+| sparse matrix | done | `lib/sparse_matrix` |
 | sparsification | def |  |
 | sparsity † | def |  |
 | spatial access method † | todo | `lib/rtree` |

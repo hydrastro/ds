@@ -125,6 +125,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/cartesian_tree: Cartesian trees, RMQ and Cartesian tree sort.
 - algo/schorr_waite: stackless pointer-reversal graph marking.
 - algo/game: minimax, alpha-beta and negamax game-tree search.
+- lib/sparse_matrix: orthogonal lists, ragged matrices, huge sparse arrays.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

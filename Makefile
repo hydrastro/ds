@@ -143,7 +143,8 @@ LIB_SRC := \
   $(LIB_DIR)/cactus_stack.c \
   $(LIB_DIR)/diet.c \
   $(LIB_DIR)/tst.c \
-  $(LIB_DIR)/two_choice_map.c
+  $(LIB_DIR)/two_choice_map.c \
+  $(LIB_DIR)/sparse_matrix.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -196,6 +197,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/sparse_matrix.c $(LIB_DIR)/sparse_matrix.h \
   $(LIB_DIR)/two_choice_map.c $(LIB_DIR)/two_choice_map.h \
   $(LIB_DIR)/tst.c $(LIB_DIR)/tst.h \
   $(LIB_DIR)/diet.c $(LIB_DIR)/diet.h \
