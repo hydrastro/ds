@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 717 |
-| todo | 41 |
+| done | 718 |
+| todo | 40 |
 | def | 549 |
 | total | 1307 |
 
@@ -49,7 +49,6 @@ Families ordered by how many DADS entries they close.
 | `lib/cellular_automaton` | 1 | cellular automaton |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
-| `lib/spiral_storage` | 1 | spiral storage |
 | `lib/topology_tree` | 1 | topology tree |
 | `lib/zipper` | 1 | zipper |
 
@@ -1279,7 +1278,7 @@ Families ordered by how many DADS entries they close.
 | sparsification | def |  |
 | sparsity | def |  |
 | spatial access method | done | `lib/rtree` |
-| spiral storage | todo | `lib/spiral_storage` |
+| spiral storage | done | `lib/spiral_storage` |
 | splay tree | done | `lib/splay_tree` |
 | SPMD | def |  |
 | square matrix | def |  |

@@ -167,6 +167,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `algo/random`: Zipfian distribution sampling (rejection-inversion).
 - `lib/binary_tree_repr`: stack trees (check and build).
 - algo/space_order: space ordering methods.
+- lib/spiral_storage: spiral storage.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -109,6 +109,7 @@
 #include "lib/sparse_matrix.h"
 #include "lib/sparse_set.h"
 #include "lib/sparse_table.h"
+#include "lib/spiral_storage.h"
 #include "lib/splay_tree.h"
 #include "lib/stack.h"
 #include "lib/string_map.h"
