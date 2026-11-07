@@ -130,6 +130,7 @@
 #include "lib/wavelet_tree.h"
 #include "lib/wb_tree.h"
 #include "lib/weak_heap.h"
+#include "lib/zipper.h"
 
 #include "lib/str.h"
 #include "lib/str_algo.h"

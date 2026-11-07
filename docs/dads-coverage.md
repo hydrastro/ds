@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 720 |
-| todo | 38 |
+| done | 721 |
+| todo | 37 |
 | def | 549 |
 | total | 1307 |
 
@@ -49,7 +49,6 @@ Families ordered by how many DADS entries they close.
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
 | `lib/topology_tree` | 1 | topology tree |
-| `lib/zipper` | 1 | zipper |
 
 ## Index A-Z
 
@@ -1562,5 +1561,5 @@ Families ordered by how many DADS entries they close.
 | Zhu-Takaoka | done | `algo/string_search` |
 | Zipfian distribution | done | `algo/random` |
 | Zipf's law | def |  |
-| zipper | todo | `lib/zipper` |
+| zipper | done | `lib/zipper` |
 | ZPP | def |  |

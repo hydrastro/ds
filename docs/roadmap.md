@@ -169,6 +169,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/space_order: space ordering methods.
 - lib/spiral_storage: spiral storage.
 - lib/sstable: SSTables.
+- lib/zipper: zippers over persistent binary trees
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -167,7 +167,8 @@ LIB_SRC := \
   $(LIB_DIR)/jump_list.c \
   $(LIB_DIR)/ld_signature.c \
   $(LIB_DIR)/spiral_storage.c \
-  $(LIB_DIR)/sstable.c
+  $(LIB_DIR)/sstable.c \
+  $(LIB_DIR)/zipper.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -235,6 +236,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/zipper.c $(LIB_DIR)/zipper.h \
   $(LIB_DIR)/sstable.c $(LIB_DIR)/sstable.h \
   $(LIB_DIR)/spiral_storage.c $(LIB_DIR)/spiral_storage.h \
   $(LIB_DIR)/ld_signature.c $(LIB_DIR)/ld_signature.h \
