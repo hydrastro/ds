@@ -86,6 +86,7 @@
 #include "lib/ring_list.h"
 #include "lib/rollback_union_find.h"
 #include "lib/rope.h"
+#include "lib/rtree.h"
 #include "lib/scapegoat_tree.h"
 #include "lib/segment_tree.h"
 #include "lib/self_org_list.h"

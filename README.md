@@ -27,6 +27,7 @@ Core mutable containers:
 - - `lib/pagoda`: pagoda meldable priority queues
 - - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
+- - `lib/rtree`: R-trees (Guttman, R*) and bulk R+-trees
 - - `lib/scapegoat_tree`: scapegoat trees with pluggable α
 - - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees
 - - `lib/signature_file`: superimposed codes and signature files

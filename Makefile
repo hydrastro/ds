@@ -153,7 +153,8 @@ LIB_SRC := \
   $(LIB_DIR)/hash_heap.c \
   $(LIB_DIR)/enfilade.c \
   $(LIB_DIR)/signature_file.c \
-  $(LIB_DIR)/quadtree.c
+  $(LIB_DIR)/quadtree.c \
+  $(LIB_DIR)/rtree.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -217,6 +218,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/rtree.c $(LIB_DIR)/rtree.h \
   $(LIB_DIR)/quadtree.c $(LIB_DIR)/quadtree.h \
   $(LIB_DIR)/signature_file.c $(LIB_DIR)/signature_file.h \
   $(LIB_DIR)/enfilade.c $(LIB_DIR)/enfilade.h \

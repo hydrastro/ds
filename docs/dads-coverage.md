@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 672 |
-| todo | 33 |
+| done | 676 |
+| todo | 29 |
 | def | 593 |
 | total | 1298 |
 
@@ -40,7 +40,6 @@ Families ordered by how many DADS entries they close.
 | `lib/grid_file` | 8 | BANG file, EXCELL, fixed-grid method, grid file, multilayer grid file, R-file, twin grid file, two-level grid file |
 | `lib/hb_tree` | 8 | BD-tree, buddy tree, BV-tree, cell tree, D-tree, GBD-tree, hB-tree, P-tree |
 | `lib/kdb_tree` | 4 | adaptive k-d tree, extended k-d tree, k-d-B-tree, skd-tree |
-| `lib/rtree` | 4 | R+-tree, R*-tree, R-tree, spatial access method |
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
 | `lib/bsp_tree` | 1 | BSP-tree |
@@ -1176,9 +1175,9 @@ Families ordered by how many DADS entries they close.
 | rotation | done | `lib/avl, lib/rbt, lib/treap` |
 | rough graph | def |  |
 | RP | def |  |
-| R+-tree | todo | `lib/rtree` |
-| R*-tree | todo | `lib/rtree` |
-| R-tree | todo | `lib/rtree` |
+| R+-tree | done | `lib/rtree` |
+| R*-tree | done | `lib/rtree` |
+| R-tree | done | `lib/rtree` |
 | run time | def |  |
 
 ### S
@@ -1271,7 +1270,7 @@ Families ordered by how many DADS entries they close.
 | sparse matrix | done | `lib/sparse_matrix` |
 | sparsification | def |  |
 | sparsity † | def |  |
-| spatial access method † | todo | `lib/rtree` |
+| spatial access method † | done | `lib/rtree` |
 | spectral test † | done | `algo/random` |
 | splay tree † | done | `lib/splay_tree` |
 | SPMD | def |  |

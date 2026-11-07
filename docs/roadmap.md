@@ -146,6 +146,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/steiner: graph, rectilinear and Euclidean Steiner trees.
 - algo/lp: simplex, duality, MILP by branch and bound and cutting planes.
 - lib/quadtree: PR quadtrees, octrees, bintrees, point and linear quadtrees.
+- lib/rtree: R-trees, R*-trees and R+-trees.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
