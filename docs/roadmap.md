@@ -171,6 +171,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/sstable: SSTables.
 - lib/zipper: zippers over persistent binary trees
 - algo/markov: Markov chain analysis
+- algo/anneal: simulated annealing
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

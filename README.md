@@ -188,6 +188,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `algo/geo_opt`: geometric optimisation (Welzl, Megiddo prune and search, Seidel 2-D LP, Weiszfeld)
 - `algo/space_order`: space ordering methods (row, row-prime, Morton, Hilbert, Gray, double Gray, U, Cantor, spiral; k-D Morton and Hilbert)
 - `algo/markov`: Markov chains (fit, simulate, P^k, classes and periods, stationary distribution, absorption, hitting times, entropy rate)
+- `algo/anneal`: simulated annealing with pluggable schedules and acceptance rules (Metropolis, Barker, threshold accepting, great deluge), move or neighbour mode, reheating
 
 Newer high-level modules:
 

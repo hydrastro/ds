@@ -5,6 +5,7 @@
  * Included by ds.h; include this header alone if you only need these. */
 
 #include "algo/adaptive_huffman.h"
+#include "algo/anneal.h"
 #include "algo/bits.h"
 #include "algo/cartesian_tree.h"
 #include "algo/combinatorics.h"

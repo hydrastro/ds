@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 722 |
-| todo | 36 |
+| done | 723 |
+| todo | 35 |
 | def | 549 |
 | total | 1307 |
 
@@ -42,7 +42,6 @@ Families ordered by how many DADS entries they close.
 | `algo/model_check` | 3 | CTL, Kripke structure, model checking |
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
 | `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
-| `algo/anneal` | 1 | simulated annealing |
 | `algo/dynamization` | 1 | dynamization transformation |
 | `lib/cellular_automaton` | 1 | cellular automaton |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
@@ -1241,7 +1240,7 @@ Families ordered by how many DADS entries they close.
 | simple path | def |  |
 | simple uniform hashing | def |  |
 | simplex | done | `algo/lp` |
-| simulated annealing | todo | `algo/anneal` |
+| simulated annealing | done | `algo/anneal` |
 | simulation theorem | def |  |
 | single-destination shortest-path problem | done | `algo/graph_conn` |
 | single-pair shortest-path problem | done | `algo/graph_path` |
