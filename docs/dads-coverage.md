@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 602 |
-| todo | 103 |
+| done | 603 |
+| todo | 102 |
 | def | 593 |
 | total | 1298 |
 
@@ -54,7 +54,6 @@ Families ordered by how many DADS entries they close.
 | `algo/knapsack` | 1 | set packing |
 | `lib/bloom_filter (superimposed codes)` | 1 | superimposed code |
 | `lib/bsp_tree` | 1 | BSP-tree |
-| `lib/enfilade` | 1 | enfilade |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
@@ -480,7 +479,7 @@ Families ordered by how many DADS entries they close.
 | elastic-bucket trie | done | `lib/elastic_trie` |
 | element uniqueness | done | `algo/sequence` (ds_unique after sort) |
 | end-of-string | def |  |
-| enfilade | todo | `lib/enfilade` |
+| enfilade | done | `lib/enfilade` |
 | ERCW | def |  |
 | EREW | def |  |
 | Euclidean algorithm | done | `algo/numeric` (ds_gcd) |

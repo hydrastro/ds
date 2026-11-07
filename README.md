@@ -20,6 +20,7 @@ Core mutable containers:
 - - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
 - - `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
 - - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
+- - `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
 - - `lib/hash_heap`: hash heaps (priority queues addressable by key)
 - - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)

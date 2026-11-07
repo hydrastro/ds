@@ -42,6 +42,7 @@
 #include "lib/dlist.h"
 #include "lib/dynamic_hash.h"
 #include "lib/elastic_trie.h"
+#include "lib/enfilade.h"
 #include "lib/extendible_hash.h"
 #include "lib/fenwick_tree.h"
 #include "lib/fibonacci_heap.h"
