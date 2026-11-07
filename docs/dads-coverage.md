@@ -26,8 +26,8 @@ live index.
 
 | status | entries |
 |---|---|
-| done | 696 |
-| todo | 9 |
+| done | 697 |
+| todo | 8 |
 | def | 593 |
 | total | 1298 |
 
@@ -39,7 +39,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `algo/numeric (extensions)` | 3 | Ferguson-Forcade algorithm, reduced basis, Rice's method |
 | `algo/geometry` | 1 | geometric optimization problem |
-| `lib/hb_tree` | 1 | D-tree |
 | `lib/jump_list` | 1 | jump list |
 | `lib/k2_tree` | 1 | k²-tree |
 | `lib/merkle_tree` | 1 | linked data signature |
@@ -423,7 +422,7 @@ Families ordered by how many DADS entries they close.
 | doubly linked list | done | `lib/dlist` |
 | DPDA | def |  |
 | DRBG | done | `algo/random` |
-| D-tree | todo | `lib/hb_tree` |
+| D-tree | done | `lib/d_tree` |
 | dual | def |  |
 | dual linear program | done | `algo/lp` |
 | dual-pivot quicksort | done | `algo/sort_misc` |

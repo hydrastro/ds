@@ -38,6 +38,7 @@
 #include "lib/critbit_tree.h"
 #include "lib/cuckoo_filter.h"
 #include "lib/cuckoo_map.h"
+#include "lib/d_tree.h"
 #include "lib/deque.h"
 #include "lib/diet.h"
 #include "lib/disjoint_set.h"

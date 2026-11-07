@@ -19,6 +19,7 @@ Core mutable containers:
 - - `lib/bsp_tree`: BSP-trees and cell trees
 - - `lib/buddy_allocator`: binary buddy system allocator (in-place realloc, context hook)
 - - `lib/cactus_stack`: cactus (saguaro, spaghetti) stacks with reference-counted shared frames
+- - `lib/d_tree`: D-trees (planar point location over subdivisions)
 - - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
 - - `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
 - - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
