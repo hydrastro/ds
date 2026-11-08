@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 728 |
-| todo | 30 |
+| done | 733 |
+| todo | 25 |
 | def | 549 |
 | total | 1307 |
 
@@ -37,7 +37,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `lib/tree_automaton` | 8 | deterministic finite tree automaton, deterministic tree automaton, DFTA, NFTA, nondeterministic finite tree automaton, nondeterministic tree automaton, top-down tree automaton, tree automaton |
 | `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
-| `lib/pushdown` | 5 | deterministic pushdown automaton, DPDA, PDA, pushdown automaton, pushdown transducer |
 | `algo/model_check` | 3 | CTL, Kripke structure, model checking |
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
 | `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
@@ -375,7 +374,7 @@ Families ordered by how many DADS entries they close.
 | deterministic finite automaton | done | `lib/automaton` |
 | deterministic finite state machine | def |  |
 | deterministic finite tree automaton | todo | `lib/tree_automaton` |
-| deterministic pushdown automaton | todo | `lib/pushdown` |
+| deterministic pushdown automaton | done | `lib/pushdown` |
 | deterministic random bit generator | done | `algo/random` (xoshiro, not cryptographic) |
 | deterministic tree automaton | todo | `lib/tree_automaton` |
 | Deutsch-Jozsa algorithm | def |  |
@@ -422,7 +421,7 @@ Families ordered by how many DADS entries they close.
 | doubly-chained tree | done | `lib/binary_tree_repr` |
 | doubly-ended queue | done | `lib/deque` |
 | doubly linked list | done | `lib/dlist` |
-| DPDA | todo | `lib/pushdown` |
+| DPDA | done | `lib/pushdown` |
 | DRBG | done | `algo/random` |
 | D-tree | done | `lib/d_tree` |
 | dual | def |  |
@@ -1001,7 +1000,7 @@ Families ordered by how many DADS entries they close.
 | pattern element | def |  |
 | P-complete | def |  |
 | PCP | def |  |
-| PDA | todo | `lib/pushdown` |
+| PDA | done | `lib/pushdown` |
 | Pearson's hash | done | `algo/hash_family` |
 | perfect binary tree | def |  |
 | perfect hashing | done | `algo/perfect_hash` |
@@ -1075,8 +1074,8 @@ Families ordered by how many DADS entries they close.
 | pth order Fibonacci numbers | done | `algo/number_theory` |
 | P-tree | done | `lib/p_tree` |
 | purely functional language | def |  |
-| pushdown automaton | todo | `lib/pushdown` |
-| pushdown transducer | todo | `lib/pushdown` |
+| pushdown automaton | done | `lib/pushdown` |
+| pushdown transducer | done | `lib/pushdown` |
 | p-way merge sort | done | `algo/sort_misc` |
 
 ### Q

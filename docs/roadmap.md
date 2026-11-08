@@ -174,6 +174,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/anneal: simulated annealing
 - lib/cellular_automaton: cellular automata
 - lib/turing_machine: Turing machines
+- lib/pushdown: pushdown automata and transducers
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
