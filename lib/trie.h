@@ -37,6 +37,7 @@ typedef struct trie {
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
   ds_context_t *context;
+  bool use_context; /* nodes and stores come from context */
 } ds_trie_t;
 
 typedef struct ds_trie_store_ops {
@@ -78,7 +79,14 @@ ds_status_t ds_trie_remove(ds_trie_t *trie, void *data,
                            bool (*has_slice)(void *, size_t));
 void ds_trie_destroy(ds_trie_t *trie);
 
+/* NULL when the node or its child store cannot be allocated */
 ds_trie_node_t *ds_trie_create_node(ds_trie_t *trie);
+/* Allocation for the trie and its child stores: through the configured
+ * context when one was given to ds_trie_create_config (and no explicit
+ * allocator), else through the allocator functions. Custom stores should
+ * use these. */
+void *ds_trie_alloc(ds_trie_t *trie, size_t size);
+void ds_trie_free(ds_trie_t *trie, void *ptr);
 
 ds_trie_t *trie_create_hash(size_t num_splits);
 ds_trie_t *ds_trie_create_hash_alloc(size_t num_splits,

@@ -8,8 +8,8 @@ typedef void (*trie_visit_t)(ds_trie_t *, ds_trie_node_t *, va_list *);
 typedef void (*trie_apply_t)(ds_trie_t *, void *, trie_visit_t, va_list *);
 
 static void *ts_alloc(ds_trie_t *trie, size_t size) {
-  if (trie != NULL && trie->allocator != NULL) {
-    return trie->allocator(size);
+  if (trie != NULL && (trie->use_context || trie->allocator != NULL)) {
+    return ds_trie_alloc(trie, size);
   }
   return malloc(size);
 }
@@ -34,16 +34,35 @@ static void ts_visit(ds_trie_t *trie, ds_trie_node_t *child, trie_visit_t f,
 
 /* ---- Robin Hood map store: slice -> child ---- */
 
-/* Each store keeps its own deallocator: a cloned store may outlive the
- * trie it was created through. */
+/* Each store remembers how it was allocated (a context, else a
+ * deallocator): a cloned store may outlive the trie it was created
+ * through. */
+typedef struct ts_owner {
+  void (*deallocator)(void *);
+  ds_context_t *context; /* when the trie allocates from its context */
+} ts_owner_t;
+
+static ts_owner_t ts_owner_of(const ds_trie_t *trie) {
+  ts_owner_t o;
+  o.deallocator = trie != NULL ? trie->deallocator : NULL;
+  o.context = trie != NULL && trie->use_context ? trie->context : NULL;
+  return o;
+}
+
+static ds_context_t *ts_scratch_context(const ds_trie_t *trie) {
+  return trie != NULL ? trie->context : NULL;
+}
+
 typedef struct ts_rh_store {
   ds_rh_map_t map;
-  void (*deallocator)(void *);
+  ts_owner_t owner;
 } ts_rh_store_t;
 
-static void ts_free(void (*deallocator)(void *), void *block) {
-  if (deallocator != NULL) {
-    deallocator(block);
+static void ts_free(ts_owner_t owner, void *block) {
+  if (owner.context != NULL) {
+    ds_context_free(owner.context, block);
+  } else if (owner.deallocator != NULL) {
+    owner.deallocator(block);
   } else {
     free(block);
   }
@@ -65,7 +84,7 @@ static void *ts_rh_create(ds_trie_t *trie, size_t size) {
   if (s == NULL) {
     return NULL;
   }
-  s->deallocator = trie != NULL ? trie->deallocator : NULL;
+  s->owner = ts_owner_of(trie);
   ds_rh_map_config_init(&config);
   config.key_size = sizeof(size_t);
   config.value_size = sizeof(ds_trie_node_t *);
@@ -73,7 +92,7 @@ static void *ts_rh_create(ds_trie_t *trie, size_t size) {
   config.equal = ds_rh_map_equal_size;
   config.context = trie != NULL ? trie->context : NULL;
   if (ds_rh_map_init(&s->map, &config, 0) != DS_OK) {
-    ts_free(s->deallocator, s);
+    ts_free(s->owner, s);
     return NULL;
   }
   return s;
@@ -93,7 +112,7 @@ static void ts_rh_destroy(void *store) {
     return;
   }
   ds_rh_map_destroy(&s->map);
-  ts_free(s->deallocator, s);
+  ts_free(s->owner, s);
 }
 
 static size_t ts_rh_size(void *store) {
@@ -107,8 +126,8 @@ static void ts_rh_apply(ds_trie_t *trie, void *store, trie_visit_t f,
   size_t cursor = 0;
   size_t i;
   void *value;
-  if (map == NULL ||
-      ds_vec_init(&snapshot, sizeof(ds_trie_node_t *), NULL) != DS_OK) {
+  if (map == NULL || ds_vec_init(&snapshot, sizeof(ds_trie_node_t *),
+                                 ts_scratch_context(trie)) != DS_OK) {
     return;
   }
   while (ds_rh_map_next(map, &cursor, NULL, &value)) {
@@ -148,7 +167,7 @@ const ds_trie_store_ops_t *ds_trie_rh_map_store_ops(void) { return &ts_rh_ops; }
 
 typedef struct ts_vec_store {
   ds_vec_t children;
-  void (*deallocator)(void *);
+  ts_owner_t owner;
 } ts_vec_store_t;
 
 static void ts_vec_apply(ds_trie_t *trie, void *store, trie_visit_t f,
@@ -184,7 +203,7 @@ static void *ts_vec_create(ds_trie_t *trie, size_t size) {
   if (s == NULL) {
     return NULL;
   }
-  s->deallocator = trie != NULL ? trie->deallocator : NULL;
+  s->owner = ts_owner_of(trie);
   ds_vec_init(&s->children, sizeof(ds_trie_node_t *),
               trie != NULL ? trie->context : NULL);
   return s;
@@ -214,7 +233,7 @@ static void ts_vec_destroy(void *store) {
     return;
   }
   ds_vec_destroy(&s->children);
-  ts_free(s->deallocator, s);
+  ts_free(s->owner, s);
 }
 
 static size_t ts_vec_size(void *store) {
@@ -226,7 +245,8 @@ static void ts_vec_apply(ds_trie_t *trie, void *store, trie_visit_t f,
   ts_vec_store_t *s = (ts_vec_store_t *)store;
   ds_vec_t snapshot;
   size_t i;
-  if (s == NULL || ds_vec_copy(&snapshot, &s->children, NULL) != DS_OK) {
+  if (s == NULL ||
+      ds_vec_copy(&snapshot, &s->children, ts_scratch_context(trie)) != DS_OK) {
     return;
   }
   for (i = 0; i < ds_vec_size(&snapshot); i++) {
