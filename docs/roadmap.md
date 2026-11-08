@@ -196,6 +196,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/robust_predicates: Shewchuk-style expansion arithmetic, filtered exact orient2d/3d, incircle, insphere
 - lib/persistent_hamt: persistent CHAMP HAMT with refcounted sharing, canonical deletion, structural equality, in-place transient edits
 - lib/pq_iface: addressable priority-queue ops table with eight heap backends and traits
+- lib/fm_index: FM-index with sampled SA/ISA, occurrence-table and wavelet-matrix rank backends, configurable suffix array builder
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
