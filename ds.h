@@ -54,6 +54,7 @@
 #include "lib/extendible_hash.h"
 #include "lib/fenwick_tree.h"
 #include "lib/fibonacci_heap.h"
+#include "lib/finger_tree.h"
 #include "lib/fm_index.h"
 #include "lib/gap_buffer.h"
 #include "lib/graph.h"
