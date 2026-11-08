@@ -197,6 +197,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `algo/model_check`: Kripke structures and CTL model checking (parser, linear-time labelling, fairness constraints, until/globally witnesses)
 - `algo/tree_edit`: Zhang-Shasha tree/forest edit distance with cost callbacks and the optimal mapping
 - `algo/visibility`: vertical and horizontal visibility maps of non-crossing segments by plane sweep
+- `algo/dynamization`: Bentley-Saxe dynamization of static structures (any base, weak deletions with global rebuilding)
 
 Newer high-level modules:
 

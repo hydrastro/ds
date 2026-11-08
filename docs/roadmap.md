@@ -180,6 +180,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/tree_edit: tree and forest edit distance
 - algo/visibility: visibility maps
 - lib/inverted_index: inverted and forward indexes
+- algo/dynamization: logarithmic-method dynamization
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

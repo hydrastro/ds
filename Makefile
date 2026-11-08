@@ -235,7 +235,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/anneal.c \
   $(ALGO_DIR)/model_check.c \
   $(ALGO_DIR)/tree_edit.c \
-  $(ALGO_DIR)/visibility.c
+  $(ALGO_DIR)/visibility.c \
+  $(ALGO_DIR)/dynamization.c
 
 LIB_SRC += $(ALGO_SRC)
 

@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 754 |
-| todo | 4 |
+| done | 755 |
+| todo | 3 |
 | def | 549 |
 | total | 1307 |
 
@@ -35,7 +35,6 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `algo/dynamization` | 1 | dynamization transformation |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
 | `lib/topology_tree` | 1 | topology tree |
@@ -429,7 +428,7 @@ Families ordered by how many DADS entries they close.
 | dynamic hashing | done | `lib/linear_hash_map` |
 | dynamic Huffman coding | done | `algo/adaptive_huffman` |
 | dynamic programming | def |  |
-| dynamization transformation | todo | `algo/dynamization` |
+| dynamization transformation | done | `algo/dynamization` |
 
 ### E
 
