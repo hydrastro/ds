@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 755 |
-| todo | 3 |
+| done | 756 |
+| todo | 2 |
 | def | 549 |
 | total | 1307 |
 
@@ -36,7 +36,6 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `lib/confluent_list` | 1 | confluently persistent data structure |
-| `lib/plop_hash` | 1 | PLOP-hashing |
 | `lib/topology_tree` | 1 | topology tree |
 
 ## Index A-Z
@@ -1013,7 +1012,7 @@ Families ordered by how many DADS entries they close.
 | planar graph | def |  |
 | planarization | def |  |
 | planar straight-line graph | def |  |
-| PLOP-hashing | todo | `lib/plop_hash` |
+| PLOP-hashing | done | `lib/plop_hash` |
 | point access method | done | `lib/quadtree` |
 | pointer jumping | done | `algo/parallel_sim` |
 | pointer machine | def |  |

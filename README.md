@@ -37,6 +37,7 @@ Core mutable containers:
 - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
 - `lib/p_tree`: P-trees (k-DOP bounded R-trees)
 - `lib/pagoda`: pagoda meldable priority queues
+- `lib/plop_hash`: PLOP-hashing, directory-free order-preserving multidimensional linear hashing (midpoint or median splits, box queries)
 - `lib/pushdown`: pushdown automata (exact nondeterministic membership via [pXq] summaries, DPDA check and simulation, pushdown transducers)
 - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join

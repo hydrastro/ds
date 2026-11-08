@@ -181,6 +181,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/visibility: visibility maps
 - lib/inverted_index: inverted and forward indexes
 - algo/dynamization: logarithmic-method dynamization
+- lib/plop_hash: PLOP-hashing
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
