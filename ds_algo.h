@@ -46,6 +46,7 @@
 #include "algo/prefix_code.h"
 #include "algo/random.h"
 #include "algo/rice_integral.h"
+#include "algo/robust_predicates.h"
 #include "algo/scan.h"
 #include "algo/schorr_waite.h"
 #include "algo/search.h"

@@ -210,6 +210,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `algo/visibility`: vertical and horizontal visibility maps of non-crossing segments by plane sweep
 - `algo/dynamization`: Bentley-Saxe dynamization of static structures (any base, weak deletions with global rebuilding)
 - `algo/weighted_matching`: maximum weight (and maximum cardinality) matching and minimum weight perfect matching in general graphs, Edmonds/Galil O(n^3)
+- `algo/robust_predicates`: expansion arithmetic and exact orient2d/orient3d/incircle/insphere with floating-point filters
 
 Newer high-level modules:
 

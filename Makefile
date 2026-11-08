@@ -251,7 +251,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/tree_edit.c \
   $(ALGO_DIR)/visibility.c \
   $(ALGO_DIR)/dynamization.c \
-  $(ALGO_DIR)/weighted_matching.c
+  $(ALGO_DIR)/weighted_matching.c \
+  $(ALGO_DIR)/robust_predicates.c
 
 LIB_SRC += $(ALGO_SRC)
 

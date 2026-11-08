@@ -193,6 +193,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/lazy_segment_tree: generic lazy segment tree
 - lib/elias_fano: Elias-Fano sequences
 - lib/roaring: Roaring bitmaps with array/bitmap/run containers, rank/select, and/or/xor/andnot, optimize
+- algo/robust_predicates: Shewchuk-style expansion arithmetic, filtered exact orient2d/3d, incircle, insphere
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
