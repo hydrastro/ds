@@ -1,4 +1,5 @@
 #include "allocators.h"
+#include "checked.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,37 +15,43 @@ static const ds_diagnostic_desc_t DS_DEBUG_ALLOC_BAD_FREE = {
     "ds.allocators/debug_bad_free", DS_DIAG_ERROR, "allocators",
     "debug allocator rejected a pointer with an invalid allocation header"};
 
-static size_t ds_align_up(size_t value, size_t alignment) {
-  size_t remainder;
-
-  if (alignment == 0U) {
-    return value;
-  }
-  remainder = value % alignment;
-  if (remainder == 0U) {
-    return value;
-  }
-  return value + (alignment - remainder);
-}
-
-static void *arena_alloc(size_t size, void *user) {
-  ds_arena_t *arena;
-  size_t alignment;
+void *ds_arena_alloc_aligned(ds_arena_t *arena, size_t size, size_t alignment) {
   size_t start;
   size_t next;
 
-  arena = (ds_arena_t *)user;
-  if (arena == NULL || size == 0U) {
+  if (arena == NULL || size == 0U || arena->buffer == NULL ||
+      !ds_size_is_pow2(alignment) || arena->offset > arena->capacity) {
     return NULL;
   }
-  alignment = sizeof(void *);
-  start = ds_align_up(arena->offset, alignment);
-  next = start + size;
-  if (next < start || next > arena->capacity) {
+  /* align the address itself, whatever the buffer's own alignment */
+  if (!ds_size_add(arena->offset,
+                   ds_ptr_padding(arena->buffer + arena->offset, alignment),
+                   &start) ||
+      !ds_size_add(start, size, &next) || next > arena->capacity) {
     return NULL;
   }
   arena->offset = next;
   return arena->buffer + start;
+}
+
+static void *arena_alloc(size_t size, void *user) {
+  ds_arena_t *arena = (ds_arena_t *)user;
+  if (arena == NULL) {
+    return NULL;
+  }
+  return ds_arena_alloc_aligned(
+      arena, size, arena->alignment != 0U ? arena->alignment : DS_MAX_ALIGN);
+}
+
+ds_status_t ds_arena_set_alignment(ds_arena_t *arena, size_t alignment) {
+  if (arena == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (!ds_size_is_pow2(alignment)) {
+    return DS_ERR_INVALID;
+  }
+  arena->alignment = alignment;
+  return DS_OK;
 }
 
 static void *arena_calloc(size_t count, size_t size, void *user) {
@@ -83,6 +90,7 @@ void ds_arena_init(ds_arena_t *arena, void *buffer, size_t capacity) {
   arena->capacity = capacity;
   arena->offset = 0U;
   arena->owns_buffer = 0;
+  arena->alignment = DS_MAX_ALIGN;
 }
 
 ds_status_t ds_arena_create(ds_arena_t *arena, size_t capacity,
@@ -148,55 +156,89 @@ static void pool_build_free_list(ds_pool_t *pool) {
   pool->free_list = NULL;
   for (i = 0U; i < pool->block_count; i++) {
     block = pool->buffer + (i * pool->block_size);
-    node = (ds_pool_free_node_t *)block;
+    node = (ds_pool_free_node_t *)(void *)block;
     node->next = pool->free_list;
     pool->free_list = node;
   }
 }
 
-void ds_pool_init(ds_pool_t *pool, void *buffer, size_t block_size,
-                  size_t block_count) {
-  size_t min_block_size;
+ds_status_t ds_pool_init_aligned(ds_pool_t *pool, void *buffer,
+                                 size_t block_size, size_t block_count,
+                                 size_t alignment) {
+  size_t stride;
+  size_t padding;
 
   if (pool == NULL) {
-    return;
+    return DS_ERR_NULL;
   }
-  min_block_size = sizeof(ds_pool_free_node_t);
-  if (block_size < min_block_size) {
-    block_size = min_block_size;
+  if (alignment == 0U) {
+    alignment = DS_MAX_ALIGN;
   }
-  block_size = ds_align_up(block_size, sizeof(void *));
-  pool->buffer = (unsigned char *)buffer;
-  pool->block_size = block_size;
-  pool->block_count = block_count;
-  pool->available_count = block_count;
+  if (!ds_size_is_pow2(alignment)) {
+    return DS_ERR_INVALID;
+  }
+  if (block_size < sizeof(ds_pool_free_node_t)) {
+    block_size = sizeof(ds_pool_free_node_t);
+  }
+  /* blocks also hold free-list links: keep at least pointer alignment */
+  if (alignment < sizeof(void *) && ds_size_is_pow2(sizeof(void *))) {
+    alignment = sizeof(void *);
+  }
+  if (!ds_size_align(block_size, alignment, &stride)) {
+    return DS_ERR_OVERFLOW;
+  }
+  pool->base = (unsigned char *)buffer;
+  pool->alignment = alignment;
+  padding = buffer == NULL ? 0U : ds_ptr_padding(buffer, alignment);
+  if (padding > 0U && block_count > 0U) {
+    block_count--; /* the padding eats at most one block (stride >= it) */
+  }
+  pool->buffer = (unsigned char *)buffer + padding;
+  pool->block_size = stride;
+  pool->block_count = buffer == NULL ? 0U : block_count;
+  pool->available_count = pool->block_count;
   pool->owns_buffer = 0;
   pool_build_free_list(pool);
+  return DS_OK;
+}
+
+void ds_pool_init(ds_pool_t *pool, void *buffer, size_t block_size,
+                  size_t block_count) {
+  (void)ds_pool_init_aligned(pool, buffer, block_size, block_count, 0U);
 }
 
 ds_status_t ds_pool_create(ds_pool_t *pool, size_t block_size,
                            size_t block_count, ds_context_t *context) {
   void *buffer;
-  size_t aligned_block_size;
+  size_t stride;
   size_t total;
+  ds_status_t st;
 
   if (pool == NULL) {
     return DS_ERR_NULL;
   }
-  aligned_block_size = ds_align_up(block_size < sizeof(ds_pool_free_node_t)
-                                       ? sizeof(ds_pool_free_node_t)
-                                       : block_size,
-                                   sizeof(void *));
-  if (aligned_block_size != 0U &&
-      block_count > ((size_t)-1) / aligned_block_size) {
+  if (!ds_size_align(block_size < sizeof(ds_pool_free_node_t)
+                         ? sizeof(ds_pool_free_node_t)
+                         : block_size,
+                     DS_MAX_ALIGN, &stride) ||
+      !ds_size_mul_add(stride, block_count, DS_MAX_ALIGN, &total)) {
     return DS_ERR_OVERFLOW;
   }
-  total = aligned_block_size * block_count;
+  /* one spare alignment unit so the blocks fit after any padding */
   buffer = ds_context_alloc(context, total);
   if (buffer == NULL && total != 0U) {
     return DS_ERR_ALLOC;
   }
-  ds_pool_init(pool, buffer, aligned_block_size, block_count);
+  st = ds_pool_init_aligned(pool, buffer, stride, block_count, DS_MAX_ALIGN);
+  if (st != DS_OK) {
+    ds_context_free(context, buffer);
+    return st;
+  }
+  if (ds_ptr_padding(buffer, DS_MAX_ALIGN) > 0U) {
+    pool->block_count = block_count; /* the spare unit covers the padding */
+    pool->available_count = block_count;
+    pool_build_free_list(pool);
+  }
   pool->owns_buffer = 1;
   return DS_OK;
 }
@@ -206,9 +248,10 @@ void ds_pool_destroy(ds_pool_t *pool, ds_context_t *context) {
     return;
   }
   if (pool->owns_buffer) {
-    ds_context_free(context, pool->buffer);
+    ds_context_free(context, pool->base);
   }
   pool->buffer = NULL;
+  pool->base = NULL;
   pool->block_size = 0U;
   pool->block_count = 0U;
   pool->free_list = NULL;

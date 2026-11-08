@@ -9,11 +9,20 @@
 extern "C" {
 #endif
 
+/*
+ * Alignment: arenas and pools align the actual addresses they return
+ * (not just offsets into a buffer of unknown alignment) to `alignment`,
+ * DS_MAX_ALIGN by default (enough for any C89 object); a power of two can
+ * be chosen with ds_arena_set_alignment / ds_pool_init_aligned. A pool on
+ * a misaligned caller buffer starts at the first aligned address and
+ * gives up one block if the padding needs it.
+ */
 typedef struct ds_arena {
   unsigned char *buffer;
   size_t capacity;
   size_t offset;
   int owns_buffer;
+  size_t alignment;
 } ds_arena_t;
 
 typedef struct ds_pool_free_node {
@@ -21,12 +30,14 @@ typedef struct ds_pool_free_node {
 } ds_pool_free_node_t;
 
 typedef struct ds_pool {
-  unsigned char *buffer;
+  unsigned char *buffer; /* first (aligned) block */
   size_t block_size;
   size_t block_count;
   ds_pool_free_node_t *free_list;
   size_t available_count;
   int owns_buffer;
+  unsigned char *base; /* the buffer as given or allocated */
+  size_t alignment;
 } ds_pool_t;
 
 typedef struct ds_debug_allocator_stats {
@@ -52,9 +63,18 @@ void ds_arena_reset(ds_arena_t *arena);
 size_t ds_arena_used(const ds_arena_t *arena);
 size_t ds_arena_remaining(const ds_arena_t *arena);
 void ds_context_use_arena(ds_context_t *context, ds_arena_t *arena);
+/* alignment: a power of two (DS_ERR_INVALID otherwise) */
+ds_status_t ds_arena_set_alignment(ds_arena_t *arena, size_t alignment);
+/* one allocation with its own alignment (NULL when out of space) */
+void *ds_arena_alloc_aligned(ds_arena_t *arena, size_t size, size_t alignment);
 
 void ds_pool_init(ds_pool_t *pool, void *buffer, size_t block_size,
                   size_t block_count);
+/* like ds_pool_init with blocks aligned to `alignment` (a power of two;
+ * 0 means DS_MAX_ALIGN) */
+ds_status_t ds_pool_init_aligned(ds_pool_t *pool, void *buffer,
+                                 size_t block_size, size_t block_count,
+                                 size_t alignment);
 ds_status_t ds_pool_create(ds_pool_t *pool, size_t block_size,
                            size_t block_count, ds_context_t *context);
 void ds_pool_destroy(ds_pool_t *pool, ds_context_t *context);
