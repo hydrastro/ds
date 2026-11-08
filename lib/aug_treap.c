@@ -1,4 +1,5 @@
 #include "aug_treap.h"
+#include "checked.h"
 #include <string.h>
 
 typedef union aug_align {
@@ -17,11 +18,6 @@ struct ds_aug_node {
 
 #define AUG_AT(n, off) ((unsigned char *)(n) + (off))
 #define AUG_CAT(n, off) ((const unsigned char *)(n) + (off))
-
-static size_t aug_round(size_t n) {
-  size_t a = sizeof(aug_align_t);
-  return (n + a - 1) / a * a;
-}
 
 static size_t aug_count(const ds_aug_node_t *n) {
   return n == NULL ? 0 : n->count;
@@ -159,14 +155,36 @@ ds_status_t ds_aug_treap_init(ds_aug_treap_t *treap,
       (config->summarize == NULL || config->combine == NULL)) {
     return DS_ERR_NULL;
   }
-  treap->config = *config;
-  if (treap->config.context == NULL) {
-    treap->config.context = ds_default_context();
+  {
+    /* validate the whole layout before keeping anything */
+    size_t a = sizeof(aug_align_t);
+    size_t header;
+    size_t k;
+    size_t v;
+    size_t sm;
+    size_t value_off;
+    size_t sum_off;
+    size_t bytes;
+    size_t scratch;
+    if (!ds_size_align(sizeof(ds_aug_node_t), a, &header) ||
+        !ds_size_align(config->key_size, a, &k) ||
+        !ds_size_align(config->value_size, a, &v) ||
+        !ds_size_align(config->summary_size, a, &sm) ||
+        !ds_size_add(header, k, &value_off) ||
+        !ds_size_add(value_off, v, &sum_off) ||
+        !ds_size_add(sum_off, sm, &bytes) ||
+        !ds_size_mul(config->summary_size, 2, &scratch)) {
+      return DS_ERR_OVERFLOW;
+    }
+    treap->config = *config;
+    if (treap->config.context == NULL) {
+      treap->config.context = ds_default_context();
+    }
+    treap->key_offset = header;
+    treap->value_offset = value_off;
+    treap->sum_offset = sum_off;
+    treap->node_bytes = bytes;
   }
-  treap->key_offset = aug_round(sizeof(ds_aug_node_t));
-  treap->value_offset = treap->key_offset + aug_round(config->key_size);
-  treap->sum_offset = treap->value_offset + aug_round(config->value_size);
-  treap->node_bytes = treap->sum_offset + aug_round(config->summary_size);
   treap->root = NULL;
   treap->seed = 0x6B43A9B5UL;
   treap->scratch = (unsigned char *)ds_context_alloc(
@@ -438,4 +456,15 @@ ds_status_t ds_aug_treap_visit(const ds_aug_treap_t *treap,
     return DS_ERR_NULL;
   }
   return aug_visit_rec(treap, treap->root, visit, user) ? DS_OK : DS_STOP;
+}
+
+ds_status_t ds_aug_treap_refresh(ds_aug_treap_t *treap, const void *key) {
+  if (treap == NULL || key == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (aug_find(treap, key) == NULL) {
+    return DS_NOT_FOUND;
+  }
+  aug_refresh(treap, treap->root, key);
+  return DS_OK;
 }

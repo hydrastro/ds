@@ -82,7 +82,12 @@ ds_status_t ds_aug_treap_put(ds_aug_treap_t *treap, const void *key,
                              const void *value);
 ds_status_t ds_aug_treap_remove(ds_aug_treap_t *treap, const void *key,
                                 void *out_value);
+/* The value of key (NULL if absent). It may be changed in place; if the
+ * summaries depend on values, call ds_aug_treap_refresh afterwards. Keys
+ * must never be changed in place. */
 void *ds_aug_treap_get(const ds_aug_treap_t *treap, const void *key);
+/* recompute the summaries on key's path after an in-place value change */
+ds_status_t ds_aug_treap_refresh(ds_aug_treap_t *treap, const void *key);
 size_t ds_aug_treap_rank(const ds_aug_treap_t *treap, const void *key);
 ds_status_t ds_aug_treap_select(const ds_aug_treap_t *treap, size_t k,
                                 const void **out_key, void **out_value);
