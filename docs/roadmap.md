@@ -199,6 +199,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/fm_index: FM-index with sampled SA/ISA, occurrence-table and wavelet-matrix rank backends, configurable suffix array builder
 - lib/euler_tour_tree: Euler-tour trees with component/subtree summaries and lazy actions, edge lookup via map_iface
 - lib/persistent_vector: Clojure-style persistent vector with transients and configurable branching
+- lib/ordered_iface: ordered-map ops table with split/join, sorted-array and treap backends
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

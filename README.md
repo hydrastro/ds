@@ -43,6 +43,7 @@ Core mutable containers:
 - `lib/map_iface`: the associative-map capability (ops table with traits; Robin Hood and Swiss table backends) for composing structures
 - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
+- `lib/ordered_iface`: ordered-map capability (floor/ceiling, select, split, join) with sorted-array and treap backends
 - `lib/p_tree`: P-trees (k-DOP bounded R-trees)
 - `lib/pagoda`: pagoda meldable priority queues
 - `lib/persistent_hamt`: persistent CHAMP hash trie (structural sharing, canonical deletes, in-place edits of unshared versions)

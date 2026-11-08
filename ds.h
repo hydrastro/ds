@@ -90,6 +90,7 @@
 #include "lib/mway_btree.h"
 #include "lib/open_map.h"
 #include "lib/order_statistic_tree.h"
+#include "lib/ordered_iface.h"
 #include "lib/p_tree.h"
 #include "lib/packed_array.h"
 #include "lib/pagoda.h"
