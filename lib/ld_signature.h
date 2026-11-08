@@ -21,6 +21,14 @@
  * indistinguishable keep their relative input order). Isomorphic datasets
  * without such symmetric blank nodes canonicalise identically.
  *
+ * Profile and limits: this is a colour-refinement canonicalisation, NOT
+ * the W3C RDF Dataset Canonicalization algorithm (RDFC-1.0 / URDNA2015):
+ * datasets whose blank nodes stay symmetric after refinement may
+ * canonicalise differently depending on input order, and signatures are
+ * not interoperable with other Linked Data Proof implementations. The
+ * default suite is a shared-key MAC (HMAC-SHA256), i.e. an integrity
+ * check between parties sharing the key, not a public-key signature.
+ *
  * SHA-256 and HMAC-SHA256 are exposed for reuse. Memory comes from the
  * ds_context_t.
  */
