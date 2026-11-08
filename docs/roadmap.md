@@ -186,6 +186,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/topology_tree: topology trees
 - lib/checked: checked size arithmetic
 - algo/weighted_matching: weighted general matching
+- lib/map_iface: pluggable map capability
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

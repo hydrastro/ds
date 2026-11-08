@@ -35,6 +35,7 @@ Core mutable containers:
 - `lib/k2_tree`: k^2-trees (compact adjacency matrices)
 - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
 - `lib/ld_signature`: linked data signatures, SHA-256, HMAC-SHA256
+- `lib/map_iface`: the associative-map capability (ops table with traits; Robin Hood and Swiss table backends) for composing structures
 - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
 - `lib/p_tree`: P-trees (k-DOP bounded R-trees)
