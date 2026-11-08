@@ -62,6 +62,9 @@ ds_status_t ds_interval_tree_init(ds_interval_tree_t *tree,
   if (endpoint_size == 0) {
     return DS_ERR_INVALID;
   }
+  if (endpoint_size > ((size_t)-1 - 2 * sizeof(unsigned long)) / 2) {
+    return DS_ERR_OVERFLOW; /* 2 endpoints + padding + id must fit */
+  }
   tree->endpoint_size = endpoint_size;
   tree->id_offset = itv_round(2 * endpoint_size, sizeof(unsigned long));
   tree->compare = compare;
