@@ -70,6 +70,7 @@ Core mutable containers:
 - `lib/turing_machine`: deterministic/nondeterministic multi-tape Turing machines, transducers, compact notation parser, busy-beaver champions and search
 - `lib/two_choice_map`: d-choice (2-choice) and d-left hash maps
 - `lib/ub_tree`: universal B-trees (Z-order, BIGMIN) and unlimited branching trees
+- `lib/wavelet_matrix`: wavelet matrix (access, rank, select, quantile, range counting, next/prev value) with levels on any rank/select backend
 - `lib/wb_tree`: weight-balanced BB[α] trees with pluggable (δ, γ), select/rank and root balance
 - `lib/xfast_trie`: X-fast tries (floor/ceiling/predecessor/successor in O(log w) map lookups) with the per-level tables chosen through lib/map_iface
 - `lib/yfast_trie`: Y-fast tries (X-fast trie of bucket representatives over a chosen map, sorted Theta(w) buckets)

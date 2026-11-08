@@ -201,6 +201,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/persistent_vector: Clojure-style persistent vector with transients and configurable branching
 - lib/ordered_iface: ordered-map ops table with split/join, sorted-array and treap backends
 - lib/rank_select: rank/select ops table; plain directory, RRR and Elias-Fano backends
+- lib/wavelet_matrix: wavelet matrix over pluggable rank/select bit vectors
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
