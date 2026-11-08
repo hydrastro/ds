@@ -185,6 +185,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/confluent_list: confluently persistent lists
 - lib/topology_tree: topology trees
 - lib/checked: checked size arithmetic
+- algo/weighted_matching: weighted general matching
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
