@@ -79,6 +79,7 @@ Core mutable containers:
 - `lib/wavelet_matrix`: wavelet matrix (access, rank, select, quantile, range counting, next/prev value) with levels on any rank/select backend
 - `lib/wb_tree`: weight-balanced BB[α] trees with pluggable (δ, γ), select/rank and root balance
 - `lib/xfast_trie`: X-fast tries (floor/ceiling/predecessor/successor in O(log w) map lookups) with the per-level tables chosen through lib/map_iface
+- `lib/xor_filter`: static xor filter (peeling construction, packed 1..32-bit fingerprints)
 - `lib/yfast_trie`: Y-fast tries (X-fast trie of bucket representatives over a chosen map, sorted Theta(w) buckets)
 - `lib/zipper`: Huet zippers over persistent, reference-counted binary trees (move down/up, set, replace, close)
 - Array deque (by-value ring that grows or lives in a fixed buffer, overwrite mode)

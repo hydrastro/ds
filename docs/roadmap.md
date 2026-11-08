@@ -208,6 +208,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/paged_btree: pager-backed B+ tree with linked leaves and lazy deletion
 - lib/replacement: replacement policies (LRU, FIFO, CLOCK, SIEVE) as an ops table
 - lib/quotient_filter: quotient filter with delete and enumeration
+- lib/xor_filter: Graf-Lemire xor filter
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
