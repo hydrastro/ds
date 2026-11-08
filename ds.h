@@ -97,6 +97,7 @@
 #include "lib/persistent_hamt.h"
 #include "lib/persistent_rbt.h"
 #include "lib/persistent_trie.h"
+#include "lib/persistent_vector.h"
 #include "lib/plop_hash.h"
 #include "lib/pq_iface.h"
 #include "lib/pushdown.h"
