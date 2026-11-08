@@ -173,6 +173,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/markov: Markov chain analysis
 - algo/anneal: simulated annealing
 - lib/cellular_automaton: cellular automata
+- lib/turing_machine: Turing machines
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 724 |
-| todo | 34 |
+| done | 728 |
+| todo | 30 |
 | def | 549 |
 | total | 1307 |
 
@@ -38,7 +38,6 @@ Families ordered by how many DADS entries they close.
 | `lib/tree_automaton` | 8 | deterministic finite tree automaton, deterministic tree automaton, DFTA, NFTA, nondeterministic finite tree automaton, nondeterministic tree automaton, top-down tree automaton, tree automaton |
 | `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
 | `lib/pushdown` | 5 | deterministic pushdown automaton, DPDA, PDA, pushdown automaton, pushdown transducer |
-| `lib/turing_machine` | 4 | busy beaver, nondeterministic Turing machine, Turing machine, Turing transducer |
 | `algo/model_check` | 3 | CTL, Kripke structure, model checking |
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
 | `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
@@ -242,7 +241,7 @@ Families ordered by how many DADS entries they close.
 | buddy tree | done | `lib/hb_tree` |
 | build-heap | done | `lib/heap, algo/sort` (heap sort) |
 | Burrows-Wheeler transform | done | `lib/suffix_tree` |
-| busy beaver | todo | `lib/turing_machine` |
+| busy beaver | done | `lib/turing_machine` |
 | BV-tree | done | `lib/hb_tree` |
 | BWT | done | `lib/suffix_tree` |
 | Byzantine generals | def |  |
@@ -895,7 +894,7 @@ Families ordered by how many DADS entries they close.
 | nondeterministic finite tree automaton | todo | `lib/tree_automaton` |
 | nondeterministic polynomial time | def |  |
 | nondeterministic tree automaton | todo | `lib/tree_automaton` |
-| nondeterministic Turing machine | todo | `lib/turing_machine` |
+| nondeterministic Turing machine | done | `lib/turing_machine` |
 | nonterminal node | def |  |
 | nor | def |  |
 | not | def |  |
@@ -1406,9 +1405,9 @@ Families ordered by how many DADS entries they close.
 | TST | done | `lib/tst` |
 | Turbo-BM | done | `algo/string_search` |
 | Turbo Reverse Factor | done | `algo/string_search` |
-| Turing machine | todo | `lib/turing_machine` |
+| Turing machine | done | `lib/turing_machine` |
 | Turing reduction | def |  |
-| Turing transducer | todo | `lib/turing_machine` |
+| Turing transducer | done | `lib/turing_machine` |
 | twin grid file | done | `lib/grid_file` |
 | twisted tabulation hashing | done | `algo/hash_family` |
 

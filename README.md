@@ -48,6 +48,7 @@ Core mutable containers:
 - `lib/sstable`: SSTables (prefix-compressed blocks, index, Bloom filter, merge)
 - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
 - `lib/tst`: ternary search trees with prefix, partial-match and near-neighbour searches
+- `lib/turing_machine`: deterministic/nondeterministic multi-tape Turing machines, transducers, compact notation parser, busy-beaver champions and search
 - `lib/two_choice_map`: d-choice (2-choice) and d-left hash maps
 - `lib/ub_tree`: universal B-trees (Z-order, BIGMIN) and unlimited branching trees
 - `lib/wb_tree`: weight-balanced BB[α] trees with pluggable (δ, γ), select/rank and root balance
