@@ -74,6 +74,7 @@
 #include "lib/kdb_tree.h"
 #include "lib/ld_signature.h"
 #include "lib/linear_hash_map.h"
+#include "lib/link_cut_tree.h"
 #include "lib/list.h"
 #include "lib/lru_cache.h"
 #include "lib/map_iface.h"

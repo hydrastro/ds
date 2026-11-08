@@ -189,6 +189,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/map_iface: pluggable map capability
 - lib/xfast_trie: X-fast tries on pluggable maps
 - lib/yfast_trie: Y-fast tries
+- lib/link_cut_tree: link-cut trees
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
