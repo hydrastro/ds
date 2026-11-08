@@ -203,6 +203,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/rank_select: rank/select ops table; plain directory, RRR and Elias-Fano backends
 - lib/wavelet_matrix: wavelet matrix over pluggable rank/select bit vectors
 - lib/finger_tree: Hinze-Paterson finger trees with caller-defined measures
+- lib/pager: page stores and a pin/dirty/LRU buffer pool over map_iface
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

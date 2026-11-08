@@ -94,6 +94,7 @@
 #include "lib/ordered_iface.h"
 #include "lib/p_tree.h"
 #include "lib/packed_array.h"
+#include "lib/pager.h"
 #include "lib/pagoda.h"
 #include "lib/pairing_heap.h"
 #include "lib/persistent_hamt.h"
