@@ -1513,8 +1513,15 @@ Nothing implementable is missing.
 | CHAMP (persistent hash trie) | structure | implemented | `lib/persistent_hamt` | canonical deletes, structural sharing, in-place edits of unshared versions |
 | addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing backends |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
-| wavelet matrix | structure | implemented | `lib/fm_index` | rank/access backend of the FM-index |
+| wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |
+| persistent vector | structure | implemented | `lib/persistent_vector` | bit-partitioned trie with tail and transients |
+| finger tree | structure | implemented | `lib/finger_tree` | 2-3 finger tree with a caller-defined monoid |
+| ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap); Y-fast buckets |
+| rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
+| RRR compressed bit vector | structure | implemented | `lib/rank_select` | class/offset blocks, nH0 + o(n) bits |
+| buffer pool (pager) | structure | implemented | `lib/pager` | page-store capability, LRU with pinning and write-back |
+| log-structured merge tree | structure | implemented | `lib/lsm_tree` | memtable, level 0, leveled runs over SSTables |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |
 | succinct data structure | concept | n/a | `lib/bitvector`, `lib/wavelet_tree`, `lib/k2_tree` | family; members implemented as listed |
