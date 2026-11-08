@@ -254,13 +254,15 @@ ds_status_t ds_graph_bfs(ds_graph_t *graph, size_t start,
   if (start >= graph->vertex_count) {
     return DS_ERR_RANGE;
   }
-  seen = (bool *)calloc(graph->vertex_count, sizeof(*seen));
+  seen = (bool *)ds_context_calloc(graph->context, graph->vertex_count,
+                                   sizeof(*seen));
   if (seen == NULL) {
     return DS_ERR_ALLOC;
   }
-  queue = (size_t *)malloc(graph->vertex_count * sizeof(*queue));
+  queue = (size_t *)ds_context_alloc(graph->context,
+                                     graph->vertex_count * sizeof(*queue));
   if (queue == NULL) {
-    free(seen);
+    ds_context_free(graph->context, seen);
     return DS_ERR_ALLOC;
   }
   head = 0U;
@@ -272,8 +274,8 @@ ds_status_t ds_graph_bfs(ds_graph_t *graph, size_t start,
     vertex = queue[head];
     head++;
     if (!visit(vertex, graph->vertices[vertex].data, user)) {
-      free(queue);
-      free(seen);
+      ds_context_free(graph->context, queue);
+      ds_context_free(graph->context, seen);
       return DS_STOP;
     }
     for (i = 0U; i < graph->vertices[vertex].edge_count; i++) {
@@ -285,8 +287,8 @@ ds_status_t ds_graph_bfs(ds_graph_t *graph, size_t start,
       }
     }
   }
-  free(queue);
-  free(seen);
+  ds_context_free(graph->context, queue);
+  ds_context_free(graph->context, seen);
   return DS_OK;
 }
 
@@ -321,12 +323,13 @@ ds_status_t ds_graph_dfs(ds_graph_t *graph, size_t start,
   if (start >= graph->vertex_count) {
     return DS_ERR_RANGE;
   }
-  seen = (bool *)calloc(graph->vertex_count, sizeof(*seen));
+  seen = (bool *)ds_context_calloc(graph->context, graph->vertex_count,
+                                   sizeof(*seen));
   if (seen == NULL) {
     return DS_ERR_ALLOC;
   }
   status = graph_dfs_visit(graph, start, seen, visit, user);
-  free(seen);
+  ds_context_free(graph->context, seen);
   return status;
 }
 
@@ -349,13 +352,15 @@ ds_status_t ds_graph_topological_sort(ds_graph_t *graph, size_t *out_order,
   if (capacity < graph->vertex_count) {
     return DS_ERR_RANGE;
   }
-  indegree = (size_t *)calloc(graph->vertex_count, sizeof(*indegree));
+  indegree = (size_t *)ds_context_calloc(graph->context, graph->vertex_count,
+                                         sizeof(*indegree));
   if (indegree == NULL) {
     return DS_ERR_ALLOC;
   }
-  queue = (size_t *)malloc(graph->vertex_count * sizeof(*queue));
+  queue = (size_t *)ds_context_alloc(graph->context,
+                                     graph->vertex_count * sizeof(*queue));
   if (queue == NULL) {
-    free(indegree);
+    ds_context_free(graph->context, indegree);
     return DS_ERR_ALLOC;
   }
   for (i = 0U; i < graph->vertex_count; i++) {
@@ -386,8 +391,8 @@ ds_status_t ds_graph_topological_sort(ds_graph_t *graph, size_t *out_order,
       }
     }
   }
-  free(queue);
-  free(indegree);
+  ds_context_free(graph->context, queue);
+  ds_context_free(graph->context, indegree);
   *out_count = produced;
   if (produced != graph->vertex_count) {
     return DS_ERR_STATE;
@@ -421,7 +426,8 @@ ds_status_t ds_graph_dijkstra(ds_graph_t *graph, size_t start,
     }
   }
 
-  done = (bool *)calloc(graph->vertex_count, sizeof(*done));
+  done = (bool *)ds_context_calloc(graph->context, graph->vertex_count,
+                                   sizeof(*done));
   if (done == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -458,7 +464,7 @@ ds_status_t ds_graph_dijkstra(ds_graph_t *graph, size_t start,
     }
   }
 
-  free(done);
+  ds_context_free(graph->context, done);
   return DS_OK;
 }
 
@@ -584,14 +590,16 @@ ds_status_t ds_graph_minimum_spanning_tree(ds_graph_t *graph,
   }
   edges = NULL;
   if (edge_total != 0U) {
-    edges = (graph_mst_edge_t *)malloc(edge_total * sizeof(*edges));
+    edges = (graph_mst_edge_t *)ds_context_alloc(graph->context,
+                                                 edge_total * sizeof(*edges));
     if (edges == NULL) {
       return DS_ERR_ALLOC;
     }
   }
-  parent = (size_t *)malloc(graph->vertex_count * sizeof(*parent));
+  parent = (size_t *)ds_context_alloc(graph->context,
+                                      graph->vertex_count * sizeof(*parent));
   if (parent == NULL && graph->vertex_count != 0U) {
-    free(edges);
+    ds_context_free(graph->context, edges);
     return DS_ERR_ALLOC;
   }
 
@@ -599,8 +607,8 @@ ds_status_t ds_graph_minimum_spanning_tree(ds_graph_t *graph,
     status =
         ds_graph_add_vertex(out_tree, graph->vertices[i].data, &ignored_index);
     if (status != DS_OK) {
-      free(parent);
-      free(edges);
+      ds_context_free(graph->context, parent);
+      ds_context_free(graph->context, edges);
       return status;
     }
     parent[i] = i;
@@ -627,16 +635,16 @@ ds_status_t ds_graph_minimum_spanning_tree(ds_graph_t *graph,
       status = ds_graph_add_weighted_edge(out_tree, edges[i].from, edges[i].to,
                                           edges[i].weight, edges[i].data);
       if (status != DS_OK) {
-        free(parent);
-        free(edges);
+        ds_context_free(graph->context, parent);
+        ds_context_free(graph->context, edges);
         return status;
       }
       added++;
     }
   }
 
-  free(parent);
-  free(edges);
+  ds_context_free(graph->context, parent);
+  ds_context_free(graph->context, edges);
   if (graph->vertex_count != 0U && added + 1U != graph->vertex_count) {
     return DS_ERR_STATE;
   }
