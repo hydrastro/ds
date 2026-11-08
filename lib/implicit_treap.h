@@ -92,6 +92,19 @@ ds_status_t ds_itreap_reverse(ds_itreap_t *treap, size_t first, size_t last);
 ds_status_t ds_itreap_apply(ds_itreap_t *treap, size_t first, size_t last,
                             const void *tag);
 
+/* After changing an element in place through ds_itreap_at, recompute the
+ * summaries on its path (ds_itreap_set does this itself). */
+ds_status_t ds_itreap_refresh(ds_itreap_t *treap, size_t index);
+
+/* Composition rules. Two treaps can exchange nodes only when they share
+ * the same layout, the same algebra (summarize/combine/tag callbacks and
+ * user state) and the same context (nodes are freed through it):
+ * ds_itreap_compatible. split initializes out_tail (which must not be
+ * initialized, nor be treap itself) with treap's configuration and moves
+ * the elements from index on into it. append moves every node of a
+ * compatible other treap (not treap itself) to the end of treap, leaving
+ * other empty but initialized; DS_ERR_INVALID otherwise. */
+bool ds_itreap_compatible(const ds_itreap_t *a, const ds_itreap_t *b);
 ds_status_t ds_itreap_split(ds_itreap_t *treap, size_t index,
                             ds_itreap_t *out_tail);
 ds_status_t ds_itreap_append(ds_itreap_t *treap, ds_itreap_t *other);

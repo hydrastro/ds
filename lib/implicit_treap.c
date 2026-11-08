@@ -1,4 +1,5 @@
 #include "implicit_treap.h"
+#include "checked.h"
 #include <string.h>
 
 typedef union it_align {
@@ -18,11 +19,6 @@ struct ds_itreap_node {
 };
 
 #define IT_AT(n, off) ((unsigned char *)(n) + (off))
-
-static size_t it_round(size_t n) {
-  size_t a = sizeof(it_align_t);
-  return (n + a - 1) / a * a;
-}
 
 static size_t it_count(const ds_itreap_node_t *n) {
   return n == NULL ? 0 : n->count;
@@ -209,16 +205,38 @@ ds_status_t ds_itreap_init(ds_itreap_t *treap,
        (config->summary_size > 0 && config->tag_apply_summary == NULL))) {
     return DS_ERR_NULL;
   }
-  treap->config = *config;
-  if (treap->config.context == NULL) {
-    treap->config.context = ds_default_context();
+  {
+    /* validate the whole layout before keeping anything */
+    size_t a = sizeof(it_align_t);
+    size_t e;
+    size_t sm;
+    size_t tg;
+    size_t sum_off;
+    size_t rev_off;
+    size_t tag_off;
+    size_t bytes;
+    size_t scratch;
+    if (!ds_size_align(sizeof(ds_itreap_node_t), a, &header) ||
+        !ds_size_align(config->elem_size, a, &e) ||
+        !ds_size_align(config->summary_size, a, &sm) ||
+        !ds_size_align(config->tag_size, a, &tg) ||
+        !ds_size_add(header, e, &sum_off) ||
+        !ds_size_add(sum_off, sm, &rev_off) ||
+        !ds_size_add(rev_off, sm, &tag_off) ||
+        !ds_size_add(tag_off, tg, &bytes) ||
+        !ds_size_mul(config->summary_size, 2, &scratch)) {
+      return DS_ERR_OVERFLOW;
+    }
+    treap->config = *config;
+    if (treap->config.context == NULL) {
+      treap->config.context = ds_default_context();
+    }
+    treap->elem_offset = header;
+    treap->sum_offset = sum_off;
+    treap->rev_offset = rev_off;
+    treap->tag_offset = tag_off;
+    treap->node_bytes = bytes;
   }
-  header = it_round(sizeof(ds_itreap_node_t));
-  treap->elem_offset = header;
-  treap->sum_offset = treap->elem_offset + it_round(config->elem_size);
-  treap->rev_offset = treap->sum_offset + it_round(config->summary_size);
-  treap->tag_offset = treap->rev_offset + it_round(config->summary_size);
-  treap->node_bytes = treap->tag_offset + it_round(config->tag_size);
   treap->root = NULL;
   treap->seed = 0x2545F491UL;
   treap->scratch = (unsigned char *)ds_context_alloc(
@@ -426,8 +444,11 @@ ds_status_t ds_itreap_split(ds_itreap_t *treap, size_t index,
   ds_itreap_node_t *left;
   ds_itreap_node_t *right;
   ds_status_t status;
-  if (out_tail == NULL) {
+  if (treap == NULL || out_tail == NULL) {
     return DS_ERR_NULL;
+  }
+  if (out_tail == treap) {
+    return DS_ERR_INVALID;
   }
   if (index > ds_itreap_size(treap)) {
     return DS_ERR_RANGE;
@@ -443,13 +464,44 @@ ds_status_t ds_itreap_split(ds_itreap_t *treap, size_t index,
   return DS_OK;
 }
 
+bool ds_itreap_compatible(const ds_itreap_t *a, const ds_itreap_t *b) {
+  const ds_itreap_config_t *x;
+  const ds_itreap_config_t *y;
+  if (a == NULL || b == NULL) {
+    return false;
+  }
+  x = &a->config;
+  y = &b->config;
+  return x->elem_size == y->elem_size && x->summary_size == y->summary_size &&
+         x->tag_size == y->tag_size && x->summarize == y->summarize &&
+         x->combine == y->combine && x->tag_apply_elem == y->tag_apply_elem &&
+         x->tag_apply_summary == y->tag_apply_summary &&
+         x->tag_compose == y->tag_compose && x->user == y->user &&
+         x->context == y->context;
+}
+
+ds_status_t ds_itreap_refresh(ds_itreap_t *treap, size_t index) {
+  ds_itreap_node_t *left;
+  ds_itreap_node_t *mid;
+  ds_itreap_node_t *right;
+  ds_status_t status;
+  if (treap == NULL) {
+    return DS_ERR_NULL;
+  }
+  status = it_cut(treap, index, index + 1, &left, &mid, &right);
+  if (status != DS_OK) {
+    return status;
+  }
+  it_pull(treap, mid);
+  it_join(treap, left, mid, right);
+  return DS_OK;
+}
+
 ds_status_t ds_itreap_append(ds_itreap_t *treap, ds_itreap_t *other) {
   if (treap == NULL || other == NULL) {
     return DS_ERR_NULL;
   }
-  if (treap->config.elem_size != other->config.elem_size ||
-      treap->config.summary_size != other->config.summary_size ||
-      treap->config.tag_size != other->config.tag_size) {
+  if (treap == other || !ds_itreap_compatible(treap, other)) {
     return DS_ERR_INVALID;
   }
   treap->root = it_merge(treap, treap->root, other->root);
