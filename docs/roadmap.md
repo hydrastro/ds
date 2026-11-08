@@ -184,6 +184,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/plop_hash: PLOP-hashing
 - lib/confluent_list: confluently persistent lists
 - lib/topology_tree: topology trees
+- lib/checked: checked size arithmetic
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -20,6 +20,7 @@ Core mutable containers:
 - `lib/buddy_allocator`: binary buddy system allocator (in-place realloc, context hook)
 - `lib/cactus_stack`: cactus (saguaro, spaghetti) stacks with reference-counted shared frames
 - `lib/cellular_automaton`: 1-D (table, Wolfram elementary/totalistic, callback) and 2-D (life-like B/S rules, Generations, Moore/von Neumann of any range, callback) cellular automata
+- `lib/checked`: overflow-checked size arithmetic, alignment helpers and a maximal-alignment union
 - `lib/confluent_list`: confluently persistent lists (AVL join/split with structure sharing; concatenate any versions, even with themselves)
 - `lib/d_tree`: D-trees (planar point location over subdivisions)
 - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
