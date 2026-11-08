@@ -35,6 +35,7 @@
 #include "lib/cellular_automaton.h"
 #include "lib/circular_buffer.h"
 #include "lib/coalesced_map.h"
+#include "lib/confluent_list.h"
 #include "lib/count_min_sketch.h"
 #include "lib/critbit_tree.h"
 #include "lib/cuckoo_filter.h"

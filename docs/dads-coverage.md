@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 756 |
-| todo | 2 |
+| done | 757 |
+| todo | 1 |
 | def | 549 |
 | total | 1307 |
 
@@ -35,7 +35,6 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/topology_tree` | 1 | topology tree |
 
 ## Index A-Z
@@ -311,7 +310,7 @@ Families ordered by how many DADS entries they close.
 | concurrent flow | def |  |
 | concurrent read, concurrent write | def |  |
 | concurrent read, exclusive write | def |  |
-| confluently persistent data structure | todo | `lib/confluent_list` |
+| confluently persistent data structure | done | `lib/confluent_list` |
 | conjunction | def |  |
 | connected components | done | `lib/graph` (weak components) |
 | connected graph | def |  |

@@ -182,6 +182,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/inverted_index: inverted and forward indexes
 - algo/dynamization: logarithmic-method dynamization
 - lib/plop_hash: PLOP-hashing
+- lib/confluent_list: confluently persistent lists
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
