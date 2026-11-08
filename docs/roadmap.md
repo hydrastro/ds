@@ -191,6 +191,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/yfast_trie: Y-fast tries
 - lib/link_cut_tree: link-cut trees
 - lib/lazy_segment_tree: generic lazy segment tree
+- lib/elias_fano: Elias-Fano sequences
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
