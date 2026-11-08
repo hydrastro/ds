@@ -47,6 +47,7 @@ Core mutable containers:
 - `lib/pushdown`: pushdown automata (exact nondeterministic membership via [pXq] summaries, DPDA check and simulation, pushdown transducers)
 - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
+- `lib/roaring`: Roaring compressed bitmaps of 32-bit integers (array, bitmap and run containers; rank, select, set algebra)
 - `lib/rtree`: R-trees (Guttman, R*) and bulk R+-trees
 - `lib/scapegoat_tree`: scapegoat trees with pluggable α
 - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees
