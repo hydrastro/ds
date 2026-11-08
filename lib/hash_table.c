@@ -506,6 +506,9 @@ ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                  void *value) {
   ds_hash_node_t *node;
   node = (ds_hash_node_t *)ht_alloc(table, sizeof(ds_hash_node_t));
+  if (node == NULL) {
+    return NULL;
+  }
   node->key = key;
   node->value = value;
   node->next = NULL;
@@ -649,6 +652,9 @@ void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
       return;
     }
     new_node = hash_node_create(table, key, value);
+    if (new_node == NULL) {
+      return; /* out of memory: not inserted (lookups will tell) */
+    }
     hash_table_link_node(table, new_node);
     table->bucket_store->insert(table, &table->store.buckets[index], new_node,
                                 compare);
