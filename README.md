@@ -52,6 +52,7 @@ Core mutable containers:
 - `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld) over binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing heaps
 - `lib/pushdown`: pushdown automata (exact nondeterministic membership via [pXq] summaries, DPDA check and simulation, pushdown transducers)
 - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
+- `lib/rank_select`: rank/select capability over static bit vectors with plain, RRR (nH0-compressed) and Elias-Fano backends
 - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
 - `lib/roaring`: Roaring compressed bitmaps of 32-bit integers (array, bitmap and run containers; rank, select, set algebra)
 - `lib/rtree`: R-trees (Guttman, R*) and bulk R+-trees
