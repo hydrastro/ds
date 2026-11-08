@@ -60,6 +60,7 @@
 #include "algo/string_approx.h"
 #include "algo/string_search.h"
 #include "algo/stringology.h"
+#include "algo/tree_edit.h"
 #include "algo/tsp.h"
 
 #endif /* DS_ALGO_H */

@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 744 |
-| todo | 14 |
+| done | 746 |
+| todo | 12 |
 | def | 549 |
 | total | 1307 |
 
@@ -37,7 +37,6 @@ Families ordered by how many DADS entries they close.
 |---|---|---|
 | `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
-| `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
 | `algo/dynamization` | 1 | dynamization transformation |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
@@ -545,7 +544,7 @@ Families ordered by how many DADS entries they close.
 | Ford-Bellman | done | `algo/graph_view` |
 | Ford-Fulkerson method | done | `algo/flow` |
 | forest | def |  |
-| forest editing problem | todo | `algo/tree_edit` |
+| forest editing problem | done | `algo/tree_edit` |
 | formal language | def |  |
 | formal methods | def |  |
 | formal verification | def |  |
@@ -1388,7 +1387,7 @@ Families ordered by how many DADS entries they close.
 | tree | done | `lib/bst` |
 | tree automaton | done | `lib/tree_automaton` |
 | tree contraction | done | `algo/parallel_sim` |
-| tree editing problem | todo | `algo/tree_edit` |
+| tree editing problem | done | `algo/tree_edit` |
 | treesort (1) | done | `algo/sort_heap` (tree sort) |
 | treesort (2) | done | `algo/sort_heap` (heapsort variants, tournament sort) |
 | tree traversal | done | `lib/bst walks` |

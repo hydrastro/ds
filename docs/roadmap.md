@@ -177,6 +177,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/pushdown: pushdown automata and transducers
 - lib/tree_automaton: finite tree automata
 - algo/model_check: CTL model checking
+- algo/tree_edit: tree and forest edit distance
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
