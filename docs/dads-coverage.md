@@ -1522,6 +1522,11 @@ Nothing implementable is missing.
 | RRR compressed bit vector | structure | implemented | `lib/rank_select` | class/offset blocks, nH0 + o(n) bits |
 | buffer pool (pager) | structure | implemented | `lib/pager` | page-store capability, LRU with pinning and write-back |
 | log-structured merge tree | structure | implemented | `lib/lsm_tree` | memtable, level 0, leveled runs over SSTables |
+| quotient filter | structure | implemented | `lib/quotient_filter` | packed remainders, deletion (multiset), ordered enumeration |
+| xor filter | structure | implemented | `lib/xor_filter` | static, peeling construction |
+| approximate membership query | concept | implemented | `lib/amq_iface` | capability over Bloom, cuckoo, quotient and xor filters |
+| cache replacement policy | concept | implemented | `lib/replacement` | LRU, FIFO, CLOCK, SIEVE; drives lib/pager |
+| paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |
 | succinct data structure | concept | n/a | `lib/bitvector`, `lib/wavelet_tree`, `lib/k2_tree` | family; members implemented as listed |
