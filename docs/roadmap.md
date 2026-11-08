@@ -190,6 +190,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/xfast_trie: X-fast tries on pluggable maps
 - lib/yfast_trie: Y-fast tries
 - lib/link_cut_tree: link-cut trees
+- lib/lazy_segment_tree: generic lazy segment tree
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

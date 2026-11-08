@@ -34,6 +34,7 @@ Core mutable containers:
 - `lib/jump_list`: jump lists (uniquely represented, O(n^(1/3)))
 - `lib/k2_tree`: k^2-trees (compact adjacency matrices)
 - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
+- `lib/lazy_segment_tree`: generic lazy segment trees over monoid actions (range query/apply, max_right/min_left)
 - `lib/ld_signature`: linked data signatures, SHA-256, HMAC-SHA256
 - `lib/link_cut_tree`: link-cut trees (link, cut, reroot, LCA, monoid path aggregates and lazy path actions)
 - `lib/map_iface`: the associative-map capability (ops table with traits; Robin Hood and Swiss table backends) for composing structures

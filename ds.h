@@ -72,6 +72,7 @@
 #include "lib/k2_tree.h"
 #include "lib/kd_tree.h"
 #include "lib/kdb_tree.h"
+#include "lib/lazy_segment_tree.h"
 #include "lib/ld_signature.h"
 #include "lib/linear_hash_map.h"
 #include "lib/link_cut_tree.h"
