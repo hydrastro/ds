@@ -188,38 +188,54 @@ void ds_pairing_heap_merge(ds_pairing_heap_t *heap, ds_pairing_heap_t *other) {
   other->size = 0;
 }
 
-static void
-pairing_heap_walk_recursive(ds_pairing_heap_node_t *node,
-                            void (*callback)(ds_pairing_heap_node_t *)) {
-  while (node != NULL) {
-    ds_pairing_heap_node_t *sibling = node->sibling;
-    callback(node);
-    pairing_heap_walk_recursive(node->child, callback);
-    node = sibling;
+/* parent of node: the prev link of the first node in its sibling list */
+static ds_pairing_heap_node_t *
+pairing_heap_parent(ds_pairing_heap_node_t *node) {
+  while (node->prev != NULL && node->prev->child != node) {
+    node = node->prev;
   }
+  return node->prev;
 }
 
+/* preorder without recursion (child chains can be linear in length):
+ * descend through child links, climb back through prev links */
 void ds_pairing_heap_walk(ds_pairing_heap_t *heap,
                           void (*callback)(ds_pairing_heap_node_t *)) {
-  pairing_heap_walk_recursive(heap->root, callback);
-}
-
-static void
-pairing_heap_destroy_recursive(ds_pairing_heap_node_t *node,
-                               void (*destroy)(ds_pairing_heap_node_t *)) {
+  ds_pairing_heap_node_t *node = heap->root;
   while (node != NULL) {
-    ds_pairing_heap_node_t *sibling = node->sibling;
-    pairing_heap_destroy_recursive(node->child, destroy);
-    if (destroy != NULL) {
-      destroy(node);
+    callback(node);
+    if (node->child != NULL) {
+      node = node->child;
+      continue;
     }
-    node = sibling;
+    while (node != NULL && node->sibling == NULL) {
+      node = pairing_heap_parent(node);
+    }
+    if (node != NULL) {
+      node = node->sibling;
+    }
   }
 }
 
 void ds_pairing_heap_destroy(ds_pairing_heap_t *heap,
                              void (*destroy)(ds_pairing_heap_node_t *)) {
-  pairing_heap_destroy_recursive(heap->root, destroy);
+  ds_pairing_heap_node_t *work = heap->root;
+  /* splice each node's child list onto the work list, then drop it */
+  while (work != NULL) {
+    ds_pairing_heap_node_t *node = work;
+    work = node->sibling;
+    if (node->child != NULL) {
+      ds_pairing_heap_node_t *last = node->child;
+      while (last->sibling != NULL) {
+        last = last->sibling;
+      }
+      last->sibling = work;
+      work = node->child;
+    }
+    if (destroy != NULL) {
+      destroy(node);
+    }
+  }
   heap->deallocator(heap->nil);
   heap->deallocator(heap);
 }
