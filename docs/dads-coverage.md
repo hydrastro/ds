@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 749 |
-| todo | 9 |
+| done | 754 |
+| todo | 4 |
 | def | 549 |
 | total | 1307 |
 
@@ -35,7 +35,6 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
 | `algo/dynamization` | 1 | dynamization transformation |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
@@ -192,7 +191,7 @@ Families ordered by how many DADS entries they close.
 | blind sort | done | `algo/sort_dist` |
 | blind trie | done | `lib/elastic_trie` |
 | block | def |  |
-| block addressing index | todo | `lib/inverted_index` |
+| block addressing index | done | `lib/inverted_index` |
 | blocking flow | done | `algo/flow` |
 | block search | done | `algo/search` |
 | Bloom filter | done | `lib/bloom_filter` |
@@ -547,7 +546,7 @@ Families ordered by how many DADS entries they close.
 | formal language | def |  |
 | formal methods | def |  |
 | formal verification | def |  |
-| forward index | todo | `lib/inverted_index` |
+| forward index | done | `lib/inverted_index` |
 | fractional knapsack problem | done | `algo/knapsack` |
 | fractional solution | def |  |
 | free edge | def |  |
@@ -556,7 +555,7 @@ Families ordered by how many DADS entries they close.
 | frequency count heuristic | done | `lib/self_org_list` |
 | full array | def |  |
 | full binary tree | def |  |
-| full inverted index | todo | `lib/inverted_index` |
+| full inverted index | done | `lib/inverted_index` |
 | fully dynamic graph problem | def |  |
 | fully persistent data structure | done | `lib/history` (branching timelines) |
 | fully polynomial approximation scheme | def |  |
@@ -672,8 +671,8 @@ Families ordered by how many DADS entries they close.
 | inverse Ackermann function | done | `algo/number_theory` |
 | inverse suffix array | done | `lib/suffix_tree` |
 | inversion list | done | `lib/inversion_list` |
-| inverted file index | todo | `lib/inverted_index` |
-| inverted index | todo | `lib/inverted_index` |
+| inverted file index | done | `lib/inverted_index` |
+| inverted index | done | `lib/inverted_index` |
 | invertible Bloom lookup table | done | `lib/iblt` |
 | irreflexive | def |  |
 | isomorphic | def |  |

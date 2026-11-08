@@ -179,6 +179,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/model_check: CTL model checking
 - algo/tree_edit: tree and forest edit distance
 - algo/visibility: visibility maps
+- lib/inverted_index: inverted and forward indexes
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

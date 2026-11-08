@@ -1,0 +1,1029 @@
+#include "inverted_index.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define II_NONE DS_INVIDX_NONE
+
+static ds_status_t ii_reserve(ds_context_t *ctx, void **p, size_t *cap,
+                              size_t need, size_t elem) {
+  size_t nc;
+  void *q;
+  if (need <= *cap) {
+    return DS_OK;
+  }
+  nc = *cap < 8 ? 16 : *cap;
+  while (nc < need) {
+    if (nc > (size_t)-1 / 2 / elem) {
+      return DS_ERR_OVERFLOW;
+    }
+    nc *= 2;
+  }
+  q = ds_context_realloc(ctx, *p, nc * elem);
+  if (q == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  *p = q;
+  *cap = nc;
+  return DS_OK;
+}
+
+static ds_status_t ii_put_varint(ds_context_t *ctx, unsigned char **buf,
+                                 size_t *len, size_t *cap, size_t v) {
+  ds_status_t st = ii_reserve(ctx, (void **)buf, cap, *len + 10, 1);
+  if (st != DS_OK) {
+    return st;
+  }
+  while (v >= 0x80) {
+    (*buf)[(*len)++] = (unsigned char)(v | 0x80);
+    v >>= 7;
+  }
+  (*buf)[(*len)++] = (unsigned char)v;
+  return DS_OK;
+}
+
+static size_t ii_get_varint(const unsigned char *buf, size_t *at) {
+  size_t v = 0;
+  unsigned shift = 0;
+  unsigned char c;
+  do {
+    c = buf[(*at)++];
+    v |= (size_t)(c & 0x7F) << shift;
+    shift += 7;
+  } while ((c & 0x80) != 0);
+  return v;
+}
+
+static size_t ii_hash(const unsigned char *s, size_t n) {
+  unsigned long h = 2166136261ul;
+  size_t i;
+  for (i = 0; i < n; i++) {
+    h = (h ^ s[i]) * 16777619ul;
+  }
+  h ^= h >> 16;
+  return (size_t)h;
+}
+
+ds_status_t ds_invidx_init(ds_inverted_index_t *idx, ds_invidx_mode_t mode,
+                           size_t block_size, bool keep_forward,
+                           ds_context_t *context) {
+  if (idx == NULL) {
+    return DS_ERR_NULL;
+  }
+  memset(idx, 0, sizeof(*idx));
+  if ((mode != DS_INVIDX_DOCUMENT && mode != DS_INVIDX_POSITIONAL &&
+       mode != DS_INVIDX_BLOCK) ||
+      (mode == DS_INVIDX_BLOCK && block_size == 0)) {
+    return DS_ERR_INVALID;
+  }
+  idx->mode = mode;
+  idx->block_size = mode == DS_INVIDX_BLOCK ? block_size : 1;
+  idx->keep_forward = keep_forward;
+  idx->context = context;
+  return DS_OK;
+}
+
+void ds_invidx_destroy(ds_inverted_index_t *idx) {
+  size_t t;
+  if (idx == NULL) {
+    return;
+  }
+  for (t = 0; t < idx->terms; t++) {
+    ds_context_free(idx->context, idx->postings[t].bytes);
+  }
+  ds_context_free(idx->context, idx->text);
+  ds_context_free(idx->context, idx->term_off);
+  ds_context_free(idx->context, idx->term_len);
+  ds_context_free(idx->context, idx->postings);
+  ds_context_free(idx->context, idx->slot);
+  ds_context_free(idx->context, idx->doc_id);
+  ds_context_free(idx->context, idx->doc_len);
+  ds_context_free(idx->context, idx->fwd_off);
+  ds_context_free(idx->context, idx->fwd);
+  ds_context_free(idx->context, idx->scratch);
+  memset(idx, 0, sizeof(*idx));
+}
+
+size_t ds_invidx_term_id(const ds_inverted_index_t *idx, const void *text,
+                         size_t length) {
+  size_t at;
+  if (idx == NULL || idx->slots == 0 || (length > 0 && text == NULL)) {
+    return II_NONE;
+  }
+  at = ii_hash((const unsigned char *)text, length) & (idx->slots - 1);
+  while (idx->slot[at] != II_NONE) {
+    size_t t = idx->slot[at];
+    if (idx->term_len[t] == length &&
+        (length == 0 ||
+         memcmp(idx->text + idx->term_off[t], text, length) == 0)) {
+      return t;
+    }
+    at = (at + 1) & (idx->slots - 1);
+  }
+  return II_NONE;
+}
+
+static ds_status_t ii_rehash(ds_inverted_index_t *idx, size_t slots) {
+  size_t *s = (size_t *)ds_context_alloc(idx->context, slots * sizeof(size_t));
+  size_t i;
+  if (s == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < slots; i++) {
+    s[i] = II_NONE;
+  }
+  for (i = 0; i < idx->terms; i++) {
+    size_t at =
+        ii_hash(idx->text + idx->term_off[i], idx->term_len[i]) & (slots - 1);
+    while (s[at] != II_NONE) {
+      at = (at + 1) & (slots - 1);
+    }
+    s[at] = i;
+  }
+  ds_context_free(idx->context, idx->slot);
+  idx->slot = s;
+  idx->slots = slots;
+  return DS_OK;
+}
+
+static ds_status_t ii_intern(ds_inverted_index_t *idx, const void *text,
+                             size_t length, size_t *out) {
+  size_t t = ds_invidx_term_id(idx, text, length);
+  size_t cap;
+  ds_status_t st;
+  if (t != II_NONE) {
+    *out = t;
+    return DS_OK;
+  }
+  if (2 * (idx->terms + 1) > idx->slots) {
+    st = ii_rehash(idx, idx->slots < 16 ? 32 : idx->slots * 2);
+    if (st != DS_OK) {
+      return st;
+    }
+  }
+  cap = idx->term_capacity;
+  st = ii_reserve(idx->context, (void **)&idx->term_off, &cap, idx->terms + 1,
+                  sizeof(size_t));
+  if (st == DS_OK) {
+    cap = idx->term_capacity;
+    st = ii_reserve(idx->context, (void **)&idx->term_len, &cap, idx->terms + 1,
+                    sizeof(size_t));
+  }
+  if (st == DS_OK) {
+    cap = idx->term_capacity;
+    st = ii_reserve(idx->context, (void **)&idx->postings, &cap, idx->terms + 1,
+                    sizeof(ds_invidx_posting_list_t));
+  }
+  if (st == DS_OK) {
+    st = ii_reserve(idx->context, (void **)&idx->text, &idx->text_capacity,
+                    idx->text_used + length + 1, 1);
+  }
+  if (st != DS_OK) {
+    return st;
+  }
+  idx->term_capacity = cap;
+  if (length > 0) {
+    memcpy(idx->text + idx->text_used, text, length);
+  }
+  t = idx->terms++;
+  idx->term_off[t] = idx->text_used;
+  idx->term_len[t] = length;
+  idx->text_used += length;
+  memset(&idx->postings[t], 0, sizeof(ds_invidx_posting_list_t));
+  {
+    size_t at =
+        ii_hash(idx->text + idx->term_off[t], length) & (idx->slots - 1);
+    while (idx->slot[at] != II_NONE) {
+      at = (at + 1) & (idx->slots - 1);
+    }
+    idx->slot[at] = t;
+  }
+  *out = t;
+  return DS_OK;
+}
+
+typedef struct ii_pair {
+  size_t term;
+  size_t pos;
+} ii_pair_t;
+
+static int ii_pair_cmp(const void *x, const void *y) {
+  const ii_pair_t *a = (const ii_pair_t *)x;
+  const ii_pair_t *b = (const ii_pair_t *)y;
+  if (a->term != b->term) {
+    return a->term < b->term ? -1 : 1;
+  }
+  return a->pos < b->pos ? -1 : a->pos > b->pos ? 1 : 0;
+}
+
+ds_status_t ds_invidx_add(ds_inverted_index_t *idx, size_t doc_id,
+                          const ds_invidx_term_t *tokens, size_t count) {
+  ii_pair_t *pairs = NULL;
+  ds_invidx_posting_list_t *saved = NULL;
+  size_t old_terms;
+  size_t old_fwd;
+  size_t block;
+  size_t i;
+  size_t runs = 0;
+  size_t cap;
+  ds_status_t st = DS_OK;
+  if (idx == NULL || (count > 0 && tokens == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (idx->docs > 0 && doc_id <= idx->doc_id[idx->docs - 1]) {
+    return DS_ERR_STATE;
+  }
+  if (count > (size_t)-1 / sizeof(ii_pair_t)) {
+    return DS_ERR_OVERFLOW;
+  }
+  cap = idx->doc_capacity;
+  st = ii_reserve(idx->context, (void **)&idx->doc_id, &cap, idx->docs + 1,
+                  sizeof(size_t));
+  if (st == DS_OK) {
+    cap = idx->doc_capacity;
+    st = ii_reserve(idx->context, (void **)&idx->doc_len, &cap, idx->docs + 1,
+                    sizeof(size_t));
+  }
+  if (st == DS_OK) {
+    cap = idx->doc_capacity;
+    st = ii_reserve(idx->context, (void **)&idx->fwd_off, &cap, idx->docs + 1,
+                    sizeof(size_t));
+  }
+  if (st != DS_OK) {
+    return st;
+  }
+  idx->doc_capacity = cap;
+  old_terms = idx->terms;
+  old_fwd = idx->fwd_used;
+  pairs = (ii_pair_t *)ds_context_alloc(idx->context,
+                                        (count + 1) * sizeof(ii_pair_t));
+  if (pairs == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < count && st == DS_OK; i++) {
+    if (tokens[i].length > 0 && tokens[i].text == NULL) {
+      st = DS_ERR_NULL;
+      break;
+    }
+    st = ii_intern(idx, tokens[i].text, tokens[i].length, &pairs[i].term);
+    pairs[i].pos = i;
+  }
+  if (st != DS_OK) {
+    goto fail;
+  }
+  qsort(pairs, count, sizeof(ii_pair_t), ii_pair_cmp);
+  for (i = 0; i < count; i++) {
+    if (i == 0 || pairs[i].term != pairs[i - 1].term) {
+      runs++;
+    }
+  }
+  /* save the touched lists so a failure can be rolled back */
+  saved = (ds_invidx_posting_list_t *)ds_context_alloc(
+      idx->context, (runs + 1) * sizeof(ds_invidx_posting_list_t));
+  if (saved == NULL) {
+    st = DS_ERR_ALLOC;
+    goto fail;
+  }
+  block = idx->docs / idx->block_size;
+  if (idx->keep_forward) {
+    st = ii_put_varint(idx->context, &idx->fwd, &idx->fwd_used,
+                       &idx->fwd_capacity, runs);
+  }
+  runs = 0;
+  for (i = 0; st == DS_OK && i < count;) {
+    size_t t = pairs[i].term;
+    size_t j = i;
+    ds_invidx_posting_list_t *pl = &idx->postings[t];
+    while (j < count && pairs[j].term == t) {
+      j++;
+    }
+    saved[runs++] = *pl;
+    if (idx->mode == DS_INVIDX_BLOCK) {
+      if (pl->df == 0 || pl->last != block) {
+        st = ii_put_varint(idx->context, &pl->bytes, &pl->length, &pl->capacity,
+                           block - (pl->df ? pl->last : 0));
+        pl->df++;
+        pl->last = block;
+      }
+    } else {
+      st = ii_put_varint(idx->context, &pl->bytes, &pl->length, &pl->capacity,
+                         doc_id - (pl->df ? pl->last : 0));
+      if (st == DS_OK) {
+        st = ii_put_varint(idx->context, &pl->bytes, &pl->length, &pl->capacity,
+                           j - i);
+      }
+      if (idx->mode == DS_INVIDX_POSITIONAL) {
+        size_t k;
+        size_t prev = 0;
+        for (k = i; st == DS_OK && k < j; k++) {
+          st = ii_put_varint(idx->context, &pl->bytes, &pl->length,
+                             &pl->capacity, pairs[k].pos - prev);
+          prev = pairs[k].pos;
+        }
+      }
+      pl->df++;
+      pl->last = doc_id;
+    }
+    pl->cf += j - i;
+    if (st == DS_OK && idx->keep_forward) {
+      size_t prev_term = i == 0 ? 0 : pairs[i - 1].term;
+      st = ii_put_varint(idx->context, &idx->fwd, &idx->fwd_used,
+                         &idx->fwd_capacity, t - prev_term);
+      if (st == DS_OK) {
+        st = ii_put_varint(idx->context, &idx->fwd, &idx->fwd_used,
+                           &idx->fwd_capacity, j - i);
+      }
+    }
+    i = j;
+  }
+  if (st != DS_OK) {
+    goto fail;
+  }
+  idx->doc_id[idx->docs] = doc_id;
+  idx->doc_len[idx->docs] = count;
+  idx->fwd_off[idx->docs] = old_fwd;
+  idx->docs++;
+  idx->total_tokens += count;
+  ds_context_free(idx->context, pairs);
+  ds_context_free(idx->context, saved);
+  return DS_OK;
+fail:
+  if (saved != NULL) {
+    size_t r = 0;
+    for (i = 0; i < count && r < runs; i++) {
+      if (i == 0 || pairs[i].term != pairs[i - 1].term) {
+        ds_invidx_posting_list_t *pl = &idx->postings[pairs[i].term];
+        unsigned char *bytes = pl->bytes;
+        size_t capacity = pl->capacity;
+        *pl = saved[r++];
+        pl->bytes = bytes; /* keep the (possibly moved) buffer */
+        pl->capacity = capacity;
+      }
+    }
+  }
+  for (i = old_terms; i < idx->terms; i++) {
+    ds_context_free(idx->context, idx->postings[i].bytes);
+  }
+  if (idx->terms > old_terms) {
+    idx->text_used = idx->term_off[old_terms];
+    idx->terms = old_terms;
+    /* rebuild the table in place without the new terms */
+    for (i = 0; i < idx->slots; i++) {
+      idx->slot[i] = II_NONE;
+    }
+    for (i = 0; i < idx->terms; i++) {
+      size_t at = ii_hash(idx->text + idx->term_off[i], idx->term_len[i]) &
+                  (idx->slots - 1);
+      while (idx->slot[at] != II_NONE) {
+        at = (at + 1) & (idx->slots - 1);
+      }
+      idx->slot[at] = i;
+    }
+  }
+  idx->fwd_used = old_fwd;
+  ds_context_free(idx->context, pairs);
+  ds_context_free(idx->context, saved);
+  return st;
+}
+
+static bool ii_alnum(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+         (c >= '0' && c <= '9');
+}
+
+static bool ii_default_tokenizer(const char *text, size_t length,
+                                 size_t *cursor, size_t *start,
+                                 size_t *token_length, void *user) {
+  size_t i = *cursor;
+  (void)user;
+  while (i < length && !ii_alnum(text[i])) {
+    i++;
+  }
+  if (i == length) {
+    *cursor = i;
+    return false;
+  }
+  *start = i;
+  while (i < length && ii_alnum(text[i])) {
+    i++;
+  }
+  *token_length = i - *start;
+  *cursor = i;
+  return true;
+}
+
+ds_status_t ds_invidx_add_text(ds_inverted_index_t *idx, size_t doc_id,
+                               const char *text, size_t length,
+                               ds_invidx_tokenizer_fn tokenizer, void *user,
+                               bool fold_case) {
+  char *folded = NULL;
+  const char *src = text;
+  ds_invidx_term_t *tokens = NULL;
+  size_t n = 0;
+  size_t cap = 0;
+  size_t cursor = 0;
+  size_t start;
+  size_t tlen;
+  ds_status_t st = DS_OK;
+  if (idx == NULL || (length > 0 && text == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (tokenizer == NULL) {
+    tokenizer = ii_default_tokenizer;
+  }
+  if (fold_case && length > 0) {
+    size_t i;
+    folded = (char *)ds_context_alloc(idx->context, length);
+    if (folded == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    for (i = 0; i < length; i++) {
+      char c = text[i];
+      folded[i] = c >= 'A' && c <= 'Z' ? (char)(c - 'A' + 'a') : c;
+    }
+    src = folded;
+  }
+  while (st == DS_OK && tokenizer(text, length, &cursor, &start, &tlen, user)) {
+    if (start > length || tlen > length - start) {
+      st = DS_ERR_CALLBACK;
+      break;
+    }
+    st = ii_reserve(idx->context, (void **)&tokens, &cap, n + 1,
+                    sizeof(ds_invidx_term_t));
+    if (st == DS_OK) {
+      tokens[n].text = src + start;
+      tokens[n].length = tlen;
+      n++;
+    }
+  }
+  if (st == DS_OK) {
+    st = ds_invidx_add(idx, doc_id, tokens, n);
+  }
+  ds_context_free(idx->context, tokens);
+  ds_context_free(idx->context, folded);
+  return st;
+}
+
+size_t ds_invidx_terms(const ds_inverted_index_t *idx) {
+  return idx == NULL ? 0 : idx->terms;
+}
+
+size_t ds_invidx_documents(const ds_inverted_index_t *idx) {
+  return idx == NULL ? 0 : idx->docs;
+}
+
+ds_status_t ds_invidx_term_text(const ds_inverted_index_t *idx, size_t term,
+                                const void **text, size_t *length) {
+  if (idx == NULL || text == NULL || length == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (term >= idx->terms) {
+    return DS_ERR_RANGE;
+  }
+  *text = idx->text + idx->term_off[term];
+  *length = idx->term_len[term];
+  return DS_OK;
+}
+
+size_t ds_invidx_document_frequency(const ds_inverted_index_t *idx,
+                                    const void *text, size_t length) {
+  size_t t = ds_invidx_term_id(idx, text, length);
+  return t == II_NONE ? 0 : idx->postings[t].df;
+}
+
+size_t ds_invidx_postings_bytes(const ds_inverted_index_t *idx) {
+  size_t t;
+  size_t n = 0;
+  if (idx == NULL) {
+    return 0;
+  }
+  for (t = 0; t < idx->terms; t++) {
+    n += idx->postings[t].length;
+  }
+  return n;
+}
+
+ds_status_t ds_invidx_block_documents(const ds_inverted_index_t *idx,
+                                      size_t block, const size_t **ids,
+                                      size_t *count) {
+  size_t first;
+  if (idx == NULL || ids == NULL || count == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (block > idx->docs / idx->block_size ||
+      (first = block * idx->block_size) >= idx->docs) {
+    return DS_ERR_RANGE;
+  }
+  *ids = idx->doc_id + first;
+  *count =
+      idx->docs - first < idx->block_size ? idx->docs - first : idx->block_size;
+  return DS_OK;
+}
+
+static size_t ii_doc_index(const ds_inverted_index_t *idx, size_t doc_id) {
+  size_t lo = 0;
+  size_t hi = idx->docs;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2;
+    if (idx->doc_id[mid] < doc_id) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo < idx->docs && idx->doc_id[lo] == doc_id ? lo : II_NONE;
+}
+
+ds_status_t ds_invidx_document_terms(const ds_inverted_index_t *idx,
+                                     size_t doc_id, size_t *terms,
+                                     size_t *freqs, size_t capacity,
+                                     size_t *count) {
+  size_t d;
+  size_t at;
+  size_t n;
+  size_t i;
+  size_t term = 0;
+  if (idx == NULL || count == NULL ||
+      (capacity > 0 && (terms == NULL || freqs == NULL))) {
+    return DS_ERR_NULL;
+  }
+  if (!idx->keep_forward) {
+    return DS_ERR_STATE;
+  }
+  d = ii_doc_index(idx, doc_id);
+  if (d == II_NONE) {
+    return DS_ERR_RANGE;
+  }
+  at = idx->fwd_off[d];
+  n = ii_get_varint(idx->fwd, &at);
+  *count = n;
+  for (i = 0; i < n && i < capacity; i++) {
+    term += ii_get_varint(idx->fwd, &at);
+    terms[i] = term;
+    freqs[i] = ii_get_varint(idx->fwd, &at);
+  }
+  return n > capacity ? DS_ERR_RANGE : DS_OK;
+}
+
+/* ------------------------------------------------------------ cursors */
+
+static void ii_cursor_term(const ds_inverted_index_t *idx, size_t t,
+                           ds_invidx_cursor_t *c) {
+  memset(c, 0, sizeof(*c));
+  c->index = idx;
+  c->term = t;
+}
+
+void ds_invidx_cursor_open(const ds_inverted_index_t *idx, const void *text,
+                           size_t length, ds_invidx_cursor_t *cursor) {
+  if (cursor == NULL) {
+    return;
+  }
+  ii_cursor_term(idx, ds_invidx_term_id(idx, text, length), cursor);
+}
+
+bool ds_invidx_cursor_next(ds_invidx_cursor_t *c) {
+  const ds_invidx_posting_list_t *pl;
+  if (c == NULL || c->index == NULL || c->term == II_NONE) {
+    return false;
+  }
+  pl = &c->index->postings[c->term];
+  while (c->positions_left > 0) {
+    (void)ii_get_varint(pl->bytes, &c->at);
+    c->positions_left--;
+  }
+  if (c->at >= pl->length) {
+    return false;
+  }
+  c->doc = (c->started ? c->doc : 0) + ii_get_varint(pl->bytes, &c->at);
+  c->started = true;
+  c->freq = 0;
+  c->position = 0;
+  if (c->index->mode != DS_INVIDX_BLOCK) {
+    c->freq = ii_get_varint(pl->bytes, &c->at);
+  }
+  if (c->index->mode == DS_INVIDX_POSITIONAL) {
+    c->positions_left = c->freq;
+  }
+  return true;
+}
+
+bool ds_invidx_cursor_next_position(ds_invidx_cursor_t *c, size_t *position) {
+  if (c == NULL || position == NULL || c->positions_left == 0) {
+    return false;
+  }
+  if (c->positions_left == c->freq) {
+    c->position = 0;
+  }
+  c->position += ii_get_varint(c->index->postings[c->term].bytes, &c->at);
+  c->positions_left--;
+  *position = c->position;
+  return true;
+}
+
+/* ------------------------------------------------------------ queries */
+
+/* decoded document (block) list of a term */
+static ds_status_t ii_list(const ds_inverted_index_t *idx, size_t t,
+                           size_t **out, size_t *n) {
+  ds_invidx_cursor_t c;
+  size_t k = 0;
+  size_t df = t == II_NONE ? 0 : idx->postings[t].df;
+  *out = (size_t *)ds_context_alloc(idx->context, (df + 1) * sizeof(size_t));
+  if (*out == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  ii_cursor_term(idx, t, &c);
+  while (ds_invidx_cursor_next(&c)) {
+    (*out)[k++] = c.doc;
+  }
+  *n = k;
+  return DS_OK;
+}
+
+static size_t ii_intersect(size_t *a, size_t na, const size_t *b, size_t nb) {
+  size_t i = 0;
+  size_t j = 0;
+  size_t k = 0;
+  while (i < na && j < nb) {
+    if (a[i] < b[j]) {
+      i++;
+    } else if (a[i] > b[j]) {
+      j++;
+    } else {
+      a[k++] = a[i];
+      i++;
+      j++;
+    }
+  }
+  return k;
+}
+
+static size_t ii_subtract(size_t *a, size_t na, const size_t *b, size_t nb) {
+  size_t i = 0;
+  size_t j = 0;
+  size_t k = 0;
+  while (i < na) {
+    while (j < nb && b[j] < a[i]) {
+      j++;
+    }
+    if (j < nb && b[j] == a[i]) {
+      i++;
+    } else {
+      a[k++] = a[i++];
+    }
+  }
+  return k;
+}
+
+/* union of term lists into a fresh array */
+static ds_status_t ii_union(const ds_inverted_index_t *idx,
+                            const ds_invidx_term_t *terms, size_t count,
+                            size_t **out, size_t *n) {
+  size_t *acc = NULL;
+  size_t na = 0;
+  size_t i;
+  ds_status_t st = DS_OK;
+  acc = (size_t *)ds_context_alloc(idx->context, sizeof(size_t));
+  if (acc == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < count && st == DS_OK; i++) {
+    size_t *l;
+    size_t nl;
+    size_t *m;
+    size_t x = 0;
+    size_t y = 0;
+    size_t k = 0;
+    st = ii_list(idx, ds_invidx_term_id(idx, terms[i].text, terms[i].length),
+                 &l, &nl);
+    if (st != DS_OK) {
+      break;
+    }
+    m = (size_t *)ds_context_alloc(idx->context,
+                                   (na + nl + 1) * sizeof(size_t));
+    if (m == NULL) {
+      ds_context_free(idx->context, l);
+      st = DS_ERR_ALLOC;
+      break;
+    }
+    while (x < na || y < nl) {
+      if (y == nl || (x < na && acc[x] < l[y])) {
+        m[k++] = acc[x++];
+      } else if (x == na || l[y] < acc[x]) {
+        m[k++] = l[y++];
+      } else {
+        m[k++] = acc[x++];
+        y++;
+      }
+    }
+    ds_context_free(idx->context, acc);
+    ds_context_free(idx->context, l);
+    acc = m;
+    na = k;
+  }
+  if (st != DS_OK) {
+    ds_context_free(idx->context, acc);
+    return st;
+  }
+  *out = acc;
+  *n = na;
+  return DS_OK;
+}
+
+void ds_invidx_result_free(const ds_inverted_index_t *idx,
+                           ds_invidx_result_t *result) {
+  if (idx == NULL || result == NULL) {
+    return;
+  }
+  ds_context_free(idx->context, result->docs);
+  ds_context_free(idx->context, result->scores);
+  result->docs = NULL;
+  result->scores = NULL;
+  result->count = 0;
+}
+
+ds_status_t
+ds_invidx_boolean(const ds_inverted_index_t *idx, const ds_invidx_term_t *must,
+                  size_t must_count, const ds_invidx_term_t *should,
+                  size_t should_count, const ds_invidx_term_t *must_not,
+                  size_t must_not_count, ds_invidx_result_t *result) {
+  size_t *acc = NULL;
+  size_t na = 0;
+  size_t i;
+  ds_status_t st = DS_OK;
+  if (idx == NULL || result == NULL || (must_count > 0 && must == NULL) ||
+      (should_count > 0 && should == NULL) ||
+      (must_not_count > 0 && must_not == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (must_count == 0 && should_count == 0) {
+    return DS_ERR_INVALID;
+  }
+  result->docs = NULL;
+  result->scores = NULL;
+  result->count = 0;
+  if (must_count > 0) {
+    /* start from the rarest term */
+    size_t best = 0;
+    for (i = 1; i < must_count; i++) {
+      if (ds_invidx_document_frequency(idx, must[i].text, must[i].length) <
+          ds_invidx_document_frequency(idx, must[best].text,
+                                       must[best].length)) {
+        best = i;
+      }
+    }
+    st =
+        ii_list(idx, ds_invidx_term_id(idx, must[best].text, must[best].length),
+                &acc, &na);
+    for (i = 0; st == DS_OK && i < must_count && na > 0; i++) {
+      size_t *l;
+      size_t nl;
+      if (i == best) {
+        continue;
+      }
+      st = ii_list(idx, ds_invidx_term_id(idx, must[i].text, must[i].length),
+                   &l, &nl);
+      if (st == DS_OK) {
+        na = ii_intersect(acc, na, l, nl);
+        ds_context_free(idx->context, l);
+      }
+    }
+  }
+  if (st == DS_OK && should_count > 0) {
+    size_t *u;
+    size_t nu;
+    st = ii_union(idx, should, should_count, &u, &nu);
+    if (st == DS_OK) {
+      if (acc == NULL) {
+        acc = u;
+        na = nu;
+      } else {
+        na = ii_intersect(acc, na, u, nu);
+        ds_context_free(idx->context, u);
+      }
+    }
+  }
+  if (st == DS_OK && must_not_count > 0 && na > 0) {
+    size_t *u;
+    size_t nu;
+    st = ii_union(idx, must_not, must_not_count, &u, &nu);
+    if (st == DS_OK) {
+      na = ii_subtract(acc, na, u, nu);
+      ds_context_free(idx->context, u);
+    }
+  }
+  if (st != DS_OK) {
+    ds_context_free(idx->context, acc);
+    return st;
+  }
+  result->docs = acc;
+  result->count = na;
+  return DS_OK;
+}
+
+ds_status_t ds_invidx_phrase(const ds_inverted_index_t *idx,
+                             const ds_invidx_term_t *terms, size_t count,
+                             ds_invidx_result_t *result) {
+  ds_invidx_cursor_t *cur = NULL;
+  size_t *pos = NULL; /* positions of term 0 */
+  size_t pos_cap = 0;
+  size_t *found = NULL;
+  size_t nfound = 0;
+  size_t found_cap = 0;
+  size_t i;
+  bool live = true;
+  ds_status_t st = DS_OK;
+  if (idx == NULL || result == NULL || (count > 0 && terms == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (idx->mode != DS_INVIDX_POSITIONAL) {
+    return DS_ERR_STATE;
+  }
+  if (count == 0) {
+    return DS_ERR_INVALID;
+  }
+  result->docs = NULL;
+  result->scores = NULL;
+  result->count = 0;
+  cur = (ds_invidx_cursor_t *)ds_context_alloc(
+      idx->context, count * sizeof(ds_invidx_cursor_t));
+  if (cur == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < count; i++) {
+    ds_invidx_cursor_open(idx, terms[i].text, terms[i].length, &cur[i]);
+    live = live && ds_invidx_cursor_next(&cur[i]);
+  }
+  while (live && st == DS_OK) {
+    size_t target = cur[0].doc;
+    bool aligned = true;
+    for (i = 1; i < count; i++) {
+      if (cur[i].doc > target) {
+        target = cur[i].doc;
+      }
+    }
+    for (i = 0; live && i < count; i++) {
+      while (live && cur[i].doc < target) {
+        live = ds_invidx_cursor_next(&cur[i]);
+      }
+      if (live && cur[i].doc != target) {
+        aligned = false;
+      }
+    }
+    if (!live) {
+      break;
+    }
+    if (aligned) {
+      /* positions of term 0, then filter by each later term at +i */
+      size_t np = 0;
+      size_t p;
+      st = ii_reserve(idx->context, (void **)&pos, &pos_cap, cur[0].freq + 1,
+                      sizeof(size_t));
+      if (st != DS_OK) {
+        break;
+      }
+      while (ds_invidx_cursor_next_position(&cur[0], &p)) {
+        pos[np++] = p;
+      }
+      for (i = 1; i < count && np > 0; i++) {
+        size_t k = 0;
+        size_t w = 0;
+        bool more = ds_invidx_cursor_next_position(&cur[i], &p);
+        while (k < np && more) {
+          if (p < pos[k] + i) {
+            more = ds_invidx_cursor_next_position(&cur[i], &p);
+          } else if (p > pos[k] + i) {
+            k++;
+          } else {
+            pos[w++] = pos[k++];
+          }
+        }
+        np = w;
+      }
+      if (np > 0) {
+        st = ii_reserve(idx->context, (void **)&found, &found_cap, nfound + 1,
+                        sizeof(size_t));
+        if (st == DS_OK) {
+          found[nfound++] = target;
+        }
+      }
+      live = ds_invidx_cursor_next(&cur[0]);
+    }
+  }
+  ds_context_free(idx->context, cur);
+  ds_context_free(idx->context, pos);
+  if (st != DS_OK) {
+    ds_context_free(idx->context, found);
+    return st;
+  }
+  result->docs = found;
+  result->count = nfound;
+  return DS_OK;
+}
+
+typedef struct ii_scored {
+  double score;
+  size_t doc;
+} ii_scored_t;
+
+static int ii_scored_cmp(const void *x, const void *y) {
+  const ii_scored_t *a = (const ii_scored_t *)x;
+  const ii_scored_t *b = (const ii_scored_t *)y;
+  if (a->score > b->score) {
+    return -1;
+  }
+  if (a->score < b->score) {
+    return 1;
+  }
+  return a->doc < b->doc ? -1 : a->doc > b->doc ? 1 : 0;
+}
+
+ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
+                           const ds_invidx_term_t *terms, size_t count,
+                           double k1, double b, size_t top_k,
+                           ds_invidx_result_t *result) {
+  double *score;
+  unsigned char *hit;
+  ii_scored_t *list;
+  double avgdl;
+  size_t n = 0;
+  size_t i;
+  size_t d;
+  if (idx == NULL || result == NULL || (count > 0 && terms == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (idx->mode == DS_INVIDX_BLOCK) {
+    return DS_ERR_STATE;
+  }
+  if (!(k1 >= 0.0) || !(b >= 0.0) || b > 1.0) {
+    return DS_ERR_INVALID;
+  }
+  result->docs = NULL;
+  result->scores = NULL;
+  result->count = 0;
+  if (idx->docs == 0 || top_k == 0) {
+    return DS_OK;
+  }
+  score = (double *)ds_context_alloc(idx->context, idx->docs * sizeof(double));
+  hit = (unsigned char *)ds_context_calloc(idx->context, idx->docs, 1);
+  list = (ii_scored_t *)ds_context_alloc(idx->context,
+                                         idx->docs * sizeof(ii_scored_t));
+  if (score == NULL || hit == NULL || list == NULL) {
+    ds_context_free(idx->context, score);
+    ds_context_free(idx->context, hit);
+    ds_context_free(idx->context, list);
+    return DS_ERR_ALLOC;
+  }
+  avgdl = (double)idx->total_tokens / (double)idx->docs;
+  for (d = 0; d < idx->docs; d++) {
+    score[d] = 0.0;
+  }
+  for (i = 0; i < count; i++) {
+    ds_invidx_cursor_t c;
+    double df;
+    double idf;
+    ds_invidx_cursor_open(idx, terms[i].text, terms[i].length, &c);
+    if (c.term == II_NONE) {
+      continue;
+    }
+    df = (double)idx->postings[c.term].df;
+    idf = log(1.0 + ((double)idx->docs - df + 0.5) / (df + 0.5));
+    while (ds_invidx_cursor_next(&c)) {
+      size_t di = ii_doc_index(idx, c.doc);
+      double tf = (double)c.freq;
+      double norm = avgdl > 0.0 ? (double)idx->doc_len[di] / avgdl : 0.0;
+      score[di] += idf * tf * (k1 + 1.0) / (tf + k1 * (1.0 - b + b * norm));
+      hit[di] = 1;
+    }
+  }
+  for (d = 0; d < idx->docs; d++) {
+    if (hit[d]) {
+      list[n].score = score[d];
+      list[n].doc = idx->doc_id[d];
+      n++;
+    }
+  }
+  qsort(list, n, sizeof(ii_scored_t), ii_scored_cmp);
+  if (n > top_k) {
+    n = top_k;
+  }
+  ds_context_free(idx->context, score);
+  ds_context_free(idx->context, hit);
+  result->docs =
+      (size_t *)ds_context_alloc(idx->context, (n + 1) * sizeof(size_t));
+  result->scores =
+      (double *)ds_context_alloc(idx->context, (n + 1) * sizeof(double));
+  if (result->docs == NULL || result->scores == NULL) {
+    ds_invidx_result_free(idx, result);
+    ds_context_free(idx->context, list);
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < n; i++) {
+    result->docs[i] = list[i].doc;
+    result->scores[i] = list[i].score;
+  }
+  result->count = n;
+  ds_context_free(idx->context, list);
+  return DS_OK;
+}

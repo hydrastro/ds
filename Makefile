@@ -172,7 +172,8 @@ LIB_SRC := \
   $(LIB_DIR)/cellular_automaton.c \
   $(LIB_DIR)/turing_machine.c \
   $(LIB_DIR)/pushdown.c \
-  $(LIB_DIR)/tree_automaton.c
+  $(LIB_DIR)/tree_automaton.c \
+  $(LIB_DIR)/inverted_index.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -245,6 +246,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/inverted_index.c $(LIB_DIR)/inverted_index.h \
   $(LIB_DIR)/tree_automaton.c $(LIB_DIR)/tree_automaton.h \
   $(LIB_DIR)/pushdown.c $(LIB_DIR)/pushdown.h \
   $(LIB_DIR)/turing_machine.c $(LIB_DIR)/turing_machine.h \
