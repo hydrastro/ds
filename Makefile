@@ -231,7 +231,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/geo_opt.c \
   $(ALGO_DIR)/space_order.c \
   $(ALGO_DIR)/markov.c \
-  $(ALGO_DIR)/anneal.c
+  $(ALGO_DIR)/anneal.c \
+  $(ALGO_DIR)/model_check.c
 
 LIB_SRC += $(ALGO_SRC)
 

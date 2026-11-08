@@ -35,6 +35,7 @@
 #include "algo/markov.h"
 #include "algo/matching.h"
 #include "algo/matrix.h"
+#include "algo/model_check.h"
 #include "algo/number_theory.h"
 #include "algo/numeric.h"
 #include "algo/numerical.h"

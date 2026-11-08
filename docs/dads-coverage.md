@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 741 |
-| todo | 17 |
+| done | 744 |
+| todo | 14 |
 | def | 549 |
 | total | 1307 |
 
@@ -36,7 +36,6 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
-| `algo/model_check` | 3 | CTL, Kripke structure, model checking |
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
 | `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
 | `algo/dynamization` | 1 | dynamization transformation |
@@ -333,7 +332,7 @@ Families ordered by how many DADS entries they close.
 | CREW | def |  |
 | critical path problem | done | `algo/graph_path` |
 | CSP | def |  |
-| CTL | todo | `algo/model_check` |
+| CTL | done | `algo/model_check` |
 | cube root | done | `algo/numerical` |
 | cuckoo hashing | done | `lib/cuckoo_map` |
 | Cupif-Giannini tree traversal | done | `lib/threaded_tree` |
@@ -721,7 +720,7 @@ Families ordered by how many DADS entries they close.
 | Königsberg bridges problem | done | `algo/graph_struct` |
 | Kolmogorov complexity | def |  |
 | Kraft's inequality | def |  |
-| Kripke structure | todo | `algo/model_check` |
+| Kripke structure | done | `algo/model_check` |
 | Kruskal's algorithm | done | `algo/graph_path` |
 | kth order Fibonacci numbers | done | `algo/number_theory` |
 | kth shortest path | done | `algo/graph_path` |
@@ -837,7 +836,7 @@ Families ordered by how many DADS entries they close.
 | Minkowski distance | done | `algo/geometry` |
 | mixed integer linear program | done | `algo/lp` |
 | mode | done | `algo/numerical` |
-| model checking | todo | `algo/model_check` |
+| model checking | done | `algo/model_check` |
 | model of computation | def |  |
 | moderately exponential | def |  |
 | MODIFIND | done | `algo/select` |
