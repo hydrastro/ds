@@ -7,7 +7,8 @@
  * (X-fast tries take their per-level prefix tables this way, and caches,
  * indexes or unique tables can do the same).
  *
- * A backend is a ds_map_ops_t: init/destroy plus put (insert or replace),
+ * A backend is a ds_map_ops_t: init/destroy plus put (insert, DS_OK, or
+ * replace, DS_EXISTS),
  * get, remove, size and an iteration cursor over keys and values stored by
  * value, with a hash and equality callback (and user pointer) chosen at
  * init. Its traits say what a consumer may rely on:
@@ -19,9 +20,13 @@
  *   DS_MAP_WORST_O1_GET   worst-case O(1) lookups
  *
  * ds_map_t pairs an ops table with an instance allocated from the
- * context. Two backends ship: Robin Hood hashing (lib/rh_map) and the
- * Swiss table (lib/swiss_map); any other map can be adapted by filling in
- * a ds_map_ops_t.
+ * context. Backends: Robin Hood hashing (lib/rh_map), the Swiss table
+ * (lib/swiss_map), bucketized cuckoo hashing with a stash (lib/cuckoo_map:
+ * worst-case O(1) lookups), linear hashing (lib/linear_hash_map:
+ * incremental growth one bucket at a time) and extendible hashing
+ * (lib/extendible_hash: directory doubling); any other map can be adapted by
+ * filling in a ds_map_ops_t. The linear and extendible adapters pack their
+ * two-part cursors into the size_t cursor (half the bits each).
  */
 
 #include "context.h"
@@ -64,6 +69,9 @@ typedef struct ds_map {
 
 const ds_map_ops_t *ds_map_rh_ops(void);
 const ds_map_ops_t *ds_map_swiss_ops(void);
+const ds_map_ops_t *ds_map_cuckoo_ops(void);
+const ds_map_ops_t *ds_map_linear_hash_ops(void);
+const ds_map_ops_t *ds_map_extendible_ops(void);
 
 /* ops NULL selects ds_map_rh_ops() */
 ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops, size_t key_size,
