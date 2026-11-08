@@ -31,11 +31,11 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 749 |
+| implemented | 750 |
 | restricted | 2 |
 | variant | 1 |
 | reference | 5 |
-| missing | 1 |
+| missing | 0 |
 | n/a | 549 |
 | total | 1307 |
 
@@ -49,9 +49,7 @@ under "Supplemental entries" with the same columns.
 
 ## Missing
 
-| entry | note |
-|---|---|
-| qm sort | Pat Morin's QM sort is not implemented; ds_qm_sort is a deprecated alias of a median-of-three quicksort preset |
+Nothing implementable is missing.
 
 ## Index A-Z
 
@@ -1067,7 +1065,7 @@ under "Supplemental entries" with the same columns.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| qm sort | algorithm | missing | algo/sort_misc | Pat Morin's QM sort is not implemented; ds_qm_sort is a deprecated alias of a median-of-three quicksort preset |
+| qm sort | algorithm | implemented | algo/sort_misc |  |
 | q sort | algorithm | variant | algo/sort_misc | one member of the quicksort + insertion sort family (ds_q_sort preset) |
 | quadratic probing | structure | implemented | lib/hash_table |  |
 | quadtree | structure | implemented | lib/quadtree |  |
@@ -1509,6 +1507,14 @@ under "Supplemental entries" with the same columns.
 | tree sort | algorithm | implemented | `algo/sort_heap` | BST-insertion tree sort; see treesort (1) and (2) |
 | transducer | concept | implemented | `lib/automaton`, `lib/pushdown`, `lib/turing_machine` | Mealy/Moore, finite state, pushdown and Turing transducers |
 | tree transducer | structure | implemented | `lib/tree_automaton` | bottom-up tree transducers |
+| Roaring bitmap | structure | implemented | `lib/roaring` | array, bitmap and run containers; rank, select, set algebra |
+| robust geometric predicates | algorithm | implemented | `algo/robust_predicates` | filtered exact orient2d/orient3d/incircle/insphere over expansion arithmetic |
+| floating-point expansion arithmetic | algorithm | implemented | `algo/robust_predicates` | error-free sum/product, expansion sum/scale/product/compress |
+| CHAMP (persistent hash trie) | structure | implemented | `lib/persistent_hamt` | canonical deletes, structural sharing, in-place edits of unshared versions |
+| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing backends |
+| FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
+| wavelet matrix | structure | implemented | `lib/fm_index` | rank/access backend of the FM-index |
+| Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |
 | succinct data structure | concept | n/a | `lib/bitvector`, `lib/wavelet_tree`, `lib/k2_tree` | family; members implemented as listed |
