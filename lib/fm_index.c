@@ -1,5 +1,6 @@
 #include "fm_index.h"
 #include "checked.h"
+#include "wavelet_matrix.h"
 #include <limits.h>
 #include <string.h>
 
@@ -330,6 +331,69 @@ static const ds_fm_occ_ops_t fm_occ_wavelet_ops = {
 
 const ds_fm_occ_ops_t *ds_fm_occ_table(void) { return &fm_occ_table_ops; }
 const ds_fm_occ_ops_t *ds_fm_occ_wavelet(void) { return &fm_occ_wavelet_ops; }
+
+/* ---- wavelet matrix over RRR bit vectors (lib/wavelet_matrix) ---- */
+
+static void wmr_destroy(void *state, ds_context_t *ctx) {
+  ds_wavelet_matrix_t *w = (ds_wavelet_matrix_t *)state;
+  if (w == NULL) {
+    return;
+  }
+  ds_wavelet_matrix_destroy(w);
+  ds_context_free(ctx, w);
+}
+
+static ds_status_t wmr_build(void **state, const unsigned short *bwt, size_t n,
+                             unsigned sigma, ds_context_t *ctx) {
+  ds_wavelet_matrix_t *w;
+  unsigned long *vals;
+  unsigned bits = 1;
+  size_t i;
+  ds_status_t st;
+  while ((1UL << bits) < sigma) {
+    bits++;
+  }
+  w = (ds_wavelet_matrix_t *)ds_context_alloc(ctx, sizeof(*w));
+  vals = (unsigned long *)fm_alloc_array(ctx, n, sizeof(unsigned long));
+  if (w == NULL || vals == NULL) {
+    ds_context_free(ctx, w);
+    ds_context_free(ctx, vals);
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < n; i++) {
+    vals[i] = bwt[i];
+  }
+  st = ds_wavelet_matrix_build(w, vals, n, bits, ds_rs_rrr(), ctx);
+  ds_context_free(ctx, vals);
+  if (st != DS_OK) {
+    ds_context_free(ctx, w);
+    return st;
+  }
+  *state = w;
+  return DS_OK;
+}
+
+static size_t wmr_rank(const void *state, unsigned c, size_t i) {
+  return ds_wavelet_matrix_rank((const ds_wavelet_matrix_t *)state, c, i);
+}
+
+static unsigned wmr_access(const void *state, size_t i) {
+  return (unsigned)ds_wavelet_matrix_access((const ds_wavelet_matrix_t *)state,
+                                            i);
+}
+
+static size_t wmr_bytes(const void *state) {
+  return ds_wavelet_matrix_bytes((const ds_wavelet_matrix_t *)state);
+}
+
+static const ds_fm_occ_ops_t fm_occ_rrr_ops = {"wavelet matrix over RRR",
+                                               wmr_build,
+                                               wmr_rank,
+                                               wmr_access,
+                                               wmr_bytes,
+                                               wmr_destroy};
+
+const ds_fm_occ_ops_t *ds_fm_occ_wavelet_rrr(void) { return &fm_occ_rrr_ops; }
 
 /* ---- default suffix array: prefix doubling with radix sort ---- */
 

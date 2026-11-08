@@ -23,6 +23,9 @@
  *   ds_fm_occ_wavelet()      wavelet matrix: ceil(log2 sigma) bits per
  *                            symbol plus rank directories, O(log sigma)
  *                            rank and access
+ *   ds_fm_occ_wavelet_rrr()  lib/wavelet_matrix with RRR levels
+ *                            (lib/rank_select): close to nH0(BWT) bits,
+ *                            the classic compressed FM-index
  *
  * The suffix array is built by the configured builder: any function with
  * the signature of algo/stringology's ds_suffix_array (sorting suffixes
@@ -57,6 +60,7 @@ typedef struct ds_fm_occ_ops {
 
 const ds_fm_occ_ops_t *ds_fm_occ_table(void);
 const ds_fm_occ_ops_t *ds_fm_occ_wavelet(void);
+const ds_fm_occ_ops_t *ds_fm_occ_wavelet_rrr(void);
 
 /* bit vector with a rank directory (also used by the wavelet backend) */
 typedef struct ds_fm_bits {
