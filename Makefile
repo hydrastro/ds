@@ -23,7 +23,10 @@ VALGRIND_FLAGS ?= --leak-check=full --show-leak-kinds=all --errors-for-leak-kind
 PREFIX ?= /usr/local
 INCLUDEDIR ?= $(PREFIX)/include
 LIBDIR ?= $(PREFIX)/lib
+PKGCONFIGDIR ?= $(LIBDIR)/pkgconfig
 INSTALL ?= install
+# headers live in a directory of their own: $(INCLUDEDIR)/ds/{lib,algo}
+DS_INCLUDEDIR = $(INCLUDEDIR)/ds
 
 LIB_DIR   := lib
 GEN_DIR   := gen
@@ -414,21 +417,28 @@ EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 .PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
 all: $(LIB_STATIC) $(LIB_SHARED)
 
+# Install only into ds's own include directory and uninstall only the
+# files installed here (never whole shared directories).
+INSTALL_LIB_HEADERS = $(filter-out $(LIB_DIR)/unicode_tables%.h,$(wildcard $(LIB_DIR)/*.h))
+INSTALL_ALGO_HEADERS = $(wildcard $(ALGO_DIR)/*.h)
+
 install: all
-	$(INSTALL) -d $(DESTDIR)$(INCLUDEDIR)/lib $(DESTDIR)$(INCLUDEDIR)/algo $(DESTDIR)$(LIBDIR)
-	$(INSTALL) -m 0644 ds.h ds_algo.h $(DESTDIR)$(INCLUDEDIR)
-	$(INSTALL) -m 0644 $(LIB_DIR)/*.h $(DESTDIR)$(INCLUDEDIR)/lib
-	$(INSTALL) -m 0644 $(ALGO_DIR)/*.h $(DESTDIR)$(INCLUDEDIR)/algo
+	$(INSTALL) -d $(DESTDIR)$(DS_INCLUDEDIR)/lib $(DESTDIR)$(DS_INCLUDEDIR)/algo $(DESTDIR)$(LIBDIR) $(DESTDIR)$(PKGCONFIGDIR)
+	$(INSTALL) -m 0644 ds.h ds_algo.h $(DESTDIR)$(DS_INCLUDEDIR)
+	$(INSTALL) -m 0644 $(INSTALL_LIB_HEADERS) $(DESTDIR)$(DS_INCLUDEDIR)/lib
+	$(INSTALL) -m 0644 $(INSTALL_ALGO_HEADERS) $(DESTDIR)$(DS_INCLUDEDIR)/algo
 	$(INSTALL) -m 0644 $(LIB_STATIC) $(DESTDIR)$(LIBDIR)
 	$(INSTALL) -m 0755 $(LIB_SHARED) $(DESTDIR)$(LIBDIR)
+	printf 'prefix=%s\nincludedir=%s\nlibdir=%s\n\nName: ds\nDescription: data structures and algorithms library\nVersion: 0\nCflags: -I$${includedir}/ds -I$${includedir}/ds/lib -I$${includedir}/ds/algo\nLibs: -L$${libdir} -lds -lm\n' '$(PREFIX)' '$(INCLUDEDIR)' '$(LIBDIR)' > $(DESTDIR)$(PKGCONFIGDIR)/ds.pc
 
 uninstall:
-	rm -f $(DESTDIR)$(INCLUDEDIR)/ds.h $(DESTDIR)$(INCLUDEDIR)/ds_algo.h
-	rm -rf $(DESTDIR)$(INCLUDEDIR)/algo
-	rm -rf $(DESTDIR)$(INCLUDEDIR)/lib
+	rm -f $(DESTDIR)$(DS_INCLUDEDIR)/ds.h $(DESTDIR)$(DS_INCLUDEDIR)/ds_algo.h
+	rm -f $(addprefix $(DESTDIR)$(DS_INCLUDEDIR)/lib/,$(notdir $(INSTALL_LIB_HEADERS)))
+	rm -f $(addprefix $(DESTDIR)$(DS_INCLUDEDIR)/algo/,$(notdir $(INSTALL_ALGO_HEADERS)))
+	-rmdir $(DESTDIR)$(DS_INCLUDEDIR)/lib $(DESTDIR)$(DS_INCLUDEDIR)/algo $(DESTDIR)$(DS_INCLUDEDIR) 2>/dev/null
 	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_STATIC)
 	rm -f $(DESTDIR)$(LIBDIR)/$(LIB_SHARED)
-
+	rm -f $(DESTDIR)$(PKGCONFIGDIR)/ds.pc
 
 $(BUILD_DIR) $(DATA_DIR) $(TEST_BUILD_DIR) $(EXAMPLE_BUILD_DIR):
 	@mkdir -p $@

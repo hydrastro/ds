@@ -247,6 +247,11 @@ make install
 make uninstall
 ```
 
+Headers go to their own directory, `$(PREFIX)/include/ds/` (with `lib/` and
+`algo/` below it), and a `ds.pc` pkg-config file is installed next to the
+libraries. `make uninstall` removes exactly the files it installed and only
+empty directories.
+
 ## Testing and validation
 
 ```sh
@@ -329,7 +334,7 @@ Use the central header for the normal build:
 Compile against an installed library with:
 
 ```sh
-gcc -o example example.c -lds
+gcc -o example example.c $(pkg-config --cflags --libs ds)
 ```
 
 For concrete usage, see:
