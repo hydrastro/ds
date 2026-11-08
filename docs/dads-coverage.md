@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 746 |
-| todo | 12 |
+| done | 749 |
+| todo | 9 |
 | def | 549 |
 | total | 1307 |
 
@@ -36,7 +36,6 @@ Families ordered by how many DADS entries they close.
 | target | entries | terms |
 |---|---|---|
 | `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
-| `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
 | `algo/dynamization` | 1 | dynamization transformation |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
@@ -623,7 +622,7 @@ Families ordered by how many DADS entries they close.
 | histogram sort | done | `algo/sort_dist` |
 | HMM | done | `algo/hmm` |
 | homeomorphic | def |  |
-| horizontal visibility map | todo | `algo/visibility` |
+| horizontal visibility map | done | `algo/visibility` |
 | Horner's rule | done | `algo/numerical` |
 | Horspool | done | `algo/string_search` |
 | hsadelta | def |  |
@@ -1490,9 +1489,9 @@ Families ordered by how many DADS entries they close.
 | vertex coloring | done | `algo/graph_np` |
 | vertex connectivity | done | `algo/flow` |
 | vertex cover | done | `algo/graph_np` |
-| vertical visibility map | todo | `algo/visibility` |
+| vertical visibility map | done | `algo/visibility` |
 | virtual hashing | done | `lib/dynamic_hash` |
-| visibility map | todo | `algo/visibility` |
+| visibility map | done | `algo/visibility` |
 | visible | def |  |
 | Viterbi algorithm | done | `algo/hmm` |
 | Vitter's algorithm | done | `algo/adaptive_huffman` |

@@ -178,6 +178,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/tree_automaton: finite tree automata
 - algo/model_check: CTL model checking
 - algo/tree_edit: tree and forest edit distance
+- algo/visibility: visibility maps
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

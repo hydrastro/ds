@@ -195,6 +195,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `algo/anneal`: simulated annealing with pluggable schedules and acceptance rules (Metropolis, Barker, threshold accepting, great deluge), move or neighbour mode, reheating
 - `algo/model_check`: Kripke structures and CTL model checking (parser, linear-time labelling, fairness constraints, until/globally witnesses)
 - `algo/tree_edit`: Zhang-Shasha tree/forest edit distance with cost callbacks and the optimal mapping
+- `algo/visibility`: vertical and horizontal visibility maps of non-crossing segments by plane sweep
 
 Newer high-level modules:
 

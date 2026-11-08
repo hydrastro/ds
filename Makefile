@@ -233,7 +233,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/markov.c \
   $(ALGO_DIR)/anneal.c \
   $(ALGO_DIR)/model_check.c \
-  $(ALGO_DIR)/tree_edit.c
+  $(ALGO_DIR)/tree_edit.c \
+  $(ALGO_DIR)/visibility.c
 
 LIB_SRC += $(ALGO_SRC)
 

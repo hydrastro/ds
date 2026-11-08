@@ -62,5 +62,6 @@
 #include "algo/stringology.h"
 #include "algo/tree_edit.h"
 #include "algo/tsp.h"
+#include "algo/visibility.h"
 
 #endif /* DS_ALGO_H */
