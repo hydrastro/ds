@@ -113,6 +113,61 @@ ds_status_t ds_tdta_accepts(const ds_tdta_t *tdta, const size_t *tree,
 ds_status_t ds_tdta_to_fta(const ds_tdta_t *tdta, ds_fta_t *out,
                            ds_context_t *context);
 
+/*
+ * ds_tree_transducer_t: deterministic bottom-up tree transducers. A rule
+ *   f(q1(x1), ..., qk(xk)) -> q(t)
+ * reads input symbol f whose children reached states q1..qk with outputs
+ * x1..xk, moves to state q and outputs the tree t: a prefix sequence over
+ * the ranked output alphabet in which DS_TT_VAR(i) stands for the output
+ * of child i (variables may be copied, reordered or dropped). A run
+ * computes state and output bottom-up with an explicit stack; the input is
+ * accepted when the root's state is final, and the transduction is the
+ * root's output. Copying can make outputs exponentially large, so runs
+ * take an output budget (DS_ERR_RANGE when exceeded).
+ */
+#define DS_TT_VAR(i) ((~(size_t)0) - (size_t)(i))
+
+typedef struct ds_tree_transducer {
+  size_t states;
+  size_t in_symbols;
+  size_t *in_rank;
+  size_t out_symbols;
+  size_t *out_rank;
+  bool *final;
+  size_t *sym; /* per rule */
+  size_t *target;
+  size_t *args; /* offset into pool: rank states */
+  size_t *rhs;  /* offset into pool */
+  size_t *rhs_len;
+  size_t count;
+  size_t capacity;
+  size_t *pool;
+  size_t pool_used;
+  size_t pool_capacity;
+  ds_context_t *context;
+} ds_tree_transducer_t;
+
+ds_status_t ds_tt_init(ds_tree_transducer_t *tt, size_t states,
+                       size_t in_symbols, const size_t *in_rank,
+                       size_t out_symbols, const size_t *out_rank,
+                       ds_context_t *context);
+void ds_tt_destroy(ds_tree_transducer_t *tt);
+ds_status_t ds_tt_set_final(ds_tree_transducer_t *tt, size_t state, bool final);
+/* DS_ERR_INVALID if rhs is not one output tree (variables count as
+ * leaves, DS_TT_VAR(i) needs i < rank of symbol) or the left-hand side is
+ * already used (the transducer is deterministic) */
+ds_status_t ds_tt_add(ds_tree_transducer_t *tt, size_t symbol,
+                      const size_t *args, size_t target, const size_t *rhs,
+                      size_t rhs_len);
+/* run on a prefix-order input tree; *accepted, and when accepted the
+ * output tree (prefix order) is copied to out (*out_len its length,
+ * DS_ERR_RANGE if it does not fit in capacity). max_work bounds the total
+ * output symbols built over the run. A node without an applicable rule
+ * rejects. */
+ds_status_t ds_tt_run(const ds_tree_transducer_t *tt, const size_t *tree,
+                      size_t length, size_t max_work, bool *accepted,
+                      size_t *out, size_t capacity, size_t *out_len);
+
 #ifdef __cplusplus
 }
 #endif

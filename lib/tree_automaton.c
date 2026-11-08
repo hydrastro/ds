@@ -1006,3 +1006,259 @@ ds_status_t ds_tdta_accepts(const ds_tdta_t *tdta, const size_t *tree,
   ds_context_free(tdta->context, stack);
   return DS_OK;
 }
+
+/* ---------------------------------------------------- tree transducers */
+
+ds_status_t ds_tt_init(ds_tree_transducer_t *tt, size_t states,
+                       size_t in_symbols, const size_t *in_rank,
+                       size_t out_symbols, const size_t *out_rank,
+                       ds_context_t *context) {
+  if (tt == NULL || in_rank == NULL || out_rank == NULL) {
+    return DS_ERR_NULL;
+  }
+  memset(tt, 0, sizeof(*tt));
+  if (states == 0 || in_symbols == 0 || out_symbols == 0 ||
+      out_symbols >= DS_TT_VAR(0) / 2) {
+    return DS_ERR_INVALID;
+  }
+  tt->in_rank =
+      (size_t *)ds_context_alloc(context, in_symbols * sizeof(size_t));
+  tt->out_rank =
+      (size_t *)ds_context_alloc(context, out_symbols * sizeof(size_t));
+  tt->final = (bool *)ds_context_calloc(context, states, sizeof(bool));
+  if (tt->in_rank == NULL || tt->out_rank == NULL || tt->final == NULL) {
+    ds_context_free(context, tt->in_rank);
+    ds_context_free(context, tt->out_rank);
+    ds_context_free(context, tt->final);
+    memset(tt, 0, sizeof(*tt));
+    return DS_ERR_ALLOC;
+  }
+  memcpy(tt->in_rank, in_rank, in_symbols * sizeof(size_t));
+  memcpy(tt->out_rank, out_rank, out_symbols * sizeof(size_t));
+  tt->states = states;
+  tt->in_symbols = in_symbols;
+  tt->out_symbols = out_symbols;
+  tt->context = context;
+  return DS_OK;
+}
+
+void ds_tt_destroy(ds_tree_transducer_t *tt) {
+  if (tt == NULL) {
+    return;
+  }
+  ds_context_free(tt->context, tt->in_rank);
+  ds_context_free(tt->context, tt->out_rank);
+  ds_context_free(tt->context, tt->final);
+  ds_context_free(tt->context, tt->sym);
+  ds_context_free(tt->context, tt->target);
+  ds_context_free(tt->context, tt->args);
+  ds_context_free(tt->context, tt->rhs);
+  ds_context_free(tt->context, tt->rhs_len);
+  ds_context_free(tt->context, tt->pool);
+  memset(tt, 0, sizeof(*tt));
+}
+
+ds_status_t ds_tt_set_final(ds_tree_transducer_t *tt, size_t state,
+                            bool final) {
+  if (tt == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (state >= tt->states) {
+    return DS_ERR_RANGE;
+  }
+  tt->final[state] = final;
+  return DS_OK;
+}
+
+static size_t tt_find(const ds_tree_transducer_t *tt, size_t symbol,
+                      const size_t *args) {
+  size_t r;
+  size_t k = tt->in_rank[symbol];
+  for (r = 0; r < tt->count; r++) {
+    if (tt->sym[r] == symbol && (k == 0 || memcmp(tt->pool + tt->args[r], args,
+                                                  k * sizeof(size_t)) == 0)) {
+      return r;
+    }
+  }
+  return TA_NONE;
+}
+
+ds_status_t ds_tt_add(ds_tree_transducer_t *tt, size_t symbol,
+                      const size_t *args, size_t target, const size_t *rhs,
+                      size_t rhs_len) {
+  size_t k;
+  size_t i;
+  size_t need = 1;
+  size_t cap;
+  ds_status_t st;
+  if (tt == NULL || (rhs_len > 0 && rhs == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (symbol >= tt->in_symbols || target >= tt->states) {
+    return DS_ERR_RANGE;
+  }
+  k = tt->in_rank[symbol];
+  if (k > 0 && args == NULL) {
+    return DS_ERR_NULL;
+  }
+  for (i = 0; i < k; i++) {
+    if (args[i] >= tt->states) {
+      return DS_ERR_RANGE;
+    }
+  }
+  /* rhs must be exactly one tree; variables are leaves */
+  if (rhs_len == 0) {
+    return DS_ERR_INVALID;
+  }
+  for (i = 0; i < rhs_len; i++) {
+    size_t x = rhs[i];
+    if (need == 0) {
+      return DS_ERR_INVALID;
+    }
+    need--;
+    if (x < tt->out_symbols) {
+      need += tt->out_rank[x];
+    } else if (DS_TT_VAR(0) - x >= k) {
+      return DS_ERR_INVALID;
+    }
+  }
+  if (need != 0 || tt_find(tt, symbol, args) != TA_NONE) {
+    return DS_ERR_INVALID;
+  }
+  cap = tt->capacity;
+  st = ta_reserve(tt->context, (void **)&tt->sym, &cap, tt->count + 1,
+                  sizeof(size_t));
+#define TT_GROW(field)                                                         \
+  if (st == DS_OK) {                                                           \
+    cap = tt->capacity;                                                        \
+    st = ta_reserve(tt->context, (void **)&tt->field, &cap, tt->count + 1,     \
+                    sizeof(size_t));                                           \
+  }
+  TT_GROW(target)
+  TT_GROW(args)
+  TT_GROW(rhs)
+  TT_GROW(rhs_len)
+#undef TT_GROW
+  if (st == DS_OK) {
+    st = ta_reserve(tt->context, (void **)&tt->pool, &tt->pool_capacity,
+                    tt->pool_used + k + rhs_len, sizeof(size_t));
+  }
+  if (st != DS_OK) {
+    return st;
+  }
+  tt->capacity = cap;
+  tt->sym[tt->count] = symbol;
+  tt->target[tt->count] = target;
+  tt->args[tt->count] = tt->pool_used;
+  if (k > 0) {
+    memcpy(tt->pool + tt->pool_used, args, k * sizeof(size_t));
+  }
+  tt->pool_used += k;
+  tt->rhs[tt->count] = tt->pool_used;
+  tt->rhs_len[tt->count] = rhs_len;
+  memcpy(tt->pool + tt->pool_used, rhs, rhs_len * sizeof(size_t));
+  tt->pool_used += rhs_len;
+  tt->count++;
+  return DS_OK;
+}
+
+ds_status_t ds_tt_run(const ds_tree_transducer_t *tt, const size_t *tree,
+                      size_t length, size_t max_work, bool *accepted,
+                      size_t *out, size_t capacity, size_t *out_len) {
+  /* stack entries: state, output offset and length in the work buffer */
+  size_t *stk;
+  size_t *work = NULL;
+  size_t work_cap = 0;
+  size_t used = 0;
+  size_t sp = 0;
+  size_t maxrank = 0;
+  size_t *args;
+  size_t i;
+  ds_status_t st;
+  if (tt == NULL || accepted == NULL || out_len == NULL ||
+      (capacity > 0 && out == NULL)) {
+    return DS_ERR_NULL;
+  }
+  st = ta_check_tree(tt->in_rank, tt->in_symbols, tree, length);
+  if (st != DS_OK) {
+    return st;
+  }
+  for (i = 0; i < tt->in_symbols; i++) {
+    if (tt->in_rank[i] > maxrank) {
+      maxrank = tt->in_rank[i];
+    }
+  }
+  *accepted = false;
+  *out_len = 0;
+  stk = (size_t *)ds_context_alloc(
+      tt->context, (3 * (length + 1) + maxrank + 1) * sizeof(size_t));
+  if (stk == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  args = stk + 3 * (length + 1);
+  for (i = length; i-- > 0;) {
+    size_t f = tree[i];
+    size_t k = tt->in_rank[f];
+    size_t r;
+    size_t j;
+    size_t total = 0;
+    size_t start;
+    for (j = 0; j < k; j++) {
+      args[j] = stk[3 * (sp - 1 - j)];
+    }
+    r = tt_find(tt, f, args);
+    if (r == TA_NONE) {
+      goto done; /* no rule: rejected */
+    }
+    /* size of the new output */
+    for (j = 0; j < tt->rhs_len[r]; j++) {
+      size_t x = tt->pool[tt->rhs[r] + j];
+      size_t add =
+          x < tt->out_symbols ? 1 : stk[3 * (sp - 1 - (DS_TT_VAR(0) - x)) + 2];
+      if (total > (size_t)-1 - add) {
+        st = DS_ERR_RANGE;
+        goto done;
+      }
+      total += add;
+    }
+    if (used > max_work || total > max_work - used) {
+      st = DS_ERR_RANGE;
+      goto done;
+    }
+    st = ta_reserve(tt->context, (void **)&work, &work_cap, used + total + 1,
+                    sizeof(size_t));
+    if (st != DS_OK) {
+      goto done;
+    }
+    start = used;
+    for (j = 0; j < tt->rhs_len[r]; j++) {
+      size_t x = tt->pool[tt->rhs[r] + j];
+      if (x < tt->out_symbols) {
+        work[used++] = x;
+      } else {
+        size_t c = sp - 1 - (DS_TT_VAR(0) - x);
+        memcpy(work + used, work + stk[3 * c + 1],
+               stk[3 * c + 2] * sizeof(size_t));
+        used += stk[3 * c + 2];
+      }
+    }
+    sp -= k;
+    stk[3 * sp] = tt->target[r];
+    stk[3 * sp + 1] = start;
+    stk[3 * sp + 2] = total;
+    sp++;
+  }
+  if (tt->final[stk[0]]) {
+    *accepted = true;
+    *out_len = stk[2];
+    if (stk[2] > capacity) {
+      st = DS_ERR_RANGE;
+    } else {
+      memcpy(out, work + stk[1], stk[2] * sizeof(size_t));
+    }
+  }
+done:
+  ds_context_free(tt->context, stk);
+  ds_context_free(tt->context, work);
+  return st;
+}
