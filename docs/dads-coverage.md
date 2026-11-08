@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 723 |
-| todo | 35 |
+| done | 724 |
+| todo | 34 |
 | def | 549 |
 | total | 1307 |
 
@@ -43,7 +43,6 @@ Families ordered by how many DADS entries they close.
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
 | `algo/tree_edit` | 2 | forest editing problem, tree editing problem |
 | `algo/dynamization` | 1 | dynamization transformation |
-| `lib/cellular_automaton` | 1 | cellular automaton |
 | `lib/confluent_list` | 1 | confluently persistent data structure |
 | `lib/plop_hash` | 1 | PLOP-hashing |
 | `lib/topology_tree` | 1 | topology tree |
@@ -266,7 +265,7 @@ Families ordered by how many DADS entries they close.
 | CCS | def |  |
 | cell probe model | def |  |
 | cell tree | done | `lib/bsp_tree` |
-| cellular automaton | todo | `lib/cellular_automaton` |
+| cellular automaton | done | `lib/cellular_automaton` |
 | centroid | done | `algo/graph_struct` |
 | certificate | def |  |
 | chain | def |  |

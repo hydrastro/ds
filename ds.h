@@ -32,6 +32,7 @@
 #include "lib/buddy_allocator.h"
 #include "lib/cactus_stack.h"
 #include "lib/calendar_queue.h"
+#include "lib/cellular_automaton.h"
 #include "lib/circular_buffer.h"
 #include "lib/coalesced_map.h"
 #include "lib/count_min_sketch.h"

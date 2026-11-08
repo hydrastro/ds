@@ -172,6 +172,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/zipper: zippers over persistent binary trees
 - algo/markov: Markov chain analysis
 - algo/anneal: simulated annealing
+- lib/cellular_automaton: cellular automata
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
