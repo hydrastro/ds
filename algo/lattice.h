@@ -10,8 +10,13 @@
  *                         and satisfying the Lovasz condition with a
  *                         chosen delta in (1/4, 1)), in place
  *   ds_lll_is_reduced     checks both conditions
- *   ds_lattice_shortest   an exact shortest non-zero lattice vector by
- *                         Schnorr-Euchner enumeration over an LLL basis
+ *   ds_lattice_shortest   a shortest non-zero lattice vector by complete
+ *                         Schnorr-Euchner enumeration over an LLL basis,
+ *                         in double precision: the search is exhaustive,
+ *                         but Gram-Schmidt data and pruning bounds are
+ *                         rounded, so the result is exact only while the
+ *                         basis entries stay small and well conditioned
+ *                         (no certificate is produced)
  *   ds_spectral_test      Knuth's spectral test of a linear congruential
  *                         generator in t >= 2 dimensions: nu_t, the length
  *                         of the shortest vector of the dual lattice
@@ -26,7 +31,9 @@
  *
  * Coordinates are doubles holding integers (exact below 2^53), so the
  * relation finders detect relations whose coefficients and residual fit
- * double precision. Memory comes from the ds_context_t.
+ * double precision; intermediate Gram-Schmidt values are not exact. The
+ * spectral test accepts 2 <= t <= 8 and 2 <= m < 2^26. Memory comes from the
+ * ds_context_t.
  */
 
 #include "../lib/context.h"
