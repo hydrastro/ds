@@ -9,15 +9,19 @@
  * trie (lib/xfast_trie, over the map backend chosen at init) indexes the
  * buckets by representative, the lower boundary of the key range each
  * bucket covers. A query finds its bucket with one X-fast floor, O(log w)
- * expected, then binary-searches the bucket. A bucket splits above 2w keys
- * and merges with a neighbour below w/2, which changes the X-fast trie
- * (O(w)) only once per Theta(w) updates: amortized O(1). Buckets are
- * sorted arrays, so an update also moves up to 2w elements: O(w) word
- * moves (cache friendly), against O(log w) for balanced-tree buckets.
+ * expected, then searches the bucket. A bucket splits above 2w keys and
+ * merges with a neighbour below w/2, which changes the X-fast trie (O(w))
+ * only once per Theta(w) updates: amortized O(1).
+ *
+ * Buckets are instances of the ordered-map capability (lib/ordered_iface)
+ * chosen at init: sorted arrays (the default; updates move up to 2w
+ * elements, O(w) cache-friendly word moves) or treaps (O(log w) updates,
+ * the bound of Willard's original), or any other backend.
  */
 
 #include "context.h"
 #include "map_iface.h"
+#include "ordered_iface.h"
 #include "status.h"
 #include "xfast_trie.h"
 #include <stdbool.h>
@@ -27,19 +31,13 @@
 extern "C" {
 #endif
 
-typedef struct ds_yfast_bucket {
-  unsigned long *keys;
-  unsigned char *values;
-  size_t count;
-  size_t capacity;
-} ds_yfast_bucket_t;
-
 typedef struct ds_yfast {
   unsigned bits;
   size_t value_size;
   size_t target;   /* w */
   ds_xfast_t reps; /* representative -> bucket id */
-  ds_yfast_bucket_t *buckets;
+  const ds_ordered_ops_t *bucket_ops;
+  void **buckets; /* bucket instances by id */
   size_t nbuckets;
   size_t bucket_capacity;
   size_t *free_ids;
@@ -48,8 +46,14 @@ typedef struct ds_yfast {
   ds_context_t *context;
 } ds_yfast_t;
 
+/* sorted-array buckets */
 ds_status_t ds_yfast_init(ds_yfast_t *t, unsigned bits, size_t value_size,
                           const ds_map_ops_t *ops, ds_context_t *context);
+/* bucket_ops NULL selects sorted arrays */
+ds_status_t ds_yfast_init_buckets(ds_yfast_t *t, unsigned bits,
+                                  size_t value_size, const ds_map_ops_t *ops,
+                                  const ds_ordered_ops_t *bucket_ops,
+                                  ds_context_t *context);
 void ds_yfast_destroy(ds_yfast_t *t);
 size_t ds_yfast_size(const ds_yfast_t *t);
 ds_status_t ds_yfast_insert(ds_yfast_t *t, unsigned long key,
