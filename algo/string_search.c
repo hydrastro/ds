@@ -14,6 +14,7 @@ typedef struct ss {
   void *user;
   size_t count;
   bool stop;
+  bool failed; /* scratch allocation failed: the result is incomplete */
   ds_context_t *ctx;
 } ss_t;
 
@@ -35,9 +36,16 @@ static void *ss_alloc(ss_t *s, size_t count, size_t size) {
     count = 1;
   }
   if (count > ((size_t)-1) / size) {
+    s->failed = true;
     return NULL;
   }
-  return ds_context_alloc(s->ctx, count * size);
+  {
+    void *p = ds_context_alloc(s->ctx, count * size);
+    if (p == NULL) {
+      s->failed = true;
+    }
+    return p;
+  }
 }
 
 /* ---- shared tables ------------------------------------------------------- */
@@ -1394,17 +1402,20 @@ static int ss_rf_init(ss_t *s, ss_rf_t *rf) {
   ss_i i;
   size_t u;
   if (ds_suffix_automaton_init(&rf->sa, s->ctx) != DS_OK) {
+    s->failed = true;
     return 0;
   }
   for (i = s->m; i-- > 0;) {
     if (ds_suffix_automaton_extend(&rf->sa, s->x[i]) != DS_OK) {
       ds_suffix_automaton_destroy(&rf->sa);
+      s->failed = true;
       return 0;
     }
   }
   rf->terminal = (unsigned char *)ds_context_calloc(s->ctx, rf->sa.states, 1);
   if (rf->terminal == NULL) {
     ds_suffix_automaton_destroy(&rf->sa);
+    s->failed = true;
     return 0;
   }
   for (u = rf->sa.last; u != (size_t)-1; u = rf->sa.link[u]) {
@@ -1640,15 +1651,26 @@ const char *ds_string_search_name(ds_string_search_algorithm_t algorithm) {
   return ss_names[algorithm];
 }
 
-size_t ds_string_search(ds_string_search_algorithm_t algorithm,
-                        const unsigned char *text, size_t n,
-                        const unsigned char *pattern, size_t m,
-                        ds_match_func_t on_match, void *user,
-                        ds_context_t *context) {
+ds_status_t ds_string_search_status(ds_string_search_algorithm_t algorithm,
+                                    const unsigned char *text, size_t n,
+                                    const unsigned char *pattern, size_t m,
+                                    ds_match_func_t on_match, void *user,
+                                    size_t *out_count, ds_context_t *context) {
   ss_t s;
-  if (text == NULL || pattern == NULL || m == 0 || m > n ||
-      n > (size_t)(((size_t)-1) >> 2)) {
-    return 0;
+  if (out_count != NULL) {
+    *out_count = 0;
+  }
+  if ((n > 0 && text == NULL) || (m > 0 && pattern == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if ((int)algorithm < 0 || algorithm >= DS_SEARCH_ALGORITHM_COUNT) {
+    return DS_ERR_INVALID;
+  }
+  if (n > (size_t)(((size_t)-1) >> 2)) {
+    return DS_ERR_OVERFLOW;
+  }
+  if (m == 0 || m > n) {
+    return DS_OK; /* nothing can match */
   }
   s.y = text;
   s.n = (ss_i)n;
@@ -1658,6 +1680,7 @@ size_t ds_string_search(ds_string_search_algorithm_t algorithm,
   s.user = user;
   s.count = 0;
   s.stop = false;
+  s.failed = false;
   s.ctx = context;
   switch (algorithm) {
   case DS_SEARCH_BRUTE_FORCE:
@@ -1743,9 +1766,28 @@ size_t ds_string_search(ds_string_search_algorithm_t algorithm,
     break;
   case DS_SEARCH_ALGORITHM_COUNT:
   default:
-    return 0;
+    return DS_ERR_INVALID;
   }
-  return s.count;
+  if (out_count != NULL) {
+    *out_count = s.count;
+  }
+  if (s.failed) {
+    return DS_CONTEXT_ERROR(context, DS_ERR_ALLOC,
+                            "ds.string_search/scratch_alloc", "string_search",
+                            "scratch allocation failed: matches incomplete");
+  }
+  return DS_OK;
+}
+
+size_t ds_string_search(ds_string_search_algorithm_t algorithm,
+                        const unsigned char *text, size_t n,
+                        const unsigned char *pattern, size_t m,
+                        ds_match_func_t on_match, void *user,
+                        ds_context_t *context) {
+  size_t count = 0;
+  (void)ds_string_search_status(algorithm, text, n, pattern, m, on_match, user,
+                                &count, context);
+  return count;
 }
 
 size_t ds_kmismatch_search(const unsigned char *text, size_t n,

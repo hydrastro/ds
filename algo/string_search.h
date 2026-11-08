@@ -6,8 +6,14 @@
  * strings (after Charras and Lecroq's catalogue), all with the
  * stringology.h contract: every occurrence position is reported in
  * increasing order through on_match (return false to stop), and the number
- * reported is returned. An empty pattern matches nowhere; a scratch
- * allocation failure reports nothing (0).
+ * reported is returned. An empty pattern matches nowhere.
+ *
+ * ds_string_search returns only the count, so a scratch allocation failure
+ * (recorded on the context as DS_ERR_ALLOC) is indistinguishable from
+ * fewer matches; ds_string_search_status tells them apart: DS_OK with
+ * every match reported, DS_ERR_ALLOC when the scan was cut short (the
+ * matches reported so far are in *out_count), DS_ERR_INVALID for an
+ * unknown algorithm.
  *
  *   brute force          O(nm), no preprocessing
  *   Morris-Pratt         border table, O(n + m)
@@ -101,6 +107,11 @@ size_t ds_string_search(ds_string_search_algorithm_t algorithm,
                         const unsigned char *pattern, size_t m,
                         ds_match_func_t on_match, void *user,
                         ds_context_t *context);
+ds_status_t ds_string_search_status(ds_string_search_algorithm_t algorithm,
+                                    const unsigned char *text, size_t n,
+                                    const unsigned char *pattern, size_t m,
+                                    ds_match_func_t on_match, void *user,
+                                    size_t *out_count, ds_context_t *context);
 const char *ds_string_search_name(ds_string_search_algorithm_t algorithm);
 
 /* Positions where pattern matches text with at most k mismatching bytes
