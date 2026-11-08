@@ -205,6 +205,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/finger_tree: Hinze-Paterson finger trees with caller-defined measures
 - lib/pager: page stores and a pin/dirty/LRU buffer pool over map_iface
 - lib/lsm_tree: LSM tree over SSTables with leveled compaction and merging iterators
+- lib/paged_btree: pager-backed B+ tree with linked leaves and lazy deletion
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

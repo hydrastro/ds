@@ -47,6 +47,7 @@ Core mutable containers:
 - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
 - `lib/ordered_iface`: ordered-map capability (floor/ceiling, select, split, join) with sorted-array and treap backends
 - `lib/p_tree`: P-trees (k-DOP bounded R-trees)
+- `lib/paged_btree`: B+ tree persisted through `lib/pager` (portable page layout, linked leaves, reopenable file stores)
 - `lib/pager`: page-store capability (memory and stdio file backends) and an LRU buffer pool with pinning and write-back
 - `lib/pagoda`: pagoda meldable priority queues
 - `lib/persistent_hamt`: persistent CHAMP hash trie (structural sharing, canonical deletes, in-place edits of unshared versions)
