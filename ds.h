@@ -11,6 +11,7 @@
 #include "lib/status.h"
 
 #include "lib/aho_corasick.h"
+#include "lib/amq_iface.h"
 #include "lib/array_deque.h"
 #include "lib/art.h"
 #include "lib/association_list.h"

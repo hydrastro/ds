@@ -209,6 +209,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/replacement: replacement policies (LRU, FIFO, CLOCK, SIEVE) as an ops table
 - lib/quotient_filter: quotient filter with delete and enumeration
 - lib/xor_filter: Graf-Lemire xor filter
+- lib/amq_iface: AMQ ops table with Bloom, cuckoo, quotient and xor backends
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
