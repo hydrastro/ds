@@ -12,10 +12,12 @@
  *   DS_TSP_NEAREST_NEIGHBOR  greedy tour
  *   DS_TSP_TWO_OPT           nearest neighbour improved by 2-opt moves
  *   DS_TSP_CHRISTOFIDES      Christofides' 3/2-approximation for metric
- *                            instances: minimum spanning tree, a minimum
- *                            weight perfect matching on its odd vertices
- *                            (exact for up to 20 odd vertices, greedy
- *                            above), an Euler tour, shortcuts
+ *                            instances: minimum spanning tree, an exact
+ *                            minimum weight perfect matching on its odd
+ *                            vertices (weighted blossom algorithm, see
+ *                            weighted_matching.h), an Euler tour,
+ *                            shortcuts; the 3/2 bound holds for every n
+ *                            when the matrix is metric
  *   DS_TSP_CHRISTOFIDES_TWO_OPT  Christofides followed by 2-opt
  * ds_tsp_euclidean builds the matrix from points in the plane first.
  * ds_tsp_bottleneck minimises the longest edge of the tour (exact: the

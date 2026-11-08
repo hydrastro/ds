@@ -1,4 +1,5 @@
 #include "tsp.h"
+#include "weighted_matching.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -154,89 +155,46 @@ static void ts_two_opt(const double *d, size_t n, size_t *tour) {
   }
 }
 
-/* Minimum weight perfect matching of the k (even) vertices in odd[]:
- * exact by DP over subsets for k <= 20, greedy otherwise. mate is indexed
- * by position in odd[]. */
+/* Minimum weight perfect matching of the k (even) vertices in odd[], exact
+ * for every k (Edmonds' weighted blossom algorithm, O(k^3)), as the 3/2
+ * guarantee requires. mate is indexed by position in odd[]. */
 static ds_status_t ts_matching(const double *d, size_t n, const size_t *odd,
                                size_t k, size_t *mate, ds_context_t *context) {
   size_t i;
   size_t j;
-  if (k <= 20) {
-    size_t full = ((size_t)1 << k) - 1;
-    size_t mask;
-    double *dp =
-        (double *)ds_context_alloc(context, (full + 1) * sizeof(double));
-    unsigned char *pj = (unsigned char *)ds_context_alloc(context, full + 1);
-    if (dp == NULL || pj == NULL) {
-      ds_context_free(context, dp);
-      ds_context_free(context, pj);
-      return DS_ERR_ALLOC;
-    }
-    dp[0] = 0.0;
-    for (mask = 1; mask <= full; mask++) {
-      size_t popc = 0;
-      size_t x;
-      dp[mask] = HUGE_VAL;
-      for (x = mask; x != 0; x &= x - 1) {
-        popc++;
-      }
-      if (popc % 2 != 0) {
-        continue;
-      }
-      /* pair the lowest vertex with every other */
-      for (i = 0; !(mask & ((size_t)1 << i)); i++) {
-      }
-      for (j = i + 1; j < k; j++) {
-        if (mask & ((size_t)1 << j)) {
-          double v = dp[mask & ~((size_t)1 << i) & ~((size_t)1 << j)] +
-                     d[odd[i] * n + odd[j]];
-          if (v < dp[mask]) {
-            dp[mask] = v;
-            pj[mask] = (unsigned char)j;
-          }
-        }
-      }
-    }
-    mask = full;
-    while (mask != 0) {
-      for (i = 0; !(mask & ((size_t)1 << i)); i++) {
-      }
-      j = pj[mask];
-      mate[i] = j;
-      mate[j] = i;
-      mask &= ~((size_t)1 << i) & ~((size_t)1 << j);
-    }
-    ds_context_free(context, dp);
-    ds_context_free(context, pj);
+  size_t e = 0;
+  size_t m;
+  size_t *u;
+  size_t *v;
+  double *w;
+  ds_status_t st;
+  if (k == 0) {
     return DS_OK;
   }
-  /* greedy: repeatedly the closest unmatched pair */
+  if (k > (size_t)-1 / k) {
+    return DS_ERR_OVERFLOW;
+  }
+  m = k * (k - 1) / 2;
+  u = (size_t *)ds_context_alloc(context, 2 * m * sizeof(size_t));
+  w = (double *)ds_context_alloc(context, m * sizeof(double));
+  if (u == NULL || w == NULL) {
+    ds_context_free(context, u);
+    ds_context_free(context, w);
+    return DS_ERR_ALLOC;
+  }
+  v = u + m;
   for (i = 0; i < k; i++) {
-    mate[i] = TS_NONE;
-  }
-  for (;;) {
-    size_t bi = TS_NONE;
-    size_t bj = TS_NONE;
-    for (i = 0; i < k; i++) {
-      if (mate[i] != TS_NONE) {
-        continue;
-      }
-      for (j = i + 1; j < k; j++) {
-        if (mate[j] == TS_NONE &&
-            (bi == TS_NONE ||
-             d[odd[i] * n + odd[j]] < d[odd[bi] * n + odd[bj]])) {
-          bi = i;
-          bj = j;
-        }
-      }
+    for (j = i + 1; j < k; j++) {
+      u[e] = i;
+      v[e] = j;
+      w[e] = d[odd[i] * n + odd[j]];
+      e++;
     }
-    if (bi == TS_NONE) {
-      break;
-    }
-    mate[bi] = bj;
-    mate[bj] = bi;
   }
-  return DS_OK;
+  st = ds_matching_min_weight_perfect(k, u, v, w, m, mate, NULL, context);
+  ds_context_free(context, u);
+  ds_context_free(context, w);
+  return st;
 }
 
 static ds_status_t ts_christofides(const double *d, size_t n, size_t *tour,
