@@ -45,6 +45,7 @@ Core mutable containers:
 - `lib/pagoda`: pagoda meldable priority queues
 - `lib/persistent_hamt`: persistent CHAMP hash trie (structural sharing, canonical deletes, in-place edits of unshared versions)
 - `lib/plop_hash`: PLOP-hashing, directory-free order-preserving multidimensional linear hashing (midpoint or median splits, box queries)
+- `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld) over binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing heaps
 - `lib/pushdown`: pushdown automata (exact nondeterministic membership via [pXq] summaries, DPDA check and simulation, pushdown transducers)
 - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
