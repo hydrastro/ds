@@ -188,6 +188,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/weighted_matching: weighted general matching
 - lib/map_iface: pluggable map capability
 - lib/xfast_trie: X-fast tries on pluggable maps
+- lib/yfast_trie: Y-fast tries
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
