@@ -48,6 +48,7 @@ Core mutable containers:
 - `lib/spiral_storage`: spiral storage (Martin's directory-free dynamic hashing)
 - `lib/sstable`: SSTables (prefix-compressed blocks, index, Bloom filter, merge)
 - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
+- `lib/tree_automaton`: bottom-up (NFTA/DFTA: run, determinize, intersection, union, complement, emptiness with witness) and top-down tree automata
 - `lib/tst`: ternary search trees with prefix, partial-match and near-neighbour searches
 - `lib/turing_machine`: deterministic/nondeterministic multi-tape Turing machines, transducers, compact notation parser, busy-beaver champions and search
 - `lib/two_choice_map`: d-choice (2-choice) and d-left hash maps

@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 733 |
-| todo | 25 |
+| done | 741 |
+| todo | 17 |
 | def | 549 |
 | total | 1307 |
 
@@ -35,7 +35,6 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `lib/tree_automaton` | 8 | deterministic finite tree automaton, deterministic tree automaton, DFTA, NFTA, nondeterministic finite tree automaton, nondeterministic tree automaton, top-down tree automaton, tree automaton |
 | `lib/inverted_index` | 5 | block addressing index, forward index, full inverted index, inverted file index, inverted index |
 | `algo/model_check` | 3 | CTL, Kripke structure, model checking |
 | `algo/visibility` | 3 | horizontal visibility map, vertical visibility map, visibility map |
@@ -373,15 +372,15 @@ Families ordered by how many DADS entries they close.
 | deterministic finite automata string search | done | `algo/string_search` |
 | deterministic finite automaton | done | `lib/automaton` |
 | deterministic finite state machine | def |  |
-| deterministic finite tree automaton | todo | `lib/tree_automaton` |
+| deterministic finite tree automaton | done | `lib/tree_automaton` |
 | deterministic pushdown automaton | done | `lib/pushdown` |
 | deterministic random bit generator | done | `algo/random` (xoshiro, not cryptographic) |
-| deterministic tree automaton | todo | `lib/tree_automaton` |
+| deterministic tree automaton | done | `lib/tree_automaton` |
 | Deutsch-Jozsa algorithm | def |  |
 | DFA | done | `lib/automaton` |
 | DFS | done | `lib/graph` |
 | DFS forest | done | `algo/graph_struct` |
-| DFTA | todo | `lib/tree_automaton` |
+| DFTA | done | `lib/tree_automaton` |
 | diagonalization | def |  |
 | diameter | done | `algo/graph_struct` |
 | Dianna | def |  |
@@ -881,7 +880,7 @@ Families ordered by how many DADS entries they close.
 | network flow problem | done | `algo/flow` |
 | next state | def |  |
 | NFA | done | `lib/automaton` |
-| NFTA | todo | `lib/tree_automaton` |
+| NFTA | done | `lib/tree_automaton` |
 | NIST | def |  |
 | node | def |  |
 | nonbalanced merge | done | `algo/external_sort` |
@@ -890,9 +889,9 @@ Families ordered by how many DADS entries they close.
 | nondeterministic algorithm | def |  |
 | nondeterministic finite automaton | done | `lib/automaton` |
 | nondeterministic finite state machine | def |  |
-| nondeterministic finite tree automaton | todo | `lib/tree_automaton` |
+| nondeterministic finite tree automaton | done | `lib/tree_automaton` |
 | nondeterministic polynomial time | def |  |
-| nondeterministic tree automaton | todo | `lib/tree_automaton` |
+| nondeterministic tree automaton | done | `lib/tree_automaton` |
 | nondeterministic Turing machine | done | `lib/turing_machine` |
 | nonterminal node | def |  |
 | nor | def |  |
@@ -1365,7 +1364,7 @@ Families ordered by how many DADS entries they close.
 | time-constructible function | def |  |
 | time/space complexity | def |  |
 | top-down radix sort | done | `algo/sort_dist` |
-| top-down tree automaton | todo | `lib/tree_automaton` |
+| top-down tree automaton | done | `lib/tree_automaton` |
 | topological order | done | `algo/graph_view` |
 | topological sort | done | `algo/graph_view, lib/graph` |
 | topology tree | todo | `lib/topology_tree` |
@@ -1388,7 +1387,7 @@ Families ordered by how many DADS entries they close.
 | traveling salesman | done | `algo/tsp` |
 | treap | done | `lib/treap` |
 | tree | done | `lib/bst` |
-| tree automaton | todo | `lib/tree_automaton` |
+| tree automaton | done | `lib/tree_automaton` |
 | tree contraction | done | `algo/parallel_sim` |
 | tree editing problem | todo | `algo/tree_edit` |
 | treesort (1) | done | `algo/sort_heap` (tree sort) |

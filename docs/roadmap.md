@@ -175,6 +175,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/cellular_automaton: cellular automata
 - lib/turing_machine: Turing machines
 - lib/pushdown: pushdown automata and transducers
+- lib/tree_automaton: finite tree automata
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

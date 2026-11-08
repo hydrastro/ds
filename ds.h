@@ -122,6 +122,7 @@
 #include "lib/threaded_tree.h"
 #include "lib/timer_wheel.h"
 #include "lib/treap.h"
+#include "lib/tree_automaton.h"
 #include "lib/trie.h"
 #include "lib/trie_stores.h"
 #include "lib/tst.h"
