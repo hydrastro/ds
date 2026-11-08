@@ -105,6 +105,9 @@ ds_status_t ds_context_set_error(ds_context_t *context, ds_status_t status,
   if (context == NULL) {
     context = ds_default_context();
   }
+  if ((context->flags & DS_CONTEXT_NO_LAST_ERROR) != 0U) {
+    return status;
+  }
   return ds_error_set(&context->last_error, status, id, module, message, file,
                       line, function);
 }
@@ -115,6 +118,9 @@ ds_status_t ds_context_set_error_desc(ds_context_t *context,
                                       const char *function) {
   if (context == NULL) {
     context = ds_default_context();
+  }
+  if ((context->flags & DS_CONTEXT_NO_LAST_ERROR) != 0U && desc != NULL) {
+    return desc->status;
   }
   return ds_error_set_desc(&context->last_error, desc, file, line, function);
 }

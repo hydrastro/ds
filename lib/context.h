@@ -9,6 +9,22 @@
 extern "C" {
 #endif
 
+/*
+ * A context bundles an allocator (alloc/calloc/realloc/free + user), a
+ * diagnostic sink and the last error recorded by operations using it.
+ *
+ * Sharing: the last error is mutable state of the context. Containers that
+ * share a context (in particular every container left on the default
+ * context, ds_default_context()) also share it, so locking two containers
+ * separately does not make concurrent use safe: give each thread (or each
+ * independently locked container) its own context, or set
+ * DS_CONTEXT_NO_LAST_ERROR so the context is never written by error
+ * reporting (statuses are still returned and diagnostics still emitted).
+ * The allocator functions themselves must be safe for however the
+ * context is shared.
+ */
+#define DS_CONTEXT_NO_LAST_ERROR 0x1u
+
 typedef struct ds_context {
   void *(*alloc)(size_t size, void *user);
   void *(*calloc)(size_t count, size_t size, void *user);
