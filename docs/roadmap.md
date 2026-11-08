@@ -187,6 +187,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/checked: checked size arithmetic
 - algo/weighted_matching: weighted general matching
 - lib/map_iface: pluggable map capability
+- lib/xfast_trie: X-fast tries on pluggable maps
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

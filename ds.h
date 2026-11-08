@@ -140,6 +140,7 @@
 #include "lib/wavelet_tree.h"
 #include "lib/wb_tree.h"
 #include "lib/weak_heap.h"
+#include "lib/xfast_trie.h"
 #include "lib/zipper.h"
 
 #include "lib/str.h"
