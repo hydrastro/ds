@@ -92,6 +92,7 @@
 #include "lib/packed_array.h"
 #include "lib/pagoda.h"
 #include "lib/pairing_heap.h"
+#include "lib/persistent_hamt.h"
 #include "lib/persistent_rbt.h"
 #include "lib/persistent_trie.h"
 #include "lib/plop_hash.h"
