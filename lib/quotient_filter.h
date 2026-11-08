@@ -47,6 +47,10 @@ void ds_quotient_filter_destroy(ds_quotient_filter_t *f);
  * every slot is full */
 ds_status_t ds_quotient_filter_insert(ds_quotient_filter_t *f,
                                       unsigned long hash);
+/* multiset insert: equal fingerprints are kept as separate copies, so
+ * each remove takes one copy (what deletion with collisions needs) */
+ds_status_t ds_quotient_filter_insert_multi(ds_quotient_filter_t *f,
+                                            unsigned long hash);
 bool ds_quotient_filter_contains(const ds_quotient_filter_t *f,
                                  unsigned long hash);
 /* only remove what was inserted (fingerprints are shared otherwise) */

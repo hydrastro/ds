@@ -204,14 +204,22 @@ static void qf_encode(ds_quotient_filter_t *f, size_t b, size_t len, size_t n) {
 
 ds_status_t ds_quotient_filter_insert(ds_quotient_filter_t *f,
                                       unsigned long hash) {
-  size_t fq, b, n, len, i;
-  unsigned long fr, key;
-  ds_status_t st;
   if (f == NULL || f->meta == NULL) {
     return DS_ERR_NULL;
   }
   if (ds_quotient_filter_contains(f, hash)) {
     return DS_EXISTS;
+  }
+  return ds_quotient_filter_insert_multi(f, hash);
+}
+
+ds_status_t ds_quotient_filter_insert_multi(ds_quotient_filter_t *f,
+                                            unsigned long hash) {
+  size_t fq, b, n, len, i;
+  unsigned long fr, key;
+  ds_status_t st;
+  if (f == NULL || f->meta == NULL) {
+    return DS_ERR_NULL;
   }
   if (f->count >= f->slots) {
     return DS_ERR_OVERFLOW;
