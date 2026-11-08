@@ -1,4 +1,5 @@
 #include "graph.h"
+#include "pq_iface.h"
 #include <float.h>
 #include <stdlib.h>
 #include <string.h>
@@ -466,6 +467,99 @@ ds_status_t ds_graph_dijkstra(ds_graph_t *graph, size_t start,
 
   ds_context_free(graph->context, done);
   return DS_OK;
+}
+
+typedef struct graph_pq_item {
+  double distance;
+  size_t vertex;
+} graph_pq_item_t;
+
+static int graph_pq_compare(const void *a, const void *b, void *user) {
+  const graph_pq_item_t *x = (const graph_pq_item_t *)a;
+  const graph_pq_item_t *y = (const graph_pq_item_t *)b;
+  (void)user;
+  if (x->distance < y->distance) {
+    return -1;
+  }
+  if (x->distance > y->distance) {
+    return 1;
+  }
+  return (x->vertex > y->vertex) - (x->vertex < y->vertex);
+}
+
+ds_status_t ds_graph_dijkstra_pq(ds_graph_t *graph, size_t start,
+                                 double *out_distances, size_t *out_previous,
+                                 size_t capacity, const ds_pq_ops_t *ops) {
+  ds_pq_t pq;
+  ds_pq_handle_t *handle;
+  unsigned char *state; /* 0 unseen, 1 queued, 2 settled */
+  graph_pq_item_t item;
+  ds_status_t st;
+  size_t i, j;
+  if (graph == NULL || out_distances == NULL || out_previous == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (start >= graph->vertex_count || capacity < graph->vertex_count) {
+    return DS_ERR_RANGE;
+  }
+  for (i = 0U; i < graph->vertex_count; i++) {
+    for (j = 0U; j < graph->vertices[i].edge_count; j++) {
+      if (graph->vertices[i].edges[j].weight < 0.0) {
+        return DS_ERR_RANGE;
+      }
+    }
+  }
+  handle = (ds_pq_handle_t *)ds_context_calloc(
+      graph->context, graph->vertex_count, sizeof(*handle));
+  state = (unsigned char *)ds_context_calloc(graph->context,
+                                             graph->vertex_count, 1U);
+  if (handle == NULL || state == NULL) {
+    ds_context_free(graph->context, handle);
+    ds_context_free(graph->context, state);
+    return DS_ERR_ALLOC;
+  }
+  st = ds_pq_init(&pq, ops, sizeof(graph_pq_item_t), graph_pq_compare, NULL,
+                  graph->context);
+  if (st != DS_OK) {
+    ds_context_free(graph->context, handle);
+    ds_context_free(graph->context, state);
+    return st;
+  }
+  for (i = 0U; i < graph->vertex_count; i++) {
+    out_distances[i] = DBL_MAX;
+    out_previous[i] = (size_t)-1;
+  }
+  out_distances[start] = 0.0;
+  item.distance = 0.0;
+  item.vertex = start;
+  st = ds_pq_push(&pq, &item, &handle[start]);
+  state[start] = 1;
+  while (st == DS_OK && ds_pq_pop(&pq, &item) == DS_OK) {
+    size_t u = item.vertex;
+    state[u] = 2;
+    for (j = 0U; j < graph->vertices[u].edge_count && st == DS_OK; j++) {
+      size_t to = graph->vertices[u].edges[j].to;
+      double d = out_distances[u] + graph->vertices[u].edges[j].weight;
+      graph_pq_item_t next;
+      if (state[to] == 2 || !(d < out_distances[to])) {
+        continue;
+      }
+      out_distances[to] = d;
+      out_previous[to] = u;
+      next.distance = d;
+      next.vertex = to;
+      if (state[to] == 1) {
+        st = ds_pq_update(&pq, handle[to], &next);
+      } else {
+        st = ds_pq_push(&pq, &next, &handle[to]);
+        state[to] = 1;
+      }
+    }
+  }
+  ds_pq_destroy(&pq);
+  ds_context_free(graph->context, handle);
+  ds_context_free(graph->context, state);
+  return st;
 }
 
 ds_status_t ds_graph_bellman_ford(ds_graph_t *graph, size_t start,

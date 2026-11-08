@@ -4,6 +4,7 @@
 #include "common.h"
 
 #include "context.h"
+#include "pq_iface.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -67,6 +68,13 @@ ds_status_t ds_graph_topological_sort(ds_graph_t *graph, size_t *out_order,
 ds_status_t ds_graph_dijkstra(ds_graph_t *graph, size_t start,
                               double *out_distances, size_t *out_previous,
                               size_t capacity);
+/* Dijkstra driven by any addressable heap (ops NULL: binary heap) with
+ * decrease-key through handles: V pushes and pops plus up to E updates,
+ * so O((V + E) log V) on the worst-case-logarithmic backends. Same
+ * outputs as ds_graph_dijkstra (DBL_MAX and (size_t)-1 when unreachable). */
+ds_status_t ds_graph_dijkstra_pq(ds_graph_t *graph, size_t start,
+                                 double *out_distances, size_t *out_previous,
+                                 size_t capacity, const ds_pq_ops_t *ops);
 ds_status_t ds_graph_bellman_ford(ds_graph_t *graph, size_t start,
                                   double *out_distances, size_t *out_previous,
                                   size_t capacity,
