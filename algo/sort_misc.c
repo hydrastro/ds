@@ -320,11 +320,6 @@ void ds_median3_quicksort(void *base, size_t count, size_t elem_size,
   ds_quicksort(base, count, elem_size, compare, user, &cfg);
 }
 
-void ds_qm_sort(void *base, size_t count, size_t elem_size,
-                ds_compare_func_t compare, void *user) {
-  ds_median3_quicksort(base, count, elem_size, compare, user);
-}
-
 void ds_balanced_quicksort(void *base, size_t count, size_t elem_size,
                            ds_compare_func_t compare, void *user) {
   ds_quicksort_config_t cfg;
@@ -1071,6 +1066,42 @@ bool ds_bozo_sort(void *base, size_t count, size_t elem_size,
                  AT(base, sm_bounded(random, random_state, count), elem_size),
                  elem_size);
     steps++;
+  }
+  return true;
+}
+
+bool ds_qm_sort(void *base, size_t count, size_t elem_size,
+                ds_compare_func_t compare, void *user, ds_random_func_t random,
+                void *random_state, unsigned long max_steps) {
+  unsigned long steps = 0;
+  unsigned long own = 1234567UL;
+  size_t round = count / 4 > 0 ? count / 4 : 1;
+  if (base == NULL || compare == NULL) {
+    return count < 2;
+  }
+  if (random == NULL) {
+    random = sm_xorshift;
+    random_state = &own;
+  }
+  while (!ds_is_sorted(base, count, elem_size, compare, user)) {
+    size_t quiet = 0;
+    /* a round ends after `round` consecutive probes without an exchange */
+    while (quiet < round) {
+      size_t j, k;
+      if (max_steps != 0 && steps >= max_steps) {
+        return false;
+      }
+      j = sm_bounded(random, random_state, count);
+      k = sm_bounded(random, random_state, count);
+      steps++;
+      if (j > k &&
+          compare(AT(base, j, elem_size), AT(base, k, elem_size), user) < 0) {
+        ds_elem_swap(AT(base, j, elem_size), AT(base, k, elem_size), elem_size);
+        quiet = 0;
+      } else {
+        quiet++;
+      }
+    }
   }
   return true;
 }

@@ -24,10 +24,6 @@
  *                       sort): middle pivot, insertion sort below 16
  *   ds_median3_quicksort  median-of-three pivot, insertion cutoff, no
  *                       introspection
- *   ds_qm_sort          deprecated alias of ds_median3_quicksort. It is
- *                       NOT the "qm sort" of the DADS entry (Pat Morin's
- *                       implementation), which this library does not
- *                       provide; the name is kept for compatibility only
  *   ds_balanced_quicksort  median pivot (guaranteed balanced splits)
  * ds_dual_pivot_quicksort() is Yaroslavskiy's two-pivot, three-way
  * partitioning quicksort.
@@ -54,7 +50,11 @@
  * ds_lucky_sort (does nothing; tells you whether you were lucky),
  * ds_taco_sort_ulong (Michael Bernard's taco sort: set a random item to a
  * random k-bit value until the array is a sorted permutation of its
- * original contents; expected n 2^(n k) steps).
+ * original contents; expected n 2^(n k) steps), ds_qm_sort (the "qm sort"
+ * of Pat Morin's sorting-algorithm demos, "a bad use of randomization":
+ * rounds of random compare-exchanges, each round lasting max(1, n/4)
+ * consecutive probes that fix nothing, until a scan finds the array
+ * sorted; a step is one probe).
  */
 
 #include "../lib/context.h"
@@ -109,8 +109,6 @@ void ds_q_sort(void *base, size_t count, size_t elem_size,
                ds_compare_func_t compare, void *user);
 void ds_median3_quicksort(void *base, size_t count, size_t elem_size,
                           ds_compare_func_t compare, void *user);
-void ds_qm_sort(void *base, size_t count, size_t elem_size,
-                ds_compare_func_t compare, void *user);
 void ds_balanced_quicksort(void *base, size_t count, size_t elem_size,
                            ds_compare_func_t compare, void *user);
 void ds_dual_pivot_quicksort(void *base, size_t count, size_t elem_size,
@@ -155,6 +153,9 @@ bool ds_bozo_sort(void *base, size_t count, size_t elem_size,
                   ds_compare_func_t compare, void *user,
                   ds_random_func_t random, void *random_state,
                   unsigned long max_steps);
+bool ds_qm_sort(void *base, size_t count, size_t elem_size,
+                ds_compare_func_t compare, void *user, ds_random_func_t random,
+                void *random_state, unsigned long max_steps);
 /* Needs count counters from the context; false also on allocation
  * failure. */
 bool ds_permutation_sort(void *base, size_t count, size_t elem_size,
