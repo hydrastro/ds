@@ -24,8 +24,8 @@ off, was checked against DADS's second-level index pages (t42 to t53).
 
 | status | entries |
 |---|---|
-| done | 757 |
-| todo | 1 |
+| done | 758 |
+| todo | 0 |
 | def | 549 |
 | total | 1307 |
 
@@ -35,7 +35,6 @@ Families ordered by how many DADS entries they close.
 
 | target | entries | terms |
 |---|---|---|
-| `lib/topology_tree` | 1 | topology tree |
 
 ## Index A-Z
 
@@ -1360,7 +1359,7 @@ Families ordered by how many DADS entries they close.
 | top-down tree automaton | done | `lib/tree_automaton` |
 | topological order | done | `algo/graph_view` |
 | topological sort | done | `algo/graph_view, lib/graph` |
-| topology tree | todo | `lib/topology_tree` |
+| topology tree | done | `lib/topology_tree` |
 | total function | def |  |
 | totally decidable language | def |  |
 | totally decidable problem | def |  |
