@@ -108,6 +108,7 @@
 #include "lib/pushdown.h"
 #include "lib/quadtree.h"
 #include "lib/queue.h"
+#include "lib/quotient_filter.h"
 #include "lib/radix_heap.h"
 #include "lib/radix_trie.h"
 #include "lib/rank_select.h"

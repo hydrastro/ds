@@ -200,7 +200,8 @@ LIB_SRC := \
   $(LIB_DIR)/pager.c \
   $(LIB_DIR)/lsm_tree.c \
   $(LIB_DIR)/paged_btree.c \
-  $(LIB_DIR)/replacement.c
+  $(LIB_DIR)/replacement.c \
+  $(LIB_DIR)/quotient_filter.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -276,6 +277,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/quotient_filter.c $(LIB_DIR)/quotient_filter.h \
   $(LIB_DIR)/replacement.c $(LIB_DIR)/replacement.h \
   $(LIB_DIR)/paged_btree.c $(LIB_DIR)/paged_btree.h \
   $(LIB_DIR)/lsm_tree.c $(LIB_DIR)/lsm_tree.h \
