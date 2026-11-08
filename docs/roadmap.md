@@ -197,6 +197,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/persistent_hamt: persistent CHAMP HAMT with refcounted sharing, canonical deletion, structural equality, in-place transient edits
 - lib/pq_iface: addressable priority-queue ops table with eight heap backends and traits
 - lib/fm_index: FM-index with sampled SA/ISA, occurrence-table and wavelet-matrix rank backends, configurable suffix array builder
+- lib/euler_tour_tree: Euler-tour trees with component/subtree summaries and lazy actions, edge lookup via map_iface
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

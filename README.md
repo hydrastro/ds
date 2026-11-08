@@ -28,6 +28,7 @@ Core mutable containers:
 - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
 - `lib/elias_fano`: Elias-Fano compressed monotone sequences (access, next_geq, prev_leq via sampled select)
 - `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
+- `lib/euler_tour_tree`: Euler-tour trees (link, cut, connectivity, component and subtree aggregates with lazy actions) over a treap, edges in a pluggable map
 - `lib/fm_index`: FM-index (count, locate, extract, backward steps) over a pluggable rank backend: sampled occurrence table or wavelet matrix
 - `lib/grid_file`: fixed grids, grid files, twin, two-level and multilayer grid files
 - `lib/hash_heap`: hash heaps (priority queues addressable by key)
