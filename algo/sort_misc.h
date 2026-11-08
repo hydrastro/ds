@@ -19,8 +19,15 @@
  * The recursion is an explicit stack (larger part deferred), so stack use
  * is O(log n) whatever the input. Presets:
  *   ds_quicksort_plain  Hoare's original: first element pivot, no cutoff
- *   ds_q_sort           q sort: middle pivot, insertion sort below 16
- *   ds_qm_sort          qm sort: median-of-three pivot, insertion cutoff
+ *   ds_q_sort           q sort: one member of the "library sort" family
+ *                       DADS describes (quicksort finished by insertion
+ *                       sort): middle pivot, insertion sort below 16
+ *   ds_median3_quicksort  median-of-three pivot, insertion cutoff, no
+ *                       introspection
+ *   ds_qm_sort          deprecated alias of ds_median3_quicksort. It is
+ *                       NOT the "qm sort" of the DADS entry (Pat Morin's
+ *                       implementation), which this library does not
+ *                       provide; the name is kept for compatibility only
  *   ds_balanced_quicksort  median pivot (guaranteed balanced splits)
  * ds_dual_pivot_quicksort() is Yaroslavskiy's two-pivot, three-way
  * partitioning quicksort.
@@ -100,6 +107,8 @@ void ds_quicksort_plain(void *base, size_t count, size_t elem_size,
                         ds_compare_func_t compare, void *user);
 void ds_q_sort(void *base, size_t count, size_t elem_size,
                ds_compare_func_t compare, void *user);
+void ds_median3_quicksort(void *base, size_t count, size_t elem_size,
+                          ds_compare_func_t compare, void *user);
 void ds_qm_sort(void *base, size_t count, size_t elem_size,
                 ds_compare_func_t compare, void *user);
 void ds_balanced_quicksort(void *base, size_t count, size_t elem_size,

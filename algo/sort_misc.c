@@ -312,12 +312,17 @@ void ds_q_sort(void *base, size_t count, size_t elem_size,
   ds_quicksort(base, count, elem_size, compare, user, &cfg);
 }
 
-void ds_qm_sort(void *base, size_t count, size_t elem_size,
-                ds_compare_func_t compare, void *user) {
+void ds_median3_quicksort(void *base, size_t count, size_t elem_size,
+                          ds_compare_func_t compare, void *user) {
   ds_quicksort_config_t cfg;
   ds_quicksort_config_default(&cfg);
   cfg.introspective = false;
   ds_quicksort(base, count, elem_size, compare, user, &cfg);
+}
+
+void ds_qm_sort(void *base, size_t count, size_t elem_size,
+                ds_compare_func_t compare, void *user) {
+  ds_median3_quicksort(base, count, elem_size, compare, user);
 }
 
 void ds_balanced_quicksort(void *base, size_t count, size_t elem_size,
