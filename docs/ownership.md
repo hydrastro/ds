@@ -21,9 +21,16 @@ For config-based hash tables:
 - `destroy_value == NULL`: values are borrowed.
 - `destroy_value != NULL`: values are owned by the table.
 
-Clone callbacks follow the same rule: if no clone callback is supplied, cloned
-containers share the pointer. If a clone callback is supplied, cloned containers
-own the cloned pointer according to the matching destructor.
+Clone callbacks follow the same rule, without ever duplicating destruction
+rights. A part (keys or values) that the table does not destroy is shared by
+a clone. A part that the table destroys must have a clone callback: the clone
+then owns its own copies. If it does not, `ds_hash_table_clone` refuses
+(`DS_ERR_UNSUPPORTED` on the context) instead of letting two tables free the
+same pointer; `ds_hash_table_clone_borrowed` makes a clone that owns nothing
+and must not outlive the source's entries.
+
+Replacing a value with the same pointer, or passing the already stored key
+pointer to `ds_hash_table_insert_take_key`, destroys nothing.
 
 `ds_hash_table_insert_take_key` exists for wrappers that already allocated a key
 and need the table to dispose of that key atomically when an update finds an

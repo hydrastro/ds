@@ -85,6 +85,90 @@ static bool hash_table_uses_probing(ds_hash_table_mode_t mode) {
          mode == HASH_CUSTOM_PROBING;
 }
 
+static void *ht_alloc(ds_hash_table_t *table, size_t size) {
+  return table->use_context ? ds_context_alloc(table->context, size)
+                            : table->allocator(size);
+}
+
+static void ht_free(ds_hash_table_t *table, void *ptr) {
+  if (table->use_context) {
+    ds_context_free(table->context, ptr);
+  } else {
+    table->deallocator(ptr);
+  }
+}
+
+void *ds_hash_table_alloc(ds_hash_table_t *table, size_t size) {
+  return table == NULL ? NULL : ht_alloc(table, size);
+}
+
+void ds_hash_table_free(ds_hash_table_t *table, void *ptr) {
+  if (table != NULL && ptr != NULL) {
+    ht_free(table, ptr);
+  }
+}
+
+/* The i-th slot of key's probe sequence: the probing function for the
+ * first `capacity` steps, then a linear sweep, so 2 * capacity steps
+ * visit every slot whatever the probing function does. */
+static size_t ht_probe(const ds_hash_table_t *table, size_t base, size_t i) {
+  if (i < table->capacity) {
+    return table->probing_func(base, i, table->capacity) % table->capacity;
+  }
+  return (base + (i - table->capacity)) % table->capacity;
+}
+
+#define HT_NONE ((size_t) - 1)
+
+/* Probe for key: the matching slot or HT_NONE; *insert_at (optional) gets
+ * where to insert it: the first tombstone before the first empty slot,
+ * else that empty slot. Comparison by the legacy callback when given,
+ * else by the configured one. */
+static int hash_table_config_compare(ds_hash_table_t *table, void *a, void *b);
+static size_t ht_find_slot(ds_hash_table_t *table, size_t base, void *key,
+                           int (*compare)(void *, void *), size_t *insert_at) {
+  size_t i;
+  size_t limit = 2 * table->capacity;
+  size_t tomb = HT_NONE;
+  size_t empty = HT_NONE;
+  for (i = 0; i < limit; i++) {
+    size_t idx = ht_probe(table, base, i);
+    void *k = table->store.entries[idx].key;
+    if (k == table->nil) {
+      empty = idx;
+      break;
+    }
+    if (k == table->tombstone) {
+      if (tomb == HT_NONE) {
+        tomb = idx;
+      }
+    } else if ((compare != NULL
+                    ? compare(k, key)
+                    : hash_table_config_compare(table, k, key)) == 0) {
+      return idx;
+    }
+  }
+  if (insert_at != NULL) {
+    *insert_at = tomb != HT_NONE ? tomb : empty;
+  }
+  return HT_NONE;
+}
+
+/* rebuild needed before inserting one more entry, and to which capacity */
+static size_t ht_rebuild_capacity(const ds_hash_table_t *table) {
+  double cap = (double)table->capacity;
+  double live = (double)(table->size + 1);
+  double used = live + (double)table->deleted;
+  if (used / cap <= HASH_TABLE_RESIZE_FACTOR) {
+    return 0;
+  }
+  /* mostly tombstones: purge at the same capacity */
+  if (live / cap <= HASH_TABLE_RESIZE_FACTOR / 2.0) {
+    return table->capacity;
+  }
+  return next_prime_capacity(table->capacity);
+}
+
 static void hash_table_link_node(ds_hash_table_t *table, ds_hash_node_t *node) {
   node->list_next = NULL;
   node->list_prev = table->last_node;
@@ -183,7 +267,7 @@ static void hash_table_list_bucket_destroy(ds_hash_table_t *table, void *bucket,
     if (destroy != NULL) {
       destroy(current);
     }
-    table->deallocator(current);
+    ht_free(table, current);
     current = next;
   }
 }
@@ -208,23 +292,37 @@ static const ds_hash_bucket_store_t hash_table_list_bucket_store = {
     hash_table_list_bucket_insert,  hash_table_list_bucket_remove,
     hash_table_list_bucket_destroy, hash_table_list_bucket_apply};
 
-static void hash_table_create_buckets(ds_hash_table_t *table) {
+static bool hash_table_create_buckets(ds_hash_table_t *table) {
   size_t i;
+  if (table->capacity > (size_t)-1 / sizeof(void *)) {
+    return false;
+  }
   table->store.buckets =
-      (void **)table->allocator(table->capacity * sizeof(void *));
+      (void **)ht_alloc(table, table->capacity * sizeof(void *));
+  if (table->store.buckets == NULL) {
+    return false;
+  }
   for (i = 0; i < table->capacity; i++) {
     table->store.buckets[i] = table->bucket_store->create(table);
   }
+  return true;
 }
 
-static void hash_table_create_entries(ds_hash_table_t *table) {
+static bool hash_table_create_entries(ds_hash_table_t *table) {
   size_t i;
-  table->store.entries = (ds_hash_node_t *)table->allocator(
-      table->capacity * sizeof(ds_hash_node_t));
+  if (table->capacity > (size_t)-1 / 2 / sizeof(ds_hash_node_t)) {
+    return false;
+  }
+  table->store.entries = (ds_hash_node_t *)ht_alloc(
+      table, table->capacity * sizeof(ds_hash_node_t));
+  if (table->store.entries == NULL) {
+    return false;
+  }
   memset(table->store.entries, 0, table->capacity * sizeof(ds_hash_node_t));
   for (i = 0; i < table->capacity; i++) {
     table->store.entries[i].key = table->nil;
   }
+  return true;
 }
 
 static void hash_table_destroy_store(ds_hash_table_t *table,
@@ -234,7 +332,7 @@ static void hash_table_destroy_store(ds_hash_table_t *table,
     for (i = 0; i < table->capacity; i++) {
       table->bucket_store->destroy(table, table->store.buckets[i], destroy);
     }
-    table->deallocator(table->store.buckets);
+    ht_free(table, table->store.buckets);
   } else if (hash_table_uses_probing(table->mode)) {
     for (i = 0; i < table->capacity; i++) {
       if (table->store.entries[i].key != table->nil &&
@@ -244,28 +342,49 @@ static void hash_table_destroy_store(ds_hash_table_t *table,
         }
       }
     }
-    table->deallocator(table->store.entries);
+    ht_free(table, table->store.entries);
   }
 }
 
-static ds_hash_table_t *
-hash_table_create_alloc_internal(size_t capacity, ds_hash_table_mode_t mode,
-                                 ds_hash_probing_func_t probing_func,
-                                 const ds_hash_bucket_store_t *bucket_store,
-                                 void *(*allocator)(size_t),
-                                 void (*deallocator)(void *)) {
+static ds_hash_table_t *hash_table_create_alloc_internal(
+    size_t capacity, ds_hash_table_mode_t mode,
+    ds_hash_probing_func_t probing_func,
+    const ds_hash_bucket_store_t *bucket_store, void *(*allocator)(size_t),
+    void (*deallocator)(void *), ds_context_t *context) {
   ds_hash_table_t *table;
-  table = (ds_hash_table_t *)allocator(sizeof(ds_hash_table_t));
+  table = context != NULL
+              ? (ds_hash_table_t *)ds_context_alloc(context,
+                                                    sizeof(ds_hash_table_t))
+              : (ds_hash_table_t *)allocator(sizeof(ds_hash_table_t));
+  if (table == NULL) {
+    return NULL;
+  }
   table->allocator = allocator;
   table->deallocator = deallocator;
+  table->use_context = context != NULL;
+  table->context = context != NULL ? context : ds_default_context();
+  table->deleted = 0;
   table->capacity = hash_table_prime_capacity_at_least(capacity);
   table->size = 0;
-  table->nil = allocator(sizeof(void *));
-  table->tombstone = allocator(sizeof(void *));
+  table->nil = ht_alloc(table, sizeof(void *));
+  table->tombstone = ht_alloc(table, sizeof(void *));
+  if (table->nil == NULL || table->tombstone == NULL) {
+    if (table->nil != NULL) {
+      ht_free(table, table->nil);
+    }
+    if (table->tombstone != NULL) {
+      ht_free(table, table->tombstone);
+    }
+    if (context != NULL) {
+      ds_context_free(context, table);
+    } else {
+      deallocator(table);
+    }
+    return NULL;
+  }
   table->mode = mode;
   table->last_node = NULL;
   table->bucket_store = NULL;
-  table->context = ds_default_context();
   table->config_hash = NULL;
   table->config_compare = NULL;
   table->config_clone_key = NULL;
@@ -280,9 +399,13 @@ hash_table_create_alloc_internal(size_t capacity, ds_hash_table_mode_t mode,
     } else {
       table->bucket_store = bucket_store;
     }
-    hash_table_create_buckets(table);
+    if (!hash_table_create_buckets(table)) {
+      goto fail;
+    }
   } else if (hash_table_uses_probing(mode)) {
-    hash_table_create_entries(table);
+    if (!hash_table_create_entries(table)) {
+      goto fail;
+    }
   }
 
   if (probing_func != NULL) {
@@ -296,6 +419,15 @@ hash_table_create_alloc_internal(size_t capacity, ds_hash_table_mode_t mode,
   }
 
   return table;
+fail:
+  ht_free(table, table->nil);
+  ht_free(table, table->tombstone);
+  if (context != NULL) {
+    ds_context_free(context, table);
+  } else {
+    deallocator(table);
+  }
+  return NULL;
 }
 
 static void hash_table_reinsert_node(ds_hash_node_t *node, void *args) {
@@ -357,6 +489,9 @@ size_t hash_func_double(void *key) {
   unsigned char *bytes;
   size_t i;
   num = *(double *)key;
+  if (!(num < 0.0) && !(num > 0.0)) {
+    num = 0.0; /* +0.0 and -0.0 compare equal: hash them alike (NaN too) */
+  }
   hash = 0;
   bytes = (unsigned char *)&num;
   for (i = 0; i < sizeof(double); i++) {
@@ -370,7 +505,7 @@ size_t hash_func_default(void *key) { return (size_t)key; }
 ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
                                  void *value) {
   ds_hash_node_t *node;
-  node = (ds_hash_node_t *)table->allocator(sizeof(ds_hash_node_t));
+  node = (ds_hash_node_t *)ht_alloc(table, sizeof(ds_hash_node_t));
   node->key = key;
   node->value = value;
   node->next = NULL;
@@ -411,14 +546,15 @@ ds_hash_table_t *ds_hash_table_create_alloc(size_t capacity,
                                             void *(*allocator)(size_t),
                                             void (*deallocator)(void *)) {
   return hash_table_create_alloc_internal(capacity, mode, probing_func, NULL,
-                                          allocator, deallocator);
+                                          allocator, deallocator, NULL);
 }
 
 ds_hash_table_t *ds_hash_table_create_chain_alloc(
     size_t capacity, const ds_hash_bucket_store_t *bucket_store,
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   return hash_table_create_alloc_internal(capacity, HASH_CHAINING, NULL,
-                                          bucket_store, allocator, deallocator);
+                                          bucket_store, allocator, deallocator,
+                                          NULL);
 }
 
 static void hash_table_resize_unlocked(ds_hash_table_t *table,
@@ -432,7 +568,11 @@ static void hash_table_resize_unlocked(ds_hash_table_t *table,
   size_t i;
   new_table = hash_table_create_alloc_internal(
       new_capacity, table->mode, table->probing_func, table->bucket_store,
-      table->allocator, table->deallocator);
+      table->allocator, table->deallocator,
+      table->use_context ? table->context : NULL);
+  if (new_table == NULL) {
+    return; /* out of memory: keep the current table */
+  }
   context.new_table = new_table;
   context.hash_func = hash_func;
   context.compare = compare;
@@ -465,9 +605,9 @@ static void hash_table_resize_unlocked(ds_hash_table_t *table,
   table->bucket_store = new_table->bucket_store;
   table->last_node = new_table->last_node;
 
-  table->deallocator(old_nil);
-  table->deallocator(old_tombstone);
-  table->deallocator(new_table);
+  ht_free(table, old_nil);
+  ht_free(table, old_tombstone);
+  ht_free(table, new_table);
 }
 
 void ds_hash_table_resize(ds_hash_table_t *table, size_t new_capacity,
@@ -485,10 +625,15 @@ void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
   size_t tombstone_index;
   ds_hash_node_t *new_node;
   ds_hash_node_t *current;
-  if ((double)table->size / (double)table->capacity >
-      HASH_TABLE_RESIZE_FACTOR) {
-    hash_table_resize_unlocked(table, next_prime_capacity(table->capacity),
-                               hash_func, compare);
+  if (table->mode == HASH_CHAINING) {
+    if ((double)table->size / (double)table->capacity >
+        HASH_TABLE_RESIZE_FACTOR) {
+      hash_table_resize_unlocked(table, next_prime_capacity(table->capacity),
+                                 hash_func, compare);
+    }
+  } else if (ht_rebuild_capacity(table) != 0) {
+    hash_table_resize_unlocked(table, ht_rebuild_capacity(table), hash_func,
+                               compare);
   }
 
   base_index = hash_func(key) % table->capacity;
@@ -508,23 +653,19 @@ void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
     table->bucket_store->insert(table, &table->store.buckets[index], new_node,
                                 compare);
   } else if (hash_table_uses_probing(table->mode)) {
-    while (table->store.entries[index].key != table->nil) {
-      if (table->store.entries[index].key == table->tombstone) {
-        if (tombstone_index == (size_t)-1) {
-          tombstone_index = index;
-        }
-      } else if (compare(table->store.entries[index].key, key) == 0) {
-        table->store.entries[index].value = value;
-        return;
-      }
-      iteration++;
-      index = table->probing_func(base_index, iteration, table->capacity);
+    (void)iteration;
+    index = ht_find_slot(table, base_index, key, compare, &tombstone_index);
+    if (index != HT_NONE) {
+      table->store.entries[index].value = value;
+      return;
     }
-
-    if (tombstone_index != (size_t)-1) {
-      index = tombstone_index;
+    index = tombstone_index;
+    if (index == HT_NONE) {
+      return; /* cannot happen: the load stays below 1 */
     }
-
+    if (table->store.entries[index].key == table->tombstone) {
+      table->deleted--;
+    }
     table->store.entries[index].key = key;
     table->store.entries[index].value = value;
     table->store.entries[index].next = NULL;
@@ -552,13 +693,10 @@ void *ds_hash_table_lookup(ds_hash_table_t *table, void *key,
       return current->value;
     }
   } else if (hash_table_uses_probing(table->mode)) {
-    while (table->store.entries[index].key != table->nil) {
-      if (table->store.entries[index].key != table->tombstone &&
-          compare(table->store.entries[index].key, key) == 0) {
-        return table->store.entries[index].value;
-      }
-      iteration++;
-      index = table->probing_func(base_index, iteration, table->capacity);
+    (void)iteration;
+    index = ht_find_slot(table, base_index, key, compare, NULL);
+    if (index != HT_NONE) {
+      return table->store.entries[index].value;
     }
   }
 
@@ -586,25 +724,22 @@ void hash_table_remove(ds_hash_table_t *table, void *key,
       if (destroy != NULL) {
         destroy(current);
       }
-      table->deallocator(current);
+      ht_free(table, current);
       return;
     }
   } else if (hash_table_uses_probing(table->mode)) {
-    while (table->store.entries[index].key != table->nil) {
-      if (table->store.entries[index].key != table->tombstone &&
-          compare(table->store.entries[index].key, key) == 0) {
-        if (destroy != NULL) {
-          destroy(&table->store.entries[index]);
-        }
-        hash_table_unlink_node(table, &table->store.entries[index]);
-        table->store.entries[index].key = table->tombstone;
-        table->store.entries[index].value = NULL;
-        table->store.entries[index].next = NULL;
-        table->size--;
-        return;
+    (void)iteration;
+    index = ht_find_slot(table, base_index, key, compare, NULL);
+    if (index != HT_NONE) {
+      if (destroy != NULL) {
+        destroy(&table->store.entries[index]);
       }
-      iteration++;
-      index = table->probing_func(base_index, iteration, table->capacity);
+      hash_table_unlink_node(table, &table->store.entries[index]);
+      table->store.entries[index].key = table->tombstone;
+      table->store.entries[index].value = NULL;
+      table->store.entries[index].next = NULL;
+      table->size--;
+      table->deleted++;
     }
   }
 }
@@ -627,9 +762,9 @@ bool ds_hash_table_is_empty(ds_hash_table_t *table) { return table->size == 0; }
 void hash_table_destroy(ds_hash_table_t *table,
                         void (*destroy)(ds_hash_node_t *)) {
   hash_table_destroy_store(table, destroy);
-  table->deallocator(table->nil);
-  table->deallocator(table->tombstone);
-  table->deallocator(table);
+  ht_free(table, table->nil);
+  ht_free(table, table->tombstone);
+  ht_free(table, table);
 }
 
 ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
@@ -648,7 +783,8 @@ ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
 
   new_table = hash_table_create_alloc_internal(
       table->capacity, table->mode, table->probing_func, table->bucket_store,
-      table->allocator, table->deallocator);
+      table->allocator, table->deallocator,
+      table->use_context ? table->context : NULL);
 
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
@@ -667,8 +803,11 @@ ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
     }
   } else if (hash_table_uses_probing(table->mode)) {
     for (i = 0; i < table->capacity; i++) {
-      if (table->store.entries[i].key != table->nil &&
-          table->store.entries[i].key != table->tombstone) {
+      if (table->store.entries[i].key == table->tombstone) {
+        /* keep the probe chains running through deleted slots */
+        new_table->store.entries[i].key = new_table->tombstone;
+        new_table->deleted++;
+      } else if (table->store.entries[i].key != table->nil) {
         key = clone_key != NULL ? clone_key(table->store.entries[i].key)
                                 : table->store.entries[i].key;
         value = clone_value != NULL ? clone_value(table->store.entries[i].value)
@@ -698,7 +837,8 @@ ds_hash_table_t *ds_hash_table_clone_with(ds_hash_table_t *table,
   }
   new_table = hash_table_create_alloc_internal(
       table->capacity, table->mode, table->probing_func, table->bucket_store,
-      table->allocator, table->deallocator);
+      table->allocator, table->deallocator,
+      table->use_context ? table->context : NULL);
   current = table->last_node;
   while (current != NULL) {
     key = clone_key != NULL ? clone_key(current->key) : current->key;
@@ -764,9 +904,9 @@ ds_hash_table_create_config(const ds_hash_table_config_t *config) {
     return NULL;
   }
   context = config->context != NULL ? config->context : ds_default_context();
-  table = hash_table_create_alloc_internal(config->capacity, config->mode,
-                                           config->probing_func,
-                                           config->bucket_store, malloc, free);
+  table = hash_table_create_alloc_internal(
+      config->capacity, config->mode, config->probing_func,
+      config->bucket_store, malloc, free, config->context);
   if (table == NULL) {
     DS_CONTEXT_ERROR(context, DS_ERR_ALLOC, "ds.hash_table/create_failed",
                      "hash_table", "failed to create hash table");
@@ -797,7 +937,8 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
 
   new_table = hash_table_create_alloc_internal(
       new_capacity, table->mode, table->probing_func, table->bucket_store,
-      table->allocator, table->deallocator);
+      table->allocator, table->deallocator,
+      table->use_context ? table->context : NULL);
   if (new_table == NULL) {
     return false;
   }
@@ -822,9 +963,9 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
       new_node = hash_node_create(new_table, current->key, current->value);
       if (new_node == NULL) {
         hash_table_destroy_store(new_table, NULL);
-        new_table->deallocator(new_table->nil);
-        new_table->deallocator(new_table->tombstone);
-        new_table->deallocator(new_table);
+        ht_free(new_table, new_table->nil);
+        ht_free(new_table, new_table->tombstone);
+        ht_free(new_table, new_table);
         return false;
       }
       hash_table_link_node(new_table, new_node);
@@ -832,11 +973,8 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
           new_table, &new_table->store.buckets[index], new_node, NULL);
       new_table->size++;
     } else if (hash_table_uses_probing(new_table->mode)) {
-      while (new_table->store.entries[index].key != new_table->nil) {
-        iteration++;
-        index =
-            new_table->probing_func(base_index, iteration, new_table->capacity);
-      }
+      (void)iteration;
+      (void)ht_find_slot(new_table, base_index, current->key, NULL, &index);
       new_table->store.entries[index].key = current->key;
       new_table->store.entries[index].value = current->value;
       new_table->store.entries[index].next = NULL;
@@ -859,9 +997,9 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
   table->bucket_store = new_table->bucket_store;
   table->last_node = new_table->last_node;
 
-  table->deallocator(old_nil);
-  table->deallocator(old_tombstone);
-  table->deallocator(new_table);
+  ht_free(table, old_nil);
+  ht_free(table, old_tombstone);
+  ht_free(table, new_table);
   (void)i;
   return true;
 }
@@ -887,10 +1025,14 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
         "configured hash table requires hash and compare callbacks");
   }
 
-  if ((double)table->size / (double)table->capacity >
-      HASH_TABLE_RESIZE_FACTOR) {
+  if (table->mode == HASH_CHAINING
+          ? (double)table->size / (double)table->capacity >
+                HASH_TABLE_RESIZE_FACTOR
+          : ht_rebuild_capacity(table) != 0) {
     if (!ds_hash_table_resize_config_unlocked(
-            table, next_prime_capacity(table->capacity))) {
+            table, table->mode == HASH_CHAINING
+                       ? next_prime_capacity(table->capacity)
+                       : ht_rebuild_capacity(table))) {
       return DS_CONTEXT_ERROR(table->context, DS_ERR_ALLOC,
                               "ds.hash_table/resize_failed", "hash_table",
                               "failed to resize hash table");
@@ -906,10 +1048,11 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
     current = table->bucket_store->search(table, table->store.buckets[index],
                                           key, NULL);
     if (current != NULL) {
-      if (table->config_destroy_value != NULL) {
+      if (table->config_destroy_value != NULL && current->value != value) {
         table->config_destroy_value(current->value, table->config_user);
       }
-      if (destroy_key_on_update && table->config_destroy_key != NULL) {
+      if (destroy_key_on_update && table->config_destroy_key != NULL &&
+          key != current->key) {
         table->config_destroy_key(key, table->config_user);
       }
       current->value = value;
@@ -925,28 +1068,28 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
     table->bucket_store->insert(table, &table->store.buckets[index], new_node,
                                 NULL);
   } else if (hash_table_uses_probing(table->mode)) {
-    while (table->store.entries[index].key != table->nil) {
-      if (table->store.entries[index].key == table->tombstone) {
-        if (tombstone_index == (size_t)-1) {
-          tombstone_index = index;
-        }
-      } else if (hash_table_config_compare(
-                     table, table->store.entries[index].key, key) == 0) {
-        if (table->config_destroy_value != NULL) {
-          table->config_destroy_value(table->store.entries[index].value,
-                                      table->config_user);
-        }
-        if (destroy_key_on_update && table->config_destroy_key != NULL) {
-          table->config_destroy_key(key, table->config_user);
-        }
-        table->store.entries[index].value = value;
-        return DS_OK;
+    (void)iteration;
+    index = ht_find_slot(table, base_index, key, NULL, &tombstone_index);
+    if (index != HT_NONE) {
+      ds_hash_node_t *e = &table->store.entries[index];
+      if (table->config_destroy_value != NULL && e->value != value) {
+        table->config_destroy_value(e->value, table->config_user);
       }
-      iteration++;
-      index = table->probing_func(base_index, iteration, table->capacity);
+      if (destroy_key_on_update && table->config_destroy_key != NULL &&
+          key != e->key) {
+        table->config_destroy_key(key, table->config_user);
+      }
+      e->value = value;
+      return DS_OK;
     }
-    if (tombstone_index != (size_t)-1) {
-      index = tombstone_index;
+    index = tombstone_index;
+    if (index == HT_NONE) {
+      return DS_CONTEXT_ERROR(table->context, DS_ERR_INTERNAL,
+                              "ds.hash_table/full", "hash_table",
+                              "no free slot found");
+    }
+    if (table->store.entries[index].key == table->tombstone) {
+      table->deleted--;
     }
     table->store.entries[index].key = key;
     table->store.entries[index].value = value;
@@ -1005,15 +1148,11 @@ ds_status_t ds_hash_table_get(ds_hash_table_t *table, void *key,
       return DS_OK;
     }
   } else if (hash_table_uses_probing(table->mode)) {
-    while (table->store.entries[index].key != table->nil) {
-      if (table->store.entries[index].key != table->tombstone &&
-          hash_table_config_compare(table, table->store.entries[index].key,
-                                    key) == 0) {
-        *out_value = table->store.entries[index].value;
-        return DS_OK;
-      }
-      iteration++;
-      index = table->probing_func(base_index, iteration, table->capacity);
+    (void)iteration;
+    index = ht_find_slot(table, base_index, key, NULL, NULL);
+    if (index != HT_NONE) {
+      *out_value = table->store.entries[index].value;
+      return DS_OK;
     }
   }
   return DS_NOT_FOUND;
@@ -1044,24 +1183,21 @@ ds_status_t ds_hash_table_remove(ds_hash_table_t *table, void *key) {
       hash_table_unlink_node(table, current);
       table->size--;
       hash_table_config_destroy_node(table, current);
-      table->deallocator(current);
+      ht_free(table, current);
       return DS_OK;
     }
   } else if (hash_table_uses_probing(table->mode)) {
-    while (table->store.entries[index].key != table->nil) {
-      if (table->store.entries[index].key != table->tombstone &&
-          hash_table_config_compare(table, table->store.entries[index].key,
-                                    key) == 0) {
-        hash_table_config_destroy_node(table, &table->store.entries[index]);
-        hash_table_unlink_node(table, &table->store.entries[index]);
-        table->store.entries[index].key = table->tombstone;
-        table->store.entries[index].value = NULL;
-        table->store.entries[index].next = NULL;
-        table->size--;
-        return DS_OK;
-      }
-      iteration++;
-      index = table->probing_func(base_index, iteration, table->capacity);
+    (void)iteration;
+    index = ht_find_slot(table, base_index, key, NULL, NULL);
+    if (index != HT_NONE) {
+      hash_table_config_destroy_node(table, &table->store.entries[index]);
+      hash_table_unlink_node(table, &table->store.entries[index]);
+      table->store.entries[index].key = table->tombstone;
+      table->store.entries[index].value = NULL;
+      table->store.entries[index].next = NULL;
+      table->size--;
+      table->deleted++;
+      return DS_OK;
     }
   }
   return DS_NOT_FOUND;
@@ -1080,22 +1216,38 @@ void ds_hash_table_destroy(ds_hash_table_t *table) {
     current = prev;
   }
   hash_table_destroy_store(table, NULL);
-  table->deallocator(table->nil);
-  table->deallocator(table->tombstone);
-  table->deallocator(table);
+  ht_free(table, table->nil);
+  ht_free(table, table->tombstone);
+  ht_free(table, table);
 }
 
-ds_hash_table_t *ds_hash_table_clone(ds_hash_table_t *table) {
+static ds_hash_table_t *hash_table_clone_impl(ds_hash_table_t *table,
+                                              bool borrowed) {
   ds_hash_table_config_t config;
   ds_hash_table_t *clone;
   ds_hash_node_t *current;
   void *key;
   void *value;
   ds_status_t status;
+  bool clone_keys;
+  bool clone_values;
 
   if (table == NULL) {
     return NULL;
   }
+  /* an owning clone must not share what the source will destroy */
+  if (!borrowed &&
+      ((table->config_destroy_key != NULL && table->config_clone_key == NULL) ||
+       (table->config_destroy_value != NULL &&
+        table->config_clone_value == NULL))) {
+    (void)DS_CONTEXT_ERROR(table->context, DS_ERR_UNSUPPORTED,
+                           "ds.hash_table/clone_ownership", "hash_table",
+                           "owning clone needs clone callbacks for every "
+                           "destroyed part; use ds_hash_table_clone_borrowed");
+    return NULL;
+  }
+  clone_keys = !borrowed && table->config_clone_key != NULL;
+  clone_values = !borrowed && table->config_clone_value != NULL;
   ds_hash_table_config_init(&config);
   config.capacity = table->capacity;
   config.mode = table->mode;
@@ -1103,33 +1255,50 @@ ds_hash_table_t *ds_hash_table_clone(ds_hash_table_t *table) {
   config.bucket_store = table->bucket_store;
   config.hash = table->config_hash;
   config.compare = table->config_compare;
-  config.clone_key = table->config_clone_key;
-  config.clone_value = table->config_clone_value;
-  config.destroy_key = table->config_destroy_key;
-  config.destroy_value = table->config_destroy_value;
+  config.clone_key = borrowed ? NULL : table->config_clone_key;
+  config.clone_value = borrowed ? NULL : table->config_clone_value;
+  config.destroy_key = borrowed ? NULL : table->config_destroy_key;
+  config.destroy_value = borrowed ? NULL : table->config_destroy_value;
   config.user = table->config_user;
-  config.context = table->context;
+  config.context = table->use_context ? table->context : NULL;
   clone = ds_hash_table_create_config(&config);
   if (clone == NULL) {
     return NULL;
   }
+  if (!table->use_context) {
+    clone->context = table->context;
+  }
 
   current = table->last_node;
   while (current != NULL) {
-    key = table->config_clone_key != NULL
-              ? table->config_clone_key(current->key, table->config_user)
-              : current->key;
-    value = table->config_clone_value != NULL
+    key = clone_keys ? table->config_clone_key(current->key, table->config_user)
+                     : current->key;
+    value = clone_values
                 ? table->config_clone_value(current->value, table->config_user)
                 : current->value;
     status = ds_hash_table_insert(clone, key, value);
     if (DS_FAILED(status)) {
+      /* the pair never made it in: release what was cloned for it */
+      if (clone_keys && table->config_destroy_key != NULL) {
+        table->config_destroy_key(key, table->config_user);
+      }
+      if (clone_values && table->config_destroy_value != NULL) {
+        table->config_destroy_value(value, table->config_user);
+      }
       ds_hash_table_destroy(clone);
       return NULL;
     }
     current = current->list_prev;
   }
   return clone;
+}
+
+ds_hash_table_t *ds_hash_table_clone(ds_hash_table_t *table) {
+  return hash_table_clone_impl(table, false);
+}
+
+ds_hash_table_t *ds_hash_table_clone_borrowed(ds_hash_table_t *table) {
+  return hash_table_clone_impl(table, true);
 }
 
 static void hash_table_iter_destroy(ds_iter_t *iter) {

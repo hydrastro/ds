@@ -112,8 +112,34 @@ struct hash_table {
   ds_hash_destroy_func_t config_destroy_key;
   ds_hash_destroy_func_t config_destroy_value;
   void *config_user;
+  size_t deleted;   /* tombstones in probing mode */
+  bool use_context; /* storage comes from context, not allocator */
 };
 
+/*
+ * Probing invariants: every probe sequence is used for at most `capacity`
+ * steps (indices reduced modulo capacity), then continued as a linear
+ * sweep, so lookups and insertions terminate and find a free slot for any
+ * probing function, including custom ones that do not reach every slot.
+ * Tombstones count towards the load: the table is rebuilt (grown, or
+ * purged at the same capacity when mostly dead) once live plus deleted
+ * entries exceed HASH_TABLE_RESIZE_FACTOR of the capacity.
+ *
+ * Ownership: with destroy callbacks the table owns its keys/values.
+ * ds_hash_table_clone needs the matching clone callback for every owned
+ * part (it fails with DS_ERR_UNSUPPORTED recorded on the context
+ * otherwise); ds_hash_table_clone_borrowed makes a clone that owns
+ * nothing and must not outlive the source's entries. Replacing a value
+ * with the very same pointer, or re-inserting the stored key pointer with
+ * insert_take_key, destroys nothing.
+ *
+ * Memory: a configured table with a context allocates everything (the
+ * table, its buckets/entries and nodes) through that context; custom
+ * bucket stores should allocate with ds_hash_table_alloc/free.
+ */
+void *ds_hash_table_alloc(ds_hash_table_t *table, size_t size);
+void ds_hash_table_free(ds_hash_table_t *table, void *ptr);
+ds_hash_table_t *ds_hash_table_clone_borrowed(ds_hash_table_t *table);
 void ds_hash_table_config_init(ds_hash_table_config_t *config);
 ds_hash_table_t *
 ds_hash_table_create_config(const ds_hash_table_config_t *config);
