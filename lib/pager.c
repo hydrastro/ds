@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define PG_NONE ((size_t) - 1)
 /* stdio failures: DS_ERR_STATE, as in algo/external_sort */
 #define PG_ERR_IO DS_ERR_STATE
 
@@ -332,48 +331,16 @@ static unsigned char *pg_buf(const ds_pager_t *p, size_t f) {
   return p->data + f * p->store->page_size;
 }
 
-static void lru_unlink(ds_pager_t *p, size_t f) {
-  ds_pager_frame_t *fr = &p->frame[f];
-  if (fr->prev != PG_NONE) {
-    p->frame[fr->prev].next = fr->next;
-  } else {
-    p->lru_head = fr->next;
-  }
-  if (fr->next != PG_NONE) {
-    p->frame[fr->next].prev = fr->prev;
-  } else {
-    p->lru_tail = fr->prev;
-  }
-  fr->prev = fr->next = PG_NONE;
+static void pg_free_all(ds_pager_t *p) {
+  ds_context_free(p->context, p->data);
+  ds_context_free(p->context, p->frame);
+  ds_context_free(p->context, p->free_frames);
 }
 
-static void lru_push_back(ds_pager_t *p, size_t f) {
-  ds_pager_frame_t *fr = &p->frame[f];
-  fr->next = PG_NONE;
-  fr->prev = p->lru_tail;
-  if (p->lru_tail != PG_NONE) {
-    p->frame[p->lru_tail].next = f;
-  } else {
-    p->lru_head = f;
-  }
-  p->lru_tail = f;
-}
-
-static void lru_push_front(ds_pager_t *p, size_t f) {
-  ds_pager_frame_t *fr = &p->frame[f];
-  fr->prev = PG_NONE;
-  fr->next = p->lru_head;
-  if (p->lru_head != PG_NONE) {
-    p->frame[p->lru_head].prev = f;
-  } else {
-    p->lru_tail = f;
-  }
-  p->lru_head = f;
-}
-
-ds_status_t ds_pager_init(ds_pager_t *pager, ds_page_store_t *store,
-                          size_t frames, const ds_map_ops_t *map_ops,
-                          ds_context_t *context) {
+ds_status_t ds_pager_init_policy(ds_pager_t *pager, ds_page_store_t *store,
+                                 size_t frames, const ds_map_ops_t *map_ops,
+                                 const ds_replacement_ops_t *policy,
+                                 ds_context_t *context) {
   size_t bytes, i;
   ds_status_t st;
   if (pager == NULL || store == NULL || store->ops == NULL) {
@@ -386,31 +353,42 @@ ds_status_t ds_pager_init(ds_pager_t *pager, ds_page_store_t *store,
   if (!ds_size_mul(frames, store->page_size, &bytes)) {
     return DS_ERR_OVERFLOW;
   }
+  pager->context = context;
   pager->data = (unsigned char *)ds_context_alloc(context, bytes);
   pager->frame = (ds_pager_frame_t *)ds_context_calloc(
       context, frames, sizeof(ds_pager_frame_t));
-  if (pager->data == NULL || pager->frame == NULL) {
-    ds_context_free(context, pager->data);
-    ds_context_free(context, pager->frame);
+  pager->free_frames =
+      (size_t *)ds_context_calloc(context, frames, sizeof(size_t));
+  if (pager->data == NULL || pager->frame == NULL ||
+      pager->free_frames == NULL) {
+    pg_free_all(pager);
     return DS_ERR_ALLOC;
+  }
+  st = ds_replacement_init(&pager->policy, policy, frames, context);
+  if (st != DS_OK) {
+    pg_free_all(pager);
+    return st;
   }
   st = ds_map_init(&pager->table, map_ops, sizeof(unsigned long),
                    sizeof(size_t), pg_hash, pg_equal, NULL, context);
   if (st != DS_OK) {
-    ds_context_free(context, pager->data);
-    ds_context_free(context, pager->frame);
+    ds_replacement_destroy(&pager->policy);
+    pg_free_all(pager);
     return st;
   }
   pager->store = store;
   pager->frames = frames;
-  pager->context = context;
-  pager->lru_head = pager->lru_tail = PG_NONE;
   for (i = 0; i < frames; i++) {
-    pager->frame[i].prev = pager->frame[i].next = PG_NONE;
-    lru_push_back(pager, i);
+    pager->free_frames[pager->nfree++] = frames - 1 - i;
   }
   pager->pages = ds_page_store_count(store);
   return DS_OK;
+}
+
+ds_status_t ds_pager_init(ds_pager_t *pager, ds_page_store_t *store,
+                          size_t frames, const ds_map_ops_t *map_ops,
+                          ds_context_t *context) {
+  return ds_pager_init_policy(pager, store, frames, map_ops, NULL, context);
 }
 
 static ds_status_t pg_write_back(ds_pager_t *p, size_t f) {
@@ -427,14 +405,21 @@ static ds_status_t pg_write_back(ds_pager_t *p, size_t f) {
   return st;
 }
 
-/* a free or evictable frame for page, removed from the LRU and pinned;
- * on failure nothing changes beyond a possible write-back */
+/* a free frame, or the policy's victim (written back and evicted), now
+ * mapped to page and pinned; on failure nothing changes beyond a possible
+ * write-back */
 static ds_status_t pg_claim(ds_pager_t *p, unsigned long page, size_t *out) {
-  size_t f = p->lru_head;
+  size_t f;
   ds_pager_frame_t *fr;
   ds_status_t st;
-  if (f == PG_NONE) {
-    return DS_ERR_STATE;
+  bool from_free = p->nfree > 0;
+  if (from_free) {
+    f = p->free_frames[p->nfree - 1];
+  } else {
+    f = ds_replacement_victim(&p->policy);
+    if (f == DS_REPLACEMENT_NONE) {
+      return DS_ERR_STATE;
+    }
   }
   fr = &p->frame[f];
   if (fr->used) {
@@ -447,16 +432,30 @@ static ds_status_t pg_claim(ds_pager_t *p, unsigned long page, size_t *out) {
   if (DS_FAILED(st)) {
     return st;
   }
-  if (fr->used) {
+  if (from_free) {
+    p->nfree--;
+  } else {
     (void)ds_map_remove(&p->table, &fr->page, NULL);
+    ds_replacement_evict(&p->policy, f);
   }
-  lru_unlink(p, f);
   fr->used = 1;
   fr->page = page;
   fr->dirty = 0;
   fr->pins = 1;
+  ds_replacement_admit(&p->policy, f);
   *out = f;
   return DS_OK;
+}
+
+/* undo a claim whose page could not be loaded */
+static void pg_release_frame(ds_pager_t *p, size_t f) {
+  ds_pager_frame_t *fr = &p->frame[f];
+  (void)ds_map_remove(&p->table, &fr->page, NULL);
+  ds_replacement_evict(&p->policy, f);
+  fr->used = 0;
+  fr->pins = 0;
+  fr->dirty = 0;
+  p->free_frames[p->nfree++] = f;
 }
 
 ds_status_t ds_pager_get(ds_pager_t *pager, unsigned long page, void **data) {
@@ -473,8 +472,9 @@ ds_status_t ds_pager_get(ds_pager_t *pager, unsigned long page, void **data) {
   if (hit != NULL) {
     memcpy(&f, hit, sizeof(f));
     if (pager->frame[f].pins++ == 0) {
-      lru_unlink(pager, f);
+      ds_replacement_set_evictable(&pager->policy, f, false);
     }
+    ds_replacement_touch(&pager->policy, f);
     pager->hits++;
     *data = pg_buf(pager, f);
     return DS_OK;
@@ -485,10 +485,7 @@ ds_status_t ds_pager_get(ds_pager_t *pager, unsigned long page, void **data) {
   }
   st = ds_page_store_read(pager->store, page, pg_buf(pager, f));
   if (st != DS_OK) {
-    (void)ds_map_remove(&pager->table, &page, NULL);
-    pager->frame[f].used = 0;
-    pager->frame[f].pins = 0;
-    lru_push_front(pager, f);
+    pg_release_frame(pager, f);
     return st;
   }
   pager->misses++;
@@ -551,7 +548,7 @@ ds_status_t ds_pager_unpin(ds_pager_t *pager, unsigned long page) {
     return DS_ERR_STATE;
   }
   if (--fr->pins == 0) {
-    lru_push_back(pager, f);
+    ds_replacement_set_evictable(&pager->policy, f, true);
   }
   return DS_OK;
 }
@@ -578,8 +575,8 @@ ds_status_t ds_pager_destroy(ds_pager_t *pager) {
   }
   st = ds_pager_flush(pager);
   ds_map_destroy(&pager->table);
-  ds_context_free(pager->context, pager->data);
-  ds_context_free(pager->context, pager->frame);
+  ds_replacement_destroy(&pager->policy);
+  pg_free_all(pager);
   memset(pager, 0, sizeof(*pager));
   return st;
 }

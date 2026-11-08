@@ -15,16 +15,18 @@
  * checksumming layer stacked on another store) fits by filling in a
  * ds_page_store_ops_t.
  *
- * The pager caches up to `frames` pages of any store, with pin counts,
- * dirty tracking and LRU replacement among unpinned frames; dirty pages
- * are written back on eviction and on flush. Its page table is a map
- * from the map capability (lib/map_iface). DS_ERR_STATE when every frame
- * is pinned, and (as in algo/external_sort) when a stdio call fails.
- * Memory comes from the context.
+ * The pager caches up to `frames` pages of any store, with pin counts and
+ * dirty tracking; free frames are used first, then the replacement policy
+ * (lib/replacement: LRU by default, or FIFO, CLOCK, SIEVE, ...) picks an
+ * unpinned victim. Dirty pages are written back on eviction and on flush. Its
+ * page table is a map from the map capability (lib/map_iface). DS_ERR_STATE
+ * when every frame is pinned, and (as in algo/external_sort) when a stdio call
+ * fails. Memory comes from the context.
  */
 
 #include "context.h"
 #include "map_iface.h"
+#include "replacement.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -71,8 +73,6 @@ typedef struct ds_pager_frame {
   size_t pins;
   int used;
   int dirty;
-  size_t prev; /* LRU list of unpinned frames */
-  size_t next;
 } ds_pager_frame_t;
 
 typedef struct ds_pager {
@@ -80,9 +80,10 @@ typedef struct ds_pager {
   size_t frames;
   unsigned char *data; /* frames * page_size */
   ds_pager_frame_t *frame;
-  ds_map_t table;  /* page -> frame */
-  size_t lru_head; /* least recently used unpinned frame */
-  size_t lru_tail;
+  ds_map_t table; /* page -> frame */
+  ds_replacement_t policy;
+  size_t *free_frames; /* stack of unused frames */
+  size_t nfree;
   unsigned long pages; /* logical page count (includes unflushed) */
   unsigned long hits;
   unsigned long misses;
@@ -90,10 +91,15 @@ typedef struct ds_pager {
   ds_context_t *context;
 } ds_pager_t;
 
-/* map_ops NULL: Robin Hood map */
+/* map_ops NULL: Robin Hood map; LRU replacement */
 ds_status_t ds_pager_init(ds_pager_t *pager, ds_page_store_t *store,
                           size_t frames, const ds_map_ops_t *map_ops,
                           ds_context_t *context);
+/* policy NULL: LRU */
+ds_status_t ds_pager_init_policy(ds_pager_t *pager, ds_page_store_t *store,
+                                 size_t frames, const ds_map_ops_t *map_ops,
+                                 const ds_replacement_ops_t *policy,
+                                 ds_context_t *context);
 /* flushes, then frees the pager (not the store); returns the flush status */
 ds_status_t ds_pager_destroy(ds_pager_t *pager);
 /* pin page and return its buffer (valid until unpinned) */
