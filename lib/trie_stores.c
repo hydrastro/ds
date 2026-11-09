@@ -119,6 +119,12 @@ static size_t ts_rh_size(void *store) {
   return ds_rh_map_size(&((ts_rh_store_t *)store)->map);
 }
 
+/* Visit every child. A snapshot of the children is taken first so that a
+ * visitor may change this store; if the snapshot cannot be allocated, the
+ * children are visited in place instead of being skipped. In-place visits
+ * are safe for read-only visitors and for destruction (which frees
+ * children but never edits the store being walked); visitors that remove
+ * entries from the store they are called for need the snapshot. */
 static void ts_rh_apply(ds_trie_t *trie, void *store, trie_visit_t f,
                         va_list *args) {
   ds_rh_map_t *map = store == NULL ? NULL : &((ts_rh_store_t *)store)->map;
@@ -126,18 +132,35 @@ static void ts_rh_apply(ds_trie_t *trie, void *store, trie_visit_t f,
   size_t cursor = 0;
   size_t i;
   void *value;
-  if (map == NULL || ds_vec_init(&snapshot, sizeof(ds_trie_node_t *),
-                                 ts_scratch_context(trie)) != DS_OK) {
+  int have = 0;
+  if (map == NULL) {
     return;
   }
+  if (ds_vec_init(&snapshot, sizeof(ds_trie_node_t *),
+                  ts_scratch_context(trie)) == DS_OK) {
+    have = 1;
+    while (ds_rh_map_next(map, &cursor, NULL, &value)) {
+      if (ds_vec_push(&snapshot, value) != DS_OK) {
+        have = 0;
+        break;
+      }
+    }
+    if (!have) {
+      ds_vec_destroy(&snapshot);
+    }
+  }
+  if (have) {
+    for (i = 0; i < ds_vec_size(&snapshot); i++) {
+      ts_visit(trie, *(ds_trie_node_t **)ds_vec_at(&snapshot, i), f, args,
+               ts_rh_apply);
+    }
+    ds_vec_destroy(&snapshot);
+    return;
+  }
+  cursor = 0;
   while (ds_rh_map_next(map, &cursor, NULL, &value)) {
-    ds_vec_push(&snapshot, value);
+    ts_visit(trie, *(ds_trie_node_t **)value, f, args, ts_rh_apply);
   }
-  for (i = 0; i < ds_vec_size(&snapshot); i++) {
-    ts_visit(trie, *(ds_trie_node_t **)ds_vec_at(&snapshot, i), f, args,
-             ts_rh_apply);
-  }
-  ds_vec_destroy(&snapshot);
 }
 
 static void *ts_rh_clone(ds_trie_t *trie, void *store,
@@ -240,13 +263,20 @@ static size_t ts_vec_size(void *store) {
   return ds_vec_size(&((ts_vec_store_t *)store)->children);
 }
 
+/* same snapshot policy as ts_rh_apply */
 static void ts_vec_apply(ds_trie_t *trie, void *store, trie_visit_t f,
                          va_list *args) {
   ts_vec_store_t *s = (ts_vec_store_t *)store;
   ds_vec_t snapshot;
   size_t i;
-  if (s == NULL ||
-      ds_vec_copy(&snapshot, &s->children, ts_scratch_context(trie)) != DS_OK) {
+  if (s == NULL) {
+    return;
+  }
+  if (ds_vec_copy(&snapshot, &s->children, ts_scratch_context(trie)) != DS_OK) {
+    for (i = 0; i < ds_vec_size(&s->children); i++) {
+      ts_visit(trie, *(ds_trie_node_t **)ds_vec_at(&s->children, i), f, args,
+               ts_vec_apply);
+    }
     return;
   }
   for (i = 0; i < ds_vec_size(&snapshot); i++) {
