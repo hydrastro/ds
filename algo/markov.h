@@ -22,9 +22,11 @@
  *                          each closed class and the expected number of
  *                          steps until a recurrent state is reached
  *   ds_markov_hitting      probability of ever reaching a target set and
- *                          the expected hitting time; which states hit with
- *                          certainty is decided on the graph, so the times
- *                          are exact where finite and HUGE_VAL elsewhere
+ *                          the expected hitting time. Which states hit with
+ *                          certainty is decided exactly on the graph (their
+ *                          times are finite, the others HUGE_VAL); the
+ *                          finite times and the probabilities come from
+ *                          Gaussian elimination and carry its rounding
  *   ds_markov_entropy_rate -sum_i pi_i sum_j p_ij log p_ij (nats)
  *
  * Memory comes from the ds_context_t given at init.
