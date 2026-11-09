@@ -155,9 +155,11 @@ static void ts_two_opt(const double *d, size_t n, size_t *tour) {
   }
 }
 
-/* Minimum weight perfect matching of the k (even) vertices in odd[], exact
- * for every k (Edmonds' weighted blossom algorithm, O(k^3)), as the 3/2
- * guarantee requires. mate is indexed by position in odd[]. */
+/* Minimum weight perfect matching of the k (even) vertices in odd[] by
+ * Edmonds' weighted blossom algorithm, O(k^3), for every k. The 3/2
+ * guarantee needs an optimal matching: exact for integral distances (see
+ * the integer mode of weighted_matching.h), within its tolerance
+ * otherwise. mate is indexed by position in odd[]. */
 static ds_status_t ts_matching(const double *d, size_t n, const size_t *odd,
                                size_t k, size_t *mate, ds_context_t *context) {
   size_t i;

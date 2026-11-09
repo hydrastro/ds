@@ -511,6 +511,18 @@ static void wm_augment_matching(wm_t *s, long k) {
   }
 }
 
+/* Integer mode keeps exactness while every dual stays within 2^51: slacks
+ * are then below 2^53 for weights up to DS_WMATCH_EXACT_MAX. */
+static bool wm_duals_too_big(const wm_t *s) {
+  long i;
+  for (i = 0; i < 2 * s->n; i++) {
+    if (fabs(s->dual[i]) > 2251799813685248.0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static ds_status_t wm_run(wm_t *s, bool maxcard) {
   long n = s->n;
   long t;
@@ -654,6 +666,10 @@ static ds_status_t wm_run(wm_t *s, bool maxcard) {
           }
         }
       }
+      if (s->eps <= 0.0 && wm_duals_too_big(s)) {
+        s->st = DS_ERR_OVERFLOW; /* integer mode left its exact range */
+        break;
+      }
       if (deltatype == 1) {
         break;
       } else if (deltatype == 2) {
@@ -704,16 +720,19 @@ static void wm_free(wm_t *s) {
   ds_context_free(s->ctx, s->queue);
 }
 
-ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
-                                   const double *w, size_t m,
-                                   bool max_cardinality, size_t *out_mate,
-                                   double *out_weight, ds_context_t *context) {
+static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
+                            const double *w, size_t m, bool max_cardinality,
+                            size_t *out_mate, double *out_weight,
+                            ds_context_t *context, bool allow_integer,
+                            bool *out_left_integer) {
   wm_t s;
   long i;
   long k;
   double maxw = 0.0;
+  bool integral = allow_integer;
   long *blk;
   ds_status_t st;
+  *out_left_integer = false;
   if (out_mate == NULL || (m > 0 && (u == NULL || v == NULL || w == NULL))) {
     return DS_ERR_NULL;
   }
@@ -729,6 +748,9 @@ ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
     }
     if (w[k] > maxw) {
       maxw = w[k];
+    }
+    if (w[k] > floor(w[k]) || fabs(w[k]) > DS_WMATCH_EXACT_MAX) {
+      integral = false;
     }
   }
   for (i = 0; i < (long)n; i++) {
@@ -748,7 +770,11 @@ ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
   s.w = w;
   s.ctx = context;
   s.st = DS_OK;
-  s.eps = 1e-10 * (1.0 + maxw);
+  /* Integral weights up to DS_WMATCH_EXACT_MAX keep every dual, slack and
+   * delta an integer below 2^53 (vertex duals start at maxw and stay within
+   * [0, 2 maxw], slacks of S-S edges are even, so halving them is exact):
+   * all comparisons are exact and need no tolerance. */
+  s.eps = integral ? 0.0 : 1e-10 * (1.0 + maxw);
   s.endpoint = (long *)ds_context_alloc(context, 2 * m * sizeof(long));
   s.nb_off = (long *)ds_context_calloc(context, n + 1, sizeof(long));
   s.nb = (long *)ds_context_alloc(context, 2 * m * sizeof(long));
@@ -839,6 +865,9 @@ ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
     s.unused[s.nunused++] = i;
   }
   st = wm_run(&s, max_cardinality);
+  if (st == DS_ERR_OVERFLOW && integral) {
+    *out_left_integer = true;
+  }
   if (st == DS_OK) {
     double total = 0.0;
     for (i = 0; i < (long)n; i++) {
@@ -854,6 +883,22 @@ ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
     }
   }
   wm_free(&s);
+  return st;
+}
+
+ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
+                                   const double *w, size_t m,
+                                   bool max_cardinality, size_t *out_mate,
+                                   double *out_weight, ds_context_t *context) {
+  bool left = false;
+  ds_status_t st = wm_solve(n, u, v, w, m, max_cardinality, out_mate,
+                            out_weight, context, true, &left);
+  if (left) {
+    /* integral weights whose duals outgrew the exact range: solve again
+     * with the floating tolerance */
+    st = wm_solve(n, u, v, w, m, max_cardinality, out_mate, out_weight, context,
+                  false, &left);
+  }
   return st;
 }
 
