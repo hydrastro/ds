@@ -87,53 +87,102 @@ static size_t tt_anc(const ds_topology_tree_t *t, size_t v, size_t level) {
   return c;
 }
 
-static ds_status_t tt_push(ds_topology_tree_t *t, size_t level, size_t c) {
-  if (level >= t->levels) {
-    size_t nl = t->levels < 8 ? 16 : t->levels * 2;
-    size_t **p;
-    size_t *pc;
-    size_t *pk;
-    size_t i;
-    while (nl <= level) {
-      nl *= 2;
-    }
-    p = (size_t **)ds_context_realloc(t->context, (void *)t->pending,
-                                      nl * sizeof(size_t *));
-    if (p == NULL) {
-      return DS_ERR_ALLOC;
-    }
-    t->pending = p;
-    pc = (size_t *)ds_context_realloc(t->context, t->pending_count,
-                                      nl * sizeof(size_t));
-    if (pc == NULL) {
-      return DS_ERR_ALLOC;
-    }
-    t->pending_count = pc;
-    pk = (size_t *)ds_context_realloc(t->context, t->pending_capacity,
-                                      nl * sizeof(size_t));
-    if (pk == NULL) {
-      return DS_ERR_ALLOC;
-    }
-    t->pending_capacity = pk;
-    for (i = t->levels; i < nl; i++) {
-      t->pending[i] = NULL;
-      t->pending_count[i] = 0;
-      t->pending_capacity[i] = 0;
-    }
-    t->levels = nl;
+/* make work-list slots exist for levels 0..level */
+static ds_status_t tt_ensure_levels(ds_topology_tree_t *t, size_t level) {
+  size_t nl, i;
+  size_t **p;
+  size_t *pc, *pk;
+  if (level < t->levels) {
+    return DS_OK;
   }
-  if (t->pending_count[level] == t->pending_capacity[level]) {
-    size_t nc =
-        t->pending_capacity[level] < 4 ? 8 : 2 * t->pending_capacity[level];
-    size_t *q = (size_t *)ds_context_realloc(t->context, t->pending[level],
-                                             nc * sizeof(size_t));
-    if (q == NULL) {
-      return DS_ERR_ALLOC;
-    }
-    t->pending[level] = q;
-    t->pending_capacity[level] = nc;
+  nl = t->levels < 8 ? 16 : t->levels * 2;
+  while (nl <= level) {
+    nl *= 2;
+  }
+  /* each array keeps working at the old length until all three grew */
+  p = (size_t **)ds_context_realloc(t->context, (void *)t->pending,
+                                    nl * sizeof(size_t *));
+  if (p == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  t->pending = p;
+  pc = (size_t *)ds_context_realloc(t->context, t->pending_count,
+                                    nl * sizeof(size_t));
+  if (pc == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  t->pending_count = pc;
+  pk = (size_t *)ds_context_realloc(t->context, t->pending_capacity,
+                                    nl * sizeof(size_t));
+  if (pk == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  t->pending_capacity = pk;
+  for (i = t->levels; i < nl; i++) {
+    t->pending[i] = NULL;
+    t->pending_count[i] = 0;
+    t->pending_capacity[i] = 0;
+  }
+  t->levels = nl;
+  return DS_OK;
+}
+
+static ds_status_t tt_level_room(ds_topology_tree_t *t, size_t level,
+                                 size_t need) {
+  size_t nc;
+  size_t *q;
+  ds_status_t st = tt_ensure_levels(t, level);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (need <= t->pending_capacity[level]) {
+    return DS_OK;
+  }
+  nc = t->pending_capacity[level] < 4 ? 8 : 2 * t->pending_capacity[level];
+  while (nc < need) {
+    nc *= 2;
+  }
+  q = (size_t *)ds_context_realloc(t->context, t->pending[level],
+                                   nc * sizeof(size_t));
+  if (q == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  t->pending[level] = q;
+  t->pending_capacity[level] = nc;
+  return DS_OK;
+}
+
+static ds_status_t tt_push(ds_topology_tree_t *t, size_t level, size_t c) {
+  ds_status_t st = tt_level_room(
+      t, level, (level < t->levels ? t->pending_count[level] : 0) + 1);
+  if (st != DS_OK) {
+    return st;
   }
   t->pending[level][t->pending_count[level]++] = c;
+  return DS_OK;
+}
+
+static size_t tt_height_of(const ds_topology_tree_t *t, size_t v) {
+  size_t r = v;
+  while (t->clusters[r].parent != TT_NONE) {
+    r = t->clusters[r].parent;
+  }
+  return t->clusters[r].level;
+}
+
+/* work lists with `room` entries on every level the update can reach (the
+ * merged tree is at most one level taller), so the common update never
+ * allocates after the forest changed */
+static ds_status_t tt_reserve_pending(ds_topology_tree_t *t, size_t u, size_t v,
+                                      size_t room) {
+  size_t hu = tt_height_of(t, u), hv = tt_height_of(t, v), l;
+  size_t top = (hu > hv ? hu : hv) + 4;
+  for (l = 0; l <= top; l++) {
+    ds_status_t st = tt_level_room(t, l, room);
+    if (st != DS_OK) {
+      return st;
+    }
+  }
   return DS_OK;
 }
 
@@ -327,7 +376,7 @@ static bool tt_has_edge(const ds_topology_tree_t *t, size_t u, size_t v) {
 
 size_t ds_topology_tree_root(const ds_topology_tree_t *t, size_t v) {
   size_t c;
-  if (t == NULL || v >= t->vertices) {
+  if (t == NULL || v >= t->vertices || t->broken) {
     return TT_NONE;
   }
   c = v;
@@ -363,6 +412,45 @@ static ds_status_t tt_update(ds_topology_tree_t *t, size_t u, size_t v) {
   return st;
 }
 
+/* re-cluster after the adjacency changed; a failure here marks the tree
+ * broken (see the header's failure contract) */
+static ds_status_t tt_commit(ds_topology_tree_t *t, size_t u, size_t v) {
+  ds_status_t st = tt_update(t, u, v);
+  if (st != DS_OK) {
+    t->broken = 1;
+  }
+  return st;
+}
+
+ds_status_t ds_topology_tree_rebuild(ds_topology_tree_t *t) {
+  size_t v, l;
+  ds_status_t st;
+  if (t == NULL) {
+    return DS_ERR_NULL;
+  }
+  /* drop every cluster above level 0 and start again from the vertices */
+  st = tt_level_room(t, 0, t->vertices);
+  if (st != DS_OK) {
+    return st;
+  }
+  for (l = 0; l < t->levels; l++) {
+    t->pending_count[l] = 0;
+  }
+  t->count = t->vertices;
+  t->free_list = TT_NONE;
+  for (v = 0; v < t->vertices; v++) {
+    t->clusters[v].parent = TT_NONE;
+    tt_vertex_edges(t, v);
+    t->pending[0][t->pending_count[0]++] = v;
+  }
+  t->broken = 1;
+  st = tt_process(t);
+  if (st == DS_OK) {
+    t->broken = 0;
+  }
+  return st;
+}
+
 ds_status_t ds_topology_tree_link(ds_topology_tree_t *t, size_t u, size_t v) {
   if (t == NULL) {
     return DS_ERR_NULL;
@@ -370,18 +458,18 @@ ds_status_t ds_topology_tree_link(ds_topology_tree_t *t, size_t u, size_t v) {
   if (u >= t->vertices || v >= t->vertices) {
     return DS_ERR_RANGE;
   }
-  if (u == v || t->degree[u] >= 3 || t->degree[v] >= 3 ||
+  if (t->broken || u == v || t->degree[u] >= 3 || t->degree[v] >= 3 ||
       ds_topology_tree_connected(t, u, v)) {
     return DS_ERR_STATE;
   }
-  /* reserve the clusters the re-clustering may create, so it cannot fail
-   * half-way for want of cluster slots */
-  if (tt_reserve_clusters(t, 8 * t->levels + 64) != DS_OK) {
+  /* reserve cluster slots and work lists before changing the forest */
+  if (tt_reserve_clusters(t, 8 * t->levels + 64) != DS_OK ||
+      tt_reserve_pending(t, u, v, 32) != DS_OK) {
     return DS_ERR_ALLOC;
   }
   t->adj[3 * u + t->degree[u]++] = v;
   t->adj[3 * v + t->degree[v]++] = u;
-  return tt_update(t, u, v);
+  return tt_commit(t, u, v);
 }
 
 ds_status_t ds_topology_tree_cut(ds_topology_tree_t *t, size_t u, size_t v) {
@@ -392,10 +480,11 @@ ds_status_t ds_topology_tree_cut(ds_topology_tree_t *t, size_t u, size_t v) {
   if (u >= t->vertices || v >= t->vertices) {
     return DS_ERR_RANGE;
   }
-  if (!tt_has_edge(t, u, v)) {
+  if (t->broken || !tt_has_edge(t, u, v)) {
     return DS_ERR_STATE;
   }
-  if (tt_reserve_clusters(t, 8 * t->levels + 64) != DS_OK) {
+  if (tt_reserve_clusters(t, 8 * t->levels + 64) != DS_OK ||
+      tt_reserve_pending(t, u, v, 32) != DS_OK) {
     return DS_ERR_ALLOC;
   }
   for (k = 0; t->adj[3 * u + k] != v; k++) {
@@ -404,7 +493,7 @@ ds_status_t ds_topology_tree_cut(ds_topology_tree_t *t, size_t u, size_t v) {
   for (k = 0; t->adj[3 * v + k] != u; k++) {
   }
   t->adj[3 * v + k] = t->adj[3 * v + --t->degree[v]];
-  return tt_update(t, u, v);
+  return tt_commit(t, u, v);
 }
 
 size_t ds_topology_tree_component_size(const ds_topology_tree_t *t, size_t v) {
@@ -417,6 +506,9 @@ ds_status_t ds_topology_tree_component_value(const ds_topology_tree_t *t,
   size_t r;
   if (t == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
+  if (t->broken) {
+    return DS_ERR_STATE;
   }
   r = ds_topology_tree_root(t, v);
   if (r == TT_NONE) {
@@ -441,6 +533,9 @@ ds_status_t ds_topology_tree_set_value(ds_topology_tree_t *t, size_t v,
     return DS_OK;
   }
   memcpy(tt_value(t, v), value, t->value_size);
+  if (t->broken) {
+    return DS_OK; /* ancestors are recomputed by the rebuild */
+  }
   for (x = t->clusters[v].parent; x != TT_NONE; x = t->clusters[x].parent) {
     const ds_topology_cluster_t *c = &t->clusters[x];
     if (c->child[1] != TT_NONE) {
@@ -460,7 +555,7 @@ size_t ds_topology_tree_height(const ds_topology_tree_t *t, size_t v) {
 
 size_t ds_topology_tree_cluster(const ds_topology_tree_t *t, size_t v,
                                 size_t level) {
-  if (t == NULL || v >= t->vertices) {
+  if (t == NULL || v >= t->vertices || t->broken) {
     return TT_NONE;
   }
   return tt_anc(t, v, level);

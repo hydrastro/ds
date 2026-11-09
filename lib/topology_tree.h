@@ -69,6 +69,7 @@ typedef struct ds_topology_tree {
   size_t *pending_count;
   size_t *pending_capacity;
   size_t levels;
+  int broken; /* an update failed after editing the adjacency */
   ds_context_t *context;
 } ds_topology_tree_t;
 
@@ -79,6 +80,23 @@ ds_status_t ds_topology_tree_init(ds_topology_tree_t *t, size_t vertices,
                                   ds_topology_combine_fn combine, void *user,
                                   ds_context_t *context);
 void ds_topology_tree_destroy(ds_topology_tree_t *t);
+/*
+ * Failure contract: link and cut reserve cluster slots and per-level work
+ * lists before touching the forest, which makes a later allocation failure
+ * unlikely but not impossible (the amount of re-clustering is not bounded
+ * by a constant per level in this implementation). If re-clustering does
+ * fail after the edge was changed, the edge change stands, the call
+ * returns the error and the tree is marked broken: queries then answer as
+ * for an absent vertex (connected false, sizes 0, DS_ERR_STATE) and
+ * updates return DS_ERR_STATE until ds_topology_tree_rebuild succeeds.
+ * Under an infallible allocator this never happens.
+ *
+ * Component aggregates combine cluster values in an order that follows the
+ * clustering, which changes with updates: use a commutative combine (or
+ * accept that the order is unspecified).
+ */
+/* rebuild the whole hierarchy from the adjacency (clears `broken`) */
+ds_status_t ds_topology_tree_rebuild(ds_topology_tree_t *t);
 /* DS_ERR_STATE if u and v are connected or a degree would exceed 3 */
 ds_status_t ds_topology_tree_link(ds_topology_tree_t *t, size_t u, size_t v);
 /* DS_ERR_STATE if there is no edge u-v */
