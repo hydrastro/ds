@@ -4,10 +4,14 @@
 /*
  * Computational geometry in the plane (and distances in any dimension).
  *
- * Predicates use plain double arithmetic (no exact/adaptive arithmetic):
- * orientation is the sign of a cross product, so nearly collinear inputs
- * can be misclassified at the rounding level. Integer coordinates below
- * 2^26 are exact.
+ * Orientation (ds_geo_orient) is the adaptive exact predicate of
+ * robust_predicates.h: its sign is exact for coordinates in that header's
+ * orient2d range, and its magnitude is approximate. Every decision built
+ * on it is therefore exact: segment intersection, point in polygon,
+ * hull membership, kernel side tests. Constructions are not: intersection
+ * points, clipped vertices, areas, distances and calipers round as plain
+ * double arithmetic does. Other geometric modules (geo_opt) still use
+ * plain floating point.
  *
  *   distances      Euclidean, Manhattan, Chebyshev and Minkowski (L_p) in
  *                  d dimensions; Hausdorff distance between point sets
@@ -70,7 +74,7 @@ double ds_geo_hausdorff(const double *a, size_t na, const double *b, size_t nb,
 
 /* ---- predicates ---------------------------------------------------------- */
 
-/* > 0 counter-clockwise, < 0 clockwise, 0 collinear. */
+/* > 0 counter-clockwise, < 0 clockwise, 0 collinear; exact sign. */
 double ds_geo_orient(ds_point2_t a, ds_point2_t b, ds_point2_t c);
 /* Closed segments ab and cd share at least one point. */
 bool ds_geo_segments_intersect(ds_point2_t a, ds_point2_t b, ds_point2_t c,

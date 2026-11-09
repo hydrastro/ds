@@ -1,4 +1,5 @@
 #include "geometry.h"
+#include "robust_predicates.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,8 +102,18 @@ double ds_geo_hausdorff(const double *a, size_t na, const double *b, size_t nb,
 
 /* ---- predicates ---------------------------------------------------------- */
 
+/* the adaptive exact predicate: exact sign, approximate magnitude */
 double ds_geo_orient(ds_point2_t a, ds_point2_t b, ds_point2_t c) {
-  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  double pa[2];
+  double pb[2];
+  double pc[2];
+  pa[0] = a.x;
+  pa[1] = a.y;
+  pb[0] = b.x;
+  pb[1] = b.y;
+  pc[0] = c.x;
+  pc[1] = c.y;
+  return ds_orient2d(pa, pb, pc);
 }
 
 static int geo_sign(double v) { return (v > 0) - (v < 0); }
