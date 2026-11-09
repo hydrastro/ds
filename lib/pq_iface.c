@@ -193,6 +193,28 @@ static ds_status_t pqa_push(void *pq, const void *item,
   return DS_OK;
 }
 
+static ds_status_t pqa_reserve(void *pq, size_t count) {
+  pqa_t *h = (pqa_t *)pq;
+  size_t need, bytes;
+  pqa_node_t **a;
+  if (!ds_size_add(h->n, count, &need)) {
+    return DS_ERR_OVERFLOW;
+  }
+  if (need <= h->capacity) {
+    return DS_OK;
+  }
+  if (!ds_size_mul(need, sizeof(*a), &bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
+  a = (pqa_node_t **)ds_context_realloc(h->b.context, h->a, bytes);
+  if (a == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  h->a = a;
+  h->capacity = need;
+  return DS_OK;
+}
+
 static const void *pqa_top(const void *pq) {
   const pqa_t *h = (const pqa_t *)pq;
   return h->n == 0 ? NULL : pq_citem(&h->b, h->a[0]);
@@ -641,6 +663,58 @@ static void pqp_meld(void *pq, void *other) {
 
 #define PQ_WL DS_PQ_WORST_LOG
 #define PQ_ML DS_PQ_MELDABLE
+#define C_1 DS_PQ_COST_CONST
+#define C_SUB DS_PQ_COST_SUBLOG
+#define C_LOG DS_PQ_COST_LOG
+#define C_LOG2 DS_PQ_COST_LOG2
+#define C_N DS_PQ_COST_LINEAR
+#define C_NONE DS_PQ_COST_UNSTATED
+/* push, pop, decrease, increase, remove, meld as {worst, amortized} */
+#define PQ_COSTS_ARRAY                                                         \
+  {                                                                            \
+    {C_N, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG},              \
+        {C_LOG, C_LOG}, {                                                      \
+      C_NONE, C_NONE                                                           \
+    }                                                                          \
+  }
+#define PQ_COSTS_BINOMIAL                                                      \
+  {                                                                            \
+    {C_LOG, C_1}, {C_LOG, C_LOG}, {C_LOG2, C_LOG2}, {C_LOG2, C_LOG2},          \
+        {C_LOG2, C_LOG2}, {                                                    \
+      C_LOG, C_LOG                                                             \
+    }                                                                          \
+  }
+#define PQ_COSTS_LEFTIST                                                       \
+  {                                                                            \
+    {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG},            \
+        {C_LOG, C_LOG}, {                                                      \
+      C_LOG, C_LOG                                                             \
+    }                                                                          \
+  }
+#define PQ_COSTS_WEIGHT                                                        \
+  {                                                                            \
+    {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_N, C_N}, {C_N, C_N}, {C_N, C_N}, {      \
+      C_LOG, C_LOG                                                             \
+    }                                                                          \
+  }
+#define PQ_COSTS_SKEW                                                          \
+  {                                                                            \
+    {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_NONE}, {C_N, C_NONE}, {C_N, C_NONE}, { \
+      C_N, C_LOG                                                               \
+    }                                                                          \
+  }
+#define PQ_COSTS_RANDOM                                                        \
+  {                                                                            \
+    {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {    \
+      C_N, C_LOG                                                               \
+    }                                                                          \
+  }
+#define PQ_COSTS_PAIRING                                                       \
+  {                                                                            \
+    {C_1, C_1}, {C_N, C_LOG}, {C_1, C_SUB}, {C_N, C_LOG}, {C_N, C_LOG}, {      \
+      C_1, C_1                                                                 \
+    }                                                                          \
+  }
 
 static const ds_pq_ops_t pq_binary_ops = {"binary",      PQ_WL | DS_PQ_IMPLICIT,
                                           sizeof(pqa_t), pqa_init2,
@@ -648,7 +722,8 @@ static const ds_pq_ops_t pq_binary_ops = {"binary",      PQ_WL | DS_PQ_IMPLICIT,
                                           pqa_top,       pqa_pop,
                                           pqa_update,    pqa_remove,
                                           pqa_item,      pqa_size,
-                                          NULL};
+                                          NULL,          pqa_reserve,
+                                          PQ_COSTS_ARRAY};
 static const ds_pq_ops_t pq_quaternary_ops = {
     "quaternary",  PQ_WL | DS_PQ_IMPLICIT,
     sizeof(pqa_t), pqa_init4,
@@ -656,17 +731,19 @@ static const ds_pq_ops_t pq_quaternary_ops = {
     pqa_top,       pqa_pop,
     pqa_update,    pqa_remove,
     pqa_item,      pqa_size,
-    NULL};
+    NULL,          pqa_reserve,
+    PQ_COSTS_ARRAY};
 static const ds_pq_ops_t pq_binomial_ops = {
-    "binomial", PQ_WL | PQ_ML, sizeof(pqb_t), pqb_init,   pqb_destroy,
-    pqb_push,   pqb_top,       pqb_pop,       pqb_update, pqb_remove,
-    pqb_item,   pqb_size,      pqb_meld};
+    "binomial", PQ_ML,    sizeof(pqb_t), pqb_init,   pqb_destroy,
+    pqb_push,   pqb_top,  pqb_pop,       pqb_update, pqb_remove,
+    pqb_item,   pqb_size, pqb_meld,      NULL,       PQ_COSTS_BINOMIAL};
 static const ds_pq_ops_t pq_leftist_ops = {
-    "leftist", PQ_WL | PQ_ML, sizeof(pqm_t), pqm_init_leftist, pqm_destroy,
-    pqm_push,  pqm_top,       pqm_pop,       pqm_update,       pqm_remove,
-    pqm_item,  pqm_size,      pqm_meld};
+    "leftist",   PQ_WL | PQ_ML, sizeof(pqm_t),   pqm_init_leftist,
+    pqm_destroy, pqm_push,      pqm_top,         pqm_pop,
+    pqm_update,  pqm_remove,    pqm_item,        pqm_size,
+    pqm_meld,    NULL,          PQ_COSTS_LEFTIST};
 static const ds_pq_ops_t pq_weight_ops = {"weight-biased leftist",
-                                          PQ_WL | PQ_ML,
+                                          PQ_ML,
                                           sizeof(pqm_t),
                                           pqm_init_weight,
                                           pqm_destroy,
@@ -677,14 +754,17 @@ static const ds_pq_ops_t pq_weight_ops = {"weight-biased leftist",
                                           pqm_remove,
                                           pqm_item,
                                           pqm_size,
-                                          pqm_meld};
+                                          pqm_meld,
+                                          NULL,
+                                          PQ_COSTS_WEIGHT};
 static const ds_pq_ops_t pq_skew_ops = {"skew",        DS_PQ_AMORTIZED | PQ_ML,
                                         sizeof(pqm_t), pqm_init_skew,
                                         pqm_destroy,   pqm_push,
                                         pqm_top,       pqm_pop,
                                         pqm_update,    pqm_remove,
                                         pqm_item,      pqm_size,
-                                        pqm_meld};
+                                        pqm_meld,      NULL,
+                                        PQ_COSTS_SKEW};
 static const ds_pq_ops_t pq_random_ops = {"randomized meldable",
                                           DS_PQ_RANDOMIZED | PQ_ML,
                                           sizeof(pqm_t),
@@ -697,7 +777,9 @@ static const ds_pq_ops_t pq_random_ops = {"randomized meldable",
                                           pqm_remove,
                                           pqm_item,
                                           pqm_size,
-                                          pqm_meld};
+                                          pqm_meld,
+                                          NULL,
+                                          PQ_COSTS_RANDOM};
 static const ds_pq_ops_t pq_pairing_ops = {
     "pairing",
     DS_PQ_AMORTIZED | PQ_ML | DS_PQ_FAST_DECREASE | DS_PQ_MELD_ANY_CONTEXT,
@@ -711,7 +793,9 @@ static const ds_pq_ops_t pq_pairing_ops = {
     pqp_remove,
     pqp_item,
     pqp_size,
-    pqp_meld};
+    pqp_meld,
+    NULL,
+    PQ_COSTS_PAIRING};
 
 const ds_pq_ops_t *ds_pq_binary_ops(void) { return &pq_binary_ops; }
 const ds_pq_ops_t *ds_pq_quaternary_ops(void) { return &pq_quaternary_ops; }
@@ -814,6 +898,13 @@ size_t ds_pq_size(const ds_pq_t *pq) {
 
 bool ds_pq_is_empty(const ds_pq_t *pq) { return ds_pq_size(pq) == 0; }
 
+ds_status_t ds_pq_reserve(ds_pq_t *pq, size_t count) {
+  if (pq == NULL || pq->ops == NULL) {
+    return DS_ERR_NULL;
+  }
+  return pq->ops->reserve == NULL ? DS_OK : pq->ops->reserve(pq->impl, count);
+}
+
 ds_status_t ds_pq_meld(ds_pq_t *pq, ds_pq_t *other) {
   if (pq == NULL || other == NULL || pq->ops == NULL || other->ops == NULL) {
     return DS_ERR_NULL;
@@ -827,6 +918,12 @@ ds_status_t ds_pq_meld(ds_pq_t *pq, ds_pq_t *other) {
        (pq->ops->traits & DS_PQ_MELD_ANY_CONTEXT) != 0)) {
     pq->ops->meld(pq->impl, other->impl);
     return DS_OK;
+  }
+  if (pq->ops->reserve != NULL) {
+    ds_status_t st = pq->ops->reserve(pq->impl, other->ops->size(other->impl));
+    if (st != DS_OK) {
+      return st;
+    }
   }
   while (other->ops->size(other->impl) > 0) {
     /* push a copy first so a failure leaves both queues consistent */

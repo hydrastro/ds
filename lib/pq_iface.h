@@ -15,8 +15,11 @@
  *
  *   DS_PQ_MELDABLE       meld in O(log n) or better, keeping the handles
  *                        of the absorbed queue valid
- *   DS_PQ_WORST_LOG      push, pop, update and remove in O(log n) worst case
- *   DS_PQ_AMORTIZED      the bounds are amortized
+ *   DS_PQ_WORST_LOG      push, pop, update and remove each in O(log n)
+ *                        worst case; for array backends push only once
+ *                        capacity is reserved (ds_pq_reserve), since a
+ *                        growing push relocates the O(n) array
+ *   DS_PQ_AMORTIZED      the main bounds are amortized
  *   DS_PQ_RANDOMIZED     the bounds hold in expectation
  *   DS_PQ_IMPLICIT       array based: an index per item, no child links
  *   DS_PQ_FAST_DECREASE  decreasing a key costs o(log n) amortized
@@ -24,18 +27,34 @@
  *                        contexts (nodes remember the context that
  *                        allocated them)
  *
- * Backends built on the library's heaps:
+ * The traits are a summary; ops->costs states each operation's bound,
+ * worst case and amortized (expected for DS_PQ_RANDOMIZED backends), as a
+ * DS_PQ_COST_* class. DS_PQ_COST_UNSTATED means no bound is claimed, not
+ * that the operation is slow. Allocator calls count as O(1).
  *
- *   ds_pq_binary_ops()    implicit binary heap               worst log
- *   ds_pq_quaternary_ops() implicit 4-ary heap (shallower,   worst log
- *                          cheaper decreases)
- *   ds_pq_binomial_ops()  binomial heap (lib/binomial_heap)  worst log, meld
- *   ds_pq_leftist_ops()   leftist tree (lib/meldable_heap)   worst log, meld
- *   ds_pq_weight_ops()    weight-biased leftist tree         worst log, meld
- *   ds_pq_skew_ops()      skew heap                          amortized, meld
- *   ds_pq_random_ops()    randomized meldable heap           expected, meld
- *   ds_pq_pairing_ops()   pairing heap (lib/pairing_heap)    amortized, meld,
- *                                                            fast decrease
+ * Backends built on the library's heaps (worst / amortized; "-" = no
+ * native meld, the copying meld is used):
+ *
+ *                          push     pop      decrease update   remove   meld
+ *   ds_pq_binary_ops()     n/log    log      log      log      log      -
+ *     implicit binary heap; push is log worst case after ds_pq_reserve
+ *   ds_pq_quaternary_ops() n/log    log      log      log      log      -
+ *     implicit 4-ary heap: shallower, cheaper decreases
+ *   ds_pq_binomial_ops()   log/1    log      log^2    log^2    log^2    log
+ *     binomial heap (lib/binomial_heap): a structural parent swap repairs
+ *     the parent links of two child lists, O(log n) each
+ *   ds_pq_leftist_ops()    log      log      log      log      log      log
+ *     leftist tree (lib/meldable_heap): rank refresh stops within the
+ *     O(log n) rank bound
+ *   ds_pq_weight_ops()     log      log      n        n        n        log
+ *     weight-biased leftist tree: removal refreshes subtree weights up the
+ *     whole ancestor chain, which can be a left chain of linear height
+ *   ds_pq_skew_ops()       n/log    n/log    n/?      n/?      n/?      n/log
+ *     skew heap: the amortized analysis covers push, pop and meld only
+ *   ds_pq_random_ops()     n/log    n/log    n/log    n/log    n/log    n/log
+ *     randomized meldable heap (expected bounds)
+ *   ds_pq_pairing_ops()    1        n/log    1/o(log) n/log    n/log    1
+ *     pairing heap (lib/pairing_heap); native meld across contexts
  *
  * Any other heap can be adapted by filling in a ds_pq_ops_t.
  *
@@ -43,10 +62,10 @@
  * two queues share a context (or the backend has DS_PQ_MELD_ANY_CONTEXT);
  * the absorbed queue's handles then stay valid and now belong to pq.
  * Otherwise, and for backends without a meld, items are copied one at a
- * time (push into pq, then pop from other) and the absorbed queue's
- * handles are invalidated. If a push fails midway the copy stops: every
- * item moved so far is in pq, the rest are still in other, both queues are
- * valid, and the error is returned.
+ * time (push into pq, then pop from other; pq reserves room first) and
+ * the absorbed queue's handles are invalidated. If a push fails midway the copy
+ * stops: every item moved so far is in pq, the rest are still in other, both
+ * queues are valid, and the error is returned.
  */
 
 #include "context.h"
@@ -69,6 +88,30 @@ typedef struct ds_pq_handle_s *ds_pq_handle_t;
 #define DS_PQ_FAST_DECREASE 0x20u
 #define DS_PQ_MELD_ANY_CONTEXT 0x40u
 
+/* cost classes of ds_pq_cost_t */
+#define DS_PQ_COST_UNSTATED 0u /* no bound claimed (or not native) */
+#define DS_PQ_COST_CONST 1u    /* O(1) */
+#define DS_PQ_COST_SUBLOG 2u   /* o(log n) */
+#define DS_PQ_COST_LOG 3u      /* O(log n) */
+#define DS_PQ_COST_LOG2 4u     /* O(log^2 n) */
+#define DS_PQ_COST_LINEAR 5u   /* O(n) */
+
+typedef struct ds_pq_cost {
+  unsigned char worst;     /* one call, worst case */
+  unsigned char amortized; /* amortized over any sequence (expected for
+                              DS_PQ_RANDOMIZED) */
+} ds_pq_cost_t;
+
+/* update is split by direction: decrease moves an item towards the top */
+typedef struct ds_pq_costs {
+  ds_pq_cost_t push;
+  ds_pq_cost_t pop;
+  ds_pq_cost_t decrease;
+  ds_pq_cost_t increase;
+  ds_pq_cost_t remove;
+  ds_pq_cost_t meld; /* the native meld; UNSTATED when there is none */
+} ds_pq_costs_t;
+
 typedef struct ds_pq_ops {
   const char *name;
   unsigned traits;
@@ -88,6 +131,10 @@ typedef struct ds_pq_ops {
   /* move every item of other (same ops, item size and order) into pq;
    * NULL when not supported */
   void (*meld)(void *pq, void *other);
+  /* make room for count more pushes without growth; NULL when pushes never
+   * relocate storage */
+  ds_status_t (*reserve)(void *pq, size_t count);
+  ds_pq_costs_t costs;
 } ds_pq_ops_t;
 
 typedef struct ds_pq {
@@ -120,6 +167,9 @@ ds_status_t ds_pq_remove(ds_pq_t *pq, ds_pq_handle_t handle, void *out_item);
 const void *ds_pq_item(const ds_pq_t *pq, ds_pq_handle_t handle);
 size_t ds_pq_size(const ds_pq_t *pq);
 bool ds_pq_is_empty(const ds_pq_t *pq);
+/* room for count more pushes without relocation (DS_OK and nothing to do
+ * for backends without a reserve op) */
+ds_status_t ds_pq_reserve(ds_pq_t *pq, size_t count);
 /* other must use the same ops, item size and order; it is left empty */
 ds_status_t ds_pq_meld(ds_pq_t *pq, ds_pq_t *other);
 
