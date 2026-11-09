@@ -515,7 +515,19 @@ unicode-data: $(UCD_FILES)
 $(GEN_BIN): $(GEN_SRC) | $(BUILD_DIR)
 	$(CC) -std=c89 -Wall -Wextra -O2 $(INCLUDES) -o $@ $<
 
-$(GEN_SRC_C) $(GEN_SRC_H): $(GEN_BIN) $(UCD_FILES) | $(BUILD_DIR)
+# The generator writes the .c and .h together. One stamp target runs it
+# once (a plain two-target rule may run it twice in parallel builds); the
+# outputs depend on the stamp and regenerate if either goes missing.
+GEN_STAMP := $(BUILD_DIR)/unicode_tables.stamp
+TEST_GEN_STAMP := $(TEST_BUILD_DIR)/unicode_tables.stamp
+
+$(GEN_SRC_C) $(GEN_SRC_H): $(GEN_STAMP)
+	@[ -f $@ ] || { rm -f $(GEN_STAMP); $(MAKE) $(GEN_STAMP); }
+
+$(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H): $(TEST_GEN_STAMP)
+	@[ -f $@ ] || { rm -f $(TEST_GEN_STAMP); $(MAKE) $(TEST_GEN_STAMP); }
+
+$(GEN_STAMP): $(GEN_BIN) $(UCD_FILES) | $(BUILD_DIR)
 	$(GEN_BIN) \
 	  --unicode-data $(DATA_DIR)/UnicodeData.txt \
 	  --case-folding $(DATA_DIR)/CaseFolding.txt \
@@ -524,8 +536,9 @@ $(GEN_SRC_C) $(GEN_SRC_H): $(GEN_BIN) $(UCD_FILES) | $(BUILD_DIR)
 	  --emoji-data   $(DATA_DIR)/emoji-data.txt \
 	  --out-c        $(GEN_SRC_C) \
 	  --out-h        $(GEN_SRC_H)
+	@touch $@
 
-$(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H): $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD_DIR)
+$(TEST_GEN_STAMP): $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD_DIR)
 	$(GEN_BIN) \
 	  --unicode-data $(TEST_UCD_DIR)/UnicodeData.txt \
 	  --case-folding $(TEST_UCD_DIR)/CaseFolding.txt \
@@ -534,6 +547,7 @@ $(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H): $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD
 	  --emoji-data   $(TEST_UCD_DIR)/emoji-data.txt \
 	  --out-c        $(TEST_GEN_SRC_C) \
 	  --out-h        $(TEST_GEN_SRC_H)
+	@touch $@
 
 %.o: %.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<
@@ -672,7 +686,7 @@ clean:
 	      $(LIB_DIR)/*.d $(ALGO_DIR)/*.d $(BUILD_DIR)/*.d \
 	      $(LIB_STATIC) $(LIB_SHARED) \
 	      $(GEN_BIN)
-	rm -f $(GEN_SRC_C) $(GEN_SRC_H)
+	rm -f $(GEN_SRC_C) $(GEN_SRC_H) $(GEN_STAMP)
 	rm -rf $(TEST_BUILD_DIR)
 
 distclean: clean
