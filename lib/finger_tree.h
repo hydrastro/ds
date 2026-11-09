@@ -11,16 +11,32 @@
  * count), a priority queue (measure = max), an ordered sequence (measure =
  * last key) or an interval structure:
  *
- *   push/pop at either end    O(1) amortized
+ *   push/pop at either end    O(log n) worst case; O(1) amortized over a
+ *                             linear history (each version updated at
+ *                             most once)
  *   concat                    O(log min(n, m))
  *   split / lookup by a monotone predicate on prefix measures  O(log n)
+ *
+ * The digits are rebuilt eagerly (no lazy middle trees), so the O(1)
+ * amortization does not survive persistent use: pushing repeatedly into
+ * separate versions derived from one version whose digits are full pays
+ * the same O(log n) carry chain each time (Hinze and Paterson obtain the
+ * persistent bound with laziness).
  *
  * Versions are handles over reference-counted, immutable nodes: every
  * operation returns a new handle and leaves its inputs valid (an output
  * may be one of the inputs, which is then released). combine(out, a, b)
  * must be associative with identity `identity` and must accept out == a.
- * Elements are owned by the nodes holding them and destroyed with the
- * last one (destroy_elem, optional). Memory comes from the context.
+ * The config must outlive every version and stay unchanged.
+ *
+ * Element ownership: elements are stored once and shared by every version
+ * that contains them; the last node holding one destroys it (destroy_elem,
+ * optional). front, back and lookup return borrowed pointers, valid while
+ * a version containing the element lives. A pop's out_elem receives a
+ * clone made by copy_elem when it is set, a byte copy when nothing is
+ * owned (no destroy_elem), and DS_ERR_UNSUPPORTED is returned when
+ * destroy_elem is set without copy_elem (a byte copy of an owned element
+ * could outlive it). Memory comes from the context.
  */
 
 #include "context.h"
@@ -39,6 +55,8 @@ typedef struct ds_ftree_config {
   void (*combine)(void *out, const void *a, const void *b, void *user);
   const void *identity;
   void (*destroy_elem)(void *elem, void *user);
+  /* clone for pop results (dst uninitialised); false on failure */
+  bool (*copy_elem)(void *dst, const void *src, void *user);
   void *user;
   ds_context_t *context;
 } ds_ftree_config_t;
@@ -66,7 +84,7 @@ ds_status_t ds_ftree_push_front(const ds_ftree_t *t, const void *elem,
                                 ds_ftree_t *out);
 ds_status_t ds_ftree_push_back(const ds_ftree_t *t, const void *elem,
                                ds_ftree_t *out);
-/* out_elem (optional) receives a byte copy of the element */
+/* out_elem (optional) receives the element (see ownership above) */
 ds_status_t ds_ftree_pop_front(const ds_ftree_t *t, void *out_elem,
                                ds_ftree_t *out);
 ds_status_t ds_ftree_pop_back(const ds_ftree_t *t, void *out_elem,
@@ -78,7 +96,11 @@ ds_status_t ds_ftree_concat(const ds_ftree_t *a, const ds_ftree_t *b,
 ds_status_t ds_ftree_split(const ds_ftree_t *t, ds_ftree_pred_t pred,
                            void *user, ds_ftree_t *out_left,
                            ds_ftree_t *out_right);
-/* the element at which pred turns true, NULL if it never does */
+/* the element at which pred turns true: DS_OK, DS_NOT_FOUND when pred
+ * never turns true, DS_ERR_ALLOC when scratch could not be allocated */
+ds_status_t ds_ftree_lookup_status(const ds_ftree_t *t, ds_ftree_pred_t pred,
+                                   void *user, const void **out_elem);
+/* the same, NULL for "not found" and for failures alike */
 const void *ds_ftree_lookup(const ds_ftree_t *t, ds_ftree_pred_t pred,
                             void *user);
 /* in order; DS_STOP when visit returns false */

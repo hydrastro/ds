@@ -550,9 +550,21 @@ static fi_t *ft_lookup_tree(ft_split_ctx_t *s, unsigned char *acc, ft_t *t,
 /* ---- public ---- */
 
 ds_status_t ds_ftree_init(ds_ftree_t *t, const ds_ftree_config_t *config) {
+  size_t off, bytes;
   if (t == NULL || config == NULL || config->measure == NULL ||
       config->combine == NULL || config->identity == NULL) {
     return DS_ERR_NULL;
+  }
+  /* validate every size the helpers compute later, once: item header +
+   * measure + padding + element, tree header + measure, split scratch */
+  if (!ds_size_align(sizeof(fi_t), DS_MAX_ALIGN, &off) ||
+      !ds_size_add(off, config->measure_size, &off) ||
+      !ds_size_align(off, DS_MAX_ALIGN, &off) ||
+      !ds_size_add(off, config->elem_size, &bytes) ||
+      !ds_size_align(sizeof(ft_t), DS_MAX_ALIGN, &off) ||
+      !ds_size_add(off, config->measure_size, &bytes) ||
+      !ds_size_mul(3 * FT_LEVELS, config->measure_size, &bytes)) {
+    return DS_ERR_OVERFLOW;
   }
   t->root = NULL;
   t->config = config;
@@ -664,12 +676,27 @@ static ds_status_t ft_pop(const ds_ftree_t *t, void *out_elem, ds_ftree_t *out,
     return DS_EMPTY;
   }
   c = t->config;
+  if (out_elem != NULL && c->destroy_elem != NULL && c->copy_elem == NULL) {
+    return DS_ERR_UNSUPPORTED; /* an owned element cannot be byte-copied */
+  }
   ok = front ? ft_view_l(c, t->root, &x, &r) : ft_view_r(c, t->root, &r, &x);
   if (!ok) {
     return DS_ERR_ALLOC;
   }
   if (out_elem != NULL) {
-    memcpy(out_elem, fi_e(c, x), c->elem_size);
+    /* other versions may still hold the element: hand out a clone, or
+     * plain bytes when nothing is owned */
+    bool copied = true;
+    if (c->copy_elem != NULL) {
+      copied = c->copy_elem(out_elem, fi_e(c, x), c->user);
+    } else {
+      memcpy(out_elem, fi_e(c, x), c->elem_size);
+    }
+    if (!copied) {
+      fi_release(c, x);
+      ft_release(c, r);
+      return DS_ERR_ALLOC;
+    }
   }
   fi_release(c, x);
   ft_install(out, t, r);
@@ -777,18 +804,19 @@ ds_status_t ds_ftree_split(const ds_ftree_t *t, ds_ftree_pred_t pred,
   return DS_OK;
 }
 
-const void *ds_ftree_lookup(const ds_ftree_t *t, ds_ftree_pred_t pred,
-                            void *user) {
+ds_status_t ds_ftree_lookup_status(const ds_ftree_t *t, ds_ftree_pred_t pred,
+                                   void *user, const void **out_elem) {
   cfg_t *c;
   ft_split_ctx_t s;
   fi_t *x;
   unsigned char *acc;
-  if (t == NULL || pred == NULL || t->root == NULL) {
-    return NULL;
+  if (t == NULL || pred == NULL || out_elem == NULL || t->config == NULL) {
+    return DS_ERR_NULL;
   }
+  *out_elem = NULL;
   c = t->config;
-  if (!pred(ft_m(c, t->root), user)) {
-    return NULL;
+  if (t->root == NULL || !pred(ft_m(c, t->root), user)) {
+    return DS_NOT_FOUND;
   }
   s.c = c;
   s.pred = pred;
@@ -799,13 +827,23 @@ const void *ds_ftree_lookup(const ds_ftree_t *t, ds_ftree_pred_t pred,
   if (s.scratch == NULL || acc == NULL) {
     ds_context_free(c->context, s.scratch);
     ds_context_free(c->context, acc);
-    return NULL;
+    return DS_ERR_ALLOC;
   }
   memcpy(acc, c->identity, c->measure_size);
   x = ft_lookup_tree(&s, acc, t->root, 0);
   ds_context_free(c->context, s.scratch);
   ds_context_free(c->context, acc);
-  return x == NULL ? NULL : fi_e(c, x);
+  if (x == NULL) {
+    return DS_ERR_INTERNAL; /* deeper than FT_LEVELS: not reachable */
+  }
+  *out_elem = fi_e(c, x);
+  return DS_OK;
+}
+
+const void *ds_ftree_lookup(const ds_ftree_t *t, ds_ftree_pred_t pred,
+                            void *user) {
+  const void *e = NULL;
+  return ds_ftree_lookup_status(t, pred, user, &e) == DS_OK ? e : NULL;
 }
 
 static bool ft_visit_item(cfg_t *c, fi_t *x, ds_ftree_visit_t visit,
