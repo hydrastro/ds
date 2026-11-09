@@ -699,12 +699,18 @@ static const ds_pq_ops_t pq_random_ops = {"randomized meldable",
                                           pqm_size,
                                           pqm_meld};
 static const ds_pq_ops_t pq_pairing_ops = {
-    "pairing",     DS_PQ_AMORTIZED | PQ_ML | DS_PQ_FAST_DECREASE,
-    sizeof(pqp_t), pqp_init,
-    pqp_destroy,   pqp_push,
-    pqp_top,       pqp_pop,
-    pqp_update,    pqp_remove,
-    pqp_item,      pqp_size,
+    "pairing",
+    DS_PQ_AMORTIZED | PQ_ML | DS_PQ_FAST_DECREASE | DS_PQ_MELD_ANY_CONTEXT,
+    sizeof(pqp_t),
+    pqp_init,
+    pqp_destroy,
+    pqp_push,
+    pqp_top,
+    pqp_pop,
+    pqp_update,
+    pqp_remove,
+    pqp_item,
+    pqp_size,
     pqp_meld};
 
 const ds_pq_ops_t *ds_pq_binary_ops(void) { return &pq_binary_ops; }
@@ -816,7 +822,9 @@ ds_status_t ds_pq_meld(ds_pq_t *pq, ds_pq_t *other) {
       pq->item_size != other->item_size) {
     return DS_ERR_INVALID;
   }
-  if (pq->ops->meld != NULL) {
+  if (pq->ops->meld != NULL &&
+      (pq->context == other->context ||
+       (pq->ops->traits & DS_PQ_MELD_ANY_CONTEXT) != 0)) {
     pq->ops->meld(pq->impl, other->impl);
     return DS_OK;
   }

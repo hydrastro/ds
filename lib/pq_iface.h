@@ -20,6 +20,9 @@
  *   DS_PQ_RANDOMIZED     the bounds hold in expectation
  *   DS_PQ_IMPLICIT       array based: an index per item, no child links
  *   DS_PQ_FAST_DECREASE  decreasing a key costs o(log n) amortized
+ *   DS_PQ_MELD_ANY_CONTEXT  native meld also between queues with different
+ *                        contexts (nodes remember the context that
+ *                        allocated them)
  *
  * Backends built on the library's heaps:
  *
@@ -34,9 +37,16 @@
  *   ds_pq_pairing_ops()   pairing heap (lib/pairing_heap)    amortized, meld,
  *                                                            fast decrease
  *
- * Any other heap can be adapted by filling in a ds_pq_ops_t. ds_pq_meld
- * also works without a meld operation by moving items one at a time;
- * then the absorbed queue's handles are invalidated.
+ * Any other heap can be adapted by filling in a ds_pq_ops_t.
+ *
+ * Melding: the native meld transfers nodes, so it is used only when the
+ * two queues share a context (or the backend has DS_PQ_MELD_ANY_CONTEXT);
+ * the absorbed queue's handles then stay valid and now belong to pq.
+ * Otherwise, and for backends without a meld, items are copied one at a
+ * time (push into pq, then pop from other) and the absorbed queue's
+ * handles are invalidated. If a push fails midway the copy stops: every
+ * item moved so far is in pq, the rest are still in other, both queues are
+ * valid, and the error is returned.
  */
 
 #include "context.h"
@@ -57,6 +67,7 @@ typedef struct ds_pq_handle_s *ds_pq_handle_t;
 #define DS_PQ_RANDOMIZED 0x8u
 #define DS_PQ_IMPLICIT 0x10u
 #define DS_PQ_FAST_DECREASE 0x20u
+#define DS_PQ_MELD_ANY_CONTEXT 0x40u
 
 typedef struct ds_pq_ops {
   const char *name;
