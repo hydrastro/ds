@@ -6,14 +6,21 @@
  * store (memory, a file, or a custom medium) and survives reopening.
  *
  * Keys are unsigned long (stored as 8 little-endian bytes); values are
- * fixed-size byte blobs. Page 0 holds the metadata; leaves are linked for
- * range scans. Insert splits full nodes on the way back up; removal
- * deletes from the leaf without rebalancing (nodes may become underfull
- * and empty leaves stay linked), the usual trade-off of lazy deletion.
- * All page formats are portable (fixed little-endian layout).
+ * fixed-size byte blobs. Page 0 holds the metadata (including the writer's
+ * unsigned long width: a tree written where it is wider is rejected with
+ * DS_ERR_UNSUPPORTED); leaves are linked for range scans. Removal deletes
+ * from the leaf without rebalancing (nodes may become underfull and empty
+ * leaves stay linked), the usual trade-off of lazy deletion.
  *
- * Descents unpin each page before visiting the next, so a pager with
- * three frames suffices at any height (DS_ERR_STATE when frames run out).
+ * Failure guarantee: put is prepare-then-commit. Every page a split will
+ * edit is pinned and every new page and buffer is obtained before any
+ * reachable page changes, so a put that fails (allocation, I/O, or
+ * DS_ERR_STATE when the pager lacks frames) leaves the tree as it was;
+ * pages appended during a failed prepare stay unused. A split through k
+ * levels pins up to 2k + 2 frames; lookups, removals and iteration pin
+ * one page at a time. This is in-process failure atomicity, not crash
+ * recovery: publication is not ordered on the store.
+ *
  * Split buffers come from the pager's context.
  */
 

@@ -1,4 +1,6 @@
 #include "paged_btree.h"
+#include "checked.h"
+#include <limits.h>
 #include <string.h>
 
 #define PB_HDR 16U
@@ -87,6 +89,7 @@ ds_status_t ds_pbtree_sync(ds_pbtree_t *tree) {
   pb_put64(m + 24, tree->height);
   pb_put64(m + 32, tree->count);
   pb_put64(m + 40, tree->first_leaf);
+  m[48] = (unsigned char)sizeof(unsigned long); /* writer's key width */
   pb_done(tree, 0, true);
   return DS_OK;
 }
@@ -103,6 +106,9 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
   ps = pager->store->page_size;
   if (ps < 64 || ps > 0xFFFFFFFFUL) {
     return DS_ERR_INVALID;
+  }
+  if (value_size > ps) {
+    return DS_ERR_INVALID; /* also keeps 8 + value_size from wrapping */
   }
   tree->pager = pager;
   tree->value_size = value_size;
@@ -138,6 +144,12 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
       pb_get64(m + 8) != (unsigned long)value_size) {
     pb_done(tree, 0, false);
     return DS_ERR_INVALID;
+  }
+  /* keys and page numbers are 8-byte fields; a tree written where
+   * unsigned long is wider may hold values this host cannot represent */
+  if (m[48] > sizeof(unsigned long)) {
+    pb_done(tree, 0, false);
+    return DS_ERR_UNSUPPORTED;
   }
   tree->root = pb_get64(m + 16);
   tree->height = pb_get64(m + 24);
@@ -196,106 +208,45 @@ static ds_status_t pb_find_leaf(ds_pbtree_t *t, unsigned long k,
   return DS_OK;
 }
 
-typedef struct pb_split {
-  int happened;
-  unsigned long sep;
-  unsigned long page;
-} pb_split_t;
+#define PB_MAXH 64 /* deeper than any page count can reach */
 
-static ds_status_t pb_insert_leaf(ds_pbtree_t *t, unsigned long page,
-                                  unsigned long key, const void *value,
-                                  pb_split_t *sp) {
-  unsigned char *b, *nb, *tmp;
-  size_t n, pos, es = pb_lsz(t), half;
-  unsigned long np;
-  ds_status_t st = pb_get(t, page, &b);
-  void *d;
-  if (st != DS_OK) {
-    return st;
-  }
-  n = pb_count(b);
-  pos = pb_leaf_lower(t, b, key);
-  if (pos < n && pb_get64(pb_lent(t, b, pos)) == key) {
-    memcpy(pb_lent(t, b, pos) + 8, value, t->value_size);
-    pb_done(t, page, true);
-    return DS_EXISTS;
-  }
-  if (n < t->leaf_cap) {
-    memmove(pb_lent(t, b, pos + 1), pb_lent(t, b, pos), (n - pos) * es);
-    pb_put64(pb_lent(t, b, pos), key);
-    memcpy(pb_lent(t, b, pos) + 8, value, t->value_size);
-    pb_set_count(b, n + 1);
-    pb_done(t, page, true);
-    return DS_OK;
-  }
-  tmp = (unsigned char *)ds_context_alloc(t->pager->context, (n + 1) * es);
-  if (tmp == NULL) {
-    pb_done(t, page, false);
-    return DS_ERR_ALLOC;
-  }
-  st = ds_pager_new(t->pager, &np, &d);
-  if (st != DS_OK) {
-    ds_context_free(t->pager->context, tmp);
-    pb_done(t, page, false);
-    return st;
-  }
-  nb = (unsigned char *)d;
+/* split full leaf b (n entries, inserting key/value at pos) into b and the
+ * new page nb; tmp holds n + 1 entries. Cannot fail. */
+static unsigned long pb_split_leaf(ds_pbtree_t *t, unsigned char *b,
+                                   unsigned char *nb, unsigned long np,
+                                   size_t pos, unsigned long key,
+                                   const void *value, unsigned char *tmp) {
+  size_t n = pb_count(b), es = pb_lsz(t), half = (n + 1) / 2;
   memcpy(tmp, pb_lent(t, b, 0), pos * es);
   pb_put64(tmp + pos * es, key);
   memcpy(tmp + pos * es + 8, value, t->value_size);
   memcpy(tmp + (pos + 1) * es, pb_lent(t, b, pos), (n - pos) * es);
-  half = (n + 1) / 2;
   memcpy(pb_lent(t, b, 0), tmp, half * es);
   pb_set_count(b, half);
+  memset(nb, 0, PB_HDR);
   nb[0] = PB_LEAF;
   memcpy(pb_lent(t, nb, 0), tmp + half * es, (n + 1 - half) * es);
   pb_set_count(nb, n + 1 - half);
   memcpy(nb + 8, b + 8, 8); /* next link */
   pb_put64(b + 8, np);
-  sp->happened = 1;
-  sp->sep = pb_get64(tmp + half * es);
-  sp->page = np;
-  ds_context_free(t->pager->context, tmp);
-  pb_done(t, np, true);
-  pb_done(t, page, true);
-  return DS_OK;
+  return pb_get64(tmp + half * es);
 }
 
-/* insert (sep, child) after child index idx of an inner page */
-static ds_status_t pb_insert_inner(ds_pbtree_t *t, unsigned long page,
-                                   size_t idx, unsigned long sep,
-                                   unsigned long child, pb_split_t *sp) {
-  unsigned char *b, *nb, *tmp;
-  size_t n, half, i;
-  unsigned long np;
-  void *d;
-  ds_status_t st = pb_get(t, page, &b);
-  if (st != DS_OK) {
-    return st;
-  }
-  n = pb_count(b);
+/* insert (sep, child) after child index idx of inner page b; when b is
+ * full, split it into the new page nb (returns 1 and the separator that
+ * moves up in *up). Cannot fail. */
+static int pb_add_inner(ds_pbtree_t *t, unsigned char *b, unsigned char *nb,
+                        size_t idx, unsigned long sep, unsigned long child,
+                        unsigned char *tmp, unsigned long *up) {
+  size_t n = pb_count(b), half, rest;
   if (n < t->inner_cap) {
     unsigned char *at = b + PB_HDR + 8 + idx * 16;
     memmove(at + 16, at, (n - idx) * 16);
     pb_put64(at, sep);
     pb_put64(at + 8, child);
     pb_set_count(b, n + 1);
-    pb_done(t, page, true);
-    return DS_OK;
+    return 0;
   }
-  /* (n + 1) pairs plus child 0, split around the middle key */
-  tmp = (unsigned char *)ds_context_alloc(t->pager->context, (n + 1) * 16);
-  if (tmp == NULL) {
-    pb_done(t, page, false);
-    return DS_ERR_ALLOC;
-  }
-  st = ds_pager_new(t->pager, &np, &d);
-  if (st != DS_OK) {
-    ds_context_free(t->pager->context, tmp);
-    pb_done(t, page, false);
-    return st;
-  }
-  nb = (unsigned char *)d;
   memcpy(tmp, b + PB_HDR + 8, idx * 16);
   pb_put64(tmp + idx * 16, sep);
   pb_put64(tmp + idx * 16 + 8, child);
@@ -303,82 +254,154 @@ static ds_status_t pb_insert_inner(ds_pbtree_t *t, unsigned long page,
   half = (n + 1) / 2; /* pair `half` moves up */
   memcpy(b + PB_HDR + 8, tmp, half * 16);
   pb_set_count(b, half);
+  memset(nb, 0, PB_HDR);
   nb[0] = PB_INNER;
-  memcpy(nb + PB_HDR, tmp + half * 16 + 8, 8); /* its child becomes child 0 */
-  i = n - half;                                /* pairs after the middle */
-  memcpy(nb + PB_HDR + 8, tmp + (half + 1) * 16, i * 16);
-  pb_set_count(nb, i);
-  sp->happened = 1;
-  sp->sep = pb_get64(tmp + half * 16);
-  sp->page = np;
-  ds_context_free(t->pager->context, tmp);
-  pb_done(t, np, true);
-  pb_done(t, page, true);
-  return DS_OK;
+  memcpy(nb + PB_HDR, tmp + half * 16 + 8, 8); /* its child is child 0 */
+  rest = n - half;
+  memcpy(nb + PB_HDR + 8, tmp + (half + 1) * 16, rest * 16);
+  pb_set_count(nb, rest);
+  *up = pb_get64(tmp + half * 16);
+  return 1;
 }
 
-/* recursion depth = tree height, O(log n) */
-static ds_status_t pb_insert(ds_pbtree_t *t, unsigned long page,
-                             unsigned long level, unsigned long key,
-                             const void *value, pb_split_t *sp) {
-  unsigned char *b;
-  unsigned long child;
-  size_t idx;
-  pb_split_t below;
-  ds_status_t st;
-  sp->happened = 0;
-  if (level == 1) {
-    return pb_insert_leaf(t, page, key, value, sp);
-  }
-  st = pb_get(t, page, &b);
-  if (st != DS_OK) {
-    return st;
-  }
-  idx = pb_route(b, key);
-  child = pb_child(b, idx);
-  pb_done(t, page, false);
-  st = pb_insert(t, child, level - 1, key, value, &below);
-  if (DS_FAILED(st) || !below.happened) {
-    return st;
-  }
-  {
-    ds_status_t s2 = pb_insert_inner(t, page, idx, below.sep, below.page, sp);
-    return DS_FAILED(s2) ? s2 : st;
-  }
-}
-
+/*
+ * Insertion is prepare-then-commit. The descent records the path and the
+ * fill of every node on it; if the leaf must split, the nodes that will
+ * change are pinned, the new pages (and a new root, if the split reaches
+ * it) are allocated and pinned, and the split buffer is allocated. Only
+ * then are pages edited, in pinned memory, by steps that cannot fail. A
+ * failure while preparing changes nothing reachable (pages already
+ * appended stay unused). A split through k levels pins up to 2k + 2
+ * frames.
+ */
 ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
                           const void *value) {
-  pb_split_t sp;
+  unsigned long path[PB_MAXH], fresh[PB_MAXH + 1], up;
+  size_t idx[PB_MAXH], cnt[PB_MAXH], pos, d, h, k, i, nfresh = 0, npinned = 0;
+  unsigned char *buf[PB_MAXH], *fb[PB_MAXH + 1], *tmp = NULL;
+  unsigned long pinned[PB_MAXH];
   ds_status_t st;
+  int grow;
   if (tree == NULL || tree->pager == NULL ||
       (value == NULL && tree->value_size > 0)) {
     return DS_ERR_NULL;
   }
-  st = pb_insert(tree, tree->root, tree->height, key, value, &sp);
-  if (DS_FAILED(st)) {
+  h = (size_t)tree->height;
+  if (h == 0 || h > PB_MAXH - 1) {
+    return DS_ERR_STATE;
+  }
+  /* descent: path[0] is the root, path[h - 1] the leaf */
+  path[0] = tree->root;
+  for (d = 0; d + 1 < h; d++) {
+    unsigned char *b;
+    st = pb_get(tree, path[d], &b);
+    if (st != DS_OK) {
+      return st;
+    }
+    cnt[d] = pb_count(b);
+    idx[d] = pb_route(b, key);
+    path[d + 1] = pb_child(b, idx[d]);
+    pb_done(tree, path[d], false);
+  }
+  st = pb_get(tree, path[h - 1], &buf[h - 1]);
+  if (st != DS_OK) {
     return st;
   }
-  if (st == DS_OK) {
-    tree->count++;
-  }
-  if (sp.happened) {
-    unsigned long nr;
-    void *d;
-    unsigned char *b;
-    ds_status_t s2 = ds_pager_new(tree->pager, &nr, &d);
-    if (s2 != DS_OK) {
-      return s2;
+  pinned[npinned++] = path[h - 1];
+  {
+    unsigned char *b = buf[h - 1];
+    size_t n = pb_count(b), es = pb_lsz(tree);
+    pos = pb_leaf_lower(tree, b, key);
+    if (pos < n && pb_get64(pb_lent(tree, b, pos)) == key) {
+      memcpy(pb_lent(tree, b, pos) + 8, value, tree->value_size);
+      pb_done(tree, path[h - 1], true);
+      return DS_EXISTS;
     }
-    b = (unsigned char *)d;
-    b[0] = PB_INNER;
-    pb_put64(b + PB_HDR, tree->root);
-    pb_put64(b + PB_HDR + 8, sp.sep);
-    pb_put64(b + PB_HDR + 16, sp.page);
-    pb_set_count(b, 1);
-    pb_done(tree, nr, true);
-    tree->root = nr;
+    if (n < tree->leaf_cap) {
+      memmove(pb_lent(tree, b, pos + 1), pb_lent(tree, b, pos), (n - pos) * es);
+      pb_put64(pb_lent(tree, b, pos), key);
+      memcpy(pb_lent(tree, b, pos) + 8, value, tree->value_size);
+      pb_set_count(b, n + 1);
+      pb_done(tree, path[h - 1], true);
+      tree->count++;
+      return DS_OK;
+    }
+  }
+  /* prepare: k levels split (the leaf, then every full ancestor) */
+  k = 1;
+  while (k < h && cnt[h - 1 - k] == tree->inner_cap) {
+    k++;
+  }
+  grow = k == h; /* the root splits: a new root is needed */
+  for (i = 1; i <= k && i < h; i++) { /* ancestors that change */
+    d = h - 1 - i;
+    st = pb_get(tree, path[d], &buf[d]);
+    if (st != DS_OK) {
+      goto unwind;
+    }
+    pinned[npinned++] = path[d];
+  }
+  for (i = 0; i < k + (grow ? 1U : 0U); i++) {
+    void *data;
+    st = ds_pager_new(tree->pager, &fresh[i], &data);
+    if (st != DS_OK) {
+      goto unwind;
+    }
+    fb[i] = (unsigned char *)data;
+    nfresh++;
+  }
+  {
+    size_t lbytes, ibytes;
+    if (!ds_size_mul(tree->leaf_cap + 1, pb_lsz(tree), &lbytes) ||
+        !ds_size_mul(tree->inner_cap + 1, 16, &ibytes)) {
+      st = DS_ERR_OVERFLOW;
+      goto unwind;
+    }
+    tmp = (unsigned char *)ds_context_alloc(tree->pager->context,
+                                            lbytes > ibytes ? lbytes : ibytes);
+    if (tmp == NULL) {
+      st = DS_ERR_ALLOC;
+      goto unwind;
+    }
+  }
+  /* commit: nothing below can fail */
+  up = pb_split_leaf(tree, buf[h - 1], fb[0], fresh[0], pos, key, value, tmp);
+  for (i = 1; i < h; i++) {
+    unsigned long upper;
+    d = h - 1 - i;
+    if (!pb_add_inner(tree, buf[d], i < k ? fb[i] : NULL, idx[d], up,
+                      fresh[i - 1], tmp, &upper)) {
+      break; /* absorbed without splitting */
+    }
+    up = upper;
+  }
+  if (grow) {
+    unsigned char *r = fb[k];
+    memset(r, 0, PB_HDR);
+    r[0] = PB_INNER;
+    pb_put64(r + PB_HDR, tree->root);
+    pb_put64(r + PB_HDR + 8, up);
+    pb_put64(r + PB_HDR + 16, fresh[k - 1]);
+    pb_set_count(r, 1);
+    tree->root = fresh[k];
     tree->height++;
+  }
+  tree->count++;
+  ds_context_free(tree->pager->context, tmp);
+  for (i = 0; i < npinned; i++) {
+    pb_done(tree, pinned[i], true);
+  }
+  for (i = 0; i < nfresh; i++) {
+    pb_done(tree, fresh[i], true);
+  }
+  return DS_OK;
+unwind:
+  ds_context_free(tree->pager->context, tmp);
+  for (i = 0; i < npinned; i++) {
+    pb_done(tree, pinned[i], false);
+  }
+  for (i = 0; i < nfresh; i++) {
+    pb_done(tree, fresh[i], false); /* appended, never linked */
   }
   return st;
 }
