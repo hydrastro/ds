@@ -1,4 +1,5 @@
 #include "link_cut_tree.h"
+#include "checked.h"
 #include <string.h>
 
 #define LN DS_LCT_NONE
@@ -206,6 +207,7 @@ ds_status_t ds_lct_init(ds_lct_t *t, size_t n, const void *elems,
   size_t ss;
   size_t ts;
   size_t i;
+  size_t b_idx, b_flags, b_elems, b_sums, b_tags, b_scratch;
   if (t == NULL || config == NULL) {
     return DS_ERR_NULL;
   }
@@ -224,19 +226,24 @@ ds_status_t ds_lct_init(ds_lct_t *t, size_t n, const void *elems,
   es = c.elem_size;
   ss = c.summary_size;
   ts = c.tag_size;
-  if (n > (size_t)-1 / 8 / sizeof(size_t) || (es > 0 && n > (size_t)-1 / es) ||
-      (ss > 0 && n > (size_t)-1 / 2 / ss) || (ts > 0 && n > (size_t)-1 / ts)) {
+  /* every allocation size, checked: 5n indices, 2n flags, n elements,
+   * 2n summaries (forward and reversed), n tags, 3 scratch summaries */
+  if (!ds_size_mul(5 * sizeof(size_t), n, &b_idx) ||
+      !ds_size_mul(2, n, &b_flags) || !ds_size_mul_add(n, es, 1, &b_elems) ||
+      !ds_size_mul(2, n, &b_sums) || !ds_size_mul_add(b_sums, ss, 1, &b_sums) ||
+      !ds_size_mul_add(n, ts, 1, &b_tags) ||
+      !ds_size_mul_add(3, ss, 1, &b_scratch)) {
     return DS_ERR_OVERFLOW;
   }
   ctx = c.context;
   t->config = c;
   t->n = n;
-  t->left = (size_t *)ds_context_alloc(ctx, 5 * n * sizeof(size_t));
-  t->rev = (unsigned char *)ds_context_calloc(ctx, 2 * n, 1);
-  t->elems = (unsigned char *)ds_context_calloc(ctx, n * es + 1, 1);
-  t->sums = (unsigned char *)ds_context_alloc(ctx, 2 * n * ss + 1);
-  t->tags = (unsigned char *)ds_context_alloc(ctx, n * ts + 1);
-  t->scratch = (unsigned char *)ds_context_alloc(ctx, 3 * ss + 1);
+  t->left = (size_t *)ds_context_alloc(ctx, b_idx);
+  t->rev = (unsigned char *)ds_context_calloc(ctx, b_flags, 1);
+  t->elems = (unsigned char *)ds_context_calloc(ctx, b_elems, 1);
+  t->sums = (unsigned char *)ds_context_alloc(ctx, b_sums);
+  t->tags = (unsigned char *)ds_context_alloc(ctx, b_tags);
+  t->scratch = (unsigned char *)ds_context_alloc(ctx, b_scratch);
   if (t->left == NULL || t->rev == NULL || t->elems == NULL ||
       t->sums == NULL || t->tags == NULL || t->scratch == NULL) {
     ds_lct_destroy(t);
