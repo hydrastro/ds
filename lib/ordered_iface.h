@@ -18,8 +18,11 @@
  *   DS_ORDERED_SPLIT_FAST  split and join in O(log n) without allocating
  *
  * Backends: ds_ordered_array_ops() (sorted arrays) and
- * ds_ordered_treap_ops() (treap with subtree sizes). Memory comes from
- * the context.
+ * ds_ordered_treap_ops() (treap with subtree sizes). split and join check
+ * compatibility themselves (DS_ERR_INVALID otherwise), also when called
+ * through the ops table directly; the array backend copies and accepts any
+ * contexts, the treap backend moves nodes and requires the same context.
+ * Memory comes from the context.
  */
 
 #include "context.h"
@@ -56,8 +59,12 @@ typedef struct ds_ordered_ops {
   /* append upper, whose keys all exceed s's, and leave it empty; nothing
    * moves on failure */
   ds_status_t (*join)(void *s, void *upper);
-  /* in-order cursor starting at 0 */
+  /* in-order cursor starting at 0 (treaps: O(log n) per step, by rank) */
   bool (*next)(const void *s, size_t *cursor, unsigned long *key, void **value);
+  /* whether split/join may move entries between the two instances: the
+   * value layout must agree, and backends that move nodes (rather than
+   * copy) also need the same context to free them */
+  bool (*compatible)(const void *s, const void *other);
 } ds_ordered_ops_t;
 
 typedef struct ds_ordered {
@@ -85,7 +92,8 @@ ds_status_t ds_ordered_ceiling(const ds_ordered_t *s, unsigned long x,
 size_t ds_ordered_size(const ds_ordered_t *s);
 ds_status_t ds_ordered_select(const ds_ordered_t *s, size_t k,
                               unsigned long *out);
-/* upper must be initialised with the same ops and empty */
+bool ds_ordered_compatible(const ds_ordered_t *a, const ds_ordered_t *b);
+/* upper must be initialised with the same ops, compatible and empty */
 ds_status_t ds_ordered_split(ds_ordered_t *s, unsigned long key,
                              ds_ordered_t *upper);
 ds_status_t ds_ordered_join(ds_ordered_t *s, ds_ordered_t *upper);

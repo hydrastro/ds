@@ -174,11 +174,16 @@ static ds_status_t oa_select(const void *s, size_t k, unsigned long *out) {
   return DS_OK;
 }
 
+/* arrays copy between instances, so only the value layout must agree */
+static bool oa_compatible(const void *s, const void *other) {
+  return ((const oa_t *)s)->value_size == ((const oa_t *)other)->value_size;
+}
+
 static ds_status_t oa_split(void *s, unsigned long key, void *upper) {
   oa_t *a = (oa_t *)s, *u = (oa_t *)upper;
   size_t pos = oa_lower(a, key), moved = a->count - pos;
   ds_status_t st;
-  if (u->count != 0) {
+  if (u->count != 0 || !oa_compatible(a, u)) {
     return DS_ERR_INVALID;
   }
   st = oa_reserve(u, moved);
@@ -198,7 +203,11 @@ static ds_status_t oa_split(void *s, unsigned long key, void *upper) {
 
 static ds_status_t oa_join(void *s, void *upper) {
   oa_t *a = (oa_t *)s, *u = (oa_t *)upper;
-  ds_status_t st = oa_reserve(a, a->count + u->count);
+  ds_status_t st;
+  if (!oa_compatible(a, u)) {
+    return DS_ERR_INVALID;
+  }
+  st = oa_reserve(a, a->count + u->count);
   if (st != DS_OK) {
     return st;
   }
@@ -458,10 +467,18 @@ static ds_status_t ot_select(const void *s, size_t k, unsigned long *out) {
   return DS_OK;
 }
 
+/* treaps move nodes between instances: the node layout and the
+ * context that will free them must be the same */
+static bool ot_compatible(const void *s, const void *other) {
+  const ot_t *a = (const ot_t *)s, *b = (const ot_t *)other;
+  return a->value_size == b->value_size && a->node_size == b->node_size &&
+         a->context == b->context;
+}
+
 static ds_status_t ot_split(void *s, unsigned long key, void *upper) {
   ot_t *t = (ot_t *)s, *u = (ot_t *)upper;
   ot_node_t *l, *r;
-  if (u->root != NULL) {
+  if (u->root != NULL || !ot_compatible(t, u)) {
     return DS_ERR_INVALID;
   }
   ot_split_lt(t->root, key, &l, &r);
@@ -472,6 +489,9 @@ static ds_status_t ot_split(void *s, unsigned long key, void *upper) {
 
 static ds_status_t ot_join(void *s, void *upper) {
   ot_t *t = (ot_t *)s, *u = (ot_t *)upper;
+  if (!ot_compatible(t, u)) {
+    return DS_ERR_INVALID;
+  }
   t->root = ot_merge(t->root, u->root);
   u->root = NULL;
   return DS_OK;
@@ -502,7 +522,7 @@ static const ds_ordered_ops_t ordered_array_ops = {
     oa_floor,       oa_ceiling,
     oa_size,        oa_select,
     oa_split,       oa_join,
-    oa_next};
+    oa_next,        oa_compatible};
 static const ds_ordered_ops_t ordered_treap_ops = {
     "treap",      DS_ORDERED_LOG_UPDATE | DS_ORDERED_SPLIT_FAST,
     sizeof(ot_t), ot_init,
@@ -511,7 +531,7 @@ static const ds_ordered_ops_t ordered_treap_ops = {
     ot_floor,     ot_ceiling,
     ot_size,      ot_select,
     ot_split,     ot_join,
-    ot_next};
+    ot_next,      ot_compatible};
 
 const ds_ordered_ops_t *ds_ordered_array_ops(void) {
   return &ordered_array_ops;
@@ -611,12 +631,19 @@ ds_status_t ds_ordered_select(const ds_ordered_t *s, size_t k,
   return s->ops->select(s->impl, k, out);
 }
 
+bool ds_ordered_compatible(const ds_ordered_t *a, const ds_ordered_t *b) {
+  if (a == NULL || b == NULL || a->ops == NULL || a->ops != b->ops) {
+    return false;
+  }
+  return a->ops->compatible(a->impl, b->impl);
+}
+
 ds_status_t ds_ordered_split(ds_ordered_t *s, unsigned long key,
                              ds_ordered_t *upper) {
   if (s == NULL || upper == NULL || s->ops == NULL || upper->ops == NULL) {
     return DS_ERR_NULL;
   }
-  if (s->ops != upper->ops || s == upper) {
+  if (!ds_ordered_compatible(s, upper) || s == upper) {
     return DS_ERR_INVALID;
   }
   return s->ops->split(s->impl, key, upper->impl);
@@ -626,7 +653,7 @@ ds_status_t ds_ordered_join(ds_ordered_t *s, ds_ordered_t *upper) {
   if (s == NULL || upper == NULL || s->ops == NULL || upper->ops == NULL) {
     return DS_ERR_NULL;
   }
-  if (s->ops != upper->ops || s == upper) {
+  if (!ds_ordered_compatible(s, upper) || s == upper) {
     return DS_ERR_INVALID;
   }
   return s->ops->join(s->impl, upper->impl);
