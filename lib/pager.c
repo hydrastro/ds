@@ -98,8 +98,10 @@ static void mem_close(void *impl) {
 }
 
 static const ds_page_store_ops_t pg_mem_ops = {
-    "memory",  mem_read,     mem_write, mem_sync,
-    mem_count, mem_truncate, mem_close};
+    "memory",     DS_PAGE_STORE_TRUNCATE_PERSISTS,
+    mem_read,     mem_write,
+    mem_sync,     mem_count,
+    mem_truncate, mem_close};
 
 ds_status_t ds_page_store_memory(ds_page_store_t *store, size_t page_size,
                                  ds_context_t *context) {
@@ -218,8 +220,8 @@ static void file_close(void *impl) {
 }
 
 static const ds_page_store_ops_t pg_file_ops = {
-    "stdio file", file_read,     file_write, file_sync,
-    file_count,   file_truncate, file_close};
+    "stdio file", 0U,         file_read,     file_write,
+    file_sync,    file_count, file_truncate, file_close};
 
 ds_status_t ds_page_store_file(ds_page_store_t *store, const char *path,
                                size_t page_size, bool truncate,
@@ -568,16 +570,35 @@ ds_status_t ds_pager_flush(ds_pager_t *pager) {
   return ds_page_store_sync(pager->store);
 }
 
+void ds_pager_discard(ds_pager_t *pager) {
+  if (pager == NULL || pager->store == NULL) {
+    return;
+  }
+  ds_map_destroy(&pager->table);
+  ds_replacement_destroy(&pager->policy);
+  pg_free_all(pager);
+  memset(pager, 0, sizeof(*pager));
+}
+
+ds_status_t ds_pager_close(ds_pager_t *pager) {
+  ds_status_t st;
+  if (pager == NULL || pager->store == NULL) {
+    return DS_ERR_NULL;
+  }
+  st = ds_pager_flush(pager);
+  if (st == DS_OK) {
+    ds_pager_discard(pager);
+  }
+  return st;
+}
+
 ds_status_t ds_pager_destroy(ds_pager_t *pager) {
   ds_status_t st;
   if (pager == NULL || pager->store == NULL) {
     return DS_ERR_NULL;
   }
   st = ds_pager_flush(pager);
-  ds_map_destroy(&pager->table);
-  ds_replacement_destroy(&pager->policy);
-  pg_free_all(pager);
-  memset(pager, 0, sizeof(*pager));
+  ds_pager_discard(pager);
   return st;
 }
 

@@ -11,6 +11,17 @@
  *   ds_page_store_memory    pages in memory (tests, caches, tmpfs-like use)
  *   ds_page_store_file      a C stdio file (offsets must fit in a long)
  *
+ * Traits state what sync and truncate really guarantee:
+ *   DS_PAGE_STORE_DURABLE_SYNC    sync makes written pages survive a crash
+ *                                 (neither backend: the file store's sync
+ *                                 is fflush, which only hands data to the
+ *                                 operating system)
+ *   DS_PAGE_STORE_TRUNCATE_PERSISTS  truncation releases the pages for good
+ *                                 (memory store); without it truncation is
+ *                                 logical for this session only (file
+ *                                 store: C89 cannot shrink a file, so the
+ *                                 pages reappear when the file is reopened)
+ *
  * Any other medium (mmap, a network block device, an encrypted or
  * checksumming layer stacked on another store) fits by filling in a
  * ds_page_store_ops_t.
@@ -35,8 +46,12 @@
 extern "C" {
 #endif
 
+#define DS_PAGE_STORE_DURABLE_SYNC 0x1u
+#define DS_PAGE_STORE_TRUNCATE_PERSISTS 0x2u
+
 typedef struct ds_page_store_ops {
   const char *name;
+  unsigned traits;
   /* pages at or past count read as zeros */
   ds_status_t (*read)(void *impl, unsigned long page, void *buf);
   /* writing past the end grows the store (gaps read as zeros) */
@@ -100,7 +115,13 @@ ds_status_t ds_pager_init_policy(ds_pager_t *pager, ds_page_store_t *store,
                                  size_t frames, const ds_map_ops_t *map_ops,
                                  const ds_replacement_ops_t *policy,
                                  ds_context_t *context);
-/* flushes, then frees the pager (not the store); returns the flush status */
+/* flush and free the pager (not the store). If the flush fails the pager
+ * stays alive with its dirty pages, so the caller can retry or discard */
+ds_status_t ds_pager_close(ds_pager_t *pager);
+/* free the pager without writing anything (dirty pages are dropped) */
+void ds_pager_discard(ds_pager_t *pager);
+/* legacy: flush, then free whatever the flush returned (dirty pages are
+ * lost when it fails); prefer ds_pager_close / ds_pager_discard */
 ds_status_t ds_pager_destroy(ds_pager_t *pager);
 /* pin page and return its buffer (valid until unpinned) */
 ds_status_t ds_pager_get(ds_pager_t *pager, unsigned long page, void **data);
