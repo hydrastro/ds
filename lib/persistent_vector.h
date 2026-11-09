@@ -16,10 +16,20 @@
  * holds in place (a transient), so building a vector that nobody else
  * shares costs no copying: the tail is always allocated at full width.
  *
- * Elements are plain bytes unless copy_elem/destroy_elem are given: a
- * path copy then copies each element of a copied leaf, and the last node
- * holding an element destroys it. On failure nothing changes and nothing
- * is copied. Memory comes from the context; no locking.
+ * Element policies:
+ *   plain bytes        neither callback (values, or borrowed pointers the
+ *                      caller keeps alive)
+ *   owned resources    copy_elem and destroy_elem: a path copy clones each
+ *                      element of a copied leaf, every leaf destroys its
+ *                      own copies, and pop_back hands out a clone
+ *   copy only          copy_elem without destroy_elem (e.g. refcount bumps
+ *                      balanced elsewhere)
+ * destroy_elem without copy_elem is rejected (DS_ERR_INVALID): copied
+ * leaves would share and doubly destroy the resources.
+ *
+ * ds_pvec_get returns a borrowed pointer, valid while that version lives
+ * unchanged. On failure nothing changes and nothing is copied. Memory
+ * comes from the context; no locking.
  */
 
 #include "context.h"

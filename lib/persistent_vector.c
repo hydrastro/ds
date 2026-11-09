@@ -311,6 +311,12 @@ ds_status_t ds_pvec_init(ds_pvec_t *vec, const ds_pvec_config_t *config) {
   if (config->bits == 0 || config->bits > 8) {
     return DS_ERR_INVALID;
   }
+  /* versions share leaves by copying them: an element that owns a
+   * resource (destroy_elem) must be duplicable, or two leaves would both
+   * destroy it */
+  if (config->destroy_elem != NULL && config->copy_elem == NULL) {
+    return DS_ERR_INVALID;
+  }
   if (!ds_size_mul(pv_width(config), config->elem_size, &bytes) ||
       !ds_size_add(bytes, pv_header(), &bytes)) {
     return DS_ERR_OVERFLOW;
