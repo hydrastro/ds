@@ -240,6 +240,20 @@ static bool oa_next(const void *s, size_t *cursor, unsigned long *key,
   return true;
 }
 
+static ds_status_t oa_for_each(const void *s, ds_ordered_visit_fn visit,
+                               void *user) {
+  size_t cursor = 0;
+  unsigned long key;
+  void *value;
+  while (oa_next(s, &cursor, &key, &value)) {
+    ds_status_t st = visit(key, value, user);
+    if (st != DS_OK) {
+      return st;
+    }
+  }
+  return DS_OK;
+}
+
 /* ---- treap ---- */
 
 typedef struct ot_node {
@@ -514,6 +528,66 @@ static bool ot_next(const void *s, size_t *cursor, unsigned long *key,
   return true;
 }
 
+/* In-order walk with an explicit stack of ancestors, O(n). The stack
+ * grows with the tree height; if it cannot grow, the walk goes on from the
+ * current rank by selection, O(log n) expected per entry, so it never
+ * fails for lack of memory. */
+static ds_status_t ot_for_each(const void *s, ds_ordered_visit_fn visit,
+                               void *user) {
+  const ot_t *t = (const ot_t *)s;
+  ot_node_t **stack;
+  ot_node_t *n = t->root;
+  size_t cap = 64;
+  size_t top = 0;
+  size_t rank = 0;
+  ds_status_t st;
+  stack = (ot_node_t **)ds_context_alloc(t->context, cap * sizeof(*stack));
+  while (stack != NULL && (n != NULL || top > 0)) {
+    while (n != NULL) {
+      if (top == cap) {
+        ot_node_t **grown = NULL;
+        size_t bytes;
+        if (cap <= ((size_t)-1) / 2 / sizeof(*stack) &&
+            ds_size_mul(cap * 2, sizeof(*stack), &bytes)) {
+          grown = (ot_node_t **)ds_context_realloc(t->context, stack, bytes);
+        }
+        if (grown == NULL) {
+          ds_context_free(t->context, stack);
+          stack = NULL;
+          break;
+        }
+        stack = grown;
+        cap *= 2;
+      }
+      stack[top++] = n;
+      n = n->left;
+    }
+    if (stack == NULL) {
+      break;
+    }
+    n = stack[--top];
+    st = visit(n->key, ot_value(t, n), user);
+    if (st != DS_OK) {
+      ds_context_free(t->context, stack);
+      return st;
+    }
+    rank++;
+    n = n->right;
+  }
+  if (stack != NULL) {
+    ds_context_free(t->context, stack);
+    return DS_OK;
+  }
+  /* fallback: continue by rank */
+  for (n = ot_select_node(t, rank); n != NULL; n = ot_select_node(t, ++rank)) {
+    st = visit(n->key, ot_value(t, n), user);
+    if (st != DS_OK) {
+      return st;
+    }
+  }
+  return DS_OK;
+}
+
 static const ds_ordered_ops_t ordered_array_ops = {
     "sorted array", DS_ORDERED_CONTIGUOUS,
     sizeof(oa_t),   oa_init,
@@ -522,7 +596,8 @@ static const ds_ordered_ops_t ordered_array_ops = {
     oa_floor,       oa_ceiling,
     oa_size,        oa_select,
     oa_split,       oa_join,
-    oa_next,        oa_compatible};
+    oa_next,        oa_compatible,
+    oa_for_each};
 static const ds_ordered_ops_t ordered_treap_ops = {
     "treap",      DS_ORDERED_LOG_UPDATE | DS_ORDERED_SPLIT_FAST,
     sizeof(ot_t), ot_init,
@@ -531,7 +606,8 @@ static const ds_ordered_ops_t ordered_treap_ops = {
     ot_floor,     ot_ceiling,
     ot_size,      ot_select,
     ot_split,     ot_join,
-    ot_next,      ot_compatible};
+    ot_next,      ot_compatible,
+    ot_for_each};
 
 const ds_ordered_ops_t *ds_ordered_array_ops(void) {
   return &ordered_array_ops;
@@ -665,4 +741,24 @@ bool ds_ordered_next(const ds_ordered_t *s, size_t *cursor, unsigned long *key,
     return false;
   }
   return s->ops->next(s->impl, cursor, key, value);
+}
+
+ds_status_t ds_ordered_for_each(const ds_ordered_t *s,
+                                ds_ordered_visit_fn visit, void *user) {
+  size_t cursor = 0;
+  unsigned long key;
+  void *value;
+  if (s == NULL || s->ops == NULL || visit == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (s->ops->for_each != NULL) {
+    return s->ops->for_each(s->impl, visit, user);
+  }
+  while (s->ops->next(s->impl, &cursor, &key, &value)) {
+    ds_status_t st = visit(key, value, user);
+    if (st != DS_OK) {
+      return st;
+    }
+  }
+  return DS_OK;
 }

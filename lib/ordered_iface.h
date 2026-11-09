@@ -38,6 +38,11 @@ extern "C" {
 #define DS_ORDERED_CONTIGUOUS 0x2u
 #define DS_ORDERED_SPLIT_FAST 0x4u
 
+/* visitor for ds_ordered_for_each: anything but DS_OK stops the walk and
+ * is returned; the container must not change during the walk */
+typedef ds_status_t (*ds_ordered_visit_fn)(unsigned long key, void *value,
+                                           void *user);
+
 typedef struct ds_ordered_ops {
   const char *name;
   unsigned traits;
@@ -59,12 +64,16 @@ typedef struct ds_ordered_ops {
   /* append upper, whose keys all exceed s's, and leave it empty; nothing
    * moves on failure */
   ds_status_t (*join)(void *s, void *upper);
-  /* in-order cursor starting at 0 (treaps: O(log n) per step, by rank) */
+  /* in-order cursor starting at 0 (treaps: O(log n) per step, by rank, so
+   * a full scan costs O(n log n); for_each is the linear walk) */
   bool (*next)(const void *s, size_t *cursor, unsigned long *key, void **value);
   /* whether split/join may move entries between the two instances: the
    * value layout must agree, and backends that move nodes (rather than
    * copy) also need the same context to free them */
   bool (*compatible)(const void *s, const void *other);
+  /* in-order walk in O(n) total; NULL makes ds_ordered_for_each step the
+   * cursor instead */
+  ds_status_t (*for_each)(const void *s, ds_ordered_visit_fn visit, void *user);
 } ds_ordered_ops_t;
 
 typedef struct ds_ordered {
@@ -99,6 +108,12 @@ ds_status_t ds_ordered_split(ds_ordered_t *s, unsigned long key,
 ds_status_t ds_ordered_join(ds_ordered_t *s, ds_ordered_t *upper);
 bool ds_ordered_next(const ds_ordered_t *s, size_t *cursor, unsigned long *key,
                      void **value);
+/* every entry in key order, O(n) for both backends (the treap walks with
+ * an explicit stack; if the stack cannot grow it continues by rank, so the
+ * walk never fails for lack of memory); returns the visitor's first
+ * non-DS_OK status, else DS_OK */
+ds_status_t ds_ordered_for_each(const ds_ordered_t *s,
+                                ds_ordered_visit_fn visit, void *user);
 
 #ifdef __cplusplus
 }
