@@ -6,8 +6,9 @@
  *
  * Algorithms read the graph only through ds_gview_t: a vertex count,
  * the out-degree of a vertex, and its i-th outgoing edge (target and
- * weight). Adapters can wrap an adjacency matrix, ds's graph module, a CSR
- * array set (ds_gview_from_csr() is provided), or an implicit graph whose
+ * weight). Adapters can wrap an adjacency matrix (ds_gview_from_adj_matrix()
+ * for lib/adj_matrix), ds's graph module, a CSR array set
+ * (ds_gview_from_csr()), or an implicit graph whose
  * edges are computed on demand (grids, state spaces). Vertices are
  * 0 .. vertex_count - 1.
  *
@@ -19,6 +20,7 @@
  * every edge present in both directions.
  */
 
+#include "../lib/adj_matrix.h"
 #include "../lib/context.h"
 #include "../lib/status.h"
 #include <stdbool.h>
@@ -48,6 +50,10 @@ typedef struct ds_gview_csr {
 } ds_gview_csr_t;
 
 void ds_gview_from_csr(const ds_gview_csr_t *csr, ds_gview_t *out_view);
+/* a view of a lib/adj_matrix graph: each row's edges in O(1) apiece; the
+ * matrix must outlive the view and not change while an algorithm runs */
+void ds_gview_from_adj_matrix(const ds_adj_matrix_t *matrix,
+                              ds_gview_t *out_view);
 
 ds_status_t ds_gview_bfs(const ds_gview_t *g, size_t source, size_t *out_hops,
                          size_t *out_parent, ds_context_t *context);

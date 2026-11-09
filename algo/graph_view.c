@@ -25,6 +25,23 @@ void ds_gview_from_csr(const ds_gview_csr_t *csr, ds_gview_t *out_view) {
   out_view->graph = csr;
 }
 
+static size_t am_view_degree(const void *graph, size_t v) {
+  return ds_adj_matrix_degree((const ds_adj_matrix_t *)graph, v);
+}
+
+static void am_view_edge(const void *graph, size_t v, size_t i, size_t *to,
+                         double *w) {
+  ds_adj_matrix_edge((const ds_adj_matrix_t *)graph, v, i, to, w);
+}
+
+void ds_gview_from_adj_matrix(const ds_adj_matrix_t *matrix,
+                              ds_gview_t *out_view) {
+  out_view->vertex_count = ds_adj_matrix_vertex_count(matrix);
+  out_view->degree = am_view_degree;
+  out_view->edge = am_view_edge;
+  out_view->graph = matrix;
+}
+
 static void *g_alloc(ds_context_t *context, size_t count, size_t size) {
   if (count == 0) {
     count = 1;
