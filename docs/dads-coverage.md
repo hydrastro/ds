@@ -31,25 +31,34 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 750 |
-| restricted | 2 |
+| implemented | 748 |
+| restricted | 3 |
 | variant | 1 |
 | reference | 5 |
-| missing | 0 |
-| n/a | 549 |
-| total | 1307 |
+| missing | 2 |
+| n/a | 547 |
+| total | 1306 |
+
+Every indexed term has a classification; implementation scope and known
+limitations are recorded per row. The counts are table classifications,
+not independently verified capability totals: an `implemented` row means
+a dedicated implementation exists, not that every variant or operation
+the term covers is provided.
 
 | kind | entries |
 |---|---|
 | structure | 276 |
-| algorithm | 443 |
+| algorithm | 442 |
 | problem | 30 |
 | alias | 10 |
 | concept | 548 |
 
 ## Missing
 
-Nothing implementable is missing.
+| entry | note |
+|---|---|
+| alternating Turing machine | a simulator is implementable; out of the current scope |
+| semidefinite programming | a solver is implementable; out of the current scope |
 
 ## Index A-Z
 
@@ -63,7 +72,7 @@ Nothing implementable is missing.
 | ρ-approximation algorithm | concept | n/a |  |  |
 | ∼ | concept | n/a |  |  |
 | Θ | concept | n/a |  |  |
-| (a,b)-tree | structure | implemented | lib/btree | minimum degree t gives a (t, 2t)-tree |
+| (a,b)-tree | structure | restricted | lib/btree | the (t, 2t) family only, not every allowed (a, b) pair; minimum degree t gives a (t, 2t)-tree |
 | 8 queens | algorithm | implemented | algo/combinatorics |  |
 | 1-based indexing | concept | n/a |  |  |
 | 2-choice hashing | structure | implemented | lib/two_choice_map |  |
@@ -106,7 +115,7 @@ Nothing implementable is missing.
 | alphabet | concept | n/a |  |  |
 | Alpha Skip Search algorithm | algorithm | implemented | algo/string_search |  |
 | alternating path | algorithm | implemented | algo/matching |  |
-| alternating Turing machine | concept | n/a |  |  |
+| alternating Turing machine | concept | missing |  | a simulator is implementable; out of the current scope |
 | alternation | concept | n/a |  |  |
 | American flag sort | algorithm | implemented | algo/sort_dist |  |
 | amortized cost | concept | n/a |  |  |
@@ -1187,7 +1196,7 @@ Nothing implementable is missing.
 | self-loop | concept | n/a |  |  |
 | self-organizing list | structure | implemented | lib/self_org_list |  |
 | self-organizing sequential search | structure | implemented | lib/self_org_list |  |
-| semidefinite programming | concept | n/a |  |  |
+| semidefinite programming | concept | missing |  | a solver is implementable; out of the current scope |
 | separate chaining | structure | implemented | lib/hash_table |  |
 | separation theorem | concept | n/a |  |  |
 | sequential search | algorithm | implemented | algo/search |  |
@@ -1197,7 +1206,6 @@ Nothing implementable is missing.
 | shadow heap | structure | implemented | lib/shadow_heap |  |
 | shadow merge | structure | implemented | lib/shadow_heap |  |
 | shadow merge insert | structure | implemented | lib/shadow_heap |  |
-| shaker sort | algorithm | implemented | algo/sort_classic | cocktail |
 | shaker sort | algorithm | implemented | algo/sort_classic | cocktail |
 | Shannon-Fano coding | algorithm | implemented | algo/prefix_code |  |
 | shared memory | concept | n/a |  |  |
@@ -1508,10 +1516,10 @@ Nothing implementable is missing.
 | transducer | concept | implemented | `lib/automaton`, `lib/pushdown`, `lib/turing_machine` | Mealy/Moore, finite state, pushdown and Turing transducers |
 | tree transducer | structure | implemented | `lib/tree_automaton` | bottom-up tree transducers |
 | Roaring bitmap | structure | implemented | `lib/roaring` | array, bitmap and run containers; rank, select, set algebra |
-| robust geometric predicates | algorithm | implemented | `algo/robust_predicates` | filtered exact orient2d/orient3d/incircle/insphere over expansion arithmetic |
+| robust geometric predicates | algorithm | implemented | `algo/robust_predicates`, `algo/geometry` | filtered exact orient2d/orient3d/incircle/insphere over expansion arithmetic, per-predicate input ranges; algo/geometry orientation uses orient2d |
 | floating-point expansion arithmetic | algorithm | implemented | `algo/robust_predicates` | error-free sum/product, expansion sum/scale/product/compress |
 | CHAMP (persistent hash trie) | structure | implemented | `lib/persistent_hamt` | canonical deletes, structural sharing, in-place edits of unshared versions |
-| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing backends |
+| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing backends; per-operation cost classes |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |
@@ -1519,9 +1527,9 @@ Nothing implementable is missing.
 | finger tree | structure | implemented | `lib/finger_tree` | 2-3 finger tree with a caller-defined monoid |
 | ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap); Y-fast buckets |
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
-| RRR compressed bit vector | structure | implemented | `lib/rank_select` | class/offset blocks, nH0 + o(n) bits |
+| RRR compressed bit vector | structure | implemented | `lib/rank_select` | fixed 15-bit class/offset blocks: nH0 + n/3.75 bits plus a rank and pointer per 32 blocks |
 | buffer pool (pager) | structure | implemented | `lib/pager` | page-store capability, LRU with pinning and write-back |
-| log-structured merge tree | structure | implemented | `lib/lsm_tree` | memtable, level 0, leveled runs over SSTables |
+| log-structured merge tree | structure | implemented | `lib/lsm_tree` | in memory: memtable, level 0, leveled runs over SSTables; no WAL, manifest, recovery or storage-backed compaction |
 | quotient filter | structure | implemented | `lib/quotient_filter` | packed remainders, deletion (multiset), ordered enumeration |
 | xor filter | structure | implemented | `lib/xor_filter` | static, peeling construction |
 | approximate membership query | concept | implemented | `lib/amq_iface` | capability over Bloom, cuckoo, quotient and xor filters |

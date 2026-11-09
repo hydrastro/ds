@@ -38,6 +38,12 @@ Passing `NULL` for a context uses the default process-global fallback. Serious
 multi-threaded code should prefer explicit contexts, especially when reading
 `last_error` or collecting diagnostics.
 
+Global state: the default context is the library's only process-global
+mutable object. Lookup tables (RRR binomials, CORDIC angles, CRC and similar
+tables) are compile-time constants, so independent instances on different
+threads share no mutable state unless they share a context, a container or
+a user callback.
+
 ## Config constructors
 
 Complex containers should be configured once and then used with simple calls.

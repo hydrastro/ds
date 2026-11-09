@@ -98,16 +98,53 @@ Use the default context or a debug allocator when a module requires general
 
 ## Allocation failure
 
-The library treats allocator results as infallible: `*_create`,
-`*_create_alloc`, and every operation that grows a structure assume the supplied
-allocator returns a valid, non-NULL pointer. There are deliberately no
-out-of-memory error returns to thread through call sites. A program that must
-survive memory exhaustion supplies an allocator that does not return NULL — one
-that aborts, `longjmp`s to a recovery point, or otherwise handles the failure
-itself. The default `malloc`/`free` pair follows the platform's behavior; wrap
-it if you need a stricter policy. This choice keeps intrusive return values
-unambiguous: a returned node pointer is always a real node, never an
-allocation-failure sentinel.
+Two allocation profiles coexist. Every module states which one its API
+follows; an adapter over a module keeps that module's profile and must not
+claim the stronger one unless it checks for failure itself.
+
+**Fallible profile** (status-returning APIs, and every module added or
+reworked since the capability interfaces). An operation that returns
+`ds_status_t` reports allocator exhaustion as `DS_ERR_ALLOC` and size
+arithmetic that does not fit as `DS_ERR_OVERFLOW`. Unless its header says
+otherwise, a failed operation leaves the structure unchanged and usable.
+Where that cannot hold, the header states exactly what remains, for example:
+
+- `lib/topology_tree` reserves its work lists before committing; if a
+  commit still fails it marks the tree broken, queries report it, and
+  `ds_topology_tree_rebuild` restores it from the adjacency;
+- `lib/paged_btree` prepares every page a split needs before changing any;
+- `lib/pq_iface`'s copying meld stops at the failing item with both queues
+  valid and every item in exactly one of them;
+- `lib/pager`'s `ds_pager_close` keeps the pager and its dirty pages alive
+  when a write fails, so the close can be retried, and `ds_pager_discard`
+  drops them explicitly.
+
+Release paths are written not to need fresh memory: the trie child stores,
+for instance, fall back to visiting children in place when they cannot
+take a snapshot. A release path that still allocates says what it does on
+failure.
+
+**Infallible profile** (older APIs that return a node pointer or `void` and
+whose header documents no failure value, such as the original intrusive
+containers' `*_create` helpers). These assume the allocator returns a valid,
+non-NULL pointer; the returned pointer is never a failure sentinel. Use them
+with an allocator that never returns NULL: one that aborts, `longjmp`s to a
+recovery point, or otherwise handles exhaustion itself. With such an
+allocator the two profiles behave the same.
+
+**Allocator capability limits are not memory exhaustion.** A fixed pool
+running out of blocks and an arena refusing to `realloc` an existing
+pointer are limits of those allocators. Fallible APIs report both as
+`DS_ERR_ALLOC`, indistinguishable from exhaustion by status alone, so pick
+an allocator whose limits suit the structure (anything that grows by
+`realloc` needs a context with general `realloc`).
+
+**Other failures are separate.** I/O errors (`DS_ERR_STATE`, as in
+`algo/external_sort` and `lib/pager`), integer overflow
+(`DS_ERR_OVERFLOW`), ownership mismatches (`DS_ERR_INVALID` or
+`DS_ERR_UNSUPPORTED`, e.g. an element destructor without a copy function
+where values are shared) and unsupported operations are reported in their
+own right, whichever allocation profile applies.
 
 ## Persistent structure versions
 
