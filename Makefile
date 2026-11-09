@@ -14,6 +14,12 @@ CFLAGS = -std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors \
          -Wwrite-strings -Wconversion \
          -O2 -fPIC
 TEST_CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic -O2
+# header dependency tracking: each object also writes a .d file listing the
+# headers it includes, so editing a header rebuilds its users
+DEPFLAGS = -MMD -MP
+# the expansion arithmetic of algo/robust_predicates needs unfused
+# floating-point operations on every compiler configuration
+FP_STRICT_CFLAGS = -ffp-contract=off
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -pedantic -O2
 LDFLAGS = -shared
 LDLIBS = -lm
@@ -528,7 +534,12 @@ $(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H): $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD
 	  --out-h        $(TEST_GEN_SRC_H)
 
 %.o: %.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $<
+	$(CC) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<
+
+$(ALGO_DIR)/robust_predicates.o: $(ALGO_DIR)/robust_predicates.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(FP_STRICT_CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<
+
+-include $(LIB_OBJ:.o=.d)
 
 $(GEN_OBJ): $(GEN_SRC_C) $(GEN_SRC_H)
 	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $(GEN_SRC_C)
@@ -656,6 +667,7 @@ examples: $(EXAMPLE_BIN)
 
 clean:
 	rm -f $(LIB_DIR)/*.o $(ALGO_DIR)/*.o $(BUILD_DIR)/*.o \
+	      $(LIB_DIR)/*.d $(ALGO_DIR)/*.d $(BUILD_DIR)/*.d \
 	      $(LIB_STATIC) $(LIB_SHARED) \
 	      $(GEN_BIN)
 	rm -f $(GEN_SRC_C) $(GEN_SRC_H)

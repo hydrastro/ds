@@ -1,5 +1,6 @@
 # Object files, precompiled headers, libraries
 *.o
+*.d
 *.gch
 *.a
 *.so
