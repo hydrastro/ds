@@ -13,9 +13,14 @@ extern "C" {
  * Alignment: arenas and pools align the actual addresses they return
  * (not just offsets into a buffer of unknown alignment) to `alignment`,
  * DS_MAX_ALIGN by default (enough for any C89 object); a power of two can
- * be chosen with ds_arena_set_alignment / ds_pool_init_aligned. A pool on
- * a misaligned caller buffer starts at the first aligned address and
- * gives up one block if the padding needs it.
+ * be chosen with ds_arena_set_alignment / ds_pool_init_aligned.
+ *
+ * Pools on caller buffers: blocks are laid out at an aligned stride (the
+ * block size rounded up to the alignment, and at least a pointer), from
+ * the first aligned address of the buffer, and never past its end. The
+ * number of blocks that fit can therefore be smaller than requested; it is
+ * reported by ds_pool_init_buffer and ds_pool_available, and
+ * ds_pool_storage_size gives the bytes that guarantee a count.
  */
 typedef struct ds_arena {
   unsigned char *buffer;
@@ -68,10 +73,20 @@ ds_status_t ds_arena_set_alignment(ds_arena_t *arena, size_t alignment);
 /* one allocation with its own alignment (NULL when out of space) */
 void *ds_arena_alloc_aligned(ds_arena_t *arena, size_t size, size_t alignment);
 
+/* a pool over buffer_bytes caller bytes; *out_count (optional) receives
+ * the number of blocks that fit. alignment: a power of two, 0 means
+ * DS_MAX_ALIGN */
+ds_status_t ds_pool_init_buffer(ds_pool_t *pool, void *buffer,
+                                size_t buffer_bytes, size_t block_size,
+                                size_t alignment, size_t *out_count);
+/* bytes a caller buffer needs so that block_count blocks fit at any
+ * starting address */
+ds_status_t ds_pool_storage_size(size_t block_size, size_t block_count,
+                                 size_t alignment, size_t *out_bytes);
+/* legacy forms: the buffer is block_size * block_count bytes; blocks that
+ * do not fit at the aligned stride are dropped (see ds_pool_available) */
 void ds_pool_init(ds_pool_t *pool, void *buffer, size_t block_size,
                   size_t block_count);
-/* like ds_pool_init with blocks aligned to `alignment` (a power of two;
- * 0 means DS_MAX_ALIGN) */
 ds_status_t ds_pool_init_aligned(ds_pool_t *pool, void *buffer,
                                  size_t block_size, size_t block_count,
                                  size_t alignment);
