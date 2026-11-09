@@ -31,12 +31,12 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 748 |
+| implemented | 749 |
 | restricted | 3 |
 | variant | 1 |
 | reference | 5 |
 | missing | 2 |
-| n/a | 547 |
+| n/a | 546 |
 | total | 1306 |
 
 Every indexed term has a classification; implementation scope and known
@@ -47,11 +47,11 @@ the term covers is provided.
 
 | kind | entries |
 |---|---|
-| structure | 276 |
+| structure | 277 |
 | algorithm | 442 |
 | problem | 30 |
 | alias | 10 |
-| concept | 548 |
+| concept | 547 |
 
 ## Missing
 
@@ -100,7 +100,7 @@ the term covers is provided.
 | adaptive sort | algorithm | implemented | algo/sort_misc |  |
 | address-calculation sort | algorithm | implemented | algo/sort_dist |  |
 | adjacency-list representation | structure | implemented | lib/graph, algo/graph_view | CSR |
-| adjacency-matrix representation | concept | n/a |  |  |
+| adjacency-matrix representation | structure | implemented | lib/adj_matrix |  |
 | adjacent | concept | n/a |  |  |
 | admissible vertex | concept | n/a |  |  |
 | ADT | concept | n/a |  |  |

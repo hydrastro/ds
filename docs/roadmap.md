@@ -210,6 +210,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/quotient_filter: quotient filter with delete and enumeration
 - lib/xor_filter: Graf-Lemire xor filter
 - lib/amq_iface: AMQ ops table with Bloom, cuckoo, quotient and xor backends
+- lib/adj_matrix: dense adjacency-matrix graph with sparse-set rows, graph-view adapter.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
