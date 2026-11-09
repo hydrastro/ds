@@ -224,31 +224,34 @@ typedef struct rsr {
   size_t offset_bits;
 } rsr_t;
 
-static unsigned rrr_binom[RRR_B + 1][RRR_B + 1];
-static unsigned rrr_width[RRR_B + 1];
-static int rrr_ready = 0;
-
-static void rrr_tables(void) {
-  unsigned i, j;
-  if (rrr_ready) {
-    return;
-  }
-  for (i = 0; i <= RRR_B; i++) {
-    rrr_binom[i][0] = 1;
-    for (j = 1; j <= RRR_B; j++) {
-      rrr_binom[i][j] =
-          i == 0 ? 0 : rrr_binom[i - 1][j - 1] + rrr_binom[i - 1][j];
-    }
-  }
-  for (i = 0; i <= RRR_B; i++) {
-    unsigned c = rrr_binom[RRR_B][i], w = 0;
-    while ((1U << w) < c) {
-      w++;
-    }
-    rrr_width[i] = w;
-  }
-  rrr_ready = 1;
-}
+/* binomial coefficients C(i, j) for i, j <= RRR_B, and the offset width
+ * ceil(log2 C(RRR_B, c)) of each class: generated constants, so that no
+ * instance initializes shared state */
+static const unsigned rrr_binom[RRR_B + 1][RRR_B + 1] = {
+    {1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 2U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 3U, 3U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 4U, 6U, 4U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 5U, 10U, 10U, 5U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 6U, 15U, 20U, 15U, 6U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 7U, 21U, 35U, 35U, 21U, 7U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 8U, 28U, 56U, 70U, 56U, 28U, 8U, 1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 9U, 36U, 84U, 126U, 126U, 84U, 36U, 9U, 1U, 0U, 0U, 0U, 0U, 0U, 0U},
+    {1U, 10U, 45U, 120U, 210U, 252U, 210U, 120U, 45U, 10U, 1U, 0U, 0U, 0U, 0U,
+     0U},
+    {1U, 11U, 55U, 165U, 330U, 462U, 462U, 330U, 165U, 55U, 11U, 1U, 0U, 0U, 0U,
+     0U},
+    {1U, 12U, 66U, 220U, 495U, 792U, 924U, 792U, 495U, 220U, 66U, 12U, 1U, 0U,
+     0U, 0U},
+    {1U, 13U, 78U, 286U, 715U, 1287U, 1716U, 1716U, 1287U, 715U, 286U, 78U, 13U,
+     1U, 0U, 0U},
+    {1U, 14U, 91U, 364U, 1001U, 2002U, 3003U, 3432U, 3003U, 2002U, 1001U, 364U,
+     91U, 14U, 1U, 0U},
+    {1U, 15U, 105U, 455U, 1365U, 3003U, 5005U, 6435U, 6435U, 5005U, 3003U,
+     1365U, 455U, 105U, 15U, 1U}};
+static const unsigned rrr_width[RRR_B + 1] = {
+    0U, 4U, 7U, 9U, 11U, 12U, 13U, 13U, 13U, 13U, 12U, 11U, 9U, 7U, 4U, 0U};
 
 static unsigned rrr_class(const rsr_t *r, size_t b) {
   return (r->classes[b / 2] >> ((b % 2) * 4)) & 15U;
@@ -332,7 +335,6 @@ static ds_status_t rsr_build(void **state, const unsigned long *words, size_t n,
   if (r == NULL) {
     return DS_ERR_ALLOC;
   }
-  rrr_tables();
   r->n = n;
   r->nblocks = (n + RRR_B - 1) / RRR_B;
   r->nsb = r->nblocks / RRR_SB + 1;
@@ -551,7 +553,8 @@ static bool rse_access(const void *state, size_t i) {
 
 static size_t rse_bytes(const void *state) {
   const rse_t *e = (const rse_t *)state;
-  return sizeof(*e) + ds_elias_fano_bits(&e->ef) / CHAR_BIT;
+  return sizeof(*e) + ds_elias_fano_bits(&e->ef) / CHAR_BIT +
+         ds_elias_fano_index_bytes(&e->ef);
 }
 
 static const ds_rs_ops_t rs_plain_ops = {"plain",     rsp_build,   rsp_rank1,
