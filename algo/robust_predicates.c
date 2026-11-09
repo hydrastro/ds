@@ -1,6 +1,12 @@
 #include "robust_predicates.h"
 #include <string.h>
 
+/* the error-free transformations need unfused products and sums; GCC's
+ * ISO modes and the Makefile's -ffp-contract=off cover GCC */
+#if defined(__clang__)
+#pragma STDC FP_CONTRACT OFF
+#endif
+
 #define RP_EPS (1.0 / 9007199254740992.0) /* 2^-53 */
 #define RP_SPLITTER 134217729.0           /* 2^27 + 1 */
 #define RP_NZ(x) ((x) < 0.0 || (x) > 0.0)
@@ -544,4 +550,46 @@ ds_status_t ds_insphere(const double *a, const double *b, const double *c,
     return DS_OK;
   }
   return rp_insphere_exact(a, b, c, d, e, out, context);
+}
+
+ds_status_t ds_robust_predicates_check(void) {
+  /* volatile keeps the compiler from folding the probes at compile time */
+  volatile double one = 1.0;
+  volatile double tiny = 1.0 / 1152921504606846976.0; /* 2^-60 */
+  volatile double a = 1.0 + 1.0 / 1073741824.0;       /* 1 + 2^-30 */
+  double x;
+  double y;
+  double p[2];
+  double q[2];
+  double r[2];
+#if defined(__FLT_EVAL_METHOD__)
+#if __FLT_EVAL_METHOD__ != 0
+  return DS_ERR_UNSUPPORTED;
+#endif
+#endif
+  /* extended precision keeps 1 + 2^-60 and loses the tail */
+  ds_two_sum(one, tiny, &x, &y);
+  if (RP_NZ(x - 1.0) || RP_NZ(y - 1.0 / 1152921504606846976.0)) {
+    return DS_ERR_UNSUPPORTED;
+  }
+  /* (1 + 2^-30)^2 = (1 + 2^-29) + 2^-60 exactly; contraction or wider
+   * products break the split */
+  ds_two_product(a, a, &x, &y);
+  if (RP_NZ(x - (1.0 + 1.0 / 536870912.0)) ||
+      RP_NZ(y - 1.0 / 1152921504606846976.0)) {
+    return DS_ERR_UNSUPPORTED;
+  }
+  /* a nearly collinear triple: filter and exact evaluation must agree */
+  p[0] = 0.5 * one;
+  p[1] = 0.5 * one;
+  q[0] = 12.0 * one;
+  q[1] = 12.0 * one;
+  r[0] = 24.00000000000005 * one;
+  r[1] = 24.0000000000000053 * one;
+  x = ds_orient2d(p, q, r);
+  y = ds_orient2d_exact(p, q, r);
+  if ((x > 0.0) != (y > 0.0) || (x < 0.0) != (y < 0.0)) {
+    return DS_ERR_UNSUPPORTED;
+  }
+  return DS_OK;
 }

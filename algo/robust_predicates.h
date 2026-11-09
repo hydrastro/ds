@@ -18,11 +18,34 @@
  * exact sign of the determinant (zero exactly when degenerate); its
  * magnitude is approximate.
  *
- * Requirements: IEEE 754 binary64 with round-to-nearest-even, no x87
+ * Exact-sign claims hold under these requirements; the magnitudes are
+ * only approximations in every case.
+ *
+ * Floating point: IEEE 754 binary64 with round-to-nearest-even, no x87
  * extended precision (FLT_EVAL_METHOD 0) and no contraction into fused
- * multiply-adds; inputs must be small enough that no intermediate result
- * overflows (|x| below about 2^500 for the 3D/circle tests) and large
- * enough, where nonzero, that none underflows.
+ * multiply-adds. The Makefile compiles this file with -ffp-contract=off
+ * and the source disables contraction for clang (whose default contracts
+ * within expressions); other builds must do the same. GCC already
+ * disables contraction in its ISO C modes. ds_robust_predicates_check()
+ * tests the compiled code and floating-point environment at run time.
+ *
+ * Range: a predicate of degree d multiplies d coordinate differences, so
+ * the safe range shrinks with d. Sufficient (conservative) conditions on
+ * every nonzero input coordinate x, zero always allowed:
+ *
+ *   orient2d   degree 2   2^-450 <= |x| <= 2^500
+ *   orient3d   degree 3   2^-280 <= |x| <= 2^330
+ *   incircle   degree 4   2^-195 <= |x| <= 2^250
+ *   insphere   degree 5   2^-145 <= |x| <= 2^195
+ *
+ * The upper bounds keep the largest term (2 |x|)^d times the number of
+ * terms, and the 2^27 splitting of each product, below the overflow
+ * threshold; the lower bounds keep products of d rounding tails (each at
+ * least 2^-53 of the smallest nonzero coordinate) above the underflow
+ * threshold. Outside them a result may be wrong and nothing detects it.
+ * Scaling all coordinates by the same power of two (ldexp) preserves every
+ * sign, so inputs can be brought into range exactly when no coordinate
+ * underflows in the process.
  *
  *   orient2d(a,b,c)    > 0 when a,b,c turn counterclockwise
  *   orient3d(a,b,c,d)  > 0 when d lies below the plane of a,b,c, those
@@ -77,6 +100,11 @@ ds_status_t ds_insphere(const double *a, const double *b, const double *c,
                         ds_context_t *context);
 
 /* exact-only evaluations (no filter), mostly for checking */
+/* DS_OK when the compiled arithmetic is exact as required (round to
+ * nearest, no extended precision, no contraction), DS_ERR_UNSUPPORTED
+ * otherwise; cheap enough to call once at start-up */
+ds_status_t ds_robust_predicates_check(void);
+
 double ds_orient2d_exact(const double *a, const double *b, const double *c);
 double ds_orient3d_exact(const double *a, const double *b, const double *c,
                          const double *d);
