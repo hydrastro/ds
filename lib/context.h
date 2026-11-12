@@ -3,6 +3,7 @@
 
 #include "diagnostic.h"
 #include "error.h"
+#include <stdbool.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -25,6 +26,23 @@ extern "C" {
  */
 #define DS_CONTEXT_NO_LAST_ERROR 0x1u
 
+/*
+ * Resource traits: what the context's allocator can do. Structures that
+ * grow by realloc, free individual nodes or transfer nodes between
+ * containers depend on these, and a fixed pool or an arena is not a
+ * general heap. ds_context_init describes the C heap; the
+ * ds_context_use_* adapters (arena, pool, buddy, debug) set their own; a
+ * context given custom functions should describe them with
+ * ds_context_set_resource.
+ */
+#define DS_RESOURCE_REALLOC 0x1u      /* resizes any live block */
+#define DS_RESOURCE_FREE 0x2u         /* free returns memory for reuse */
+#define DS_RESOURCE_FALLIBLE 0x4u     /* may return NULL */
+#define DS_RESOURCE_BOUNDED 0x8u      /* fixed total capacity */
+#define DS_RESOURCE_FIXED_BLOCK 0x10u /* one block size only */
+#define DS_RESOURCE_HEAP                                                       \
+  (DS_RESOURCE_REALLOC | DS_RESOURCE_FREE | DS_RESOURCE_FALLIBLE)
+
 typedef struct ds_context {
   void *(*alloc)(size_t size, void *user);
   void *(*calloc)(size_t count, size_t size, void *user);
@@ -34,6 +52,7 @@ typedef struct ds_context {
   ds_diagnostic_sink_t *diagnostic_sink;
   ds_error_t last_error;
   unsigned int flags;
+  unsigned int resource; /* DS_RESOURCE_* traits */
 } ds_context_t;
 
 void ds_context_init(ds_context_t *context);
@@ -44,6 +63,19 @@ void *ds_context_alloc(ds_context_t *context, size_t size);
 void *ds_context_calloc(ds_context_t *context, size_t count, size_t size);
 void *ds_context_realloc(ds_context_t *context, void *ptr, size_t size);
 void ds_context_free(ds_context_t *context, void *ptr);
+/* the resource traits (NULL: the default context) */
+unsigned int ds_context_resource(const ds_context_t *context);
+void ds_context_set_resource(ds_context_t *context, unsigned int traits);
+/* DS_OK when the context has every trait in `required`, else
+ * DS_ERR_UNSUPPORTED */
+ds_status_t ds_context_require(const ds_context_t *context,
+                               unsigned int required);
+/* true when memory allocated through one context may be resized and
+ * released through the other: the same allocator functions and user
+ * data (NULL is the default context). This is the condition for moving
+ * nodes between containers; the contexts' error state and diagnostics
+ * may differ. */
+bool ds_context_compatible(const ds_context_t *a, const ds_context_t *b);
 void ds_context_clear_error(ds_context_t *context);
 const ds_error_t *ds_context_last_error(const ds_context_t *context);
 ds_status_t ds_context_set_error(ds_context_t *context, ds_status_t status,
