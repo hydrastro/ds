@@ -1,15 +1,31 @@
 #include "zipper.h"
+#include "checked.h"
 #include <string.h>
 
 #define ZE DS_ZIPPER_EMPTY
 
 static ds_status_t zp_grow(ds_context_t *ctx, void **p, size_t elem,
                            size_t ncap) {
-  void *q = ds_context_realloc(ctx, *p, ncap * elem);
+  size_t bytes;
+  void *q;
+  if (!ds_size_mul(ncap, elem, &bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
+  q = ds_context_realloc(ctx, *p, bytes);
   if (q == NULL) {
     return DS_ERR_ALLOC;
   }
   *p = q;
+  return DS_OK;
+}
+
+/* the next capacity of a store array (DS_ERR_OVERFLOW past half the
+ * address space) */
+static ds_status_t zp_next_capacity(size_t cap, size_t *out) {
+  if (cap > ((size_t)-1) / 2) {
+    return DS_ERR_OVERFLOW;
+  }
+  *out = cap < 8 ? 16 : cap * 2;
   return DS_OK;
 }
 
@@ -37,12 +53,12 @@ void ds_zipper_store_destroy(ds_zipper_store_t *s) {
   ds_context_free(s->context, s->left);
   ds_context_free(s->context, s->right);
   ds_context_free(s->context, s->refs);
+  ds_context_free(s->context, s->count);
   ds_context_free(s->context, s->fvalue);
   ds_context_free(s->context, s->fsibling);
   ds_context_free(s->context, s->fup);
   ds_context_free(s->context, s->fdir);
   ds_context_free(s->context, s->frefs);
-  ds_context_free(s->context, s->work);
   memset(s, 0, sizeof(*s));
 }
 
@@ -66,52 +82,59 @@ static void zp_frame_retain(ds_zipper_store_t *s, size_t f) {
   }
 }
 
-static bool zp_work_push(ds_zipper_store_t *s, size_t *top, size_t v) {
-  if (*top == s->work_capacity) {
-    size_t nc = s->work_capacity < 16 ? 64 : s->work_capacity * 2;
-    if (zp_grow(s->context, (void **)&s->work, sizeof(size_t), nc) != DS_OK) {
-      return false;
-    }
-    s->work_capacity = nc;
-  }
-  s->work[(*top)++] = v;
-  return true;
-}
-
 /* Drop one reference to node t (tag 0) or frame f (tag 1); what reaches
- * zero is freed, children and parents in turn (work list, no recursion).
- * Entries are encoded as 2 * index + tag. */
+ * zero is freed, children and parents in turn, without recursion and
+ * without allocating: a node or frame whose count reached zero is no
+ * longer referenced, so its count field links it into a pending stack
+ * until it is processed. Release therefore cannot fail. Entries are
+ * encoded as 2 * index + tag. */
 static void zp_release(ds_zipper_store_t *s, size_t item) {
-  size_t top = 0;
-  if (!zp_work_push(s, &top, item)) {
-    return; /* out of memory: leak rather than corrupt */
+  size_t nh = ZE; /* pending nodes, linked through refs */
+  size_t fh = ZE; /* pending frames, linked through frefs */
+  size_t idx = item / 2;
+  if (item % 2 == 0) {
+    if (--s->refs[idx] == 0) {
+      s->refs[idx] = nh;
+      nh = idx;
+    }
+  } else if (--s->frefs[idx] == 0) {
+    s->frefs[idx] = fh;
+    fh = idx;
   }
-  while (top > 0) {
-    size_t e = s->work[--top];
-    size_t idx = e / 2;
-    if (e % 2 == 0) {
-      if (--s->refs[idx] > 0) {
-        continue;
+  while (nh != ZE || fh != ZE) {
+    if (nh != ZE) {
+      size_t c[2];
+      int k;
+      idx = nh;
+      nh = s->refs[idx];
+      c[0] = s->left[idx];
+      c[1] = s->right[idx];
+      for (k = 0; k < 2; k++) {
+        if (c[k] != ZE && --s->refs[c[k]] == 0) {
+          s->refs[c[k]] = nh;
+          nh = c[k];
+        }
       }
-      if (s->left[idx] != ZE) {
-        (void)zp_work_push(s, &top, 2 * s->left[idx]);
-      }
-      if (s->right[idx] != ZE) {
-        (void)zp_work_push(s, &top, 2 * s->right[idx]);
-      }
+      s->refs[idx] = 0;
       s->left[idx] = s->node_free;
       s->node_free = idx;
       s->live_nodes--;
     } else {
-      if (--s->frefs[idx] > 0) {
-        continue;
+      size_t sib;
+      size_t up;
+      idx = fh;
+      fh = s->frefs[idx];
+      sib = s->fsibling[idx];
+      up = s->fup[idx];
+      if (sib != ZE && --s->refs[sib] == 0) {
+        s->refs[sib] = nh;
+        nh = sib;
       }
-      if (s->fsibling[idx] != ZE) {
-        (void)zp_work_push(s, &top, 2 * s->fsibling[idx]);
+      if (up != ZE && --s->frefs[up] == 0) {
+        s->frefs[up] = fh;
+        fh = up;
       }
-      if (s->fup[idx] != ZE) {
-        (void)zp_work_push(s, &top, 2 * s->fup[idx] + 1);
-      }
+      s->frefs[idx] = 0;
       s->fup[idx] = s->frame_free;
       s->frame_free = idx;
       s->live_frames--;
@@ -123,6 +146,66 @@ void ds_zipper_tree_release(ds_zipper_store_t *s, size_t tree) {
   if (s != NULL && tree != ZE) {
     zp_release(s, 2 * tree);
   }
+}
+
+/* grow every node array to nc slots; capacities only change when all
+ * succeed, and a partial growth is harmless (realloc keeps contents) */
+static ds_status_t zp_reserve_nodes(ds_zipper_store_t *s, size_t nc) {
+  ds_status_t st;
+  if (nc <= s->node_capacity) {
+    return DS_OK;
+  }
+  st = zp_grow(s->context, (void **)&s->value, s->elem_size, nc);
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->left, sizeof(size_t), nc);
+  }
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->right, sizeof(size_t), nc);
+  }
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->refs, sizeof(size_t), nc);
+  }
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->count, sizeof(size_t), nc);
+  }
+  if (st == DS_OK) {
+    s->node_capacity = nc;
+  }
+  return st;
+}
+
+static ds_status_t zp_reserve_frames(ds_zipper_store_t *s, size_t nc) {
+  ds_status_t st;
+  if (nc <= s->frame_capacity) {
+    return DS_OK;
+  }
+  st = zp_grow(s->context, (void **)&s->fvalue, s->elem_size, nc);
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->fsibling, sizeof(size_t), nc);
+  }
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->fup, sizeof(size_t), nc);
+  }
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->fdir, 1, nc);
+  }
+  if (st == DS_OK) {
+    st = zp_grow(s->context, (void **)&s->frefs, sizeof(size_t), nc);
+  }
+  if (st == DS_OK) {
+    s->frame_capacity = nc;
+  }
+  return st;
+}
+
+ds_status_t ds_zipper_store_reserve(ds_zipper_store_t *s, size_t nodes,
+                                    size_t frames) {
+  ds_status_t st;
+  if (s == NULL) {
+    return DS_ERR_NULL;
+  }
+  st = zp_reserve_nodes(s, nodes);
+  return st == DS_OK ? zp_reserve_frames(s, frames) : st;
 }
 
 ds_status_t ds_zipper_tree_node(ds_zipper_store_t *s, const void *elem,
@@ -139,14 +222,14 @@ ds_status_t ds_zipper_tree_node(ds_zipper_store_t *s, const void *elem,
     s->node_free = s->left[v];
   } else {
     if (s->nodes == s->node_capacity) {
-      size_t nc = s->node_capacity < 8 ? 16 : s->node_capacity * 2;
-      if (zp_grow(s->context, (void **)&s->value, s->elem_size, nc) ||
-          zp_grow(s->context, (void **)&s->left, sizeof(size_t), nc) ||
-          zp_grow(s->context, (void **)&s->right, sizeof(size_t), nc) ||
-          zp_grow(s->context, (void **)&s->refs, sizeof(size_t), nc)) {
-        return DS_ERR_ALLOC;
+      size_t nc;
+      ds_status_t st = zp_next_capacity(s->node_capacity, &nc);
+      if (st == DS_OK) {
+        st = zp_reserve_nodes(s, nc);
       }
-      s->node_capacity = nc;
+      if (st != DS_OK) {
+        return st;
+      }
     }
     v = s->nodes++;
   }
@@ -154,6 +237,22 @@ ds_status_t ds_zipper_tree_node(ds_zipper_store_t *s, const void *elem,
   s->left[v] = left;
   s->right[v] = right;
   s->refs[v] = 1;
+  /* subtree size with multiplicity, saturating: shared subtrees count
+   * once per occurrence and a DAG may exceed SIZE_MAX */
+  {
+    size_t n = 1;
+    size_t i;
+    size_t ch[2];
+    ch[0] = left;
+    ch[1] = right;
+    for (i = 0; i < 2; i++) {
+      if (ch[i] != ZE) {
+        n = s->count[ch[i]] > ((size_t)-1) - n ? (size_t)-1
+                                               : n + s->count[ch[i]];
+      }
+    }
+    s->count[v] = n;
+  }
   ds_zipper_tree_retain(s, left);
   ds_zipper_tree_retain(s, right);
   s->live_nodes++;
@@ -174,20 +273,7 @@ size_t ds_zipper_tree_right(const ds_zipper_store_t *s, size_t tree) {
 }
 
 size_t ds_zipper_tree_size(ds_zipper_store_t *s, size_t tree) {
-  size_t top = 0;
-  size_t n = 0;
-  if (s == NULL || tree == ZE || !zp_work_push(s, &top, tree)) {
-    return 0;
-  }
-  while (top > 0) {
-    size_t v = s->work[--top];
-    n++;
-    if ((s->left[v] != ZE && !zp_work_push(s, &top, s->left[v])) ||
-        (s->right[v] != ZE && !zp_work_push(s, &top, s->right[v]))) {
-      return 0;
-    }
-  }
-  return n;
+  return s == NULL || tree == ZE ? 0 : s->count[tree];
 }
 
 static ds_status_t zp_frame(ds_zipper_store_t *s, unsigned char dir,
@@ -199,15 +285,14 @@ static ds_status_t zp_frame(ds_zipper_store_t *s, unsigned char dir,
     s->frame_free = s->fup[f];
   } else {
     if (s->frames == s->frame_capacity) {
-      size_t nc = s->frame_capacity < 8 ? 16 : s->frame_capacity * 2;
-      if (zp_grow(s->context, (void **)&s->fvalue, s->elem_size, nc) ||
-          zp_grow(s->context, (void **)&s->fsibling, sizeof(size_t), nc) ||
-          zp_grow(s->context, (void **)&s->fup, sizeof(size_t), nc) ||
-          zp_grow(s->context, (void **)&s->fdir, 1, nc) ||
-          zp_grow(s->context, (void **)&s->frefs, sizeof(size_t), nc)) {
-        return DS_ERR_ALLOC;
+      size_t nc;
+      ds_status_t st = zp_next_capacity(s->frame_capacity, &nc);
+      if (st == DS_OK) {
+        st = zp_reserve_frames(s, nc);
       }
-      s->frame_capacity = nc;
+      if (st != DS_OK) {
+        return st;
+      }
     }
     f = s->frames++;
   }

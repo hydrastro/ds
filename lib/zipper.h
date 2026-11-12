@@ -11,12 +11,24 @@
  * root, each path frame holding the direction taken, the parent's element,
  * the other subtree and the rest of the path. Moving down pushes a frame,
  * moving up rebuilds the parent from it; editing replaces the focus. Every
- * operation returns a new zipper and leaves the old one intact, all in
- * O(1) (closing rebuilds the path, O(depth)).
+ * operation returns a new zipper and leaves the old one intact.
+ *
+ * Costs: each move or edit allocates at most one node or frame from the
+ * store's free lists or arrays, so it is O(1) when a free slot or spare
+ * capacity exists and O(1) amortized otherwise (the arrays double, which
+ * relocates them). ds_zipper_store_reserve makes later operations O(1)
+ * worst case up to the reserved counts. Closing rebuilds the path,
+ * O(depth). ds_zipper_tree_size is O(1): node sizes are kept as nodes are
+ * made.
+ *
+ * Release: dropping a reference frees whatever reaches zero, iteratively
+ * and without allocating (pending nodes and frames are linked through
+ * their own reference-count fields), so release cannot fail or leak.
  *
  * Ownership: functions that return a tree or a zipper hand over one
  * reference, released with ds_zipper_tree_release or ds_zipper_release;
- * trees passed in are only borrowed. Memory comes from the ds_context_t.
+ * trees passed in are only borrowed. Memory comes from the ds_context_t;
+ * array sizes are overflow-checked.
  */
 
 #include "context.h"
@@ -36,7 +48,8 @@ typedef struct ds_zipper_store {
   unsigned char *value;
   size_t *left;
   size_t *right;
-  size_t *refs; /* free nodes: next free in left */
+  size_t *refs;  /* free nodes: next free in left */
+  size_t *count; /* subtree sizes, saturating */
   size_t nodes;
   size_t node_capacity;
   size_t node_free;
@@ -51,8 +64,6 @@ typedef struct ds_zipper_store {
   size_t frame_free;
   size_t live_nodes;
   size_t live_frames;
-  size_t *work; /* scratch for releases */
-  size_t work_capacity;
   ds_context_t *context;
 } ds_zipper_store_t;
 
@@ -64,6 +75,9 @@ typedef struct ds_zipper {
 ds_status_t ds_zipper_store_init(ds_zipper_store_t *s, size_t elem_size,
                                  ds_context_t *context);
 void ds_zipper_store_destroy(ds_zipper_store_t *s);
+/* capacity for this many nodes and frames in total (see Costs) */
+ds_status_t ds_zipper_store_reserve(ds_zipper_store_t *s, size_t nodes,
+                                    size_t frames);
 /* live nodes and frames (for leak checks) */
 size_t ds_zipper_store_nodes(const ds_zipper_store_t *s);
 size_t ds_zipper_store_frames(const ds_zipper_store_t *s);
@@ -76,6 +90,8 @@ void ds_zipper_tree_release(ds_zipper_store_t *s, size_t tree);
 const void *ds_zipper_tree_value(const ds_zipper_store_t *s, size_t tree);
 size_t ds_zipper_tree_left(const ds_zipper_store_t *s, size_t tree);
 size_t ds_zipper_tree_right(const ds_zipper_store_t *s, size_t tree);
+/* nodes of the tree counting shared subtrees once per occurrence,
+ * saturating at SIZE_MAX; O(1) */
 size_t ds_zipper_tree_size(ds_zipper_store_t *s, size_t tree);
 
 /* zippers */
