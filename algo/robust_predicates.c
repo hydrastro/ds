@@ -562,11 +562,15 @@ ds_status_t ds_robust_predicates_check(void) {
   double p[2];
   double q[2];
   double r[2];
+  int wide_eval = 0;
 #if defined(__FLT_EVAL_METHOD__)
 #if __FLT_EVAL_METHOD__ != 0
-  return DS_ERR_UNSUPPORTED;
+  wide_eval = 1;
 #endif
 #endif
+  if (wide_eval) {
+    return DS_ERR_UNSUPPORTED; /* intermediates in a wider format */
+  }
   /* extended precision keeps 1 + 2^-60 and loses the tail */
   ds_two_sum(one, tiny, &x, &y);
   if (RP_NZ(x - 1.0) || RP_NZ(y - 1.0 / 1152921504606846976.0)) {
