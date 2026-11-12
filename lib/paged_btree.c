@@ -4,9 +4,11 @@
 #include <string.h>
 
 #define PB_HDR 16U
+#define PB_MAXH 64 /* deeper than any page count can reach */
 #define PB_LEAF 1
 #define PB_INNER 2
-#define PB_MAGIC "DSBPT1\0\0"
+#define PB_MAGIC_V1 "DSBPT1\0\0"
+#define PB_MAGIC "DSBPT2\0\0"
 
 static void pb_put64(unsigned char *p, unsigned long v) {
   int i;
@@ -25,6 +27,18 @@ static unsigned long pb_get64(const unsigned char *p) {
     v = (v << 8) | p[i];
   }
   return v;
+}
+
+/* an 8-byte field that must fit this host's unsigned long */
+static bool pb_get64_fits(const unsigned char *p, unsigned long *out) {
+  size_t i;
+  for (i = sizeof(unsigned long); i < 8; i++) {
+    if (p[i] != 0) {
+      return false;
+    }
+  }
+  *out = pb_get64(p);
+  return true;
 }
 
 static size_t pb_count(const unsigned char *page) {
@@ -73,6 +87,28 @@ static void pb_done(ds_pbtree_t *t, unsigned long page, bool dirty) {
   (void)ds_pager_unpin(t->pager, page);
 }
 
+/* a tree page of the expected kind whose count fits it; anything else is
+ * a corrupted store (DS_ERR_INVALID, nothing pinned) */
+static ds_status_t pb_fetch(ds_pbtree_t *t, unsigned long page, int kind,
+                            unsigned char **buf) {
+  unsigned char *b;
+  ds_status_t st;
+  if (page == 0 || page >= ds_pager_page_count(t->pager)) {
+    return DS_ERR_INVALID;
+  }
+  st = pb_get(t, page, &b);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (b[0] != (unsigned char)kind ||
+      pb_count(b) > (kind == PB_LEAF ? t->leaf_cap : t->inner_cap)) {
+    pb_done(t, page, false);
+    return DS_ERR_INVALID;
+  }
+  *buf = b;
+  return DS_OK;
+}
+
 ds_status_t ds_pbtree_sync(ds_pbtree_t *tree) {
   unsigned char *m;
   ds_status_t st;
@@ -89,7 +125,8 @@ ds_status_t ds_pbtree_sync(ds_pbtree_t *tree) {
   pb_put64(m + 24, tree->height);
   pb_put64(m + 32, tree->count);
   pb_put64(m + 40, tree->first_leaf);
-  m[48] = (unsigned char)sizeof(unsigned long); /* writer's key width */
+  pb_put64(m + 48, tree->max_key);
+  pb_put64(m + 56, (unsigned long)tree->pager->store->page_size);
   pb_done(tree, 0, true);
   return DS_OK;
 }
@@ -140,22 +177,44 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
   if (st != DS_OK) {
     return st;
   }
-  if (memcmp(m, PB_MAGIC, 8) != 0 ||
-      pb_get64(m + 8) != (unsigned long)value_size) {
+  {
+    bool v2 = memcmp(m, PB_MAGIC, 8) == 0;
+    bool v1 = memcmp(m, PB_MAGIC_V1, 8) == 0;
+    unsigned long vs;
+    unsigned long psz = 0;
+    bool fits;
+    if ((!v1 && !v2) || !pb_get64_fits(m + 8, &vs) ||
+        vs != (unsigned long)value_size) {
+      pb_done(tree, 0, false);
+      return DS_ERR_INVALID;
+    }
+    if (v1) {
+      /* version 1 recorded the writer's unsigned long width; a wider
+       * writer may have stored values this host cannot represent */
+      fits = m[48] <= sizeof(unsigned long);
+      tree->max_key = (unsigned long)-1; /* unknown */
+      psz = (unsigned long)ps;
+    } else {
+      /* version 2 records the largest key ever stored and the page size,
+       * so a narrower host opens any tree whose values fit it */
+      fits =
+          pb_get64_fits(m + 48, &tree->max_key) && pb_get64_fits(m + 56, &psz);
+    }
+    fits = fits && pb_get64_fits(m + 16, &tree->root) &&
+           pb_get64_fits(m + 24, &tree->height) &&
+           pb_get64_fits(m + 32, &tree->count) &&
+           pb_get64_fits(m + 40, &tree->first_leaf);
     pb_done(tree, 0, false);
-    return DS_ERR_INVALID;
+    if (!fits) {
+      return DS_ERR_UNSUPPORTED;
+    }
+    if (psz != (unsigned long)ps || tree->height == 0 ||
+        tree->height > PB_MAXH - 1 || tree->root == 0 ||
+        tree->root >= ds_pager_page_count(pager) || tree->first_leaf == 0 ||
+        tree->first_leaf >= ds_pager_page_count(pager)) {
+      return DS_ERR_INVALID;
+    }
   }
-  /* keys and page numbers are 8-byte fields; a tree written where
-   * unsigned long is wider may hold values this host cannot represent */
-  if (m[48] > sizeof(unsigned long)) {
-    pb_done(tree, 0, false);
-    return DS_ERR_UNSUPPORTED;
-  }
-  tree->root = pb_get64(m + 16);
-  tree->height = pb_get64(m + 24);
-  tree->count = pb_get64(m + 32);
-  tree->first_leaf = pb_get64(m + 40);
-  pb_done(tree, 0, false);
   return DS_OK;
 }
 
@@ -196,7 +255,7 @@ static ds_status_t pb_find_leaf(ds_pbtree_t *t, unsigned long k,
   for (level = t->height; level > 1; level--) {
     unsigned char *b;
     unsigned long next;
-    st = pb_get(t, page, &b);
+    st = pb_fetch(t, page, PB_INNER, &b);
     if (st != DS_OK) {
       return st;
     }
@@ -207,8 +266,6 @@ static ds_status_t pb_find_leaf(ds_pbtree_t *t, unsigned long k,
   *leaf = page;
   return DS_OK;
 }
-
-#define PB_MAXH 64 /* deeper than any page count can reach */
 
 /* split full leaf b (n entries, inserting key/value at pos) into b and the
  * new page nb; tmp holds n + 1 entries. Cannot fail. */
@@ -294,7 +351,7 @@ ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
   path[0] = tree->root;
   for (d = 0; d + 1 < h; d++) {
     unsigned char *b;
-    st = pb_get(tree, path[d], &b);
+    st = pb_fetch(tree, path[d], PB_INNER, &b);
     if (st != DS_OK) {
       return st;
     }
@@ -303,7 +360,7 @@ ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
     path[d + 1] = pb_child(b, idx[d]);
     pb_done(tree, path[d], false);
   }
-  st = pb_get(tree, path[h - 1], &buf[h - 1]);
+  st = pb_fetch(tree, path[h - 1], PB_LEAF, &buf[h - 1]);
   if (st != DS_OK) {
     return st;
   }
@@ -324,6 +381,9 @@ ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
       pb_set_count(b, n + 1);
       pb_done(tree, path[h - 1], true);
       tree->count++;
+      if (key > tree->max_key) {
+        tree->max_key = key;
+      }
       return DS_OK;
     }
   }
@@ -335,7 +395,7 @@ ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
   grow = k == h; /* the root splits: a new root is needed */
   for (i = 1; i <= k && i < h; i++) { /* ancestors that change */
     d = h - 1 - i;
-    st = pb_get(tree, path[d], &buf[d]);
+    st = pb_fetch(tree, path[d], PB_INNER, &buf[d]);
     if (st != DS_OK) {
       goto unwind;
     }
@@ -387,6 +447,9 @@ ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
     tree->height++;
   }
   tree->count++;
+  if (key > tree->max_key) {
+    tree->max_key = key;
+  }
   ds_context_free(tree->pager->context, tmp);
   for (i = 0; i < npinned; i++) {
     pb_done(tree, pinned[i], true);
@@ -418,7 +481,7 @@ ds_status_t ds_pbtree_get(ds_pbtree_t *tree, unsigned long key, void *out) {
   if (st != DS_OK) {
     return st;
   }
-  st = pb_get(tree, leaf, &b);
+  st = pb_fetch(tree, leaf, PB_LEAF, &b);
   if (st != DS_OK) {
     return st;
   }
@@ -447,7 +510,7 @@ ds_status_t ds_pbtree_remove(ds_pbtree_t *tree, unsigned long key) {
   if (st != DS_OK) {
     return st;
   }
-  st = pb_get(tree, leaf, &b);
+  st = pb_fetch(tree, leaf, PB_LEAF, &b);
   if (st != DS_OK) {
     return st;
   }
@@ -472,10 +535,16 @@ unsigned long ds_pbtree_size(const ds_pbtree_t *tree) {
 /* settle on a valid entry at or after (leaf, index) */
 static ds_status_t pb_iter_settle(ds_pbtree_iter_t *it) {
   ds_pbtree_t *t = it->tree;
+  unsigned long hops = 0;
   while (it->leaf != 0) {
     unsigned char *b;
     unsigned long next;
-    ds_status_t st = pb_get(t, it->leaf, &b);
+    ds_status_t st;
+    if (++hops > ds_pager_page_count(t->pager)) {
+      it->leaf = 0;
+      return DS_ERR_INVALID; /* the leaf chain loops */
+    }
+    st = pb_fetch(t, it->leaf, PB_LEAF, &b);
     if (st != DS_OK) {
       it->leaf = 0;
       return st;
@@ -510,9 +579,12 @@ ds_status_t ds_pbtree_iter_init(ds_pbtree_iter_t *it, ds_pbtree_t *tree,
   }
   st = pb_find_leaf(tree, from, &it->leaf);
   if (st == DS_OK) {
-    st = pb_get(tree, it->leaf, &b);
+    st = pb_fetch(tree, it->leaf, PB_LEAF, &b);
   }
   if (st != DS_OK) {
+    /* nothing to destroy after a failed init */
+    ds_context_free(tree->pager->context, it->value);
+    it->value = NULL;
     it->leaf = 0;
     return st;
   }
@@ -539,4 +611,134 @@ void ds_pbtree_iter_destroy(ds_pbtree_iter_t *it) {
   }
   ds_context_free(it->tree->pager->context, it->value);
   memset(it, 0, sizeof(*it));
+}
+
+/* ---- verification ---- */
+
+typedef struct pb_vframe {
+  unsigned long page;
+  unsigned long level;
+  unsigned long lo;
+  unsigned long hi;
+  int has_lo;
+  int has_hi;
+  size_t child; /* next child to visit (inner pages) */
+} pb_vframe_t;
+
+static bool pb_bit_test_set(unsigned char *bits, unsigned long i) {
+  unsigned char m = (unsigned char)(1U << (i % 8));
+  bool was = (bits[i / 8] & m) != 0;
+  bits[i / 8] = (unsigned char)(bits[i / 8] | m);
+  return was;
+}
+
+ds_status_t ds_pbtree_verify(ds_pbtree_t *tree, ds_context_t *context) {
+  pb_vframe_t stack[PB_MAXH];
+  size_t sp = 0;
+  unsigned long pages;
+  unsigned long expect_leaf;
+  unsigned long total = 0;
+  unsigned char *seen;
+  ds_status_t st = DS_OK;
+  if (tree == NULL || tree->pager == NULL) {
+    return DS_ERR_NULL;
+  }
+  pages = ds_pager_page_count(tree->pager);
+  if (tree->height == 0 || tree->height > PB_MAXH - 1 || tree->root == 0 ||
+      tree->root >= pages) {
+    return DS_ERR_INVALID;
+  }
+  seen =
+      (unsigned char *)ds_context_calloc(context, (size_t)(pages / 8 + 1), 1);
+  if (seen == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  (void)pb_bit_test_set(seen, 0);
+  expect_leaf = tree->first_leaf;
+  stack[sp].page = tree->root;
+  stack[sp].level = tree->height;
+  stack[sp].has_lo = stack[sp].has_hi = 0;
+  stack[sp].lo = stack[sp].hi = 0;
+  stack[sp].child = 0;
+  sp++;
+  if (pb_bit_test_set(seen, tree->root)) {
+    st = DS_ERR_INVALID;
+  }
+  while (sp > 0 && st == DS_OK) {
+    pb_vframe_t *f = &stack[sp - 1];
+    unsigned char *b;
+    size_t n;
+    size_t i;
+    if (f->level == 1) {
+      /* a leaf: in chain order, keys increasing within the bounds */
+      unsigned long prev = 0;
+      st = pb_fetch(tree, f->page, PB_LEAF, &b);
+      if (st != DS_OK) {
+        break;
+      }
+      n = pb_count(b);
+      for (i = 0; i < n && st == DS_OK; i++) {
+        unsigned long k = pb_get64(pb_lent(tree, b, i));
+        if ((i > 0 && !(prev < k)) || (f->has_lo && k < f->lo) ||
+            (f->has_hi && !(k < f->hi)) || k > tree->max_key) {
+          st = DS_ERR_INVALID;
+        }
+        prev = k;
+      }
+      /* the first leaf must be first_leaf; later ones are announced by
+       * their predecessor's next link */
+      if (st == DS_OK && f->page != expect_leaf) {
+        st = DS_ERR_INVALID;
+      }
+      expect_leaf = pb_get64(b + 8);
+      total += (unsigned long)n;
+      pb_done(tree, f->page, false);
+      sp--;
+      continue;
+    }
+    st = pb_fetch(tree, f->page, PB_INNER, &b);
+    if (st != DS_OK) {
+      break;
+    }
+    n = pb_count(b);
+    if (f->child == 0) {
+      /* first visit: separators increasing within the bounds */
+      if (n == 0) {
+        st = DS_ERR_INVALID;
+      }
+      for (i = 0; i < n && st == DS_OK; i++) {
+        unsigned long k = pb_ikey(b, i);
+        if ((i > 0 && !(pb_ikey(b, i - 1) < k)) || (f->has_lo && k < f->lo) ||
+            (f->has_hi && !(k < f->hi))) {
+          st = DS_ERR_INVALID;
+        }
+      }
+    }
+    if (st == DS_OK && f->child <= n) {
+      pb_vframe_t c;
+      c.page = pb_child(b, f->child);
+      c.level = f->level - 1;
+      c.has_lo = f->child > 0 ? 1 : f->has_lo;
+      c.lo = f->child > 0 ? pb_ikey(b, f->child - 1) : f->lo;
+      c.has_hi = f->child < n ? 1 : f->has_hi;
+      c.hi = f->child < n ? pb_ikey(b, f->child) : f->hi;
+      c.child = 0;
+      f->child++;
+      pb_done(tree, f->page, false);
+      if (c.page == 0 || c.page >= pages || pb_bit_test_set(seen, c.page) ||
+          sp >= PB_MAXH) {
+        st = DS_ERR_INVALID;
+        break;
+      }
+      stack[sp++] = c;
+      continue;
+    }
+    pb_done(tree, f->page, false);
+    sp--;
+  }
+  if (st == DS_OK && (expect_leaf != 0 || total != tree->count)) {
+    st = DS_ERR_INVALID;
+  }
+  ds_context_free(context, seen);
+  return st;
 }
