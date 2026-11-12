@@ -40,6 +40,7 @@
  */
 
 #include "context.h"
+#include "schema.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -72,6 +73,13 @@ typedef struct ds_ftree {
   const ds_ftree_config_t *config;
 } ds_ftree_t;
 
+/* set the element fields (size, copy, destroy) from a schema. The
+ * configuration has one user pointer for the measure and the element
+ * callbacks: a schema user is adopted when the configuration has none,
+ * and a different one is rejected (DS_ERR_INVALID), as is an invalid
+ * schema. */
+ds_status_t ds_ftree_config_set_schema(ds_ftree_config_t *config,
+                                       const ds_schema_t *schema);
 ds_status_t ds_ftree_init(ds_ftree_t *t, const ds_ftree_config_t *config);
 void ds_ftree_copy(const ds_ftree_t *t, ds_ftree_t *out);
 void ds_ftree_release(ds_ftree_t *t);

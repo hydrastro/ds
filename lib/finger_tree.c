@@ -549,6 +549,29 @@ static fi_t *ft_lookup_tree(ft_split_ctx_t *s, unsigned char *acc, ft_t *t,
 
 /* ---- public ---- */
 
+ds_status_t ds_ftree_config_set_schema(ds_ftree_config_t *config,
+                                       const ds_schema_t *schema) {
+  ds_status_t st;
+  if (config == NULL || schema == NULL) {
+    return DS_ERR_NULL;
+  }
+  st = ds_schema_validate(schema);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (schema->user != NULL && config->user != NULL &&
+      schema->user != config->user) {
+    return DS_ERR_INVALID;
+  }
+  config->elem_size = schema->size;
+  config->copy_elem = schema->copy;
+  config->destroy_elem = schema->destroy;
+  if (schema->user != NULL) {
+    config->user = schema->user;
+  }
+  return DS_OK;
+}
+
 ds_status_t ds_ftree_init(ds_ftree_t *t, const ds_ftree_config_t *config) {
   size_t off, bytes;
   if (t == NULL || config == NULL || config->measure == NULL ||
