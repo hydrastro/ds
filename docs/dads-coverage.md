@@ -1529,12 +1529,12 @@ the term covers is provided.
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
 | RRR compressed bit vector | structure | implemented | `lib/rank_select` | fixed 15-bit class/offset blocks: nH0 + n/3.75 bits plus a rank and pointer per 32 blocks |
 | buffer pool (pager) | structure | implemented | `lib/pager` | page-store capability, LRU with pinning and write-back |
-| log-structured merge tree | structure | implemented | `lib/lsm_tree` | in memory: memtable, level 0, leveled runs over SSTables; no WAL, manifest, recovery or storage-backed compaction |
+| log-structured merge tree | structure | implemented | `lib/lsm_tree` | in memory: skip-list or array memtable, comparator policy, level 0, leveled runs over SSTables; no WAL, manifest, recovery or storage-backed compaction |
 | quotient filter | structure | implemented | `lib/quotient_filter` | packed remainders, deletion (multiset), ordered enumeration |
 | xor filter | structure | implemented | `lib/xor_filter` | static, peeling construction |
 | approximate membership query | concept | implemented | `lib/amq_iface` | capability over Bloom, cuckoo, quotient and xor filters |
 | cache replacement policy | concept | implemented | `lib/replacement` | LRU, FIFO, CLOCK, SIEVE; drives lib/pager |
-| paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager |
+| paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager; portable 64-bit format, validated page reads, full verification; no crash recovery |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |
 | succinct data structure | concept | n/a | `lib/bitvector`, `lib/wavelet_tree`, `lib/k2_tree` | family; members implemented as listed |

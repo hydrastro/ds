@@ -453,6 +453,7 @@ Additional docs:
 
 ```txt
 docs/api-overview.md
+docs/contracts.md
 docs/diagnostics.md
 docs/history.md
 docs/ownership.md
