@@ -20,6 +20,15 @@
  * Edges are found through an associative map chosen by the caller
  * (lib/map_iface, default Robin Hood hashing). Memory comes from the
  * context.
+ *
+ * Laws: combine is associative and never called with out aliasing an
+ * input. Aggregates follow the Euler tour, whose order depends on the
+ * edge history (reconnections rotate tours), so only aggregates that do
+ * not depend on that order (commutative and associative ones) are stable
+ * across link and cut; order-sensitive combines get the current tour's
+ * order. Tags are uniform per-element actions with tag_apply_summary
+ * agreeing with per-element application and tag_compose being sequential
+ * application.
  */
 
 #include "context.h"
