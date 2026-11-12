@@ -1,4 +1,5 @@
 #include "numeric.h"
+#include "../lib/checked.h"
 #include <limits.h>
 #include <string.h>
 
@@ -238,7 +239,7 @@ bool ds_is_prime(unsigned long n) {
     d >>= 1;
     s++;
   }
-  if (n <= 0xFFFFFFFFUL) {
+  if (!DS_ABOVE_U32(n)) {
     bases = base32;
     nbases = 3;
   } else {
