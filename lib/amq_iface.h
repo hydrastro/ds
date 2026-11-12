@@ -21,6 +21,34 @@
  *   ds_amq_quotient()  lib/quotient_filter (deletes, enumerable)
  *   ds_amq_xor()       lib/xor_filter, static (build only, smallest)
  *
+ * Semantics of the operations, per backend:
+ *
+ *   hashes      keys enter as unsigned long hash values. The backends remix
+ *               them before use (quotient, xor) or take independent bits
+ *               (Bloom double hashing, cuckoo index and fingerprint), but
+ *               distinct keys must have distinct hashes: equal hashes are
+ *               one key, and correlated hashes raise the false-positive
+ *               rate above 2^-fp_bits.
+ *   duplicates  Bloom: inserting a key again changes nothing. Cuckoo and
+ *               quotient: each insert stores another copy of the
+ *               fingerprint (a multiset), and each remove takes one copy
+ *               away, so inserting k times needs k removes. Xor: build
+ *               keeps one copy of each distinct hash.
+ *   deletion    only keys that were inserted may be removed. Removing a
+ *               key that was never inserted but shares a fingerprint with
+ *               one that was deletes that one's copy, a false negative no
+ *               filter can detect. remove reports DS_NOT_FOUND when no
+ *               matching fingerprint exists.
+ *   capacity    Bloom: an estimate; inserts never fail and the
+ *               false-positive rate rises past it. Cuckoo: about 94%
+ *               load; once an eviction chain fails the last fingerprint
+ *               is kept aside (no key is lost) and further inserts fail
+ *               with DS_ERR_OVERFLOW. Quotient: sized for 75% load, and
+ *               inserts fail with DS_ERR_OVERFLOW when the table is full.
+ *               Xor: exactly the built set.
+ *   false negatives  none, apart from removing keys that were never
+ *               inserted.
+ *
  * Memory comes from the context.
  */
 
