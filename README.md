@@ -84,6 +84,7 @@ Core mutable containers:
 - `lib/xor_filter`: static xor filter (peeling construction, packed 1..32-bit fingerprints)
 - `lib/yfast_trie`: Y-fast tries (X-fast trie of bucket representatives over a chosen map, sorted Theta(w) buckets)
 - `lib/zipper`: Huet zippers over persistent, reference-counted binary trees (move down/up, set, replace, close)
+- `schema`: element schema descriptors (layout, ownership policy, transfer services)
 - Array deque (by-value ring that grows or lives in a fixed buffer, overwrite mode)
 - Augmented treap (ordered map with pluggable subtree summaries, rank/select, range summary, guided descent)
 - AVL tree

@@ -124,6 +124,7 @@
 #include "lib/rope.h"
 #include "lib/rtree.h"
 #include "lib/scapegoat_tree.h"
+#include "lib/schema.h"
 #include "lib/segment_tree.h"
 #include "lib/self_org_list.h"
 #include "lib/shadow_heap.h"
