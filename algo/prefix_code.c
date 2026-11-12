@@ -1,4 +1,5 @@
 #include "prefix_code.h"
+#include "../lib/checked.h"
 #include <string.h>
 
 #define PC_NONE (~(size_t)0)
@@ -706,7 +707,7 @@ ds_status_t ds_huffman_compress(const unsigned char *in, size_t n,
   if ((in == NULL && n > 0) || out == NULL || out_length == NULL) {
     return DS_ERR_NULL;
   }
-  if (n > 0xFFFFFFFFUL) {
+  if (DS_ABOVE_U32(n)) {
     return DS_ERR_OVERFLOW;
   }
   if (capacity < PC_HEADER) {
