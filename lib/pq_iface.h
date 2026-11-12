@@ -26,6 +26,11 @@
  *   DS_PQ_MELD_ANY_CONTEXT  native meld also between queues with different
  *                        contexts (nodes remember the context that
  *                        allocated them)
+ *   DS_PQ_MOVING_ITEMS   items move inside the queue: pointers from top()
+ *                        and item() are valid only until the next push,
+ *                        pop, update or remove (handles stay valid); other
+ *                        backends keep each item at one address while it
+ *                        is queued
  *
  * The traits are a summary; ops->costs states each operation's bound,
  * worst case and amortized (expected for DS_PQ_RANDOMIZED backends), as a
@@ -40,6 +45,11 @@
  *     implicit binary heap; push is log worst case after ds_pq_reserve
  *   ds_pq_quaternary_ops() n/log    log      log      log      log      -
  *     implicit 4-ary heap: shallower, cheaper decreases
+ *   ds_pq_packed_ops()     n/log    log      log      log      log      -
+ *     packed binary heap: items inline in one array (no allocation per
+ *     item), handles are cells in chunks of 256 that never move;
+ *     DS_PQ_MOVING_ITEMS. The binary and 4-ary heaps above keep one node
+ *     per item for stable item addresses.
  *   ds_pq_binomial_ops()   log/1    log      log^2    log^2    log^2    log
  *     binomial heap (lib/binomial_heap): a structural parent swap repairs
  *     the parent links of two child lists, O(log n) each
@@ -89,6 +99,7 @@ typedef struct ds_pq_handle_s *ds_pq_handle_t;
 #define DS_PQ_IMPLICIT 0x10u
 #define DS_PQ_FAST_DECREASE 0x20u
 #define DS_PQ_MELD_ANY_CONTEXT 0x40u
+#define DS_PQ_MOVING_ITEMS 0x80u
 
 /* cost classes of ds_pq_cost_t */
 #define DS_PQ_COST_UNSTATED 0u /* no bound claimed (or not native) */
@@ -150,6 +161,7 @@ typedef struct ds_pq {
 
 const ds_pq_ops_t *ds_pq_binary_ops(void);
 const ds_pq_ops_t *ds_pq_quaternary_ops(void);
+const ds_pq_ops_t *ds_pq_packed_ops(void);
 const ds_pq_ops_t *ds_pq_binomial_ops(void);
 const ds_pq_ops_t *ds_pq_leftist_ops(void);
 const ds_pq_ops_t *ds_pq_weight_ops(void);
