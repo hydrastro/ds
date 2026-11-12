@@ -17,6 +17,23 @@
  * Errors: linking two connected vertices or cutting a non-edge is
  * DS_ERR_STATE; path operations on disconnected vertices DS_ERR_STATE.
  * Memory comes from the ds_context_t.
+ *
+ * Laws: as for lib/implicit_treap. combine is associative and never called
+ * with out aliasing an input; the reversed aggregate is maintained with
+ * the same combine in mirrored order, so rerooting keeps non-commutative
+ * path aggregates exact; path tags are uniform per-element actions
+ * (tag_apply_summary must agree with applying the tag to every element,
+ * for forward and reversed aggregates, and tag_compose must be
+ * sequential application). A path aggregate is ordered from the first
+ * vertex named in the query to the second.
+ *
+ * Roots: path_query, path_apply and path_length reroot the tree at their
+ * first vertex, exactly as ds_lct_reroot does, so afterwards
+ * ds_lct_find_root reports that vertex and ds_lct_lca answers for the tree
+ * rooted there. link(u, v) and cut(u, v) reroot u's tree at u as part of
+ * the operation (after a link, the joined tree keeps v's root). Callers
+ * that rely on a particular root reroot at it again before root-relative
+ * queries (find_root, lca); connectivity does not depend on the root.
  */
 
 #include "context.h"
