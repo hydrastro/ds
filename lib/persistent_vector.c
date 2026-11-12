@@ -303,6 +303,23 @@ void ds_pvec_config_init(ds_pvec_config_t *config, size_t elem_size) {
   config->bits = 5;
 }
 
+ds_status_t ds_pvec_config_from_schema(ds_pvec_config_t *config,
+                                       const ds_schema_t *schema) {
+  ds_status_t st;
+  if (config == NULL || schema == NULL) {
+    return DS_ERR_NULL;
+  }
+  st = ds_schema_validate(schema);
+  if (st != DS_OK) {
+    return st;
+  }
+  ds_pvec_config_init(config, schema->size);
+  config->copy_elem = schema->copy;
+  config->destroy_elem = schema->destroy;
+  config->user = schema->user;
+  return DS_OK;
+}
+
 ds_status_t ds_pvec_init(ds_pvec_t *vec, const ds_pvec_config_t *config) {
   size_t bytes;
   if (vec == NULL || config == NULL) {

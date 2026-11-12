@@ -33,6 +33,7 @@
  */
 
 #include "context.h"
+#include "schema.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -73,6 +74,10 @@ typedef struct ds_pvec_iter {
 } ds_pvec_iter_t;
 
 void ds_pvec_config_init(ds_pvec_config_t *config, size_t elem_size);
+/* config_init from an element schema (size, copy, destroy, user); other
+ * fields keep their defaults. DS_ERR_INVALID for an invalid schema. */
+ds_status_t ds_pvec_config_from_schema(ds_pvec_config_t *config,
+                                       const ds_schema_t *schema);
 /* the config must outlive every version built from it */
 ds_status_t ds_pvec_init(ds_pvec_t *vec, const ds_pvec_config_t *config);
 void ds_pvec_copy(const ds_pvec_t *vec, ds_pvec_t *out);
