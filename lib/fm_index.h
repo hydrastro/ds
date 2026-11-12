@@ -30,7 +30,16 @@
  * The suffix array is built by the configured builder: any function with
  * the signature of algo/stringology's ds_suffix_array (sorting suffixes
  * so that a proper prefix comes first) fits; the default is an internal
- * O(n log n) prefix-doubling radix sort. Memory comes from the context.
+ * O(n log n) prefix-doubling radix sort.
+ *
+ * Construction memory: the build holds the whole suffix array (n + 1
+ * words) and the BWT as 16-bit symbols (2 (n + 1) bytes) while the rank
+ * structure and the samples are made; the default builder adds three more
+ * n-word arrays while sorting, so the peak is about 4 n words + 2 n bytes
+ * plus the finished index. The finished index keeps only the rank
+ * structure, the sampled suffix array (one word per sa_sample rows) and
+ * the sampled inverse (one word per isa_sample positions). Indexes live in
+ * memory; there is no serialized form yet. Memory comes from the context.
  */
 
 #include "context.h"
