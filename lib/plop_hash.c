@@ -1,4 +1,5 @@
 #include "plop_hash.h"
+#include "checked.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +17,9 @@ static ds_status_t pl_reserve(ds_context_t *ctx, void **p, size_t *cap,
       return DS_ERR_OVERFLOW;
     }
     nc *= 2;
+  }
+  if (nc > (size_t)-1 / elem) {
+    return DS_ERR_OVERFLOW; /* the first capacity alone may not fit */
   }
   q = ds_context_realloc(ctx, *p, nc * elem);
   if (q == NULL) {
@@ -54,8 +58,13 @@ ds_status_t ds_plop_init(ds_plop_hash_t *h, size_t dims, const double *lo,
   h->dims = dims;
   h->payload_size = payload_size;
   /* records keep the doubles aligned: round the payload up */
-  h->record_size = dims * sizeof(double) + (payload_size + sizeof(double) - 1) /
-                                               sizeof(double) * sizeof(double);
+  {
+    size_t padded;
+    if (!ds_size_align(payload_size, sizeof(double), &padded) ||
+        !ds_size_mul_add(dims, sizeof(double), padded, &h->record_size)) {
+      return DS_ERR_OVERFLOW;
+    }
+  }
   h->page_size = page_size;
   h->max_load = max_load;
   h->split = split;
@@ -308,8 +317,11 @@ static ds_status_t pl_expand(ds_plop_hash_t *h) {
                     sizeof(size_t));
   }
   if (st == DS_OK) {
-    st = pl_reserve(h->context, (void **)&h->exp_counts,
-                    &h->exp_counts_capacity, (e + 1) * h->dims, sizeof(size_t));
+    size_t need;
+    st = ds_size_mul(e + 1, h->dims, &need)
+             ? pl_reserve(h->context, (void **)&h->exp_counts,
+                          &h->exp_counts_capacity, need, sizeof(size_t))
+             : DS_ERR_OVERFLOW;
   }
   if (st != DS_OK) {
     return st;

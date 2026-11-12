@@ -15,8 +15,11 @@
  * by rounds. A split adds a hyperplane of new cells; their addresses are
  * appended at the end, so the address of any cell is computed from the
  * expansion that created its youngest slice and a mixed-radix offset over
- * the other axes, with no directory at all. Buckets are pages of
- * page_size records with overflow pages chained behind them.
+ * the other axes, with no directory at all. Buckets are modeled pages:
+ * page_size is a capacity in records used for the load factor and for
+ * counting overflow pages (records beyond each page_size), and every
+ * bucket is one growable in-memory array. Nothing here is a storage page;
+ * an external pager (lib/pager) would be a separate layer.
  *
  * The split point is the midpoint of the slice (within the given domain)
  * or the median of the records in the slice, which adapts the partition
