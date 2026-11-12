@@ -146,6 +146,7 @@ void ds_context_use_arena(ds_context_t *context, ds_arena_t *arena) {
   context->realloc = arena_realloc;
   context->free = arena_free;
   context->user = arena;
+  context->resource = DS_RESOURCE_FALLIBLE | DS_RESOURCE_BOUNDED;
 }
 
 static void pool_build_free_list(ds_pool_t *pool) {
@@ -386,6 +387,8 @@ void ds_context_use_pool(ds_context_t *context, ds_pool_t *pool) {
   context->realloc = pool_realloc;
   context->free = pool_free;
   context->user = pool;
+  context->resource = DS_RESOURCE_FREE | DS_RESOURCE_FALLIBLE |
+                      DS_RESOURCE_BOUNDED | DS_RESOURCE_FIXED_BLOCK;
 }
 
 static void *debug_alloc(size_t size, void *user) {
@@ -513,6 +516,10 @@ void ds_context_use_debug_allocator(ds_context_t *context,
   context->realloc = debug_realloc;
   context->free = debug_free;
   context->user = debug;
+  /* the debug layer adds a header and counts; it can do what its backing
+   * context can */
+  context->resource =
+      ds_context_resource(debug == NULL ? NULL : debug->backing);
 }
 
 void ds_debug_allocator_get_stats(const ds_debug_allocator_t *debug,
