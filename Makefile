@@ -276,7 +276,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/visibility.c \
   $(ALGO_DIR)/dynamization.c \
   $(ALGO_DIR)/weighted_matching.c \
-  $(ALGO_DIR)/robust_predicates.c
+  $(ALGO_DIR)/robust_predicates.c \
+  $(ALGO_DIR)/delaunay.c
 
 LIB_SRC += $(ALGO_SRC)
 

@@ -10,6 +10,7 @@
 #include "algo/cartesian_tree.h"
 #include "algo/combinatorics.h"
 #include "algo/compress.h"
+#include "algo/delaunay.h"
 #include "algo/dynamization.h"
 #include "algo/elem.h"
 #include "algo/external_sort.h"

@@ -212,6 +212,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/amq_iface: AMQ ops table with Bloom, cuckoo, quotient and xor backends
 - lib/adj_matrix: dense adjacency-matrix graph with sparse-set rows, graph-view adapter.
 - lib/schema: element schema descriptors shared by containers (layout, ownership, transfer).
+- algo/delaunay: Delaunay triangulation built on the robust predicates.
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

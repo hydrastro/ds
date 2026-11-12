@@ -1534,6 +1534,7 @@ the term covers is provided.
 | xor filter | structure | implemented | `lib/xor_filter` | static, peeling construction |
 | approximate membership query | concept | implemented | `lib/amq_iface` | capability over Bloom, cuckoo, quotient and xor filters |
 | cache replacement policy | concept | implemented | `lib/replacement` | LRU, FIFO, CLOCK, SIEVE; drives lib/pager |
+| Delaunay triangulation | algorithm | implemented | `algo/delaunay` | Bowyer-Watson insertion with ghost triangles on the exact orient2d/incircle predicates; Hilbert insertion order |
 | paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager; portable 64-bit format, validated page reads, full verification; no crash recovery |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |
