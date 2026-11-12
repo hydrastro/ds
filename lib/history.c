@@ -1176,17 +1176,19 @@ bool ds_history_read_int(ds_history_read_func_t read, void *io_user,
     }
     signed_value = (long)magnitude;
   }
+#if LONG_MAX > INT_MAX
   if (signed_value < (long)INT_MIN || signed_value > (long)INT_MAX) {
     return false;
   }
+#endif
   *out_value = (int)signed_value;
   return true;
 }
 
 bool ds_history_write_size(ds_history_write_func_t write, void *io_user,
                            size_t value) {
-  if (value > (size_t)ULONG_MAX) {
-    return false;
+  if ((size_t)(unsigned long)value != value) {
+    return false; /* wider than unsigned long (LLP64) */
   }
   return ds_history_write_ulong(write, io_user, (unsigned long)value);
 }
