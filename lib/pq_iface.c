@@ -833,6 +833,8 @@ ds_status_t ds_pq_init(ds_pq_t *pq, const ds_pq_ops_t *ops, size_t item_size,
   pq->ops = ops;
   pq->item_size = item_size;
   pq->context = context;
+  pq->compare = compare;
+  pq->user = user;
   return DS_OK;
 }
 
@@ -913,8 +915,11 @@ ds_status_t ds_pq_meld(ds_pq_t *pq, ds_pq_t *other) {
       pq->item_size != other->item_size) {
     return DS_ERR_INVALID;
   }
-  if (pq->ops->meld != NULL &&
-      (pq->context == other->context ||
+  /* a native meld moves nodes: it needs the same order and memory that
+   * either context can release; otherwise items are copied over */
+  if (pq->ops->meld != NULL && pq->compare == other->compare &&
+      pq->user == other->user &&
+      (ds_context_compatible(pq->context, other->context) ||
        (pq->ops->traits & DS_PQ_MELD_ANY_CONTEXT) != 0)) {
     pq->ops->meld(pq->impl, other->impl);
     return DS_OK;

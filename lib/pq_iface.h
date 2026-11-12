@@ -59,13 +59,15 @@
  * Any other heap can be adapted by filling in a ds_pq_ops_t.
  *
  * Melding: the native meld transfers nodes, so it is used only when the
- * two queues share a context (or the backend has DS_PQ_MELD_ANY_CONTEXT);
- * the absorbed queue's handles then stay valid and now belong to pq.
+ * two queues have the same order (compare function and user data) and
+ * compatible memory (ds_context_compatible: either context may release
+ * the other's nodes), or the backend has DS_PQ_MELD_ANY_CONTEXT; the
+ * absorbed queue's handles then stay valid and now belong to pq.
  * Otherwise, and for backends without a meld, items are copied one at a
- * time (push into pq, then pop from other; pq reserves room first) and
- * the absorbed queue's handles are invalidated. If a push fails midway the copy
- * stops: every item moved so far is in pq, the rest are still in other, both
- * queues are valid, and the error is returned.
+ * time in pq's order (push into pq, then pop from other; pq reserves room
+ * first) and the absorbed queue's handles are invalidated. If a push fails
+ * midway the copy stops: every item moved so far is in pq, the rest are
+ * still in other, both queues are valid, and the error is returned.
  */
 
 #include "context.h"
@@ -142,6 +144,8 @@ typedef struct ds_pq {
   void *impl;
   size_t item_size;
   ds_context_t *context;
+  ds_pq_compare_fn compare; /* the order, compared before a native meld */
+  void *user;
 } ds_pq_t;
 
 const ds_pq_ops_t *ds_pq_binary_ops(void);
@@ -170,7 +174,8 @@ bool ds_pq_is_empty(const ds_pq_t *pq);
 /* room for count more pushes without relocation (DS_OK and nothing to do
  * for backends without a reserve op) */
 ds_status_t ds_pq_reserve(ds_pq_t *pq, size_t count);
-/* other must use the same ops, item size and order; it is left empty */
+/* other must use the same ops and item size; it is left empty. Different
+ * orders or incompatible contexts make it a copy (see Melding). */
 ds_status_t ds_pq_meld(ds_pq_t *pq, ds_pq_t *other);
 
 #ifdef __cplusplus
