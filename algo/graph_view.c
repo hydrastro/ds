@@ -1,4 +1,5 @@
 #include "graph_view.h"
+#include "../lib/checked.h"
 #include "../lib/indexed_heap.h"
 #include <math.h>
 #include <string.h>
@@ -549,4 +550,347 @@ size_t ds_gview_path(const size_t *parent, size_t target, size_t *out_path,
     }
   }
   return length;
+}
+
+/* ---- priority-queue algorithms with a policy ------------------------------
+ */
+
+void ds_gview_policy_init(ds_gview_policy_t *policy) {
+  if (policy != NULL) {
+    memset(policy, 0, sizeof(*policy));
+  }
+}
+
+ds_status_t ds_gview_workspace_init(ds_gview_workspace_t *w, size_t vertices,
+                                    ds_context_t *context) {
+  if (w == NULL) {
+    return DS_ERR_NULL;
+  }
+  memset(w, 0, sizeof(*w));
+  w->context = context;
+  return ds_gview_workspace_reserve(w, vertices);
+}
+
+ds_status_t ds_gview_workspace_reserve(ds_gview_workspace_t *w,
+                                       size_t vertices) {
+  size_t hb;
+  size_t kb;
+  void *h;
+  void *s;
+  void *k;
+  if (w == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (vertices <= w->capacity) {
+    return DS_OK;
+  }
+  if (!ds_size_mul(vertices, sizeof(ds_pq_handle_t), &hb) ||
+      !ds_size_mul(vertices, sizeof(double), &kb)) {
+    return DS_ERR_OVERFLOW;
+  }
+  h = ds_context_realloc(w->context, w->handle, hb);
+  if (h == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  w->handle = (ds_pq_handle_t *)h;
+  s = ds_context_realloc(w->context, w->state, vertices);
+  if (s == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  w->state = (unsigned char *)s;
+  k = ds_context_realloc(w->context, w->key, kb);
+  if (k == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  w->key = (double *)k;
+  w->capacity = vertices;
+  return DS_OK;
+}
+
+void ds_gview_workspace_destroy(ds_gview_workspace_t *w) {
+  if (w == NULL) {
+    return;
+  }
+  ds_context_free(w->context, w->handle);
+  ds_context_free(w->context, w->state);
+  ds_context_free(w->context, w->key);
+  memset(w, 0, sizeof(*w));
+}
+
+typedef struct gv_item {
+  double key;
+  size_t vertex;
+} gv_item_t;
+
+static int gv_item_compare(const void *a, const void *b, void *user) {
+  const gv_item_t *x = (const gv_item_t *)a;
+  const gv_item_t *y = (const gv_item_t *)b;
+  (void)user;
+  if (x->key < y->key) {
+    return -1;
+  }
+  if (x->key > y->key) {
+    return 1;
+  }
+  return (x->vertex > y->vertex) - (x->vertex < y->vertex);
+}
+
+/* one run: the queue plus the workspace (borrowed or local) */
+typedef struct gv_run {
+  ds_pq_t pq;
+  ds_gview_workspace_t local;
+  ds_gview_workspace_t *ws;
+} gv_run_t;
+
+#define GV_UNSEEN 0
+#define GV_QUEUED 1
+#define GV_DONE 2
+
+static ds_status_t gv_begin(gv_run_t *r, size_t n,
+                            const ds_gview_policy_t *policy) {
+  ds_gview_policy_t defaults;
+  ds_status_t st;
+  if (policy == NULL) {
+    ds_gview_policy_init(&defaults);
+    policy = &defaults;
+  }
+  memset(r, 0, sizeof(*r));
+  if (policy->workspace != NULL) {
+    r->ws = policy->workspace;
+    st = ds_gview_workspace_reserve(r->ws, n);
+  } else {
+    r->ws = &r->local;
+    st = ds_gview_workspace_init(&r->local, n, policy->context);
+  }
+  if (st == DS_OK) {
+    st =
+        ds_pq_init(&r->pq, policy->pq == NULL ? ds_pq_binary_ops() : policy->pq,
+                   sizeof(gv_item_t), gv_item_compare, NULL, policy->context);
+  }
+  if (st != DS_OK) {
+    if (r->ws == &r->local) {
+      ds_gview_workspace_destroy(&r->local);
+    }
+    return st;
+  }
+  /* a failed reservation only costs growth later */
+  (void)ds_pq_reserve(&r->pq, n);
+  if (n > 0) {
+    memset(r->ws->state, GV_UNSEEN, n);
+  }
+  return DS_OK;
+}
+
+static void gv_end(gv_run_t *r) {
+  ds_pq_destroy(&r->pq);
+  if (r->ws == &r->local) {
+    ds_gview_workspace_destroy(&r->local);
+  }
+}
+
+/* push an unseen vertex, decrease a queued one */
+static ds_status_t gv_offer(gv_run_t *r, size_t v, double key) {
+  gv_item_t it;
+  it.key = key;
+  it.vertex = v;
+  if (r->ws->state[v] == GV_QUEUED) {
+    return ds_pq_update(&r->pq, r->ws->handle[v], &it);
+  }
+  r->ws->state[v] = GV_QUEUED;
+  return ds_pq_push(&r->pq, &it, &r->ws->handle[v]);
+}
+
+ds_status_t ds_gview_dijkstra_with(const ds_gview_t *g, size_t source,
+                                   double *out_dist, size_t *out_parent,
+                                   const ds_gview_policy_t *policy) {
+  gv_run_t r;
+  gv_item_t it;
+  ds_status_t st;
+  size_t n;
+  size_t v;
+  if (g == NULL || out_dist == NULL) {
+    return DS_ERR_NULL;
+  }
+  n = g->vertex_count;
+  if (source >= n) {
+    return DS_ERR_RANGE;
+  }
+  st = gv_begin(&r, n, policy);
+  if (st != DS_OK) {
+    return st;
+  }
+  for (v = 0; v < n; v++) {
+    out_dist[v] = HUGE_VAL;
+    if (out_parent != NULL) {
+      out_parent[v] = G_NONE;
+    }
+  }
+  out_dist[source] = 0.0;
+  st = gv_offer(&r, source, 0.0);
+  while (st == DS_OK && ds_pq_pop(&r.pq, &it) == DS_OK) {
+    size_t u = it.vertex;
+    size_t d = g->degree(g->graph, u);
+    size_t i;
+    r.ws->state[u] = GV_DONE;
+    for (i = 0; i < d && st == DS_OK; i++) {
+      size_t to;
+      double w;
+      double cand;
+      g_edge(g, u, i, &to, &w);
+      if (w < 0) {
+        st = DS_ERR_INVALID; /* Dijkstra needs non-negative weights */
+        break;
+      }
+      if (to >= n || r.ws->state[to] == GV_DONE) {
+        continue;
+      }
+      cand = out_dist[u] + w;
+      if (cand < out_dist[to]) {
+        out_dist[to] = cand;
+        if (out_parent != NULL) {
+          out_parent[to] = u;
+        }
+        st = gv_offer(&r, to, cand);
+      }
+    }
+  }
+  gv_end(&r);
+  return st;
+}
+
+ds_status_t ds_gview_prim_with(const ds_gview_t *g, size_t *out_parent,
+                               double *out_total,
+                               const ds_gview_policy_t *policy) {
+  gv_run_t r;
+  gv_item_t it;
+  ds_status_t st;
+  double total = 0.0;
+  size_t n;
+  size_t s;
+  size_t v;
+  if (g == NULL || out_parent == NULL) {
+    return DS_ERR_NULL;
+  }
+  n = g->vertex_count;
+  st = gv_begin(&r, n, policy);
+  if (st != DS_OK) {
+    return st;
+  }
+  for (v = 0; v < n; v++) {
+    r.ws->key[v] = HUGE_VAL;
+    out_parent[v] = G_NONE;
+  }
+  /* one tree per connected component (a minimum spanning forest) */
+  for (s = 0; s < n && st == DS_OK; s++) {
+    if (r.ws->state[s] == GV_DONE) {
+      continue;
+    }
+    r.ws->key[s] = 0.0;
+    st = gv_offer(&r, s, 0.0);
+    while (st == DS_OK && ds_pq_pop(&r.pq, &it) == DS_OK) {
+      size_t d;
+      size_t i;
+      v = it.vertex;
+      r.ws->state[v] = GV_DONE;
+      total += it.key;
+      d = g->degree(g->graph, v);
+      for (i = 0; i < d && st == DS_OK; i++) {
+        size_t to;
+        double w;
+        g_edge(g, v, i, &to, &w);
+        if (to < n && r.ws->state[to] != GV_DONE && w < r.ws->key[to]) {
+          r.ws->key[to] = w;
+          out_parent[to] = v;
+          st = gv_offer(&r, to, w);
+        }
+      }
+    }
+  }
+  if (st == DS_OK && out_total != NULL) {
+    *out_total = total;
+  }
+  gv_end(&r);
+  return st;
+}
+
+ds_status_t ds_gview_astar_with(const ds_gview_t *g, size_t source,
+                                size_t target, ds_gview_heuristic_fn heuristic,
+                                void *user, double *out_dist,
+                                size_t *out_parent,
+                                const ds_gview_policy_t *policy) {
+  gv_run_t r;
+  gv_item_t it;
+  ds_status_t st;
+  bool found = false;
+  double hs;
+  size_t n;
+  size_t v;
+  if (g == NULL || out_dist == NULL) {
+    return DS_ERR_NULL;
+  }
+  n = g->vertex_count;
+  if (source >= n || target >= n) {
+    return DS_ERR_RANGE;
+  }
+  st = gv_begin(&r, n, policy);
+  if (st != DS_OK) {
+    return st;
+  }
+  for (v = 0; v < n; v++) {
+    out_dist[v] = HUGE_VAL;
+    if (out_parent != NULL) {
+      out_parent[v] = G_NONE;
+    }
+  }
+  out_dist[source] = 0.0;
+  hs = heuristic == NULL ? 0.0 : heuristic(source, user);
+  if (hs < HUGE_VAL) {
+    st = gv_offer(&r, source, hs);
+  }
+  while (st == DS_OK && ds_pq_pop(&r.pq, &it) == DS_OK) {
+    size_t u = it.vertex;
+    size_t d;
+    size_t i;
+    r.ws->state[u] = GV_DONE;
+    if (u == target) {
+      found = true; /* admissible: the first pop of the target is final */
+      break;
+    }
+    d = g->degree(g->graph, u);
+    for (i = 0; i < d && st == DS_OK; i++) {
+      size_t to;
+      double w;
+      double cand;
+      double h;
+      g_edge(g, u, i, &to, &w);
+      if (w < 0) {
+        st = DS_ERR_INVALID;
+        break;
+      }
+      if (to >= n) {
+        continue;
+      }
+      cand = out_dist[u] + w;
+      if (!(cand < out_dist[to])) {
+        continue;
+      }
+      h = heuristic == NULL ? 0.0 : heuristic(to, user);
+      out_dist[to] = cand;
+      if (out_parent != NULL) {
+        out_parent[to] = u;
+      }
+      if (!(h < HUGE_VAL)) {
+        continue; /* the target is unreachable from there */
+      }
+      if (r.ws->state[to] == GV_DONE) {
+        r.ws->state[to] = GV_UNSEEN; /* reopened by an inconsistent h */
+      }
+      st = gv_offer(&r, to, cand + h);
+    }
+  }
+  gv_end(&r);
+  if (st != DS_OK) {
+    return st;
+  }
+  return found ? DS_OK : DS_NOT_FOUND;
 }
