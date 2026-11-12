@@ -1,4 +1,5 @@
 #include "count_min_sketch.h"
+#include "checked.h"
 #include <math.h>
 #include <string.h>
 
@@ -39,7 +40,7 @@ static ds_status_t cms_setup(ds_cms_t *cms, size_t width, size_t depth,
   if (cms == NULL) {
     return DS_ERR_NULL;
   }
-  if (width == 0 || depth == 0 || width > 0xFFFFFFFFUL) {
+  if (width == 0 || depth == 0 || DS_ABOVE_U32(width)) {
     return DS_ERR_INVALID;
   }
   if (depth > CMS_SIZE_MAX / width ||
