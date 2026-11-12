@@ -1,4 +1,5 @@
 #include "compress.h"
+#include "../lib/checked.h"
 #include "sort.h"
 #include <string.h>
 
@@ -294,7 +295,7 @@ ds_status_t ds_arith_compress(const unsigned char *in, size_t n,
   if ((in == NULL && n > 0) || out == NULL || out_length == NULL) {
     return DS_ERR_NULL;
   }
-  if (n > 0xFFFFFFFFUL) {
+  if (DS_ABOVE_U32(n)) {
     return DS_ERR_OVERFLOW;
   }
   if (capacity < 4) {
@@ -695,7 +696,7 @@ ds_status_t ds_bstw_compress(const unsigned char *in, size_t n,
   if ((in == NULL && n > 0) || out == NULL || out_length == NULL) {
     return DS_ERR_NULL;
   }
-  if (n > 0xFFFFFFFFUL) {
+  if (DS_ABOVE_U32(n)) {
     return DS_ERR_OVERFLOW;
   }
   if (capacity < 4) {
