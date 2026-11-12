@@ -1,4 +1,5 @@
 #include "random.h"
+#include "../lib/checked.h"
 #include <limits.h>
 #include <math.h>
 
@@ -437,7 +438,7 @@ static double rnd_unit_open(ds_rng_t *rng) {
 
 static size_t rnd_index(ds_rng_t *rng, size_t bound) {
   size_t j;
-  if (bound - 1 <= 0xFFFFFFFFUL) {
+  if (!DS_ABOVE_U32(bound - 1)) {
     return (size_t)ds_rng_bounded(rng, (unsigned long)bound);
   }
   j = (size_t)(ds_rng_double(rng) * (double)bound);
