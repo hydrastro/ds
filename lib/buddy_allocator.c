@@ -286,4 +286,5 @@ void ds_context_use_buddy(ds_context_t *context, ds_buddy_t *b) {
   context->realloc = bd_ctx_realloc;
   context->free = bd_ctx_free;
   context->user = b;
+  context->resource = DS_RESOURCE_HEAP | DS_RESOURCE_BOUNDED;
 }
