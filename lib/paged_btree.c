@@ -141,7 +141,7 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
   }
   memset(tree, 0, sizeof(*tree));
   ps = pager->store->page_size;
-  if (ps < 64 || ps > 0xFFFFFFFFUL) {
+  if (ps < 64 || DS_ABOVE_U32(ps)) {
     return DS_ERR_INVALID;
   }
   if (value_size > ps) {
