@@ -81,8 +81,10 @@ ds_status_t ds_yfast_init_buckets(ds_yfast_t *t, unsigned bits,
     return DS_ERR_NULL;
   }
   memset(t, 0, sizeof(*t));
-  if (bits == 0 || bits > YF_MAXBITS) {
-    return DS_ERR_INVALID;
+  if (bits == 0 || bits > YF_MAXBITS ||
+      (bucket_ops != NULL &&
+       (bucket_ops->split == NULL || bucket_ops->join == NULL))) {
+    return DS_ERR_INVALID; /* rebalancing needs split and join */
   }
   st = ds_xfast_init(&t->reps, bits, sizeof(size_t), ops, context);
   if (st != DS_OK) {

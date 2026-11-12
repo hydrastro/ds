@@ -16,7 +16,18 @@
  * Buckets are instances of the ordered-map capability (lib/ordered_iface)
  * chosen at init: sorted arrays (the default; updates move up to 2w
  * elements, O(w) cache-friendly word moves) or treaps (O(log w) updates,
- * the bound of Willard's original), or any other backend.
+ * the bound of Willard's original), or any other backend. The backend
+ * must provide split and join between its own instances (both shipped
+ * backends do); init rejects ops without them.
+ *
+ * Failure and degraded bounds: an insertion or removal succeeds once the
+ * key itself is stored or removed. Rebalancing that follows (a split
+ * above 2w keys, a merge below w/2) is skipped when it cannot allocate,
+ * leaving the bucket outside its bounds; queries stay correct, the
+ * bucket's operations then cost what its actual size implies (O(size)
+ * moves for arrays, O(log size) for treaps), and every later update of
+ * that bucket retries the split or merge, so the bounds return once
+ * memory does. The thresholds (2w and w/2, w = bits) are fixed.
  */
 
 #include "context.h"
