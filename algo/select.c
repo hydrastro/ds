@@ -1,4 +1,5 @@
 #include "select.h"
+#include "../lib/checked.h"
 #include "sort.h"
 #include <math.h>
 #include <stddef.h>
@@ -289,7 +290,7 @@ static size_t sel_bounded(ds_random_func_t random, void *state, size_t bound) {
   if (bound <= 1) {
     return 0;
   }
-  if ((bound - 1) <= 0xFFFFFFFFUL) {
+  if (!DS_ABOVE_U32(bound - 1)) {
     limit = 0xFFFFFFFFUL -
             (0xFFFFFFFFUL % (unsigned long)bound + 1UL) % (unsigned long)bound;
     do {
