@@ -486,7 +486,7 @@ static ds_status_t ot_select(const void *s, size_t k, unsigned long *out) {
 static bool ot_compatible(const void *s, const void *other) {
   const ot_t *a = (const ot_t *)s, *b = (const ot_t *)other;
   return a->value_size == b->value_size && a->node_size == b->node_size &&
-         a->context == b->context;
+         ds_context_compatible(a->context, b->context);
 }
 
 static ds_status_t ot_split(void *s, unsigned long key, void *upper) {
