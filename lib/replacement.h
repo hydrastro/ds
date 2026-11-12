@@ -20,6 +20,25 @@
  *                           with visited bits and a hand that keeps its
  *                           place; no reordering on hits
  *
+ * What counts as a use, per policy:
+ *
+ *   lru     recency is the later of the last release (set_evictable
+ *           true) and the last touch while evictable; a touch of a pinned
+ *           frame is not recorded, since its release follows
+ *   fifo    admission order only; touch and release do not reorder
+ *   clock   admit and every touch, pinned or not, set the reference bit
+ *   sieve   every touch, pinned or not, sets the visited bit; admission
+ *           order is never changed by hits
+ *
+ * Side effects of victim(): for lru and fifo it only reads. For clock and
+ * sieve it is a step of the algorithm: the hand moves and the bits of the
+ * evictable frames it passes are cleared, so a proposal the owner declines
+ * (for instance after a failed write-back) still ages those frames, and
+ * asking again proposes the next candidate. Pinned frames are skipped and
+ * keep their bits. Every event is O(1); victim is O(1) for lru, O(n) worst
+ * case for fifo (skipping pinned frames) and O(n) worst case for clock and
+ * sieve (at most two sweeps).
+ *
  * Memory comes from the context.
  */
 
