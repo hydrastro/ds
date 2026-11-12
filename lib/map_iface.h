@@ -25,8 +25,33 @@
  * worst-case O(1) lookups), linear hashing (lib/linear_hash_map:
  * incremental growth one bucket at a time) and extendible hashing
  * (lib/extendible_hash: directory doubling); any other map can be adapted by
- * filling in a ds_map_ops_t. The linear and extendible adapters pack their
- * two-part cursors into the size_t cursor (half the bits each).
+ * filling in a ds_map_ops_t.
+ *
+ * Contract every backend keeps:
+ *
+ *   atomicity   put either stores the entry completely or leaves the
+ *               contents unchanged (growth is prepared before the entry
+ *               is placed; a failed growth may leave a larger, equivalent
+ *               table); remove of a present key always succeeds (linear
+ *               hashing may then try to contract, and ignores a failure)
+ *   cursors     start at 0; valid until the next put or remove (any
+ *               modification may move entries). The linear and extendible
+ *               adapters pack (bucket, index) into the size_t, with the
+ *               bucket taking the bits the current bucket count needs; a
+ *               position that does not fit ends the iteration with the
+ *               cursor set to DS_MAP_CURSOR_OVERFLOW (ds_map_next_status
+ *               reports DS_ERR_OVERFLOW) instead of silently stopping
+ *   values      get returns a pointer to the stored bytes, valid until the
+ *               next modification unless DS_MAP_STABLE_VALUES. Alignment:
+ *               Robin Hood and Swiss tables keep values in an array with
+ *               stride value_size, so a value is aligned to the largest
+ *               power of two dividing value_size; cuckoo, linear and
+ *               extendible hashing round records to DS_MAX_ALIGN. Copy
+ *               with memcpy, or choose value sizes that are multiples of
+ *               the alignment a stored type needs
+ *   resources   every backend grows by realloc: ds_map_init returns
+ *               DS_ERR_UNSUPPORTED for a context without
+ *               DS_RESOURCE_REALLOC (an arena or a fixed pool)
  */
 
 #include "context.h"
@@ -44,6 +69,9 @@ typedef bool (*ds_map_equal_fn)(const void *a, const void *b, void *user);
 #define DS_MAP_STABLE_VALUES 0x1u
 #define DS_MAP_EXPECTED_O1 0x2u
 #define DS_MAP_WORST_O1_GET 0x4u
+
+/* the cursor value of an iteration ended by a position it cannot hold */
+#define DS_MAP_CURSOR_OVERFLOW ((size_t) - 1)
 
 typedef struct ds_map_ops {
   const char *name;
@@ -85,6 +113,10 @@ ds_status_t ds_map_remove(ds_map_t *map, const void *key, void *out_value);
 size_t ds_map_size(const ds_map_t *map);
 bool ds_map_next(const ds_map_t *map, size_t *cursor, const void **key,
                  void **value);
+/* the same, telling the end of the map (DS_NOT_FOUND) from a position the
+ * cursor cannot hold (DS_ERR_OVERFLOW); DS_OK with the entry */
+ds_status_t ds_map_next_status(const ds_map_t *map, size_t *cursor,
+                               const void **key, void **value);
 
 /* hash/equality for keys that are one unsigned long */
 unsigned long ds_map_hash_ulong(const void *key, void *user);

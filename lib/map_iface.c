@@ -169,10 +169,51 @@ static const ds_map_ops_t mi_ck_ops = {"cuckoo",
                                        mi_ck_size,
                                        mi_ck_next};
 
-/* Two-part cursors (bucket, index) are packed into the size_t cursor:
- * the high half holds the bucket, the low half the index. */
-#define MI_HALF (sizeof(size_t) * CHAR_BIT / 2)
-#define MI_LOW (((size_t)1 << MI_HALF) - 1)
+/* Two-part cursors (bucket, index) are packed into the size_t cursor with
+ * a split chosen from the map's current bucket count: the bucket takes the
+ * high bits its largest number needs, the index the rest. The map does
+ * not change during an iteration, so every call computes the same split.
+ * A position that does not fit (a bucket holding more records than the
+ * remaining bits can count) ends the iteration with the cursor set to
+ * DS_MAP_CURSOR_OVERFLOW, which ds_map_next_status reports. */
+#define MI_W (sizeof(size_t) * CHAR_BIT)
+
+static unsigned mi_index_bits(size_t buckets) {
+  unsigned b = 0;
+  size_t last = buckets == 0 ? 0 : buckets - 1;
+  while (last != 0) {
+    b++;
+    last >>= 1;
+  }
+  return (unsigned)MI_W - b;
+}
+
+static void mi_unpack(size_t cursor, unsigned ib, size_t *bucket,
+                      size_t *index) {
+  if (ib >= MI_W) {
+    *bucket = 0;
+    *index = cursor;
+  } else {
+    *bucket = cursor >> ib;
+    *index = cursor & (((size_t)1 << ib) - 1);
+  }
+}
+
+/* false when (bucket, index) does not fit; all-ones is reserved */
+static bool mi_pack(size_t bucket, size_t index, unsigned ib, size_t *cursor) {
+  if (ib >= MI_W) {
+    if (bucket != 0 || index == (size_t)-1) {
+      return false;
+    }
+    *cursor = index;
+    return true;
+  }
+  if (index >= ((size_t)1 << ib) - 1) {
+    return false;
+  }
+  *cursor = (bucket << ib) | index;
+  return true;
+}
 
 /* ---- linear hashing backend ---- */
 
@@ -215,17 +256,18 @@ static size_t mi_lh_size(const void *map) {
 
 static bool mi_lh_next(const void *map, size_t *cursor, const void **key,
                        void **value) {
+  const ds_linear_hash_map_t *m = (const ds_linear_hash_map_t *)map;
   ds_linear_hash_map_cursor_t c;
+  unsigned ib = mi_index_bits(ds_linear_hash_map_bucket_count(m));
   bool ok;
-  c.bucket = *cursor >> MI_HALF;
-  c.index = *cursor & MI_LOW;
-  ok = ds_linear_hash_map_next((const ds_linear_hash_map_t *)map, &c, key,
-                               value);
-  if (ok) {
-    if (c.bucket > MI_LOW || c.index > MI_LOW) {
-      return false; /* beyond what the packed cursor can address */
-    }
-    *cursor = (c.bucket << MI_HALF) | c.index;
+  if (*cursor == DS_MAP_CURSOR_OVERFLOW) {
+    return false;
+  }
+  mi_unpack(*cursor, ib, &c.bucket, &c.index);
+  ok = ds_linear_hash_map_next(m, &c, key, value);
+  if (ok && !mi_pack(c.bucket, c.index, ib, cursor)) {
+    *cursor = DS_MAP_CURSOR_OVERFLOW;
+    return false;
   }
   return ok;
 }
@@ -277,17 +319,22 @@ static size_t mi_eh_size(const void *map) {
 
 static bool mi_eh_next(const void *map, size_t *cursor, const void **key,
                        void **value) {
+  const ds_extendible_hash_t *m = (const ds_extendible_hash_t *)map;
   ds_extendible_hash_cursor_t c;
+  unsigned ib;
   bool ok;
-  c.entry = *cursor >> MI_HALF;
-  c.index = *cursor & MI_LOW;
-  ok = ds_extendible_hash_next((const ds_extendible_hash_t *)map, &c, key,
-                               value);
-  if (ok) {
-    if (c.entry > MI_LOW || c.index > MI_LOW) {
-      return false;
-    }
-    *cursor = (c.entry << MI_HALF) | c.index;
+  if (*cursor == DS_MAP_CURSOR_OVERFLOW) {
+    return false;
+  }
+  /* entries index the directory of 2^global_depth pointers */
+  ib = ds_extendible_hash_global_depth(m) >= MI_W
+           ? 0
+           : mi_index_bits((size_t)1 << ds_extendible_hash_global_depth(m));
+  mi_unpack(*cursor, ib, &c.entry, &c.index);
+  ok = ds_extendible_hash_next(m, &c, key, value);
+  if (ok && !mi_pack(c.entry, c.index, ib, cursor)) {
+    *cursor = DS_MAP_CURSOR_OVERFLOW;
+    return false;
   }
   return ok;
 }
@@ -321,6 +368,13 @@ ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops, size_t key_size,
   }
   if (ops == NULL) {
     ops = ds_map_rh_ops();
+  }
+  map->ops = NULL;
+  map->impl = NULL;
+  /* every backend grows by realloc */
+  st = ds_context_require(context, DS_RESOURCE_REALLOC);
+  if (st != DS_OK) {
+    return st;
   }
   map->ops = ops;
   map->context = context;
@@ -362,6 +416,17 @@ size_t ds_map_size(const ds_map_t *map) { return map->ops->size(map->impl); }
 bool ds_map_next(const ds_map_t *map, size_t *cursor, const void **key,
                  void **value) {
   return map->ops->next(map->impl, cursor, key, value);
+}
+
+ds_status_t ds_map_next_status(const ds_map_t *map, size_t *cursor,
+                               const void **key, void **value) {
+  if (map == NULL || map->ops == NULL || cursor == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (map->ops->next(map->impl, cursor, key, value)) {
+    return DS_OK;
+  }
+  return *cursor == DS_MAP_CURSOR_OVERFLOW ? DS_ERR_OVERFLOW : DS_NOT_FOUND;
 }
 
 unsigned long ds_map_hash_ulong(const void *key, void *user) {
