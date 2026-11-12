@@ -134,7 +134,7 @@ static int sst_cmp(const ds_sstable_comparator_t *c, const unsigned char *a,
 
 /* NULL means bytewise; a comparator needs compare, and id 0 is reserved */
 static bool sst_cmp_valid(const ds_sstable_comparator_t *c) {
-  return c == NULL || (c->compare != NULL && c->id <= 0xFFFFFFFFUL &&
+  return c == NULL || (c->compare != NULL && !DS_ABOVE_U32(c->id) &&
                        (c->id != 0 || c->compare == sst_bytewise_cmp));
 }
 
