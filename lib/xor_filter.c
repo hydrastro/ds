@@ -121,6 +121,23 @@ ds_status_t ds_xor_filter_build(ds_xor_filter_t *f, const unsigned long *hashes,
   }
   f->fp_bits = fp_bits;
   f->context = context;
+  /* every size below derives from n: check it once, generously (the table
+   * holds about 1.25 n + 32 slots of fp_bits bits, the work arrays n or
+   * capacity words) */
+  {
+    size_t cap_bound;
+    size_t bytes;
+    if (!ds_size_mul(n, 2, &cap_bound) ||
+        !ds_size_add(cap_bound, 64, &cap_bound) ||
+        !ds_size_mul(cap_bound,
+                     sizeof(unsigned long) > sizeof(size_t)
+                         ? sizeof(unsigned long)
+                         : sizeof(size_t),
+                     &bytes) ||
+        !ds_size_mul(cap_bound, (size_t)fp_bits, &bytes)) {
+      return DS_ERR_OVERFLOW;
+    }
+  }
   keys = (unsigned long *)ds_context_alloc(context, (n == 0 ? 1 : n) *
                                                         sizeof(unsigned long));
   if (keys == NULL) {
