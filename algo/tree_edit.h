@@ -14,10 +14,19 @@
  * value, elem_size bytes per node.
  *
  * Costs come from callbacks with a user pointer; NULL callbacks mean unit
- * costs, with relabelling free when the labels are byte-equal. The
+ * costs, with relabelling free when the labels are byte-equal. Costs must
+ * be finite (NaN or infinite costs give unspecified results). The
+ * recurrence minimizes over all edit mappings, so any finite costs give
+ * the cheapest mapping, but the result is a metric only for nonnegative
+ * costs with free identity relabels and symmetric insert/delete. The
  * optimal mapping (which nodes of the first forest are kept, and as
  * which node of the second) is recovered by recomputing the subforest
- * tables along the optimal decomposition, without recursion.
+ * tables along the optimal decomposition, without recursion; branches are
+ * matched with a relative tolerance of 1e-9, so when two decompositions
+ * differ by less, either may be returned.
+ *
+ * Work tables: two (n1 + 2) x (n2 + 2) arrays of doubles and O(n1 + n2)
+ * words; every size is overflow-checked (DS_ERR_OVERFLOW).
  */
 
 #include "context.h"

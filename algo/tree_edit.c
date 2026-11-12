@@ -1,4 +1,5 @@
 #include "tree_edit.h"
+#include "../lib/checked.h"
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -33,14 +34,21 @@ static ds_status_t te_prepare(const ds_tree_edit_forest_t *f, size_t elem,
   if (n > 0 && (f->degree == NULL || f->labels == NULL)) {
     return DS_ERR_NULL;
   }
-  if (n > (size_t)-1 / 8 - 4) {
-    return DS_ERR_OVERFLOW;
+  {
+    /* 2 (n + 2) and 5 (n + 1) words, and the labels n * elem bytes */
+    size_t lw;
+    size_t pw;
+    size_t lb;
+    if (n > (size_t)-1 - 2 || !ds_size_mul(2 * sizeof(size_t), n + 2, &lw) ||
+        !ds_size_mul(5 * sizeof(size_t), n + 1, &pw) ||
+        !ds_size_mul(n, elem, &lb)) {
+      return DS_ERR_OVERFLOW;
+    }
+    t->n = n;
+    t->labels = (const unsigned char *)f->labels;
+    t->l = (size_t *)ds_context_alloc(ctx, lw);
+    parent = (size_t *)ds_context_alloc(ctx, pw);
   }
-  (void)elem;
-  t->n = n;
-  t->labels = (const unsigned char *)f->labels;
-  t->l = (size_t *)ds_context_alloc(ctx, 2 * (n + 2) * sizeof(size_t));
-  parent = (size_t *)ds_context_alloc(ctx, 5 * (n + 1) * sizeof(size_t));
   if (t->l == NULL || parent == NULL) {
     ds_context_free(ctx, t->l);
     ds_context_free(ctx, parent);
@@ -257,7 +265,12 @@ ds_status_t ds_tree_edit_distance(const ds_tree_edit_forest_t *a,
     for (i = 0; i < c.a.n; i++) {
       map[i] = DS_TREE_EDIT_NONE;
     }
-    stack = (size_t *)ds_context_alloc(context, 2 * (na + 1) * sizeof(size_t));
+    {
+      size_t sb;
+      stack = ds_size_mul(2 * sizeof(size_t), na + 1, &sb)
+                  ? (size_t *)ds_context_alloc(context, sb)
+                  : NULL;
+    }
     if (stack == NULL) {
       st = DS_ERR_ALLOC;
       goto done;
