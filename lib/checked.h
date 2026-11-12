@@ -30,6 +30,11 @@ typedef union ds_max_align {
 
 #define DS_MAX_ALIGN (sizeof(ds_max_align_t))
 
+/* true when the unsigned value n exceeds 2^32 - 1. Written with shifts so
+ * that it is not a comparison with a constant, which compilers flag as
+ * always true or false where the type is 32 bits wide. */
+#define DS_ABOVE_U32(n) ((((n) >> 16) >> 16) != 0)
+
 bool ds_size_add(size_t a, size_t b, size_t *out);
 bool ds_size_mul(size_t a, size_t b, size_t *out);
 /* a * b + c */
