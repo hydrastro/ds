@@ -25,7 +25,26 @@
  *
  * With both, the treap is a lazy segment tree that also supports insertion,
  * deletion, cut and paste. Set summary_size and tag_size to 0 for a plain
- * rope-like sequence.
+ * rope-like sequence. *
+ * Laws the callbacks must satisfy (n is a count of elements, e a sequence,
+ * S its summary, rev(e) the reversed sequence):
+ *   combine       associative; no identity is needed (empty ranges are
+ *                 never combined). out never aliases left or right, and
+ *                 the summaries passed in are never modified.
+ *   reversal      the reversed summary is built with the same combine in
+ *                 the mirrored order, so any associative combine works.
+ *   tags          uniform per-element actions: applying a tag to a range
+ *                 applies the same tag to every element, independent of
+ *                 its position. tag_apply_summary(S(e), t, n) must equal
+ *                 the summary of e with t applied to each element, for
+ *                 forward and reversed summaries alike (both are updated
+ *                 with the same call), and tag_compose must make applying
+ *                 (t followed by u) equal applying t then u. Actions that
+ *                 depend on an element's position (add i to the i-th
+ *                 element) need tag splitting and are not supported.
+ *   ordering      pending reversals and tags are pushed to children
+ *                 before a node is restructured; a tag is applied to a
+ *                 subtree after the reversals already pending in it.
  *
  * Element pointers returned by at() are valid until the next modifying call.
  * Nodes come from the ds_context_t. Concurrency: one thread at a time.
