@@ -9,11 +9,19 @@
  * vertical extensions) and the horizontal visibility map (rays right and
  * left) are computed by a plane sweep in O(n log n) expected time.
  *
- * The sweep status is a treap ordered by height between consecutive event
- * coordinates, where non-crossing segments are strictly ordered (ties
- * between collinear overlapping pieces fall back to the index); queries
- * at an event coordinate run against the status both before the segments
- * ending there leave and after the segments starting there arrive.
+ * The sweep status is a treap ordered bottom to top, where non-crossing
+ * segments are strictly ordered (ties between collinear overlapping
+ * pieces fall back to the index); queries at an event coordinate run
+ * against the status both before the segments ending there leave and
+ * after the segments starting there arrive.
+ *
+ * Numerics: every ordering decision (one segment below another, a segment
+ * above or below a ray's origin) is the exact sign of an orientation test
+ * (algo/robust_predicates, within its orient2d input range), so nearly
+ * touching segments are never misordered by rounding. The reported hit
+ * coordinates (up_at, down_at) are interpolated in floating point and
+ * round; segments degenerate in the sweep direction are compared by
+ * coordinates.
  *
  * Segments merely touching the ray's origin are not hits. Segments along
  * the ray direction (vertical ones in the vertical map) are hit at their

@@ -1,4 +1,5 @@
 #include "visibility.h"
+#include "robust_predicates.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -34,16 +35,71 @@ static double vs_y(const vs_seg_t *s, double at) {
   return s->b1 + (s->b2 - s->b1) * ((at - s->a1) / (s->a2 - s->a1));
 }
 
+/* side of point (pa, pb) against segment s with a1 < a2: 1 above, -1
+ * below, 0 on its line; exact (adaptive orientation) */
+static int vs_side(const vs_seg_t *s, double pa, double pb) {
+  double p[2];
+  double q[2];
+  double r[2];
+  double o;
+  p[0] = s->a1;
+  p[1] = s->b1;
+  q[0] = s->a2;
+  q[1] = s->b2;
+  r[0] = pa;
+  r[1] = pb;
+  o = ds_orient2d(p, q, r);
+  return (o > 0.0) - (o < 0.0);
+}
+
+static bool vs_within(const vs_seg_t *s, double a) {
+  return !(a < s->a1) && !(a > s->a2);
+}
+
+/* is s below t where both span the sweep line? Non-crossing segments keep
+ * one order over their common range, so the first endpoint of either
+ * that lies off the other's line decides it exactly; collinear pieces
+ * fall back to the index. Segments degenerate in the sweep direction use
+ * their interpolated heights at `at`. */
 static bool vs_less(const vs_t *v, size_t s, size_t t, double at) {
-  double ys = vs_y(&v->seg[s], at);
-  double yt = vs_y(&v->seg[t], at);
-  if (ys < yt) {
-    return true;
-  }
-  if (ys > yt) {
+  const vs_seg_t *x = &v->seg[s];
+  const vs_seg_t *y = &v->seg[t];
+  int side = 0;
+  if (s == t) {
     return false;
   }
+  if (x->a1 < x->a2 && y->a1 < y->a2) {
+    if (vs_within(x, y->a1)) {
+      side = vs_side(x, y->a1, y->b1);
+    }
+    if (side == 0 && vs_within(x, y->a2)) {
+      side = vs_side(x, y->a2, y->b2);
+    }
+    if (side == 0 && vs_within(y, x->a1)) {
+      side = -vs_side(y, x->a1, x->b1);
+    }
+    if (side == 0 && vs_within(y, x->a2)) {
+      side = -vs_side(y, x->a2, x->b2);
+    }
+  } else {
+    double ys = vs_y(x, at);
+    double yt = vs_y(y, at);
+    side = (yt > ys) - (yt < ys);
+  }
+  if (side != 0) {
+    return side > 0; /* t is above s */
+  }
   return s < t;
+}
+
+/* is segment t strictly above (1) or below (-1) the point (pa, pb)? */
+static int vs_point_side(const vs_seg_t *t, double pa, double pb) {
+  if (t->a1 < t->a2) {
+    return -vs_side(t, pa, pb);
+  } else {
+    double y = vs_y(t, pa);
+    return (y > pb) - (y < pb);
+  }
 }
 
 /* mode 0: left gets nodes < s; mode 1: left gets nodes <= s */
@@ -100,28 +156,38 @@ static void vs_erase(vs_t *v, size_t s, double at) {
 static void vs_query(const vs_t *v, double pa, double pb,
                      ds_visibility_ray_t *ray) {
   size_t t;
+  size_t best = VS_NONE;
+  /* the status is ordered bottom to top, so the last segment above the
+   * point met on the search path is the lowest one above it */
   for (t = v->root; t != VS_NONE;) {
-    double y = vs_y(&v->seg[t], pa);
-    if (y > pb) {
-      if (ray->up == VS_NONE || y < ray->up_at) {
-        ray->up = t;
-        ray->up_at = y;
-      }
+    if (vs_point_side(&v->seg[t], pa, pb) > 0) {
+      best = t;
       t = v->lc[t];
     } else {
       t = v->rc[t];
     }
   }
+  if (best != VS_NONE) {
+    double y = vs_y(&v->seg[best], pa);
+    if (ray->up == VS_NONE || y < ray->up_at) {
+      ray->up = best;
+      ray->up_at = y;
+    }
+  }
+  best = VS_NONE;
   for (t = v->root; t != VS_NONE;) {
-    double y = vs_y(&v->seg[t], pa);
-    if (y < pb) {
-      if (ray->down == VS_NONE || y > ray->down_at) {
-        ray->down = t;
-        ray->down_at = y;
-      }
+    if (vs_point_side(&v->seg[t], pa, pb) < 0) {
+      best = t;
       t = v->rc[t];
     } else {
       t = v->lc[t];
+    }
+  }
+  if (best != VS_NONE) {
+    double y = vs_y(&v->seg[best], pa);
+    if (ray->down == VS_NONE || y > ray->down_at) {
+      ray->down = best;
+      ray->down_at = y;
     }
   }
 }
