@@ -5,8 +5,11 @@
  * Log-structured merge tree (O'Neil et al., 1996) over byte-string keys,
  * assembled from lib/sstable:
  *
- *   memtable   sorted in memory (binary search over an array of entries),
- *              absorbing puts and deletes (tombstones)
+ *   memtable   sorted in memory, absorbing puts and deletes (tombstones):
+ *              a skip list (DS_LSM_MEMTABLE_SKIPLIST, the default:
+ *              O(log n) expected per put) or a sorted array of entry
+ *              pointers (DS_LSM_MEMTABLE_ARRAY: binary search, O(n)
+ *              pointer moves per new key, compact for small memtables)
  *   level 0    the most recent flushed tables, newest first, ranges may
  *              overlap; when more than l0_tables accumulate they are
  *              merged with level 1
@@ -17,13 +20,26 @@
  * Merges use ds_sstable_merge (newest wins on equal keys); tombstones are
  * dropped only when merging into the deepest occupied level. A lookup
  * checks the memtable, then each table newest to oldest, consulting the
- * Bloom filter first. Iterators merge every source in key order with the
- * same precedence and skip deleted keys.
+ * Bloom filter first (bits_per_key, or DS_LSM_NO_FILTER for none).
+ * Iterators merge every source in key order with the same precedence and
+ * skip deleted keys.
  *
- * Tables live in memory (a store-backed variant would write the finished
- * table bytes through a ds_page_store_t). Values returned by get and by
- * iterators stay valid until the next modification. Memory comes from the
- * context.
+ * Key order: config.comparator (NULL: bytewise) orders the memtable, the
+ * merges and the iterators, and is recorded in every table it writes (see
+ * lib/sstable); the comparator is copied into lsm->cmp at init and the
+ * caller's pointer is not kept (config.comparator reads NULL afterwards).
+ *
+ * Budgets are in bytes: memtable_bytes counts each entry's key, value and
+ * entry header (not the skip-list links), and level i > 0 may hold
+ * memtable_bytes * l0_tables * fanout^(i-1) bytes of table data; level 0
+ * is bounded by its table count, l0_tables.
+ *
+ * Scope: tables live in memory. There is no write-ahead log, manifest or
+ * recovery, and compaction does not go through storage (a store-backed
+ * variant would write finished table bytes through a ds_page_store_t), so
+ * the structure is an in-memory LSM organization, not a durable store.
+ * Values returned by get and by iterators stay valid until the next
+ * modification. Memory comes from the context.
  */
 
 #include "context.h"
@@ -37,6 +53,12 @@ extern "C" {
 #endif
 
 #define DS_LSM_MAX_LEVELS 24
+#define DS_LSM_NO_FILTER ((size_t) - 1) /* bits_per_key: no Bloom filter */
+
+typedef enum ds_lsm_memtable {
+  DS_LSM_MEMTABLE_SKIPLIST = 0,
+  DS_LSM_MEMTABLE_ARRAY = 1
+} ds_lsm_memtable_t;
 
 typedef struct ds_lsm_config {
   size_t memtable_bytes; /* 0: 1 MiB */
@@ -44,7 +66,9 @@ typedef struct ds_lsm_config {
   size_t fanout;         /* 0: 10 */
   size_t block_size;     /* sstable settings (0: defaults) */
   size_t restart_interval;
-  size_t bits_per_key; /* 0: 10 */
+  size_t bits_per_key; /* 0: 10; DS_LSM_NO_FILTER: none */
+  ds_lsm_memtable_t memtable;
+  const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
   ds_context_t *context;
 } ds_lsm_config_t;
 
@@ -56,10 +80,14 @@ typedef struct ds_lsm_table {
 
 typedef struct ds_lsm {
   ds_lsm_config_t config;
-  void **mem; /* sorted memtable entries */
+  ds_sstable_comparator_t cmp; /* copied from config.comparator */
+  void **mem;                  /* array memtable: sorted entries */
   size_t mem_count;
   size_t mem_capacity;
   size_t mem_bytes;
+  void *skip_head; /* skip-list memtable */
+  size_t skip_level;
+  unsigned long skip_rng;
   ds_lsm_table_t *l0; /* newest first */
   size_t l0_count;
   ds_lsm_table_t levels[DS_LSM_MAX_LEVELS]; /* levels[0] is level 1 */
@@ -71,8 +99,9 @@ typedef struct ds_lsm_iter {
   ds_lsm_t *lsm;
   size_t sources;
   ds_sstable_iter_t *iters; /* one per table */
-  size_t mem_pos;
-  size_t current; /* winning source, (size_t)-1 when exhausted */
+  size_t mem_pos;           /* array memtable cursor */
+  void *mem_node;           /* skip-list memtable cursor */
+  size_t current;           /* winning source, (size_t)-1 when exhausted */
   const unsigned char *key;
   size_t key_len;
   const unsigned char *value;
@@ -81,6 +110,7 @@ typedef struct ds_lsm_iter {
 } ds_lsm_iter_t;
 
 void ds_lsm_config_init(ds_lsm_config_t *config);
+/* DS_ERR_INVALID for an unknown memtable kind or an invalid comparator */
 ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config);
 void ds_lsm_destroy(ds_lsm_t *lsm);
 ds_status_t ds_lsm_put(ds_lsm_t *lsm, const void *key, size_t key_len,

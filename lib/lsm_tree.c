@@ -18,24 +18,75 @@ static lsm_ent_t *mem_at(const ds_lsm_t *l, size_t i) {
   return (lsm_ent_t *)l->mem[i];
 }
 
-static int key_cmp(const unsigned char *a, size_t al, const unsigned char *b,
-                   size_t bl) {
-  size_t n = al < bl ? al : bl;
-  int c = n == 0 ? 0 : memcmp(a, b, n);
-  if (c != 0) {
-    return c;
-  }
-  return (al > bl) - (al < bl);
+static int key_cmp(const ds_lsm_t *l, const unsigned char *a, size_t al,
+                   const unsigned char *b, size_t bl) {
+  return l->cmp.compare(a, al, b, bl, l->cmp.user);
 }
 
-/* first entry with key >= key */
+/* ---- memtable: skip list or sorted array ----
+ *
+ * A skip-list node is one block: the level, its forward links, then the
+ * entry (header, key, value). The head has LSM_SL_MAX links and no entry.
+ */
+
+#define LSM_SL_MAX 20
+
+typedef struct lsm_sl {
+  size_t level;
+} lsm_sl_t;
+
+static lsm_sl_t **sl_fwd(lsm_sl_t *n) { return (lsm_sl_t **)(void *)(n + 1); }
+
+static lsm_ent_t *sl_ent(lsm_sl_t *n) {
+  return (lsm_ent_t *)(void *)(sl_fwd(n) + n->level);
+}
+
+static bool lsm_skip(const ds_lsm_t *l) {
+  return l->config.memtable == DS_LSM_MEMTABLE_SKIPLIST;
+}
+
+/* a level in 1 .. LSM_SL_MAX with P(level > k) = 4^-k */
+static size_t sl_random_level(ds_lsm_t *l) {
+  size_t level = 1;
+  for (;;) {
+    unsigned long x = l->skip_rng;
+    x ^= (x << 13) & 0xFFFFFFFFUL;
+    x ^= x >> 17;
+    x ^= (x << 5) & 0xFFFFFFFFUL;
+    l->skip_rng = x & 0xFFFFFFFFUL;
+    if (level >= LSM_SL_MAX || (x & 3UL) != 0) {
+      return level;
+    }
+    level++;
+  }
+}
+
+/* the last node before key on every level (update[0 .. LSM_SL_MAX)) */
+static lsm_sl_t *sl_find(const ds_lsm_t *l, const unsigned char *key,
+                         size_t klen, lsm_sl_t **update) {
+  lsm_sl_t *x = (lsm_sl_t *)l->skip_head;
+  size_t i = LSM_SL_MAX;
+  while (i-- > 0) {
+    lsm_sl_t *nx;
+    while ((nx = sl_fwd(x)[i]) != NULL &&
+           key_cmp(l, ent_key(sl_ent(nx)), sl_ent(nx)->klen, key, klen) < 0) {
+      x = nx;
+    }
+    if (update != NULL) {
+      update[i] = x;
+    }
+  }
+  return sl_fwd(x)[0]; /* the first node with key >= key, or NULL */
+}
+
+/* first array entry with key >= key */
 static size_t mem_lower(const ds_lsm_t *l, const unsigned char *key,
                         size_t klen) {
   size_t lo = 0, hi = l->mem_count;
   while (lo < hi) {
     size_t mid = lo + (hi - lo) / 2;
     lsm_ent_t *e = mem_at(l, mid);
-    if (key_cmp(ent_key(e), e->klen, key, klen) < 0) {
+    if (key_cmp(l, ent_key(e), e->klen, key, klen) < 0) {
       lo = mid + 1;
     } else {
       hi = mid;
@@ -44,10 +95,81 @@ static size_t mem_lower(const ds_lsm_t *l, const unsigned char *key,
   return lo;
 }
 
+/* the memtable entry with exactly this key, or NULL */
+static lsm_ent_t *mem_find(const ds_lsm_t *l, const unsigned char *key,
+                           size_t klen) {
+  lsm_ent_t *e = NULL;
+  if (lsm_skip(l)) {
+    lsm_sl_t *n = sl_find(l, key, klen, NULL);
+    e = n == NULL ? NULL : sl_ent(n);
+  } else {
+    size_t pos = mem_lower(l, key, klen);
+    e = pos < l->mem_count ? mem_at(l, pos) : NULL;
+  }
+  if (e != NULL && key_cmp(l, ent_key(e), e->klen, key, klen) != 0) {
+    e = NULL;
+  }
+  return e;
+}
+
+/* in-order memtable cursor */
+typedef struct lsm_mcur {
+  size_t pos;
+  lsm_sl_t *node;
+} lsm_mcur_t;
+
+static void mcur_first(const ds_lsm_t *l, lsm_mcur_t *c) {
+  c->pos = 0;
+  c->node = lsm_skip(l) ? sl_fwd((lsm_sl_t *)l->skip_head)[0] : NULL;
+}
+
+static bool mcur_valid(const ds_lsm_t *l, const lsm_mcur_t *c) {
+  return lsm_skip(l) ? c->node != NULL : c->pos < l->mem_count;
+}
+
+static lsm_ent_t *mcur_entry(const ds_lsm_t *l, const lsm_mcur_t *c) {
+  return lsm_skip(l) ? sl_ent(c->node) : mem_at(l, c->pos);
+}
+
+static void mcur_next(const ds_lsm_t *l, lsm_mcur_t *c) {
+  if (lsm_skip(l)) {
+    c->node = sl_fwd(c->node)[0];
+  } else {
+    c->pos++;
+  }
+}
+
+static void mcur_seek(const ds_lsm_t *l, lsm_mcur_t *c,
+                      const unsigned char *key, size_t klen) {
+  if (lsm_skip(l)) {
+    c->node = sl_find(l, key, klen, NULL);
+    c->pos = 0;
+  } else {
+    c->pos = mem_lower(l, key, klen);
+    c->node = NULL;
+  }
+}
+
 static void lsm_free_mem(ds_lsm_t *l) {
   size_t i;
-  for (i = 0; i < l->mem_count; i++) {
-    ds_context_free(l->config.context, l->mem[i]);
+  if (lsm_skip(l)) {
+    lsm_sl_t *head = (lsm_sl_t *)l->skip_head;
+    lsm_sl_t *n = head == NULL ? NULL : sl_fwd(head)[0];
+    while (n != NULL) {
+      lsm_sl_t *next = sl_fwd(n)[0];
+      ds_context_free(l->config.context, n);
+      n = next;
+    }
+    if (head != NULL) {
+      for (i = 0; i < LSM_SL_MAX; i++) {
+        sl_fwd(head)[i] = NULL;
+      }
+    }
+    l->skip_level = 1;
+  } else {
+    for (i = 0; i < l->mem_count; i++) {
+      ds_context_free(l->config.context, l->mem[i]);
+    }
   }
   l->mem_count = 0;
   l->mem_bytes = 0;
@@ -89,10 +211,49 @@ ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config) {
   }
   if (lsm->config.bits_per_key == 0) {
     lsm->config.bits_per_key = 10;
+  } else if (lsm->config.bits_per_key == DS_LSM_NO_FILTER) {
+    lsm->config.bits_per_key = 0; /* the sstable setting for none */
+  } else if (lsm->config.bits_per_key > 32) {
+    return DS_ERR_INVALID;
+  }
+  if (lsm->config.memtable != DS_LSM_MEMTABLE_SKIPLIST &&
+      lsm->config.memtable != DS_LSM_MEMTABLE_ARRAY) {
+    return DS_ERR_INVALID;
+  }
+  if (lsm->config.comparator == NULL) {
+    lsm->cmp = *ds_sstable_bytewise();
+  } else if (lsm->config.comparator->compare == NULL ||
+             (lsm->config.comparator->id == 0 &&
+              lsm->config.comparator->compare !=
+                  ds_sstable_bytewise()->compare)) {
+    return DS_ERR_INVALID;
+  } else {
+    lsm->cmp = *lsm->config.comparator;
+  }
+  /* lsm->cmp is the copy in use; the caller's comparator is not kept */
+  lsm->config.comparator = NULL;
+  if (lsm->config.memtable == DS_LSM_MEMTABLE_SKIPLIST) {
+    size_t i;
+    lsm->skip_head = ds_context_alloc(
+        config->context, sizeof(lsm_sl_t) + LSM_SL_MAX * sizeof(lsm_sl_t *));
+    if (lsm->skip_head == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    ((lsm_sl_t *)lsm->skip_head)->level = LSM_SL_MAX;
+    for (i = 0; i < LSM_SL_MAX; i++) {
+      sl_fwd((lsm_sl_t *)lsm->skip_head)[i] = NULL;
+    }
+    lsm->skip_level = 1;
+    lsm->skip_rng = 0x9E3779B9UL;
   }
   lsm->l0 = (ds_lsm_table_t *)ds_context_calloc(
       config->context, lsm->config.l0_tables + 1, sizeof(ds_lsm_table_t));
-  return lsm->l0 == NULL ? DS_ERR_ALLOC : DS_OK;
+  if (lsm->l0 == NULL) {
+    ds_context_free(config->context, lsm->skip_head);
+    lsm->skip_head = NULL;
+    return DS_ERR_ALLOC;
+  }
+  return DS_OK;
 }
 
 void ds_lsm_destroy(ds_lsm_t *lsm) {
@@ -102,6 +263,7 @@ void ds_lsm_destroy(ds_lsm_t *lsm) {
   }
   lsm_free_mem(lsm);
   ds_context_free(lsm->config.context, lsm->mem);
+  ds_context_free(lsm->config.context, lsm->skip_head);
   for (i = 0; i < lsm->l0_count; i++) {
     lsm_free_table(lsm, &lsm->l0[i]);
   }
@@ -159,7 +321,7 @@ static ds_status_t lsm_merge_into(ds_lsm_t *l, ds_lsm_table_t **srcs, size_t n,
   if (st != DS_OK) {
     return st;
   }
-  st = ds_sstable_open(&out.table, out.data, out.len);
+  st = ds_sstable_open_cmp(&out.table, out.data, out.len, &l->cmp);
   if (st != DS_OK) {
     ds_context_free(l->config.context, out.data);
     return st;
@@ -213,7 +375,7 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   ds_sstable_builder_t b;
   ds_lsm_table_t t;
   ds_status_t st;
-  size_t i;
+  lsm_mcur_t c;
   if (lsm == NULL || lsm->l0 == NULL) {
     return DS_ERR_NULL;
   }
@@ -227,14 +389,15 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
       return st;
     }
   }
-  st = ds_sstable_builder_init(&b, lsm->config.block_size,
-                               lsm->config.restart_interval,
-                               lsm->config.bits_per_key, lsm->config.context);
+  st = ds_sstable_builder_init_cmp(
+      &b, lsm->config.block_size, lsm->config.restart_interval,
+      lsm->config.bits_per_key, &lsm->cmp, lsm->config.context);
   if (st != DS_OK) {
     return st;
   }
-  for (i = 0; i < lsm->mem_count && st == DS_OK; i++) {
-    lsm_ent_t *e = mem_at(lsm, i);
+  for (mcur_first(lsm, &c); mcur_valid(lsm, &c) && st == DS_OK;
+       mcur_next(lsm, &c)) {
+    lsm_ent_t *e = mcur_entry(lsm, &c);
     st = e->tomb ? ds_sstable_builder_add_tombstone(&b, ent_key(e), e->klen)
                  : ds_sstable_builder_add(&b, ent_key(e), e->klen, ent_val(e),
                                           e->vlen);
@@ -247,7 +410,7 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   if (st != DS_OK) {
     return st;
   }
-  st = ds_sstable_open(&t.table, t.data, t.len);
+  st = ds_sstable_open_cmp(&t.table, t.data, t.len, &lsm->cmp);
   if (st != DS_OK) {
     ds_context_free(lsm->config.context, t.data);
     return st;
@@ -262,26 +425,79 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   return DS_OK;
 }
 
-static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
-                           const void *value, size_t vlen, int tomb) {
-  size_t pos, bytes;
-  lsm_ent_t *e;
-  if (l == NULL || l->l0 == NULL || (key == NULL && klen > 0) ||
-      (value == NULL && vlen > 0)) {
-    return DS_ERR_NULL;
+static void ent_fill(lsm_ent_t *e, const void *key, size_t klen,
+                     const void *value, size_t vlen, int tomb) {
+  e->klen = klen;
+  e->vlen = vlen;
+  e->tomb = tomb;
+  if (klen > 0) {
+    memcpy(ent_key(e), key, klen);
   }
-  if (!ds_size_add(sizeof(lsm_ent_t), klen, &bytes) ||
-      !ds_size_add(bytes, vlen, &bytes)) {
+  if (vlen > 0) {
+    memcpy(ent_val(e), value, vlen);
+  }
+}
+
+/* skip-list insert or replace; bytes is the entry's size */
+static ds_status_t sl_set(ds_lsm_t *l, const void *key, size_t klen,
+                          const void *value, size_t vlen, int tomb,
+                          size_t bytes) {
+  lsm_sl_t *update[LSM_SL_MAX];
+  lsm_sl_t *old = sl_find(l, (const unsigned char *)key, klen, update);
+  lsm_sl_t *n;
+  size_t level;
+  size_t total;
+  size_t i;
+  bool replace =
+      old != NULL && key_cmp(l, ent_key(sl_ent(old)), sl_ent(old)->klen,
+                             (const unsigned char *)key, klen) == 0;
+  level = replace ? old->level : sl_random_level(l);
+  if (!ds_size_mul_add(level, sizeof(lsm_sl_t *), sizeof(lsm_sl_t), &total) ||
+      !ds_size_add(total, bytes, &total)) {
     return DS_ERR_OVERFLOW;
   }
-  pos = mem_lower(l, (const unsigned char *)key, klen);
+  n = (lsm_sl_t *)ds_context_alloc(l->config.context, total);
+  if (n == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  n->level = level;
+  ent_fill(sl_ent(n), key, klen, value, vlen, tomb);
+  if (replace) {
+    /* take the old node's place on each of its levels */
+    for (i = 0; i < level; i++) {
+      sl_fwd(n)[i] = sl_fwd(old)[i];
+      sl_fwd(update[i])[i] = n;
+    }
+    l->mem_bytes -= sizeof(lsm_ent_t) + sl_ent(old)->klen + sl_ent(old)->vlen;
+    ds_context_free(l->config.context, old);
+  } else {
+    for (i = 0; i < level; i++) {
+      sl_fwd(n)[i] = sl_fwd(update[i])[i];
+      sl_fwd(update[i])[i] = n;
+    }
+    if (level > l->skip_level) {
+      l->skip_level = level;
+    }
+    l->mem_count++;
+  }
+  l->mem_bytes += bytes;
+  return DS_OK;
+}
+
+/* sorted-array insert or replace */
+static ds_status_t arr_set(ds_lsm_t *l, const void *key, size_t klen,
+                           const void *value, size_t vlen, int tomb,
+                           size_t bytes) {
+  size_t pos = mem_lower(l, (const unsigned char *)key, klen);
+  lsm_ent_t *e;
   if (pos == l->mem_count ||
-      key_cmp(ent_key(mem_at(l, pos)), mem_at(l, pos)->klen,
+      key_cmp(l, ent_key(mem_at(l, pos)), mem_at(l, pos)->klen,
               (const unsigned char *)key, klen) != 0) {
     if (l->mem_count == l->mem_capacity) {
       size_t cap = l->mem_capacity < 16 ? 16 : l->mem_capacity * 2, b2;
       void **m;
-      if (!ds_size_mul(cap, sizeof(void *), &b2)) {
+      if (l->mem_capacity > ((size_t)-1) / 2 ||
+          !ds_size_mul(cap, sizeof(void *), &b2)) {
         return DS_ERR_OVERFLOW;
       }
       m = (void **)ds_context_realloc(l->config.context, l->mem, b2);
@@ -307,17 +523,29 @@ static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
     l->mem_bytes -= sizeof(lsm_ent_t) + old->klen + old->vlen;
     ds_context_free(l->config.context, old);
   }
-  e->klen = klen;
-  e->vlen = vlen;
-  e->tomb = tomb;
-  if (klen > 0) {
-    memcpy(ent_key(e), key, klen);
-  }
-  if (vlen > 0) {
-    memcpy(ent_val(e), value, vlen);
-  }
+  ent_fill(e, key, klen, value, vlen, tomb);
   l->mem[pos] = e;
   l->mem_bytes += bytes;
+  return DS_OK;
+}
+
+static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
+                           const void *value, size_t vlen, int tomb) {
+  size_t bytes;
+  ds_status_t st;
+  if (l == NULL || l->l0 == NULL || (key == NULL && klen > 0) ||
+      (value == NULL && vlen > 0)) {
+    return DS_ERR_NULL;
+  }
+  if (!ds_size_add(sizeof(lsm_ent_t), klen, &bytes) ||
+      !ds_size_add(bytes, vlen, &bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
+  st = lsm_skip(l) ? sl_set(l, key, klen, value, vlen, tomb, bytes)
+                   : arr_set(l, key, klen, value, vlen, tomb, bytes);
+  if (st != DS_OK) {
+    return st;
+  }
   if (l->mem_bytes >= l->config.memtable_bytes) {
     /* a failed flush leaves the entry in the memtable; the next
      * modification retries */
@@ -353,16 +581,14 @@ static ds_status_t lsm_table_get(ds_lsm_t *l, ds_lsm_table_t *t,
 ds_status_t ds_lsm_get(ds_lsm_t *lsm, const void *key, size_t key_len,
                        const unsigned char **out_value, size_t *out_len) {
   const unsigned char *v = NULL;
-  size_t vl = 0, pos, i;
+  size_t vl = 0, i;
+  lsm_ent_t *e;
   ds_status_t st = DS_NOT_FOUND;
   if (lsm == NULL || lsm->l0 == NULL || (key == NULL && key_len > 0)) {
     return DS_ERR_NULL;
   }
-  pos = mem_lower(lsm, (const unsigned char *)key, key_len);
-  if (pos < lsm->mem_count &&
-      key_cmp(ent_key(mem_at(lsm, pos)), mem_at(lsm, pos)->klen,
-              (const unsigned char *)key, key_len) == 0) {
-    lsm_ent_t *e = mem_at(lsm, pos);
+  e = mem_find(lsm, (const unsigned char *)key, key_len);
+  if (e != NULL) {
     if (e->tomb) {
       return DS_NOT_FOUND;
     }
@@ -452,9 +678,21 @@ static ds_sstable_t *lsm_source_table(ds_lsm_t *l, size_t k) {
   return NULL;
 }
 
+static void it_mcur(const ds_lsm_iter_t *it, lsm_mcur_t *c) {
+  c->pos = it->mem_pos;
+  c->node = (lsm_sl_t *)it->mem_node;
+}
+
+static void it_set_mcur(ds_lsm_iter_t *it, const lsm_mcur_t *c) {
+  it->mem_pos = c->pos;
+  it->mem_node = c->node;
+}
+
 static bool src_valid(const ds_lsm_iter_t *it, size_t s) {
   if (s == 0) {
-    return it->mem_pos < it->lsm->mem_count;
+    lsm_mcur_t c;
+    it_mcur(it, &c);
+    return mcur_valid(it->lsm, &c);
   }
   return ds_sstable_iter_valid(&it->iters[s - 1]);
 }
@@ -463,7 +701,10 @@ static void src_get(const ds_lsm_iter_t *it, size_t s, const unsigned char **k,
                     size_t *kl, const unsigned char **v, size_t *vl,
                     bool *tomb) {
   if (s == 0) {
-    lsm_ent_t *e = mem_at(it->lsm, it->mem_pos);
+    lsm_mcur_t c;
+    lsm_ent_t *e;
+    it_mcur(it, &c);
+    e = mcur_entry(it->lsm, &c);
     *k = ent_key(e);
     *kl = e->klen;
     *v = ent_val(e);
@@ -481,7 +722,10 @@ static void src_get(const ds_lsm_iter_t *it, size_t s, const unsigned char **k,
 
 static void src_next(ds_lsm_iter_t *it, size_t s) {
   if (s == 0) {
-    it->mem_pos++;
+    lsm_mcur_t c;
+    it_mcur(it, &c);
+    mcur_next(it->lsm, &c);
+    it_set_mcur(it, &c);
   } else {
     ds_status_t st = ds_sstable_iter_next(&it->iters[s - 1]);
     if (DS_FAILED(st)) {
@@ -501,7 +745,7 @@ static void lsm_skip_current(ds_lsm_iter_t *it, size_t win) {
     eq[s] = 0;
     if (src_valid(it, s)) {
       src_get(it, s, &k, &kl, &v, &vl, &tomb);
-      eq[s] = key_cmp(k, kl, wk, wkl) == 0;
+      eq[s] = key_cmp(it->lsm, k, kl, wk, wkl) == 0;
     }
   }
   for (s = 0; s < it->sources; s++) {
@@ -526,7 +770,7 @@ static ds_status_t lsm_select(ds_lsm_iter_t *it) {
         continue;
       }
       src_get(it, s, &k, &kl, &v, &vl, &tomb);
-      if (win == LSM_NONE || key_cmp(k, kl, wk, wkl) < 0) {
+      if (win == LSM_NONE || key_cmp(it->lsm, k, kl, wk, wkl) < 0) {
         win = s;
         wk = k;
         wkl = kl;
@@ -591,7 +835,11 @@ ds_status_t ds_lsm_iter_first(ds_lsm_iter_t *it) {
     return DS_ERR_NULL;
   }
   it->error = DS_OK;
-  it->mem_pos = 0;
+  {
+    lsm_mcur_t c;
+    mcur_first(it->lsm, &c);
+    it_set_mcur(it, &c);
+  }
   for (s = 1; s < it->sources; s++) {
     ds_status_t st = ds_sstable_iter_first(&it->iters[s - 1]);
     if (DS_FAILED(st)) {
@@ -608,7 +856,11 @@ ds_status_t ds_lsm_iter_seek(ds_lsm_iter_t *it, const void *key,
     return DS_ERR_NULL;
   }
   it->error = DS_OK;
-  it->mem_pos = mem_lower(it->lsm, (const unsigned char *)key, key_len);
+  {
+    lsm_mcur_t c;
+    mcur_seek(it->lsm, &c, (const unsigned char *)key, key_len);
+    it_set_mcur(it, &c);
+  }
   for (s = 1; s < it->sources; s++) {
     ds_status_t st = ds_sstable_iter_seek(&it->iters[s - 1], key, key_len);
     if (DS_FAILED(st)) {
