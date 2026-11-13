@@ -132,6 +132,7 @@ Core mutable containers:
 - Inversion list (range set as sorted boundaries: splice updates, boolean merges by truth table, rank/select, bit-run conversion)
 - Invertible Bloom lookup table (IBLT: listing, set reconciliation by subtraction)
 - k-d tree (implicit static tree; nearest, k-nearest, box and radius queries)
+- lib/chromatic_tree: chromatic trees (red-black trees with relaxed balance): updates without rotations, eager or deferred rebalancing along pending paths, rank and select, linked or inline routers
 - Linear hashing (Litwin; split by load or on overflow, incremental growth and shrink)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)
 - Meldable heaps with pluggable shape policy: leftist, weight-biased leftist, skew, randomized (intrusive)

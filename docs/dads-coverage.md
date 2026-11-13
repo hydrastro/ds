@@ -1527,6 +1527,7 @@ the term covers is provided.
 | fully dynamic connectivity | algorithm | implemented | `lib/dynamic_connectivity`, `lib/euler_tour_tree` | Holm-de Lichtenberg-Thorup levels of Euler-tour spanning forests: insertions and deletions in O(log^2 n) amortized, connectivity queries in O(log n) expected |
 | DFUDS succinct tree | structure | implemented | `lib/dfuds` | depth-first unary degree sequence on the parentheses core of lib/bp_tree: degree and k-th child by one select and one find_close; parent, siblings, subtree size, LCA |
 | hollow heap | structure | implemented | `lib/hollow_heap`, `lib/pq_iface` | one-tree hollow heap: O(1) push, decrease and meld, O(log n) amortized pop; a rebuild keeps nodes O(n) |
+| chromatic tree | structure | implemented | `lib/chromatic_tree` | relaxed-balance red-black tree (Nurmi, Soisalon-Soininen; Boyar-Larsen transformations): weights instead of colours, updates without rotations, rebalancing eager or deferred along pending paths; rank, select, linked or inline routers |
 | rank-pairing heap | structure | implemented | `lib/rank_pairing_heap`, `lib/pq_iface` | type-1 and type-2 rank rules: O(1) push, meld and amortized decrease without cascading cuts, O(log n) amortized pop by one-pass linking |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |

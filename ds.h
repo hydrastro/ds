@@ -37,6 +37,7 @@
 #include "lib/calendar_queue.h"
 #include "lib/cellular_automaton.h"
 #include "lib/checked.h"
+#include "lib/chromatic_tree.h"
 #include "lib/circular_buffer.h"
 #include "lib/coalesced_map.h"
 #include "lib/confluent_list.h"
