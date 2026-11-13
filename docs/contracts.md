@@ -100,6 +100,9 @@ says what remains:
 | `algo/planarity` | every call allocates its working memory before it starts; an embedding is filled only on success and is otherwise left empty, safe to destroy; a too small certificate buffer gives `DS_ERR_RANGE` with the size needed |
 | `lib/suffix_array`, `lib/r_index` | builds are all or nothing: a failed build frees what it took and leaves nothing to destroy |
 | `lib/hollow_heap` | an update that cannot allocate its new node changes nothing |
+| `lib/strict_fibonacci_heap` | push takes its node, cell and at most two rank records before changing anything; update, remove and meld never allocate (an increase re-inserts the item's own node, and a meld recycles the absorbed heap's rank records) |
+| `lib/fusion_tree` | an insert takes every node its splits need before changing anything; remove and the queries never allocate; a bulk load builds the new tree before releasing the old one |
+| `lib/decremental_msf` | a deletion that runs out of memory while promoting or recording a replacement leaves an explicit broken state; `ds_dmsf_rebuild` starts over from the remaining edges |
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 
 ## Cursors and handles
@@ -119,6 +122,8 @@ says what remains:
 | inverted-index dictionary cursors | the next add | ordered dictionaries only |
 | RRB vector element pointers and iterators | the version is released | versions share nodes; nothing is edited in place |
 | rank-pairing heap item pointers | the item leaves | nodes never move, even on increase |
+| strict Fibonacci heap handles and item pointers | the item leaves | items live in cells that never move; a decrease below the minimum swaps cells between nodes, not items between cells |
+| fusion-tree value pointers (`ds_fusion_get`) | the next insert or remove | values move with their keys inside and between nodes |
 | chromatic-tree element pointers (get, select, floor, ceiling) | the element is removed | leaves never move; rebalancing rotates internal nodes only |
 | top-tree vertex values (`ds_top_value`) | the tree is destroyed | vertex nodes are allocated once |
 | planar embeddings and their graph views | `ds_planar_embedding_destroy` | a view also needs its `ds_gview_csr_t` alive |
@@ -161,7 +166,23 @@ says what remains:
   O(1) amortized transformations per update, each found by a walk of the
   current height, and eager mode keeps the height of a red-black tree.
 - **Dynamic trees.** Top-tree operations cost O(log n) amortized splay
-  steps, each calling the cluster callbacks O(1) times.
+  steps, each calling the cluster callbacks O(1) times. Topology-tree link
+  and cut build O(1) clusters per level, O(log n) worst case
+  (`ds_topology_tree_work` reports the count), apart from the cluster array
+  growing by doubling; path and component aggregates cost O(log n).
+- **Worst-case heaps.** The strict Fibonacci heap does O(1) work in the
+  worst case for push, decrease and meld (at most one loss, six active root
+  and four root degree reductions per decrease) and O(log n) for pop and
+  remove; active roots and total loss stay within 2 lg n + 7, the root's
+  degree within 2 lg n + 9 and every other degree within 2 lg n + 12.
+- **Word-level search.** A fusion-tree node is searched with a constant
+  number of word operations plus a sketch gathered bit by bit (at most K - 1
+  bits) and a highest-bit search by halving (log w steps); a tree query
+  visits O(log n / log K) nodes, and an update recomputes the sketches of
+  the O(log n / log K) nodes it changes, O(K^2) each.
+- **Decremental MSF.** O(m log m + n log n) to build, O(log^2 n) amortized
+  per deletion (expected, through the Euler-tour treaps); a deletion
+  reports its replacement edge.
 - **Text indexes.** SA-IS builds a suffix array in O(n). The r-index counts
   in O(m log r) and locates each occurrence in O(log r), in 6r + 1 words
   for r BWT runs; building it needs the full suffix array for a while.
