@@ -50,6 +50,7 @@
 #include "lib/diet.h"
 #include "lib/disjoint_set.h"
 #include "lib/dlist.h"
+#include "lib/dynamic_connectivity.h"
 #include "lib/dynamic_hash.h"
 #include "lib/elastic_trie.h"
 #include "lib/elias_fano.h"

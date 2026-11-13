@@ -28,6 +28,7 @@ Core mutable containers:
 - `lib/d_tree`: D-trees (planar point location over subdivisions)
 - `lib/dfuds`: depth-first unary degree sequence trees on the `lib/bp_tree` parentheses core (degree and k-th child by one select and one find_close; parent, siblings, subtree size, LCA)
 - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
+- `lib/dynamic_connectivity`: fully dynamic connectivity (Holm-de Lichtenberg-Thorup): levels of spanning forests as `lib/euler_tour_tree`s, O(log^2 n) amortized updates, connectivity queries in O(log n)
 - `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
 - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
 - `lib/elias_fano`: Elias-Fano compressed monotone sequences (access, next_geq, prev_leq via sampled select)

@@ -220,6 +220,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/rank_pairing_heap: rank-pairing heaps (Haeupler-Sen-Tarjan), type 1 and type 2; pq_iface backends
 - lib/bp_tree: balanced-parentheses succinct trees (range min-max tree, Navarro-Sadakane) with a reusable parentheses core
 - lib/dfuds: DFUDS succinct trees on the bp_tree parentheses core
+- lib/dynamic_connectivity: Holm-de Lichtenberg-Thorup fully dynamic connectivity over Euler-tour trees
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
