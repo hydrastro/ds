@@ -195,7 +195,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/roaring: Roaring bitmaps with array/bitmap/run containers, rank/select, and/or/xor/andnot (run containers natively), optimize
 - algo/robust_predicates: Shewchuk-style expansion arithmetic, filtered exact orient2d/3d, incircle, insphere
 - lib/persistent_hamt: persistent CHAMP HAMT with refcounted sharing, canonical deletion, structural equality, in-place transient edits
-- lib/pq_iface: addressable priority-queue ops table with eight heap backends and traits
+- lib/pq_iface: addressable priority-queue ops table with twelve heap backends, traits and per-operation cost classes
 - lib/fm_index: FM-index with sampled SA/ISA, occurrence-table and wavelet-matrix rank backends, configurable suffix array builder
 - lib/euler_tour_tree: Euler-tour trees with component/subtree summaries and lazy actions, edge lookup via map_iface
 - lib/persistent_vector: Clojure-style persistent vector with transients and configurable branching
@@ -217,6 +217,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/louds: LOUDS succinct tree over the rank/select capability
 - algo/voronoi: Voronoi diagram from the Delaunay triangulation, box-clipped cells
 - lib/zdd: zero-suppressed decision diagrams with the family algebra
+- lib/rank_pairing_heap: rank-pairing heaps (Haeupler-Sen-Tarjan), type 1 and type 2; pq_iface backends
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

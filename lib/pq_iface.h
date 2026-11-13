@@ -70,6 +70,13 @@
  *     instead of cutting; the linear worst case of decrease is the rebuild
  *     that keeps hollow nodes from outnumbering items. Items live in the
  *     nodes and an update moves its item: DS_PQ_MOVING_ITEMS
+ *   ds_pq_rank_pairing_ops()  1   n/log    n/1      n/log    n/log    1
+ *   ds_pq_rank_pairing2_ops()
+ *     rank-pairing heap (lib/rank_pairing_heap), type 1 and type 2 rank
+ *     rules: half trees linked in one pass at pop, decrease cuts one node
+ *     and lowers ranks above it (O(1) amortized, no cascading cuts);
+ *     increase and remove go through the minimum's relinking. Nodes never
+ *     move, so item pointers stay valid
  *
  * Any other heap can be adapted by filling in a ds_pq_ops_t.
  *
@@ -174,6 +181,8 @@ const ds_pq_ops_t *ds_pq_skew_ops(void);
 const ds_pq_ops_t *ds_pq_random_ops(void);
 const ds_pq_ops_t *ds_pq_pairing_ops(void);
 const ds_pq_ops_t *ds_pq_hollow_ops(void);
+const ds_pq_ops_t *ds_pq_rank_pairing_ops(void);
+const ds_pq_ops_t *ds_pq_rank_pairing2_ops(void);
 
 /* ops NULL selects ds_pq_binary_ops() */
 ds_status_t ds_pq_init(ds_pq_t *pq, const ds_pq_ops_t *ops, size_t item_size,

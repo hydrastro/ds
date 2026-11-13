@@ -1523,6 +1523,7 @@ the term covers is provided.
 | zero-suppressed decision diagram | structure | implemented | `lib/zdd` | hash-consed families of sets: union, intersection, differences, subset0/1, change, join, meet, nonsup, nonsub, minimal, maximal; counting, membership, enumeration; iterative |
 | LOUDS succinct tree | structure | implemented | `lib/louds` | level-order unary degree sequence over any rank/select backend: 2n + 1 bits; navigation by select; byte-labelled static tries |
 | hollow heap | structure | implemented | `lib/hollow_heap`, `lib/pq_iface` | one-tree hollow heap: O(1) push, decrease and meld, O(log n) amortized pop; a rebuild keeps nodes O(n) |
+| rank-pairing heap | structure | implemented | `lib/rank_pairing_heap`, `lib/pq_iface` | type-1 and type-2 rank rules: O(1) push, meld and amortized decrease without cascading cuts, O(log n) amortized pop by one-pass linking |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |

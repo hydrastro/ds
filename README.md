@@ -57,10 +57,11 @@ Core mutable containers:
 - `lib/persistent_hamt`: persistent CHAMP hash trie (structural sharing, canonical deletes, in-place edits of unshared versions)
 - `lib/persistent_vector`: persistent bit-partitioned vector (configurable branching, tail buffer, in-place edits of unshared versions, deep-copy element callbacks)
 - `lib/plop_hash`: PLOP-hashing, directory-free order-preserving multidimensional linear hashing (midpoint or median splits, box queries)
-- `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld) over binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing heaps
+- `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld, per-operation cost classes) over binary, 4-ary, packed binary, binomial, leftist, weight-biased, skew, randomized, pairing, hollow and rank-pairing (type 1 and 2) heaps
 - `lib/pushdown`: pushdown automata (exact nondeterministic membership via [pXq] summaries, DPDA check and simulation, pushdown transducers)
 - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - `lib/quotient_filter`: quotient filter (packed remainders, deletion, ordered fingerprint enumeration)
+- `lib/rank_pairing_heap`: rank-pairing heap (type-1 and type-2 rank rules, one-pass linking, decrease without cascading cuts), also two `lib/pq_iface` backends
 - `lib/rank_select`: rank/select capability over static bit vectors with plain, RRR (nH0-compressed) and Elias-Fano backends
 - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
 - `lib/replacement`: cache-replacement policy capability (LRU, FIFO, CLOCK, SIEVE) by frame index with pin awareness

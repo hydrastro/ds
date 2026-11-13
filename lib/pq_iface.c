@@ -4,6 +4,7 @@
 #include "hollow_heap.h"
 #include "meldable_heap.h"
 #include "pairing_heap.h"
+#include "rank_pairing_heap.h"
 #include <string.h>
 
 /* ---- shared node layout: backend header, then the item ---- */
@@ -968,6 +969,66 @@ static void pqh_meld(void *pq, void *other) {
   ds_hollow_heap_meld((ds_hollow_heap_t *)pq, (ds_hollow_heap_t *)other);
 }
 
+/* ---- rank-pairing heaps: lib/rank_pairing_heap behind the ops table ---- */
+
+static ds_status_t pqr_init1(void *pq, size_t item_size,
+                             ds_pq_compare_fn compare, void *user,
+                             ds_context_t *context) {
+  return ds_rp_heap_init((ds_rp_heap_t *)pq, item_size, compare, user, 1,
+                         context);
+}
+
+static ds_status_t pqr_init2(void *pq, size_t item_size,
+                             ds_pq_compare_fn compare, void *user,
+                             ds_context_t *context) {
+  return ds_rp_heap_init((ds_rp_heap_t *)pq, item_size, compare, user, 2,
+                         context);
+}
+
+static void pqr_destroy(void *pq) { ds_rp_heap_destroy((ds_rp_heap_t *)pq); }
+
+static ds_status_t pqr_push(void *pq, const void *item,
+                            ds_pq_handle_t *out_handle) {
+  ds_rp_node_t *n = NULL;
+  ds_status_t st = ds_rp_heap_push((ds_rp_heap_t *)pq, item, &n);
+  if (st == DS_OK && out_handle != NULL) {
+    *out_handle = (ds_pq_handle_t)(void *)n;
+  }
+  return st;
+}
+
+static const void *pqr_top(const void *pq) {
+  return ds_rp_heap_top((const ds_rp_heap_t *)pq);
+}
+
+static ds_status_t pqr_pop(void *pq, void *out_item) {
+  return ds_rp_heap_pop((ds_rp_heap_t *)pq, out_item);
+}
+
+static ds_status_t pqr_update(void *pq, ds_pq_handle_t handle,
+                              const void *item) {
+  return ds_rp_heap_update((ds_rp_heap_t *)pq, (ds_rp_node_t *)(void *)handle,
+                           item);
+}
+
+static ds_status_t pqr_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+  return ds_rp_heap_remove((ds_rp_heap_t *)pq, (ds_rp_node_t *)(void *)handle,
+                           out_item);
+}
+
+static const void *pqr_item(const void *pq, ds_pq_handle_t handle) {
+  return ds_rp_heap_item((const ds_rp_heap_t *)pq,
+                         (const ds_rp_node_t *)(void *)handle);
+}
+
+static size_t pqr_size(const void *pq) {
+  return ds_rp_heap_size((const ds_rp_heap_t *)pq);
+}
+
+static void pqr_meld(void *pq, void *other) {
+  ds_rp_heap_meld((ds_rp_heap_t *)pq, (ds_rp_heap_t *)other);
+}
+
 /* ---- ops tables ---- */
 
 #define PQ_WL DS_PQ_WORST_LOG
@@ -1026,6 +1087,13 @@ static void pqh_meld(void *pq, void *other) {
   }
 
 #define PQ_COSTS_HOLLOW                                                        \
+  {                                                                            \
+    {C_1, C_1}, {C_N, C_LOG}, {C_N, C_1}, {C_N, C_LOG}, {C_N, C_LOG}, {        \
+      C_1, C_1                                                                 \
+    }                                                                          \
+  }
+
+#define PQ_COSTS_RANK_PAIRING                                                  \
   {                                                                            \
     {C_1, C_1}, {C_N, C_LOG}, {C_N, C_1}, {C_N, C_LOG}, {C_N, C_LOG}, {        \
       C_1, C_1                                                                 \
@@ -1156,8 +1224,46 @@ static const ds_pq_ops_t pq_hollow_ops = {
     NULL,
     PQ_COSTS_HOLLOW};
 
+static const ds_pq_ops_t pq_rank_pairing_ops = {"rank-pairing",
+                                                DS_PQ_AMORTIZED | PQ_ML |
+                                                    DS_PQ_FAST_DECREASE,
+                                                sizeof(ds_rp_heap_t),
+                                                pqr_init1,
+                                                pqr_destroy,
+                                                pqr_push,
+                                                pqr_top,
+                                                pqr_pop,
+                                                pqr_update,
+                                                pqr_remove,
+                                                pqr_item,
+                                                pqr_size,
+                                                pqr_meld,
+                                                NULL,
+                                                PQ_COSTS_RANK_PAIRING};
+
+static const ds_pq_ops_t pq_rank_pairing2_ops = {"rank-pairing type 2",
+                                                 DS_PQ_AMORTIZED | PQ_ML |
+                                                     DS_PQ_FAST_DECREASE,
+                                                 sizeof(ds_rp_heap_t),
+                                                 pqr_init2,
+                                                 pqr_destroy,
+                                                 pqr_push,
+                                                 pqr_top,
+                                                 pqr_pop,
+                                                 pqr_update,
+                                                 pqr_remove,
+                                                 pqr_item,
+                                                 pqr_size,
+                                                 pqr_meld,
+                                                 NULL,
+                                                 PQ_COSTS_RANK_PAIRING};
+
 const ds_pq_ops_t *ds_pq_pairing_ops(void) { return &pq_pairing_ops; }
 const ds_pq_ops_t *ds_pq_hollow_ops(void) { return &pq_hollow_ops; }
+const ds_pq_ops_t *ds_pq_rank_pairing_ops(void) { return &pq_rank_pairing_ops; }
+const ds_pq_ops_t *ds_pq_rank_pairing2_ops(void) {
+  return &pq_rank_pairing2_ops;
+}
 
 /* ---- generic wrapper ---- */
 

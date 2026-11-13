@@ -115,6 +115,7 @@
 #include "lib/quotient_filter.h"
 #include "lib/radix_heap.h"
 #include "lib/radix_trie.h"
+#include "lib/rank_pairing_heap.h"
 #include "lib/rank_select.h"
 #include "lib/rbst.h"
 #include "lib/rbt.h"
