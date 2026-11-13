@@ -85,6 +85,7 @@ Core mutable containers:
 - `lib/xfast_trie`: X-fast tries (floor/ceiling/predecessor/successor in O(log w) map lookups) with the per-level tables chosen through lib/map_iface
 - `lib/xor_filter`: static xor filter (peeling construction, packed 1..32-bit fingerprints)
 - `lib/yfast_trie`: Y-fast tries (X-fast trie of bucket representatives over a chosen map, sorted Theta(w) buckets)
+- `lib/zdd`: zero-suppressed decision diagrams (family algebra: union, intersection, differences, subset0/1, change, join, meet, nonsup, nonsub, minimal, maximal; counting, membership, enumeration)
 - `lib/zipper`: Huet zippers over persistent, reference-counted binary trees (move down/up, set, replace, close)
 - `schema`: element schema descriptors (layout, ownership policy, transfer services)
 - Array deque (by-value ring that grows or lives in a fixed buffer, overwrite mode)
