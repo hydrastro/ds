@@ -36,6 +36,7 @@ Core mutable containers:
 - `lib/grid_file`: fixed grids, grid files, twin, two-level and multilayer grid files
 - `lib/hash_heap`: hash heaps (priority queues addressable by key)
 - `lib/hb_tree`: hB-trees, buddy trees, BD-trees, GBD-trees, BV-trees
+- `lib/hollow_heap`: hollow heap (one-tree; O(1) push, decrease and meld, lazy deletion, rebuild keeps nodes O(n)), also a `lib/pq_iface` backend
 - `lib/inverted_index`: inverted file, full (positional), block addressing and forward indexes with compressed postings, boolean, phrase and BM25 queries
 - `lib/jump_list`: jump lists (uniquely represented, O(n^(1/3)))
 - `lib/k2_tree`: k^2-trees (compact adjacency matrices)

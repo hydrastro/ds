@@ -1,6 +1,7 @@
 #include "pq_iface.h"
 #include "binomial_heap.h"
 #include "checked.h"
+#include "hollow_heap.h"
 #include "meldable_heap.h"
 #include "pairing_heap.h"
 #include <string.h>
@@ -912,6 +913,61 @@ static void pqp_meld(void *pq, void *other) {
   ds_pairing_heap_merge(&((pqp_t *)pq)->h, &((pqp_t *)other)->h);
 }
 
+/* ---- hollow heap: lib/hollow_heap behind the ops table ---- */
+
+static ds_status_t pqh_init(void *pq, size_t item_size,
+                            ds_pq_compare_fn compare, void *user,
+                            ds_context_t *context) {
+  return ds_hollow_heap_init((ds_hollow_heap_t *)pq, item_size, compare, user,
+                             context);
+}
+
+static void pqh_destroy(void *pq) {
+  ds_hollow_heap_destroy((ds_hollow_heap_t *)pq);
+}
+
+static ds_status_t pqh_push(void *pq, const void *item,
+                            ds_pq_handle_t *out_handle) {
+  ds_hollow_item_t *it = NULL;
+  ds_status_t st = ds_hollow_heap_push((ds_hollow_heap_t *)pq, item, &it);
+  if (st == DS_OK && out_handle != NULL) {
+    *out_handle = (ds_pq_handle_t)(void *)it;
+  }
+  return st;
+}
+
+static const void *pqh_top(const void *pq) {
+  return ds_hollow_heap_top((const ds_hollow_heap_t *)pq);
+}
+
+static ds_status_t pqh_pop(void *pq, void *out_item) {
+  return ds_hollow_heap_pop((ds_hollow_heap_t *)pq, out_item);
+}
+
+static ds_status_t pqh_update(void *pq, ds_pq_handle_t handle,
+                              const void *item) {
+  return ds_hollow_heap_update((ds_hollow_heap_t *)pq,
+                               (ds_hollow_item_t *)(void *)handle, item);
+}
+
+static ds_status_t pqh_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+  return ds_hollow_heap_remove((ds_hollow_heap_t *)pq,
+                               (ds_hollow_item_t *)(void *)handle, out_item);
+}
+
+static const void *pqh_item(const void *pq, ds_pq_handle_t handle) {
+  return ds_hollow_heap_item((const ds_hollow_heap_t *)pq,
+                             (const ds_hollow_item_t *)(void *)handle);
+}
+
+static size_t pqh_size(const void *pq) {
+  return ds_hollow_heap_size((const ds_hollow_heap_t *)pq);
+}
+
+static void pqh_meld(void *pq, void *other) {
+  ds_hollow_heap_meld((ds_hollow_heap_t *)pq, (ds_hollow_heap_t *)other);
+}
+
 /* ---- ops tables ---- */
 
 #define PQ_WL DS_PQ_WORST_LOG
@@ -965,6 +1021,13 @@ static void pqp_meld(void *pq, void *other) {
 #define PQ_COSTS_PAIRING                                                       \
   {                                                                            \
     {C_1, C_1}, {C_N, C_LOG}, {C_1, C_SUB}, {C_N, C_LOG}, {C_N, C_LOG}, {      \
+      C_1, C_1                                                                 \
+    }                                                                          \
+  }
+
+#define PQ_COSTS_HOLLOW                                                        \
+  {                                                                            \
+    {C_1, C_1}, {C_N, C_LOG}, {C_N, C_1}, {C_N, C_LOG}, {C_N, C_LOG}, {        \
       C_1, C_1                                                                 \
     }                                                                          \
   }
@@ -1076,7 +1139,25 @@ const ds_pq_ops_t *ds_pq_leftist_ops(void) { return &pq_leftist_ops; }
 const ds_pq_ops_t *ds_pq_weight_ops(void) { return &pq_weight_ops; }
 const ds_pq_ops_t *ds_pq_skew_ops(void) { return &pq_skew_ops; }
 const ds_pq_ops_t *ds_pq_random_ops(void) { return &pq_random_ops; }
+static const ds_pq_ops_t pq_hollow_ops = {
+    "hollow",
+    DS_PQ_AMORTIZED | PQ_ML | DS_PQ_FAST_DECREASE | DS_PQ_MOVING_ITEMS,
+    sizeof(ds_hollow_heap_t),
+    pqh_init,
+    pqh_destroy,
+    pqh_push,
+    pqh_top,
+    pqh_pop,
+    pqh_update,
+    pqh_remove,
+    pqh_item,
+    pqh_size,
+    pqh_meld,
+    NULL,
+    PQ_COSTS_HOLLOW};
+
 const ds_pq_ops_t *ds_pq_pairing_ops(void) { return &pq_pairing_ops; }
+const ds_pq_ops_t *ds_pq_hollow_ops(void) { return &pq_hollow_ops; }
 
 /* ---- generic wrapper ---- */
 

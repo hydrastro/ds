@@ -1515,11 +1515,12 @@ the term covers is provided.
 | tree sort | algorithm | implemented | `algo/sort_heap` | BST-insertion tree sort; see treesort (1) and (2) |
 | transducer | concept | implemented | `lib/automaton`, `lib/pushdown`, `lib/turing_machine` | Mealy/Moore, finite state, pushdown and Turing transducers |
 | tree transducer | structure | implemented | `lib/tree_automaton` | bottom-up tree transducers |
-| Roaring bitmap | structure | implemented | `lib/roaring` | array, bitmap and run containers; rank, select, set algebra |
+| Roaring bitmap | structure | implemented | `lib/roaring` | array, bitmap and run containers (runs edited and combined natively); rank, select, set algebra |
 | robust geometric predicates | algorithm | implemented | `algo/robust_predicates`, `algo/geometry` | filtered exact orient2d/orient3d/incircle/insphere over expansion arithmetic, per-predicate input ranges; algo/geometry orientation uses orient2d |
 | floating-point expansion arithmetic | algorithm | implemented | `algo/robust_predicates` | error-free sum/product, expansion sum/scale/product/compress |
 | CHAMP (persistent hash trie) | structure | implemented | `lib/persistent_hamt` | canonical deletes, structural sharing, in-place edits of unshared versions |
-| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, binomial, leftist, weight-biased, skew, randomized and pairing backends; per-operation cost classes |
+| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, packed, binomial, leftist, weight-biased, skew, randomized, pairing and hollow backends; per-operation cost classes |
+| hollow heap | structure | implemented | `lib/hollow_heap`, `lib/pq_iface` | one-tree hollow heap: O(1) push, decrease and meld, O(log n) amortized pop; a rebuild keeps nodes O(n) |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |
@@ -1532,7 +1533,7 @@ the term covers is provided.
 | log-structured merge tree | structure | implemented | `lib/lsm_tree` | in memory: skip-list or array memtable, comparator policy, level 0, leveled runs over SSTables; no WAL, manifest, recovery or storage-backed compaction |
 | quotient filter | structure | implemented | `lib/quotient_filter` | packed remainders, deletion (multiset), ordered enumeration |
 | xor filter | structure | implemented | `lib/xor_filter` | static, peeling construction |
-| approximate membership query | concept | implemented | `lib/amq_iface` | capability over Bloom, cuckoo, quotient and xor filters |
+| approximate membership query | concept | implemented | `lib/amq_iface` | capability over Bloom, cuckoo, quotient and xor filters; checked serialized images, pluggable SSTable filters |
 | cache replacement policy | concept | implemented | `lib/replacement` | LRU, FIFO, CLOCK, SIEVE; drives lib/pager |
 | Delaunay triangulation | algorithm | implemented | `algo/delaunay` | Bowyer-Watson insertion with ghost triangles on the exact orient2d/incircle predicates; Hilbert insertion order |
 | paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager; portable 64-bit format, validated page reads, full verification; no crash recovery |

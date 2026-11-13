@@ -67,6 +67,7 @@
 #include "lib/hb_tree.h"
 #include "lib/heap.h"
 #include "lib/history.h"
+#include "lib/hollow_heap.h"
 #include "lib/hyperloglog.h"
 #include "lib/iblt.h"
 #include "lib/implicit_treap.h"

@@ -65,6 +65,11 @@
  *     randomized meldable heap (expected bounds)
  *   ds_pq_pairing_ops()    1        n/log    1/o(log) n/log    n/log    1
  *     pairing heap (lib/pairing_heap); native meld across contexts
+ *   ds_pq_hollow_ops()     1        n/log    n/1      n/log    n/log    1
+ *     hollow heap (lib/hollow_heap): decrease leaves the old node hollow
+ *     instead of cutting; the linear worst case of decrease is the rebuild
+ *     that keeps hollow nodes from outnumbering items. Items live in the
+ *     nodes and an update moves its item: DS_PQ_MOVING_ITEMS
  *
  * Any other heap can be adapted by filling in a ds_pq_ops_t.
  *
@@ -168,6 +173,7 @@ const ds_pq_ops_t *ds_pq_weight_ops(void);
 const ds_pq_ops_t *ds_pq_skew_ops(void);
 const ds_pq_ops_t *ds_pq_random_ops(void);
 const ds_pq_ops_t *ds_pq_pairing_ops(void);
+const ds_pq_ops_t *ds_pq_hollow_ops(void);
 
 /* ops NULL selects ds_pq_binary_ops() */
 ds_status_t ds_pq_init(ds_pq_t *pq, const ds_pq_ops_t *ops, size_t item_size,
