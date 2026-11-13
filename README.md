@@ -26,6 +26,7 @@ Core mutable containers:
 - `lib/checked`: overflow-checked size arithmetic, alignment helpers and a maximal-alignment union
 - `lib/confluent_list`: confluently persistent lists (AVL join/split with structure sharing; concatenate any versions, even with themselves)
 - `lib/d_tree`: D-trees (planar point location over subdivisions)
+- `lib/dfuds`: depth-first unary degree sequence trees on the `lib/bp_tree` parentheses core (degree and k-th child by one select and one find_close; parent, siblings, subtree size, LCA)
 - `lib/diet`: discrete interval encoding trees (integer sets as merged intervals)
 - `lib/dynamic_hash`: virtual hashing, expandable hashing and hashbelts
 - `lib/elastic_trie`: bucket tries (compact trie for b = 1, elastic buckets) and blind tries
