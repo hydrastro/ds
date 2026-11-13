@@ -31,12 +31,12 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 749 |
+| implemented | 751 |
 | restricted | 3 |
 | variant | 1 |
 | reference | 5 |
 | missing | 2 |
-| n/a | 546 |
+| n/a | 544 |
 | total | 1306 |
 
 Every indexed term has a classification; implementation scope and known
@@ -48,10 +48,10 @@ the term covers is provided.
 | kind | entries |
 |---|---|
 | structure | 277 |
-| algorithm | 442 |
+| algorithm | 443 |
 | problem | 30 |
 | alias | 10 |
-| concept | 547 |
+| concept | 546 |
 
 ## Missing
 
@@ -1008,8 +1008,8 @@ the term covers is provided.
 | pigeonhole sort | algorithm | implemented | algo/sort_dist |  |
 | pile | concept | n/a |  |  |
 | pipelined divide and conquer | concept | n/a |  |  |
-| planar graph | concept | n/a |  |  |
-| planarization | concept | n/a |  |  |
+| planar graph | concept | implemented | algo/planarity | decided by the left-right test, with embeddings and Kuratowski certificates |
+| planarization | algorithm | implemented | algo/planarity | by edge deletion: a maximal planar subgraph; no crossing vertices |
 | planar straight-line graph | concept | n/a |  |  |
 | PLOP-hashing | structure | implemented | lib/plop_hash |  |
 | point access method | structure | implemented | lib/quadtree |  |
@@ -1545,6 +1545,9 @@ the term covers is provided.
 | Voronoi diagram | structure | implemented | `algo/voronoi` | the Delaunay dual: circumcenter vertices, segment/ray/line edges, CCW cells with rays, box-clipped cells that tile the box; collinear and repeated sites |
 | Delaunay triangulation | algorithm | implemented | `algo/delaunay` | Bowyer-Watson insertion with ghost triangles on the exact orient2d/incircle predicates; Hilbert insertion order |
 | constrained Delaunay triangulation | algorithm | implemented | `algo/delaunay` | segment insertion by Sloan flips on the exact predicates; segments through points split at them, crossing segments refused; constrained edges flagged |
+| planarity testing | algorithm | implemented | `algo/planarity` | left-right test (de Fraysseix-Rosenstiehl, Brandes) in O(n + m) with a combinatorial embedding; faces; an independent Euler check of any rotation system |
+| Kuratowski subgraph | algorithm | implemented | `algo/planarity` | a K5 or K3,3 subdivision certifying non-planarity, by shrinking a reduced graph (adaptive random deletions, then single ones); an independent classifier |
+| outerplanar graph | concept | implemented | `algo/planarity` | test through the graph plus an apex vertex; embeddings with every vertex on the outer face |
 | paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager; portable 64-bit format, validated page reads, full verification; no crash recovery |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |

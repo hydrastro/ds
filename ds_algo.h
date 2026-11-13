@@ -44,6 +44,7 @@
 #include "algo/parallel_sim.h"
 #include "algo/perfect_hash.h"
 #include "algo/phonetic.h"
+#include "algo/planarity.h"
 #include "algo/prefix_code.h"
 #include "algo/random.h"
 #include "algo/rice_integral.h"
