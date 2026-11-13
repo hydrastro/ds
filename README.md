@@ -135,6 +135,7 @@ Core mutable containers:
 - lib/chromatic_tree: chromatic trees (red-black trees with relaxed balance): updates without rotations, eager or deferred rebalancing along pending paths, rank and select, linked or inline routers
 - lib/r_index: the r-index (run-length FM-index with toehold locating and phi), O(r) words for r BWT runs
 - lib/suffix_array: SA-IS linear-time suffix array construction (bytes and integer alphabets), inverse, Kasai LCP, BWT
+- lib/top_tree: self-adjusting top trees (splay compress and rake trees) with caller-defined path and point clusters: link, cut, expose, subtree, path search
 - Linear hashing (Litwin; split by load or on overflow, incremental growth and shrink)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)
 - Meldable heaps with pluggable shape policy: leftist, weight-biased leftist, skew, randomized (intrusive)

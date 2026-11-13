@@ -1533,6 +1533,7 @@ the term covers is provided.
 | r-index | structure | implemented | `lib/r_index` | run-length FM-index with toehold locating and phi (Gagie, Navarro, Prezza): 6r words for r BWT runs; count O(m log r), locate O(log r) per occurrence |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
+| top tree | structure | implemented | `lib/top_tree` | self-adjusting (Tarjan, Werneck): preferred paths in splay compress trees, hanging subtrees in splay rake trees; caller-defined path and point clusters without inverses; link, cut, expose, subtree clusters, path search; O(log n) amortized |
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |
 | persistent vector | structure | implemented | `lib/persistent_vector` | bit-partitioned trie with tail and transients |
 | finger tree | structure | implemented | `lib/finger_tree` | 2-3 finger tree with a caller-defined monoid |

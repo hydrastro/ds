@@ -226,6 +226,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/chromatic_tree: chromatic trees with Boyar-Larsen rebalancing transformations, eager or deferred; rank/select
 - lib/suffix_array: SA-IS suffix arrays in O(n), LCP and BWT
 - lib/r_index: r-index with count, toehold locate, phi, LF
+- lib/top_tree: self-adjusting top trees with compress/rake cluster callbacks, path search
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

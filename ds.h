@@ -156,6 +156,7 @@
 #include "lib/swiss_map.h"
 #include "lib/threaded_tree.h"
 #include "lib/timer_wheel.h"
+#include "lib/top_tree.h"
 #include "lib/topology_tree.h"
 #include "lib/treap.h"
 #include "lib/tree_automaton.h"
