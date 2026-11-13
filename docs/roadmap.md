@@ -214,6 +214,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/schema: element schema descriptors shared by containers (layout, ownership, transfer).
 - algo/delaunay: Delaunay triangulation built on the robust predicates.
 - lib/hollow_heap: one-tree hollow heap, pq_iface backend
+- lib/louds: LOUDS succinct tree over the rank/select capability
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

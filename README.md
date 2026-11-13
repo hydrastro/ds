@@ -44,6 +44,7 @@ Core mutable containers:
 - `lib/lazy_segment_tree`: generic lazy segment trees over monoid actions (range query/apply, max_right/min_left)
 - `lib/ld_signature`: linked data signatures, SHA-256, HMAC-SHA256
 - `lib/link_cut_tree`: link-cut trees (link, cut, reroot, LCA, monoid path aggregates and lazy path actions)
+- `lib/louds`: LOUDS succinct trees (2n + 1 bits over any rank/select backend, select-based navigation, byte-labelled tries)
 - `lib/lsm_tree`: log-structured merge tree (memtable, level 0, leveled runs, tombstones, merging iterators, choice of table filter) built from `lib/sstable`
 - `lib/map_iface`: the associative-map capability (ops table with traits; Robin Hood and Swiss table backends) for composing structures
 - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion

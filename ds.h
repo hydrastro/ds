@@ -84,6 +84,7 @@
 #include "lib/linear_hash_map.h"
 #include "lib/link_cut_tree.h"
 #include "lib/list.h"
+#include "lib/louds.h"
 #include "lib/lru_cache.h"
 #include "lib/lsm_tree.h"
 #include "lib/map_iface.h"

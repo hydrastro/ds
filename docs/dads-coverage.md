@@ -1520,6 +1520,7 @@ the term covers is provided.
 | floating-point expansion arithmetic | algorithm | implemented | `algo/robust_predicates` | error-free sum/product, expansion sum/scale/product/compress |
 | CHAMP (persistent hash trie) | structure | implemented | `lib/persistent_hamt` | canonical deletes, structural sharing, in-place edits of unshared versions |
 | addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, packed, binomial, leftist, weight-biased, skew, randomized, pairing and hollow backends; per-operation cost classes |
+| LOUDS succinct tree | structure | implemented | `lib/louds` | level-order unary degree sequence over any rank/select backend: 2n + 1 bits; navigation by select; byte-labelled static tries |
 | hollow heap | structure | implemented | `lib/hollow_heap`, `lib/pq_iface` | one-tree hollow heap: O(1) push, decrease and meld, O(log n) amortized pop; a rebuild keeps nodes O(n) |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
