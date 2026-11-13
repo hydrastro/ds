@@ -205,7 +205,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/finger_tree: Hinze-Paterson finger trees with caller-defined measures
 - lib/pager: page stores and a pin/dirty/LRU buffer pool over map_iface
 - lib/lsm_tree: LSM tree over SSTables with leveled compaction and merging iterators
-- lib/paged_btree: pager-backed B+ tree with linked leaves and lazy deletion
+- lib/paged_btree: pager-backed B+ tree with linked leaves, rebalancing deletion (borrow, merge, root collapse) and a free-page list
 - lib/replacement: replacement policies (LRU, FIFO, CLOCK, SIEVE) as an ops table
 - lib/quotient_filter: quotient filter with delete and enumeration
 - lib/xor_filter: Graf-Lemire xor filter

@@ -7,8 +7,10 @@
 #define PB_MAXH 64 /* deeper than any page count can reach */
 #define PB_LEAF 1
 #define PB_INNER 2
+#define PB_FREE 3
 #define PB_MAGIC_V1 "DSBPT1\0\0"
 #define PB_MAGIC "DSBPT2\0\0"
+#define PB_MAGIC_V3 "DSBPT3\0\0"
 
 static void pb_put64(unsigned char *p, unsigned long v) {
   int i;
@@ -119,7 +121,9 @@ ds_status_t ds_pbtree_sync(ds_pbtree_t *tree) {
   if (st != DS_OK) {
     return st;
   }
-  memcpy(m, PB_MAGIC, 8);
+  /* version 2 unless pages wait on the free list, so trees without free
+   * pages stay readable by older code */
+  memcpy(m, tree->free_head != 0 ? PB_MAGIC_V3 : PB_MAGIC, 8);
   pb_put64(m + 8, (unsigned long)tree->value_size);
   pb_put64(m + 16, tree->root);
   pb_put64(m + 24, tree->height);
@@ -127,6 +131,7 @@ ds_status_t ds_pbtree_sync(ds_pbtree_t *tree) {
   pb_put64(m + 40, tree->first_leaf);
   pb_put64(m + 48, tree->max_key);
   pb_put64(m + 56, (unsigned long)tree->pager->store->page_size);
+  pb_put64(m + 64, tree->free_head);
   pb_done(tree, 0, true);
   return DS_OK;
 }
@@ -178,7 +183,8 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
     return st;
   }
   {
-    bool v2 = memcmp(m, PB_MAGIC, 8) == 0;
+    bool v3 = memcmp(m, PB_MAGIC_V3, 8) == 0;
+    bool v2 = v3 || memcmp(m, PB_MAGIC, 8) == 0;
     bool v1 = memcmp(m, PB_MAGIC_V1, 8) == 0;
     unsigned long vs;
     unsigned long psz = 0;
@@ -203,7 +209,8 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
     fits = fits && pb_get64_fits(m + 16, &tree->root) &&
            pb_get64_fits(m + 24, &tree->height) &&
            pb_get64_fits(m + 32, &tree->count) &&
-           pb_get64_fits(m + 40, &tree->first_leaf);
+           pb_get64_fits(m + 40, &tree->first_leaf) &&
+           (!v3 || pb_get64_fits(m + 64, &tree->free_head));
     pb_done(tree, 0, false);
     if (!fits) {
       return DS_ERR_UNSUPPORTED;
@@ -211,11 +218,52 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
     if (psz != (unsigned long)ps || tree->height == 0 ||
         tree->height > PB_MAXH - 1 || tree->root == 0 ||
         tree->root >= ds_pager_page_count(pager) || tree->first_leaf == 0 ||
-        tree->first_leaf >= ds_pager_page_count(pager)) {
+        tree->first_leaf >= ds_pager_page_count(pager) ||
+        tree->free_head >= ds_pager_page_count(pager)) {
       return DS_ERR_INVALID;
     }
   }
   return DS_OK;
+}
+
+/* ---- free pages: a list threaded through their first bytes ---- */
+
+/* a page to fill, pinned: the head of the free list or a new one */
+static ds_status_t pb_take_page(ds_pbtree_t *t, unsigned long *page,
+                                unsigned char **buf) {
+  void *data;
+  ds_status_t st;
+  if (t->free_head != 0) {
+    unsigned char *b;
+    unsigned long next;
+    st = pb_fetch(t, t->free_head, PB_FREE, &b);
+    if (st != DS_OK) {
+      return st;
+    }
+    next = pb_get64(b + 8);
+    if (next >= ds_pager_page_count(t->pager) || next == t->free_head) {
+      pb_done(t, t->free_head, false);
+      return DS_ERR_INVALID;
+    }
+    *page = t->free_head;
+    *buf = b;
+    t->free_head = next;
+    return DS_OK;
+  }
+  st = ds_pager_new(t->pager, page, &data);
+  if (st == DS_OK) {
+    *buf = (unsigned char *)data;
+  }
+  return st;
+}
+
+/* put a pinned page on the free list (cannot fail) */
+static void pb_give_page(ds_pbtree_t *t, unsigned long page,
+                         unsigned char *buf) {
+  memset(buf, 0, PB_HDR);
+  buf[0] = PB_FREE;
+  pb_put64(buf + 8, t->free_head);
+  t->free_head = page;
 }
 
 /* first leaf slot with key >= k */
@@ -402,12 +450,10 @@ ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
     pinned[npinned++] = path[d];
   }
   for (i = 0; i < k + (grow ? 1U : 0U); i++) {
-    void *data;
-    st = ds_pager_new(tree->pager, &fresh[i], &data);
+    st = pb_take_page(tree, &fresh[i], &fb[i]);
     if (st != DS_OK) {
       goto unwind;
     }
-    fb[i] = (unsigned char *)data;
     nfresh++;
   }
   {
@@ -463,8 +509,11 @@ unwind:
   for (i = 0; i < npinned; i++) {
     pb_done(tree, pinned[i], false);
   }
-  for (i = 0; i < nfresh; i++) {
-    pb_done(tree, fresh[i], false); /* appended, never linked */
+  /* the pages taken go back on the free list, newest first, so pages
+   * that came from it return in their old order */
+  for (i = nfresh; i > 0; i--) {
+    pb_give_page(tree, fresh[i - 1], fb[i - 1]);
+    pb_done(tree, fresh[i - 1], true);
   }
   return st;
 }
@@ -498,34 +547,220 @@ ds_status_t ds_pbtree_get(ds_pbtree_t *tree, unsigned long key, void *out) {
   return st;
 }
 
+/* ---- removal with rebalancing ---- */
+
+/* inner page: overwrite child i */
+static void pb_set_child(unsigned char *page, size_t i, unsigned long c) {
+  pb_put64(i == 0 ? page + PB_HDR : page + PB_HDR + 8 + (i - 1) * 16 + 8, c);
+}
+
+static void pb_set_ikey(unsigned char *page, size_t i, unsigned long k) {
+  pb_put64(page + PB_HDR + 8 + i * 16, k);
+}
+
+/* inner page: drop key i and child i + 1 */
+static void pb_inner_drop(unsigned char *page, size_t i) {
+  size_t n = pb_count(page);
+  unsigned char *at = page + PB_HDR + 8 + i * 16;
+  memmove(at, at + 16, (n - i - 1) * 16);
+  pb_set_count(page, n - 1);
+}
+
+#define PB_KEEP 0
+#define PB_BORROW 1
+#define PB_MERGE 2
+
+/*
+ * Removal is prepare-then-commit as well. The descent records the path;
+ * if the leaf would underflow, the plan walks up: at each level the
+ * parent and one adjacent sibling are pinned and the node either borrows
+ * (the walk stops) or merges (the parent loses a key and is examined
+ * next). The root needs no minimum, but an inner root left without keys
+ * is replaced by its only child. Only after every page is pinned do the
+ * edits run, in pinned memory, by steps that cannot fail.
+ */
 ds_status_t ds_pbtree_remove(ds_pbtree_t *tree, unsigned long key) {
-  unsigned long leaf;
-  unsigned char *b;
-  size_t pos, n, es;
+  unsigned long path[PB_MAXH], sib[PB_MAXH];
+  size_t idx[PB_MAXH], pos, n, es, h, d, i, npinned = 0;
+  unsigned char *buf[PB_MAXH], *sbuf[PB_MAXH];
+  unsigned long pinned[2 * PB_MAXH + 2];
+  int action[PB_MAXH], left[PB_MAXH];
+  bool collapse = false;
   ds_status_t st;
   if (tree == NULL || tree->pager == NULL) {
     return DS_ERR_NULL;
   }
-  st = pb_find_leaf(tree, key, &leaf);
+  h = (size_t)tree->height;
+  if (h == 0 || h > PB_MAXH - 1) {
+    return DS_ERR_STATE;
+  }
+  path[0] = tree->root;
+  for (d = 0; d + 1 < h; d++) {
+    unsigned char *b;
+    st = pb_fetch(tree, path[d], PB_INNER, &b);
+    if (st != DS_OK) {
+      return st;
+    }
+    idx[d] = pb_route(b, key);
+    path[d + 1] = pb_child(b, idx[d]);
+    pb_done(tree, path[d], false);
+  }
+  st = pb_fetch(tree, path[h - 1], PB_LEAF, &buf[h - 1]);
   if (st != DS_OK) {
     return st;
   }
-  st = pb_fetch(tree, leaf, PB_LEAF, &b);
-  if (st != DS_OK) {
-    return st;
-  }
-  n = pb_count(b);
+  pinned[npinned++] = path[h - 1];
+  n = pb_count(buf[h - 1]);
   es = pb_lsz(tree);
-  pos = pb_leaf_lower(tree, b, key);
-  if (pos == n || pb_get64(pb_lent(tree, b, pos)) != key) {
-    pb_done(tree, leaf, false);
+  pos = pb_leaf_lower(tree, buf[h - 1], key);
+  if (pos == n || pb_get64(pb_lent(tree, buf[h - 1], pos)) != key) {
+    pb_done(tree, path[h - 1], false);
     return DS_NOT_FOUND;
   }
-  memmove(pb_lent(tree, b, pos), pb_lent(tree, b, pos + 1), (n - pos - 1) * es);
-  pb_set_count(b, n - 1);
-  pb_done(tree, leaf, true);
+  /* plan: from the leaf up, while the node underflows */
+  for (d = 0; d < h; d++) {
+    action[d] = PB_KEEP;
+  }
+  {
+    size_t level = h - 1;
+    size_t after = n - 1; /* the node's count once the level below is done */
+    while (level > 0) {
+      size_t min = level == h - 1 ? tree->leaf_cap / 2 : tree->inner_cap / 2;
+      size_t p = level - 1;
+      size_t scount;
+      int kind = level == h - 1 ? PB_LEAF : PB_INNER;
+      if (after >= min) {
+        break;
+      }
+      st = pb_fetch(tree, path[p], PB_INNER, &buf[p]);
+      if (st != DS_OK) {
+        goto unwind;
+      }
+      pinned[npinned++] = path[p];
+      if (pb_count(buf[p]) == 0) {
+        st = DS_ERR_INVALID;
+        goto unwind;
+      }
+      left[level] = idx[p] > 0;
+      sib[level] = pb_child(buf[p], left[level] ? idx[p] - 1 : idx[p] + 1);
+      for (d = 0; d < h; d++) {
+        if (sib[level] == path[d]) { /* a corrupted parent */
+          st = DS_ERR_INVALID;
+          goto unwind;
+        }
+      }
+      st = pb_fetch(tree, sib[level], kind, &sbuf[level]);
+      if (st != DS_OK) {
+        goto unwind;
+      }
+      pinned[npinned++] = sib[level];
+      scount = pb_count(sbuf[level]);
+      if (scount > min) {
+        action[level] = PB_BORROW;
+        break;
+      }
+      action[level] = PB_MERGE;
+      /* the merged page must hold both (always so in a tree this code
+       * maintains; older lazy deletions only make pages smaller) */
+      if (kind == PB_LEAF ? scount + after > tree->leaf_cap
+                          : scount + after + 1 > tree->inner_cap) {
+        st = DS_ERR_INVALID;
+        goto unwind;
+      }
+      after = pb_count(buf[p]) - 1;
+      level = p;
+      if (level == 0 && after == 0) {
+        collapse = true; /* the root keeps one child */
+      }
+    }
+  }
+  /* commit: nothing below can fail */
+  {
+    unsigned char *b = buf[h - 1];
+    memmove(pb_lent(tree, b, pos), pb_lent(tree, b, pos + 1),
+            (n - pos - 1) * es);
+    pb_set_count(b, n - 1);
+  }
+  for (d = h - 1; d > 0 && action[d] != PB_KEEP; d--) {
+    size_t p = d - 1;
+    unsigned char *node = buf[d];
+    unsigned char *s2 = sbuf[d];
+    unsigned char *pa = buf[p];
+    /* the separator between the left and the right page */
+    size_t sep = left[d] ? idx[p] - 1 : idx[p];
+    unsigned char *lp = left[d] ? s2 : node;
+    unsigned char *rp = left[d] ? node : s2;
+    size_t nl = pb_count(lp);
+    size_t nr = pb_count(rp);
+    if (d == h - 1) {
+      if (action[d] == PB_BORROW) {
+        if (left[d]) { /* last of the left page to the front of this one */
+          memmove(pb_lent(tree, rp, 1), pb_lent(tree, rp, 0), nr * es);
+          memcpy(pb_lent(tree, rp, 0), pb_lent(tree, lp, nl - 1), es);
+          pb_set_count(lp, nl - 1);
+          pb_set_count(rp, nr + 1);
+        } else { /* first of the right page to the end of this one */
+          memcpy(pb_lent(tree, lp, nl), pb_lent(tree, rp, 0), es);
+          memmove(pb_lent(tree, rp, 0), pb_lent(tree, rp, 1), (nr - 1) * es);
+          pb_set_count(lp, nl + 1);
+          pb_set_count(rp, nr - 1);
+        }
+        pb_set_ikey(pa, sep, pb_get64(pb_lent(tree, rp, 0)));
+      } else {
+        unsigned long rpage = left[d] ? path[d] : sib[d];
+        memcpy(pb_lent(tree, lp, nl), pb_lent(tree, rp, 0), nr * es);
+        pb_set_count(lp, nl + nr);
+        memcpy(lp + 8, rp + 8, 8); /* the next link */
+        pb_inner_drop(pa, sep);
+        pb_give_page(tree, rpage, rp);
+      }
+    } else if (action[d] == PB_BORROW) {
+      unsigned long s = pb_ikey(pa, sep);
+      if (left[d]) { /* rotate right through the parent */
+        unsigned char *at = rp + PB_HDR + 8;
+        memmove(at + 16, at, nr * 16);
+        pb_put64(at, s);
+        pb_put64(at + 8, pb_child(rp, 0));
+        pb_set_child(rp, 0, pb_child(lp, nl));
+        pb_set_ikey(pa, sep, pb_ikey(lp, nl - 1));
+        pb_set_count(lp, nl - 1);
+        pb_set_count(rp, nr + 1);
+      } else { /* rotate left through the parent */
+        unsigned char *at = lp + PB_HDR + 8 + nl * 16;
+        pb_put64(at, s);
+        pb_put64(at + 8, pb_child(rp, 0));
+        pb_set_count(lp, nl + 1);
+        pb_set_ikey(pa, sep, pb_ikey(rp, 0));
+        pb_set_child(rp, 0, pb_child(rp, 1));
+        pb_inner_drop(rp, 0);
+      }
+    } else {
+      unsigned long rpage = left[d] ? path[d] : sib[d];
+      unsigned char *at = lp + PB_HDR + 8 + nl * 16;
+      pb_put64(at, pb_ikey(pa, sep));
+      pb_put64(at + 8, pb_child(rp, 0));
+      memcpy(at + 16, rp + PB_HDR + 8, nr * 16);
+      pb_set_count(lp, nl + 1 + nr);
+      pb_inner_drop(pa, sep);
+      pb_give_page(tree, rpage, rp);
+    }
+  }
+  if (collapse) {
+    unsigned long old = tree->root;
+    tree->root = pb_child(buf[0], 0);
+    tree->height--;
+    pb_give_page(tree, old, buf[0]);
+  }
   tree->count--;
+  for (i = 0; i < npinned; i++) {
+    pb_done(tree, pinned[i], true);
+  }
   return DS_OK;
+unwind:
+  for (i = 0; i < npinned; i++) {
+    pb_done(tree, pinned[i], false);
+  }
+  return st;
 }
 
 unsigned long ds_pbtree_size(const ds_pbtree_t *tree) {
@@ -738,6 +973,25 @@ ds_status_t ds_pbtree_verify(ds_pbtree_t *tree, ds_context_t *context) {
   }
   if (st == DS_OK && (expect_leaf != 0 || total != tree->count)) {
     st = DS_ERR_INVALID;
+  }
+  /* the free list: free pages, none in the tree, each once */
+  if (st == DS_OK) {
+    unsigned long f = tree->free_head;
+    while (f != 0 && st == DS_OK) {
+      unsigned char *b;
+      unsigned long next;
+      if (f >= pages || pb_bit_test_set(seen, f)) {
+        st = DS_ERR_INVALID;
+        break;
+      }
+      st = pb_fetch(tree, f, PB_FREE, &b);
+      if (st != DS_OK) {
+        break;
+      }
+      next = pb_get64(b + 8);
+      pb_done(tree, f, false);
+      f = next;
+    }
   }
   ds_context_free(context, seen);
   return st;
