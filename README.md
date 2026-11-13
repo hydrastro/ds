@@ -133,6 +133,7 @@ Core mutable containers:
 - Invertible Bloom lookup table (IBLT: listing, set reconciliation by subtraction)
 - k-d tree (implicit static tree; nearest, k-nearest, box and radius queries)
 - lib/chromatic_tree: chromatic trees (red-black trees with relaxed balance): updates without rotations, eager or deferred rebalancing along pending paths, rank and select, linked or inline routers
+- lib/r_index: the r-index (run-length FM-index with toehold locating and phi), O(r) words for r BWT runs
 - lib/suffix_array: SA-IS linear-time suffix array construction (bytes and integer alphabets), inverse, Kasai LCP, BWT
 - Linear hashing (Litwin; split by load or on overflow, incremental growth and shrink)
 - LRU cache (fixed capacity, by-value entries, no allocation after init)

@@ -1530,6 +1530,7 @@ the term covers is provided.
 | chromatic tree | structure | implemented | `lib/chromatic_tree` | relaxed-balance red-black tree (Nurmi, Soisalon-Soininen; Boyar-Larsen transformations): weights instead of colours, updates without rotations, rebalancing eager or deferred along pending paths; rank, select, linked or inline routers |
 | rank-pairing heap | structure | implemented | `lib/rank_pairing_heap`, `lib/pq_iface` | type-1 and type-2 rank rules: O(1) push, meld and amortized decrease without cascading cuts, O(log n) amortized pop by one-pass linking |
 | SA-IS suffix array construction | algorithm | implemented | `lib/suffix_array` | induced sorting (Nong, Zhang, Chan) in O(n) for byte and integer strings, recursion O(log n) deep; inverse, Kasai LCP, BWT |
+| r-index | structure | implemented | `lib/r_index` | run-length FM-index with toehold locating and phi (Gagie, Navarro, Prezza): 6r words for r BWT runs; count O(m log r), locate O(log r) per occurrence |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |

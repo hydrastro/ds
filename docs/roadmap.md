@@ -225,6 +225,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/planarity: left-right planarity test (Brandes) with embeddings, faces, Kuratowski certificates, outerplanarity and maximal planar subgraphs; straight-line grid drawings (canonical ordering, shift method)
 - lib/chromatic_tree: chromatic trees with Boyar-Larsen rebalancing transformations, eager or deferred; rank/select
 - lib/suffix_array: SA-IS suffix arrays in O(n), LCP and BWT
+- lib/r_index: r-index with count, toehold locate, phi, LF
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
