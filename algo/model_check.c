@@ -584,6 +584,7 @@ typedef struct mc_ws {
   const bool *fair_states; /* NULL without fairness */
   const bool *const *fair;
   size_t fair_count;
+  size_t *comp; /* optional: the fair component of each state, or NONE */
 } mc_ws_t;
 
 static void mc_ex(mc_ws_t *w, const bool *a, bool *out) {
@@ -679,6 +680,9 @@ static void mc_eg_fair(mc_ws_t *w, const bool *a, bool *out) {
     w->idx[s] = MC_NONE;
     w->on[s] = false;
     target[s] = false;
+    if (w->comp != NULL) {
+      w->comp[s] = MC_NONE;
+    }
   }
   for (root = 0; root < n; root++) {
     size_t csp = 0;
@@ -746,6 +750,9 @@ static void mc_eg_fair(mc_ws_t *w, const bool *a, bool *out) {
           w->on[w->stk[i]] = false;
           if (nontrivial && fair) {
             target[w->stk[i]] = true;
+            if (w->comp != NULL) {
+              w->comp[w->stk[i]] = v; /* named by its root */
+            }
           }
         }
         sp = first;
@@ -1151,5 +1158,263 @@ ds_status_t ds_ctl_witness_globally(ds_kripke_t *k, const bool *a, size_t start,
   }
   ds_context_free(k->context, mem);
   ds_context_free(k->context, eg);
+  return st;
+}
+
+/* ---- witnesses under fairness ---- */
+
+/* what a breadth-first search may use and where it stops */
+typedef struct mc_bfs {
+  const bool *allow; /* states a path may use (NULL: all) */
+  const size_t *comp;
+  size_t comp_id;    /* with comp: only states of this component */
+  const bool *goal;  /* goal states, or NULL */
+  size_t goal_state; /* or this one state (MC_NONE: unused) */
+  bool any_comp;     /* or any state with comp != NONE */
+} mc_bfs_t;
+
+static bool mc_bfs_allowed(const mc_bfs_t *b, size_t s) {
+  return (b->allow == NULL || b->allow[s]) &&
+         (b->comp == NULL || b->comp_id == MC_NONE || b->comp[s] == b->comp_id);
+}
+
+static bool mc_bfs_goal(const mc_bfs_t *b, size_t s) {
+  return (b->goal != NULL && b->goal[s]) || s == b->goal_state ||
+         (b->any_comp && b->comp[s] != MC_NONE);
+}
+
+/* the shortest path from `from` (or from its successors, when a path of
+ * at least one edge is needed) to a goal, appended to path after its
+ * first state: path[*len ..), counting past capacity. DS_ERR_STATE when
+ * no goal is reachable. */
+static ds_status_t mc_bfs_append(ds_kripke_t *k, const mc_bfs_t *b, size_t from,
+                                 bool one_edge, size_t *parent, size_t *queue,
+                                 size_t *path, size_t capacity, size_t *len,
+                                 size_t *end) {
+  size_t head = 0;
+  size_t tail = 0;
+  size_t found = MC_NONE;
+  size_t s;
+  size_t seg;
+  size_t i;
+  for (s = 0; s < k->states; s++) {
+    parent[s] = MC_NONE;
+  }
+  if (!one_edge && mc_bfs_goal(b, from)) {
+    *end = from;
+    return DS_OK;
+  }
+  if (!one_edge) {
+    parent[from] = from;
+  }
+  queue[tail++] = from;
+  while (head < tail && found == MC_NONE) {
+    size_t e;
+    s = queue[head++];
+    for (e = k->succ_off[s]; e < k->succ_off[s + 1]; e++) {
+      size_t u = k->succ[e];
+      if (parent[u] != MC_NONE || !mc_bfs_allowed(b, u)) {
+        continue;
+      }
+      parent[u] = s;
+      if (mc_bfs_goal(b, u)) {
+        found = u;
+        break;
+      }
+      queue[tail++] = u;
+    }
+  }
+  if (found == MC_NONE) {
+    return DS_ERR_STATE;
+  }
+  /* states after `from`, written back to front */
+  seg = 0;
+  s = found;
+  do {
+    seg++;
+    s = parent[s];
+  } while (s != from);
+  s = found;
+  for (i = seg; i-- > 0;) {
+    if (*len + i < capacity) {
+      path[*len + i] = s;
+    }
+    s = parent[s];
+  }
+  *len += seg;
+  *end = found;
+  return DS_OK;
+}
+
+ds_status_t ds_ctl_witness_until_fair(ds_kripke_t *k, const bool *a,
+                                      const bool *b, const bool *const *fair,
+                                      size_t fair_count, size_t start,
+                                      size_t *path, size_t capacity,
+                                      size_t *length) {
+  mc_ws_t w;
+  size_t *mem;
+  bool *bmem;
+  size_t n;
+  size_t s;
+  ds_status_t st;
+  if (fair_count == 0) {
+    return ds_ctl_witness_until(k, a, b, start, path, capacity, length);
+  }
+  if (k == NULL || a == NULL || b == NULL || fair == NULL || length == NULL) {
+    return DS_ERR_NULL;
+  }
+  for (s = 0; s < fair_count; s++) {
+    if (fair[s] == NULL) {
+      return DS_ERR_NULL;
+    }
+  }
+  st = mc_build(k);
+  if (st != DS_OK) {
+    return st;
+  }
+  n = k->states;
+  mem = (size_t *)ds_context_alloc(k->context, 6 * (n + 1) * sizeof(size_t));
+  bmem = (bool *)ds_context_alloc(k->context, 3 * (n + 1) * sizeof(bool));
+  if (mem == NULL || bmem == NULL) {
+    ds_context_free(k->context, mem);
+    ds_context_free(k->context, bmem);
+    return DS_ERR_ALLOC;
+  }
+  memset(&w, 0, sizeof(w));
+  w.k = k;
+  w.queue = mem;
+  w.idx = mem + n;
+  w.low = mem + 2 * n;
+  w.stk = mem + 3 * n;
+  w.cs_v = mem + 4 * n;
+  w.cs_e = mem + 5 * n;
+  w.on = bmem;
+  w.t3 = bmem + n;
+  w.fair = fair;
+  w.fair_count = fair_count;
+  /* the goal: b-states from which a fair path goes on */
+  mc_eg_fair(&w, NULL, bmem + 2 * n);
+  for (s = 0; s < n; s++) {
+    bmem[2 * n + s] = bmem[2 * n + s] && b[s];
+  }
+  st = ds_ctl_witness_until(k, a, bmem + 2 * n, start, path, capacity, length);
+  ds_context_free(k->context, mem);
+  ds_context_free(k->context, bmem);
+  return st;
+}
+
+ds_status_t ds_ctl_witness_globally_fair(ds_kripke_t *k, const bool *a,
+                                         const bool *const *fair,
+                                         size_t fair_count, size_t start,
+                                         size_t *path, size_t capacity,
+                                         size_t *length, size_t *loop_at) {
+  mc_ws_t w;
+  mc_bfs_t spec;
+  size_t *mem;
+  bool *bmem;
+  bool *eg;
+  size_t *parent;
+  size_t *queue;
+  size_t n;
+  size_t len = 0;
+  size_t r;
+  size_t cur;
+  size_t f;
+  ds_status_t st;
+  if (fair_count == 0) {
+    return ds_ctl_witness_globally(k, a, start, path, capacity, length,
+                                   loop_at);
+  }
+  if (k == NULL || a == NULL || fair == NULL || length == NULL ||
+      loop_at == NULL || (capacity > 0 && path == NULL)) {
+    return DS_ERR_NULL;
+  }
+  for (f = 0; f < fair_count; f++) {
+    if (fair[f] == NULL) {
+      return DS_ERR_NULL;
+    }
+  }
+  if (start >= k->states) {
+    return DS_ERR_RANGE;
+  }
+  st = mc_build(k);
+  if (st != DS_OK) {
+    return st;
+  }
+  n = k->states;
+  mem = (size_t *)ds_context_alloc(k->context, 9 * (n + 1) * sizeof(size_t));
+  bmem = (bool *)ds_context_alloc(k->context, 3 * (n + 1) * sizeof(bool));
+  if (mem == NULL || bmem == NULL) {
+    ds_context_free(k->context, mem);
+    ds_context_free(k->context, bmem);
+    return DS_ERR_ALLOC;
+  }
+  memset(&w, 0, sizeof(w));
+  w.k = k;
+  w.queue = mem;
+  w.idx = mem + n;
+  w.low = mem + 2 * n;
+  w.stk = mem + 3 * n;
+  w.cs_v = mem + 4 * n;
+  w.cs_e = mem + 5 * n;
+  w.comp = mem + 6 * n;
+  parent = mem + 7 * n;
+  queue = mem + 8 * n;
+  w.on = bmem;
+  w.t3 = bmem + n;
+  eg = bmem + 2 * n;
+  w.fair = fair;
+  w.fair_count = fair_count;
+  mc_eg_fair(&w, a, eg);
+  if (!eg[start]) {
+    st = DS_ERR_STATE;
+    goto done;
+  }
+  /* the stem: inside EG a to a fair component */
+  memset(&spec, 0, sizeof(spec));
+  spec.allow = eg;
+  spec.comp = w.comp;
+  spec.comp_id = MC_NONE;
+  spec.goal_state = MC_NONE;
+  spec.any_comp = true;
+  if (capacity > 0) {
+    path[0] = start;
+  }
+  len = 1;
+  st = mc_bfs_append(k, &spec, start, false, parent, queue, path, capacity,
+                     &len, &r);
+  if (st != DS_OK) {
+    goto done;
+  }
+  *loop_at = len - 1;
+  /* the loop: inside r's component through every fairness set, then back
+   * to r along at least one edge */
+  spec.allow = NULL;
+  spec.comp_id = w.comp[r];
+  spec.any_comp = false;
+  cur = r;
+  for (f = 0; f < fair_count && st == DS_OK; f++) {
+    spec.goal = fair[f];
+    st = mc_bfs_append(k, &spec, cur, false, parent, queue, path, capacity,
+                       &len, &cur);
+  }
+  if (st == DS_OK) {
+    spec.goal = NULL;
+    spec.goal_state = r;
+    st = mc_bfs_append(k, &spec, cur, true, parent, queue, path, capacity, &len,
+                       &cur);
+    len--; /* the loop ends by stepping back to r, which is not repeated */
+  }
+  if (st != DS_OK) {
+    st = DS_ERR_INTERNAL; /* a fair component is strongly connected */
+    goto done;
+  }
+  *length = len;
+  if (len > capacity) {
+    st = DS_ERR_RANGE;
+  }
+done:
+  ds_context_free(k->context, mem);
+  ds_context_free(k->context, bmem);
   return st;
 }

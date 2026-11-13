@@ -23,6 +23,20 @@
  * Tarjan), and EX, EU are restricted to states with a fair path.
  * Witnesses: a shortest path for E[f U g] and a lasso for EG f.
  *
+ * Costs with fairness: the fair states (those with a fair path) are
+ * computed once per check, and each EG (also inside AF, AU, EW) runs
+ * Tarjan's algorithm on its subgraph and tests every nontrivial component
+ * against every fairness set: O(n + m + n k) for k fairness sets instead
+ * of the O(n + m) of the plain greatest fixpoint, so a check costs
+ * O(|f| (n + m + n k)).
+ *
+ * Fairness and witnesses: ds_ctl_witness_until and ds_ctl_witness_globally
+ * ignore fairness (they follow the plain semantics); the _fair versions
+ * match ds_ctl_check with the same fairness sets. A fair until witness
+ * ends in a b-state from which a fair path continues; a fair EG lasso
+ * runs through a-states into a fair component, and its loop, inside that
+ * component, visits every fairness set before closing.
+ *
  * Memory comes from the ds_context_t given at init.
  */
 
@@ -128,6 +142,18 @@ ds_status_t ds_ctl_witness_until(ds_kripke_t *k, const bool *a, const bool *b,
 ds_status_t ds_ctl_witness_globally(ds_kripke_t *k, const bool *a, size_t start,
                                     size_t *path, size_t capacity,
                                     size_t *length, size_t *loop_at);
+/* the same over fair paths (fair_count 0: the plain versions); *length is
+ * set even when capacity is short (DS_ERR_RANGE) */
+ds_status_t ds_ctl_witness_until_fair(ds_kripke_t *k, const bool *a,
+                                      const bool *b, const bool *const *fair,
+                                      size_t fair_count, size_t start,
+                                      size_t *path, size_t capacity,
+                                      size_t *length);
+ds_status_t ds_ctl_witness_globally_fair(ds_kripke_t *k, const bool *a,
+                                         const bool *const *fair,
+                                         size_t fair_count, size_t start,
+                                         size_t *path, size_t capacity,
+                                         size_t *length, size_t *loop_at);
 
 #ifdef __cplusplus
 }
