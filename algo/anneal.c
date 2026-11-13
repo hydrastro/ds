@@ -20,6 +20,7 @@ void ds_anneal_config_default(ds_anneal_config_t *config) {
   config->target_energy = -HUGE_VAL;
   config->temperature = NULL;
   config->accept = NULL;
+  config->resync_interval = 0;
 }
 
 typedef struct an_run {
@@ -42,9 +43,38 @@ static double an_propose(an_run_t *r, double energy) {
 static void an_take(an_run_t *r) {
   if (r->p->propose != NULL) {
     r->p->apply(r->state, r->scratch, r->p->user);
-  } else {
+  } else if (r->p->copy == NULL) {
     memcpy(r->state, r->scratch, r->p->state_size);
+  } else {
+    /* owned states: exchange them, so no resource is shared or lost */
+    unsigned char *a = (unsigned char *)r->state;
+    size_t i;
+    for (i = 0; i < r->p->state_size; i++) {
+      unsigned char t = a[i];
+      a[i] = r->scratch[i];
+      r->scratch[i] = t;
+    }
   }
+}
+
+static void an_keep_best(const ds_anneal_problem_t *p, void *best,
+                         const void *state) {
+  if (p->copy != NULL) {
+    p->copy(best, state, p->user);
+  } else {
+    memcpy(best, state, p->state_size);
+  }
+}
+
+/* move mode: the exact energy instead of the accumulated one */
+static double an_resync(const ds_anneal_problem_t *p, const void *state,
+                        double energy, ds_anneal_result_t *res) {
+  double exact = p->energy(state, p->user);
+  double drift = fabs(exact - energy);
+  if (drift > res->max_drift) {
+    res->max_drift = drift;
+  }
+  return exact;
 }
 
 static double an_accept_probability(const ds_anneal_config_t *c, double delta,
@@ -147,6 +177,8 @@ ds_status_t ds_anneal_run(const ds_anneal_problem_t *problem,
   }
   if (problem->state_size == 0 ||
       (problem->propose == NULL && problem->neighbor == NULL) ||
+      (problem->clone == NULL) != (problem->copy == NULL) ||
+      (problem->clone == NULL) != (problem->release == NULL) ||
       (problem->propose != NULL &&
        (problem->apply == NULL || problem->move_size == 0)) ||
       (config->schedule == DS_ANNEAL_SCHEDULE_CUSTOM &&
@@ -165,26 +197,40 @@ ds_status_t ds_anneal_run(const ds_anneal_problem_t *problem,
   if (r.scratch == NULL) {
     return DS_ERR_ALLOC;
   }
+  if (problem->propose == NULL && problem->clone != NULL) {
+    /* the candidate buffer is a state of its own */
+    ds_status_t st = problem->clone(r.scratch, state, problem->user);
+    if (st != DS_OK) {
+      ds_context_free(context, r.scratch);
+      return st;
+    }
+  }
   energy = problem->energy(state, problem->user);
   memset(&res, 0, sizeof(res));
   res.best_energy = energy;
+  res.stop = DS_ANNEAL_STOP_ITERATIONS;
   if (best != NULL) {
-    memcpy(best, state, problem->state_size);
+    an_keep_best(problem, best, state);
   }
   t = config->t0 > 0.0 ? config->t0 : an_estimate_t0(&r, energy);
   res.t0 = t;
   steps =
       config->steps_per_temperature == 0 ? 1 : config->steps_per_temperature;
-  while (res.iterations < config->max_iterations &&
-         res.best_energy > config->target_energy) {
+  while (res.iterations < config->max_iterations) {
     double delta;
     double prob;
+    if (!(res.best_energy > config->target_energy)) {
+      res.stop = DS_ANNEAL_STOP_TARGET;
+      break;
+    }
     if (config->acceptance != DS_ANNEAL_GREAT_DELUGE && t < config->t_min) {
+      res.stop = DS_ANNEAL_STOP_COLD;
       break;
     }
     if (problem->stop != NULL &&
         problem->stop(res.iterations, t, energy, res.best_energy,
                       problem->user)) {
+      res.stop = DS_ANNEAL_STOP_CALLBACK;
       break;
     }
     delta = an_propose(&r, energy);
@@ -195,12 +241,16 @@ ds_status_t ds_anneal_run(const ds_anneal_problem_t *problem,
       an_take(&r);
       energy += delta;
       res.accepted++;
+      if (problem->propose != NULL && config->resync_interval > 0 &&
+          res.accepted % config->resync_interval == 0) {
+        energy = an_resync(problem, state, energy, &res);
+      }
       if (energy < res.best_energy) {
         res.best_energy = energy;
         res.improvements++;
         improved_stage = true;
         if (best != NULL) {
-          memcpy(best, state, problem->state_size);
+          an_keep_best(problem, best, state);
         }
       }
     }
@@ -219,9 +269,21 @@ ds_status_t ds_anneal_run(const ds_anneal_problem_t *problem,
       }
     }
   }
-  /* move mode accumulates deltas; neighbour mode can re-evaluate exactly */
-  if (problem->propose == NULL) {
+  if (res.stop == DS_ANNEAL_STOP_ITERATIONS &&
+      !(res.best_energy > config->target_energy)) {
+    res.stop = DS_ANNEAL_STOP_TARGET; /* reached on the last proposal */
+  }
+  /* the final energies exactly; move mode accumulated deltas */
+  if (problem->propose != NULL) {
+    energy = an_resync(problem, state, energy, &res);
+    if (best != NULL) {
+      res.best_energy = an_resync(problem, best, res.best_energy, &res);
+    }
+  } else {
     energy = problem->energy(state, problem->user);
+    if (problem->release != NULL) {
+      problem->release(r.scratch, problem->user);
+    }
   }
   res.energy = energy;
   res.temperature = t;
