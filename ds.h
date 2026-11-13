@@ -46,6 +46,7 @@
 #include "lib/cuckoo_filter.h"
 #include "lib/cuckoo_map.h"
 #include "lib/d_tree.h"
+#include "lib/decremental_msf.h"
 #include "lib/deque.h"
 #include "lib/dfuds.h"
 #include "lib/diet.h"
