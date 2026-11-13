@@ -13,11 +13,25 @@
  *           ds_roaring_optimize where runs are smaller
  *
  * Arrays become bitmaps above 4096 values and bitmaps arrays at or below
- * it; a run container is turned back into an array or bitmap when it is
- * modified. Membership is a binary search plus a container probe;
- * cardinality, rank and select use per-container counts; and, or, xor and
- * andnot work chunk by chunk (array/array by merging, otherwise on
- * bitmaps). Memory comes from the ds_context_t.
+ * it. Run containers are edited in place (a value extends, joins or
+ * splits runs) and give way to an array or bitmap only once that form
+ * would be smaller. Membership is a binary search plus a container probe;
+ * cardinality, rank and select use per-container counts.
+ *
+ * and, or, xor and andnot work chunk by chunk, each pair of containers in
+ * its own way:
+ *
+ *   array, array    a merge of the two sorted arrays
+ *   run, run        one sweep over the run boundaries of both, O(runs)
+ *   run, array      and (and array minus runs): the array filtered by the
+ *                   runs; otherwise the array is taken as its runs and
+ *                   swept with the run container
+ *   run, bitmap     a copy of the bitmap changed a word range per run
+ *   otherwise       word by word on bitmaps
+ *
+ * A run container is never expanded into a bitmap to take part, and a
+ * result that involves one comes in the smallest of the three forms.
+ * Memory comes from the ds_context_t.
  */
 
 #include "context.h"

@@ -42,20 +42,43 @@ static int bm_get(const unsigned long *w, unsigned v) {
   return (int)((w[v / RB_W] >> (v % RB_W)) & 1UL);
 }
 
-static void bm_set_range(unsigned long *w, unsigned lo, unsigned hi) {
+/* what bm_range does to the bits lo .. hi */
+#define BM_CLEAR 0
+#define BM_SET 1
+#define BM_FLIP 2
+#define BM_COPY 3 /* or in the bits of src */
+
+static void bm_range(unsigned long *w, const unsigned long *src, unsigned lo,
+                     unsigned hi, int how) {
   size_t a = lo / RB_W, b = hi / RB_W, i;
   unsigned long ma = ~0UL << (lo % RB_W);
   unsigned long mb =
       (hi % RB_W == RB_W - 1) ? ~0UL : ((1UL << (hi % RB_W + 1)) - 1UL);
-  if (a == b) {
-    w[a] |= ma & mb;
-    return;
+  for (i = a; i <= b; i++) {
+    unsigned long m = (i == a ? ma : ~0UL) & (i == b ? mb : ~0UL);
+    switch (how) {
+    case BM_CLEAR:
+      w[i] &= ~m;
+      break;
+    case BM_SET:
+      w[i] |= m;
+      break;
+    case BM_FLIP:
+      w[i] ^= m;
+      break;
+    default:
+      w[i] |= src[i] & m;
+      break;
+    }
   }
-  w[a] |= ma;
-  for (i = a + 1; i < b; i++) {
-    w[i] = ~0UL;
+}
+
+static size_t bm_count(const unsigned long *w) {
+  size_t i, n = 0;
+  for (i = 0; i < RB_WORDS; i++) {
+    n += rb_popcount(w[i]);
   }
-  w[b] |= mb;
+  return n;
 }
 
 /* first set (bit = 1) or clear (bit = 0) position >= from, 65536 if none */
@@ -152,7 +175,7 @@ static void rc_expand(const rc_t *c, unsigned long *w) {
     break;
   case DS_ROARING_RUN:
     for (i = 0; i < c->count; i++) {
-      bm_set_range(w, run_start(c, i), run_end(c, i));
+      bm_range(w, NULL, run_start(c, i), run_end(c, i), BM_SET);
     }
     break;
   }
@@ -250,17 +273,124 @@ static bool rc_contains(const rc_t *c, unsigned v) {
   return false;
 }
 
+/* ---- run containers in place ---- */
+
+/* bytes of the array or bitmap form of a container of card values */
+static size_t rc_plain_bytes(size_t card) {
+  return card <= RB_ARRAY_MAX ? 2 * card : RB_BITMAP_BYTES;
+}
+
+/* room for need runs */
+static ds_status_t rc_run_reserve(ds_context_t *ctx, rc_t *c, size_t need) {
+  size_t cap;
+  unsigned short *v;
+  if (need <= c->capacity) {
+    return DS_OK;
+  }
+  cap = c->capacity < 4 ? 4 : c->capacity * 2;
+  if (cap < need) {
+    cap = need;
+  }
+  if (cap > 32768) {
+    cap = 32768; /* no 16-bit set has more runs */
+  }
+  v = (unsigned short *)ds_context_realloc(ctx, c->values,
+                                           2 * cap * sizeof(unsigned short));
+  if (v == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  c->values = v;
+  c->capacity = cap;
+  return DS_OK;
+}
+
+/* after a change, keep a run container no larger than its array or
+ * bitmap form (best effort: a larger run container is still valid) */
+static void rc_run_tidy(ds_context_t *ctx, rc_t *c) {
+  if (4 * c->count > rc_plain_bytes(c->cardinality)) {
+    (void)rc_unpack(ctx, c);
+  }
+}
+
+static ds_status_t rc_run_add(ds_context_t *ctx, rc_t *c, unsigned v) {
+  size_t i = run_upper(c, v); /* runs starting at or before v */
+  bool join_prev, join_next;
+  ds_status_t st;
+  if (i > 0 && v <= run_end(c, i - 1)) {
+    return DS_EXISTS;
+  }
+  join_prev = i > 0 && run_end(c, i - 1) + 1 == v;
+  join_next = i < c->count && run_start(c, i) == v + 1;
+  if (join_prev && join_next) {
+    /* v closes the gap between runs i - 1 and i */
+    c->values[2 * (i - 1) + 1] =
+        (unsigned short)(run_end(c, i) - run_start(c, i - 1));
+    memmove(c->values + 2 * i, c->values + 2 * (i + 1),
+            2 * (c->count - i - 1) * sizeof(unsigned short));
+    c->count--;
+  } else if (join_prev) {
+    c->values[2 * (i - 1) + 1]++;
+  } else if (join_next) {
+    c->values[2 * i]--;
+    c->values[2 * i + 1]++;
+  } else {
+    st = rc_run_reserve(ctx, c, c->count + 1);
+    if (st != DS_OK) {
+      return st;
+    }
+    memmove(c->values + 2 * (i + 1), c->values + 2 * i,
+            2 * (c->count - i) * sizeof(unsigned short));
+    c->values[2 * i] = (unsigned short)v;
+    c->values[2 * i + 1] = 0;
+    c->count++;
+  }
+  c->cardinality++;
+  rc_run_tidy(ctx, c);
+  return DS_OK;
+}
+
+static ds_status_t rc_run_remove(ds_context_t *ctx, rc_t *c, unsigned v) {
+  size_t i = run_upper(c, v), k;
+  unsigned s, e;
+  ds_status_t st;
+  if (i == 0 || v > run_end(c, i - 1)) {
+    return DS_NOT_FOUND;
+  }
+  k = i - 1;
+  s = run_start(c, k);
+  e = run_end(c, k);
+  if (s == e) {
+    memmove(c->values + 2 * k, c->values + 2 * (k + 1),
+            2 * (c->count - k - 1) * sizeof(unsigned short));
+    c->count--;
+  } else if (v == s) {
+    c->values[2 * k]++;
+    c->values[2 * k + 1]--;
+  } else if (v == e) {
+    c->values[2 * k + 1]--;
+  } else {
+    /* split [s, e] into [s, v - 1] and [v + 1, e] */
+    st = rc_run_reserve(ctx, c, c->count + 1);
+    if (st != DS_OK) {
+      return st;
+    }
+    memmove(c->values + 2 * (k + 2), c->values + 2 * (k + 1),
+            2 * (c->count - k - 1) * sizeof(unsigned short));
+    c->values[2 * k + 1] = (unsigned short)(v - 1 - s);
+    c->values[2 * (k + 1)] = (unsigned short)(v + 1);
+    c->values[2 * (k + 1) + 1] = (unsigned short)(e - v - 1);
+    c->count++;
+  }
+  c->cardinality--;
+  rc_run_tidy(ctx, c);
+  return DS_OK;
+}
+
 static ds_status_t rc_add(ds_context_t *ctx, rc_t *c, unsigned v) {
   size_t i;
   ds_status_t st;
   if (c->kind == DS_ROARING_RUN) {
-    if (rc_contains(c, v)) {
-      return DS_EXISTS;
-    }
-    st = rc_unpack(ctx, c);
-    if (st != DS_OK) {
-      return st;
-    }
+    return rc_run_add(ctx, c, v);
   }
   if (c->kind == DS_ROARING_ARRAY) {
     i = rb_lower(c->values, c->count, v);
@@ -305,15 +435,11 @@ static ds_status_t rc_add(ds_context_t *ctx, rc_t *c, unsigned v) {
 
 static ds_status_t rc_remove(ds_context_t *ctx, rc_t *c, unsigned v) {
   size_t i;
-  ds_status_t st;
+  if (c->kind == DS_ROARING_RUN) {
+    return rc_run_remove(ctx, c, v);
+  }
   if (!rc_contains(c, v)) {
     return DS_NOT_FOUND;
-  }
-  if (c->kind == DS_ROARING_RUN) {
-    st = rc_unpack(ctx, c);
-    if (st != DS_OK) {
-      return st;
-    }
   }
   if (c->kind == DS_ROARING_ARRAY) {
     i = rb_lower(c->values, c->count, v);
@@ -708,10 +834,284 @@ static size_t rb_merge(const rc_t *a, const rc_t *b, ds_roaring_op_t op,
   return n;
 }
 
+/* ---- operations with run containers, without converting them ---- */
+
+static bool rb_keep(ds_roaring_op_t op, bool x, bool y) {
+  switch (op) {
+  case DS_ROARING_AND:
+    return x && y;
+  case DS_ROARING_OR:
+    return x || y;
+  case DS_ROARING_XOR:
+    return x != y;
+  case DS_ROARING_ANDNOT:
+    return x && !y;
+  }
+  return false;
+}
+
+/* a set of runs: n (start, length - 1) pairs, in order and apart */
+typedef struct rb_runs {
+  const unsigned short *v;
+  size_t n;
+} rb_runs_t;
+
+/* where membership in runs r changes next at or after pos (*k is the first
+ * run not ending before pos); *in says whether pos is inside a run */
+static unsigned long rb_runs_edge(const rb_runs_t *r, size_t *k,
+                                  unsigned long pos, bool *in) {
+  unsigned long s, e;
+  while (*k < r->n && (unsigned long)r->v[2 * *k] + r->v[2 * *k + 1] < pos) {
+    (*k)++;
+  }
+  if (*k == r->n) {
+    *in = false;
+    return 65536UL;
+  }
+  s = r->v[2 * *k];
+  e = s + r->v[2 * *k + 1];
+  *in = pos >= s;
+  return *in ? e + 1 : s;
+}
+
+/* a op b over runs, in one sweep over the boundaries of both: the result
+ * as runs in out (room for 32768) and its cardinality */
+static size_t rb_runs_op(const rb_runs_t *a, const rb_runs_t *b,
+                         ds_roaring_op_t op, unsigned short *out,
+                         size_t *card) {
+  size_t i = 0, j = 0, n = 0;
+  unsigned long pos = 0;
+  *card = 0;
+  while (pos < 65536UL && (i < a->n || j < b->n)) {
+    bool x, y;
+    unsigned long na = rb_runs_edge(a, &i, pos, &x);
+    unsigned long nb = rb_runs_edge(b, &j, pos, &y);
+    unsigned long next = na < nb ? na : nb;
+    if (rb_keep(op, x, y)) {
+      if (n > 0 &&
+          (unsigned long)out[2 * (n - 1)] + out[2 * (n - 1) + 1] + 1 == pos) {
+        out[2 * (n - 1) + 1] = (unsigned short)(next - 1 - out[2 * (n - 1)]);
+      } else {
+        out[2 * n] = (unsigned short)pos;
+        out[2 * n + 1] = (unsigned short)(next - 1 - pos);
+        n++;
+      }
+      *card += (size_t)(next - pos);
+    }
+    pos = next;
+  }
+  return n;
+}
+
+/* the runs of a sorted array, into out (room for 4096) */
+static void rb_array_runs(const rc_t *c, unsigned short *out, rb_runs_t *r) {
+  size_t i, n = 0;
+  for (i = 0; i < c->count; i++) {
+    if (n > 0 && (unsigned)out[2 * (n - 1)] + out[2 * (n - 1) + 1] + 1 ==
+                     (unsigned)c->values[i]) {
+      out[2 * (n - 1) + 1]++;
+    } else {
+      out[2 * n] = c->values[i];
+      out[2 * n + 1] = 0;
+      n++;
+    }
+  }
+  r->v = out;
+  r->n = n;
+}
+
+/* the container of the smallest form for runs (cardinality card) */
+static ds_status_t rc_from_runs(ds_context_t *ctx, rc_t *out,
+                                const unsigned short *runs, size_t n,
+                                size_t card) {
+  size_t i, k = 0;
+  memset(out, 0, sizeof(*out));
+  out->kind = DS_ROARING_ARRAY;
+  if (card == 0) {
+    return DS_OK;
+  }
+  out->cardinality = card;
+  if (4 * n < rc_plain_bytes(card)) {
+    out->kind = DS_ROARING_RUN;
+    out->values =
+        (unsigned short *)ds_context_alloc(ctx, 2 * n * sizeof(unsigned short));
+    if (out->values == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    memcpy(out->values, runs, 2 * n * sizeof(unsigned short));
+    out->count = n;
+    out->capacity = n;
+  } else if (card <= RB_ARRAY_MAX) {
+    out->values =
+        (unsigned short *)ds_context_alloc(ctx, card * sizeof(unsigned short));
+    if (out->values == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    for (i = 0; i < n; i++) {
+      unsigned v = runs[2 * i], e = v + runs[2 * i + 1];
+      for (;; v++) {
+        out->values[k++] = (unsigned short)v;
+        if (v == e) {
+          break;
+        }
+      }
+    }
+    out->count = card;
+    out->capacity = card;
+  } else {
+    out->kind = DS_ROARING_BITMAP;
+    out->bits = (unsigned long *)ds_context_calloc(ctx, RB_WORDS,
+                                                   sizeof(unsigned long));
+    if (out->bits == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    for (i = 0; i < n; i++) {
+      bm_range(out->bits, NULL, runs[2 * i],
+               (unsigned)runs[2 * i] + runs[2 * i + 1], BM_SET);
+    }
+  }
+  return DS_OK;
+}
+
+/* the container of the smallest form for the bits of w */
+static ds_status_t rc_best_from_words(ds_context_t *ctx, rc_t *out,
+                                      const unsigned long *w, size_t card) {
+  size_t nr;
+  memset(out, 0, sizeof(*out));
+  out->kind = DS_ROARING_ARRAY;
+  if (card == 0) {
+    return DS_OK;
+  }
+  nr = bm_runs(w);
+  if (4 * nr < rc_plain_bytes(card)) {
+    unsigned long p = bm_next(w, 0, 1);
+    out->values = (unsigned short *)ds_context_alloc(
+        ctx, 2 * nr * sizeof(unsigned short));
+    if (out->values == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    out->kind = DS_ROARING_RUN;
+    while (p < 65536UL) {
+      unsigned long e = bm_next(w, p, 0);
+      out->values[2 * out->count] = (unsigned short)p;
+      out->values[2 * out->count + 1] = (unsigned short)(e - p - 1);
+      out->count++;
+      p = bm_next(w, e, 1);
+    }
+    out->capacity = nr;
+    out->cardinality = card;
+    return DS_OK;
+  }
+  return rc_from_words(ctx, out, w, card);
+}
+
+/* the values of an array inside (or outside) runs, two pointers */
+static size_t rb_array_in_runs(const rc_t *arr, const rc_t *run, bool inside,
+                               unsigned short *out) {
+  size_t i, k = 0, n = 0;
+  for (i = 0; i < arr->count; i++) {
+    unsigned v = arr->values[i];
+    bool in;
+    while (k < run->count && run_end(run, k) < v) {
+      k++;
+    }
+    in = k < run->count && run_start(run, k) <= v;
+    if (in == inside) {
+      out[n++] = (unsigned short)v;
+    }
+  }
+  return n;
+}
+
+/* a op b where a or b is a run container; wa is a bitmap of scratch, tmp
+ * room for 4096 runs, runbuf room for 32768 */
+static ds_status_t rb_pair_runs(ds_context_t *ctx, const rc_t *a, const rc_t *b,
+                                ds_roaring_op_t op, unsigned long *wa,
+                                unsigned short *tmp, unsigned short *runbuf,
+                                rc_t *out) {
+  rb_runs_t ra, rb;
+  size_t n, card, i;
+  const rc_t *run = a->kind == DS_ROARING_RUN ? a : b;
+  const rc_t *other = run == a ? b : a;
+  memset(out, 0, sizeof(*out));
+  out->kind = DS_ROARING_ARRAY;
+  if (other->kind == DS_ROARING_BITMAP) {
+    /* on a copy of the bitmap, a word range at a time per run */
+    bool run_first = run == a;
+    if (op == DS_ROARING_AND) {
+      memset(wa, 0, RB_BITMAP_BYTES);
+    } else if (op == DS_ROARING_ANDNOT && run_first) {
+      memset(wa, 0, RB_BITMAP_BYTES); /* run \ bitmap: the runs, then mask */
+    } else {
+      memcpy(wa, other->bits, RB_BITMAP_BYTES);
+    }
+    for (i = 0; i < run->count; i++) {
+      unsigned lo = run_start(run, i), hi = run_end(run, i);
+      switch (op) {
+      case DS_ROARING_AND:
+        bm_range(wa, other->bits, lo, hi, BM_COPY);
+        break;
+      case DS_ROARING_OR:
+        bm_range(wa, NULL, lo, hi, BM_SET);
+        break;
+      case DS_ROARING_XOR:
+        bm_range(wa, NULL, lo, hi, BM_FLIP);
+        break;
+      case DS_ROARING_ANDNOT:
+        bm_range(wa, NULL, lo, hi, run_first ? BM_SET : BM_CLEAR);
+        break;
+      }
+    }
+    if (op == DS_ROARING_ANDNOT && run_first) {
+      for (i = 0; i < RB_WORDS; i++) {
+        wa[i] &= ~other->bits[i];
+      }
+    }
+    return rc_best_from_words(ctx, out, wa, bm_count(wa));
+  }
+  if (other->kind == DS_ROARING_ARRAY &&
+      (op == DS_ROARING_AND || (op == DS_ROARING_ANDNOT && other == a))) {
+    /* the result is a subset of the array */
+    n = rb_array_in_runs(other, run, op == DS_ROARING_AND, tmp);
+    if (n == 0) {
+      return DS_OK;
+    }
+    out->values =
+        (unsigned short *)ds_context_alloc(ctx, n * sizeof(unsigned short));
+    if (out->values == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    memcpy(out->values, tmp, n * sizeof(unsigned short));
+    out->count = n;
+    out->capacity = n;
+    out->cardinality = n;
+    return DS_OK;
+  }
+  /* run op run, or an array taken as its runs */
+  if (a->kind == DS_ROARING_RUN) {
+    ra.v = a->values;
+    ra.n = a->count;
+  } else {
+    rb_array_runs(a, tmp, &ra);
+  }
+  if (b->kind == DS_ROARING_RUN) {
+    rb.v = b->values;
+    rb.n = b->count;
+  } else {
+    rb_array_runs(b, tmp, &rb);
+  }
+  n = rb_runs_op(&ra, &rb, op, runbuf, &card);
+  return rc_from_runs(ctx, out, runbuf, n, card);
+}
+
 static ds_status_t rb_pair(ds_context_t *ctx, const rc_t *a, const rc_t *b,
                            ds_roaring_op_t op, unsigned long *wa,
-                           unsigned long *wb, unsigned short *tmp, rc_t *out) {
+                           unsigned long *wb, unsigned short *tmp,
+                           unsigned short *runbuf, rc_t *out) {
   size_t i, card = 0;
+  if (a->kind == DS_ROARING_RUN || b->kind == DS_ROARING_RUN) {
+    return rb_pair_runs(ctx, a, b, op, wa, tmp, runbuf, out);
+  }
   memset(out, 0, sizeof(*out));
   out->kind = DS_ROARING_ARRAY;
   if (a->kind == DS_ROARING_ARRAY && b->kind == DS_ROARING_ARRAY) {
@@ -759,12 +1159,24 @@ static ds_status_t rb_pair(ds_context_t *ctx, const rc_t *a, const rc_t *b,
   return rc_from_words(ctx, out, wa, card);
 }
 
+static bool rb_has_runs(const ds_roaring_t *r) {
+  size_t i;
+  for (i = 0; i < r->size; i++) {
+    if (r->containers[i].kind == DS_ROARING_RUN) {
+      return true;
+    }
+  }
+  return false;
+}
+
 ds_status_t ds_roaring_combine(const ds_roaring_t *a, const ds_roaring_t *b,
                                ds_roaring_op_t op, ds_roaring_t *out,
                                ds_context_t *context) {
   size_t i = 0, j = 0;
   unsigned long *wa;
   unsigned short *tmp;
+  unsigned short *runbuf = NULL;
+  size_t work = 2 * RB_BITMAP_BYTES + 2 * RB_ARRAY_MAX * sizeof(unsigned short);
   ds_status_t st = DS_OK;
   if (a == NULL || b == NULL || out == NULL) {
     return DS_ERR_NULL;
@@ -773,12 +1185,17 @@ ds_status_t ds_roaring_combine(const ds_roaring_t *a, const ds_roaring_t *b,
     return DS_ERR_INVALID;
   }
   ds_roaring_init(out, context);
-  wa = (unsigned long *)ds_context_alloc(
-      context, 2 * RB_BITMAP_BYTES + 2 * RB_ARRAY_MAX * sizeof(unsigned short));
+  if (rb_has_runs(a) || rb_has_runs(b)) {
+    work += 2 * 32768 * sizeof(unsigned short); /* the most runs there are */
+  }
+  wa = (unsigned long *)ds_context_alloc(context, work);
   if (wa == NULL) {
     return DS_ERR_ALLOC;
   }
   tmp = (unsigned short *)(void *)(wa + 2 * RB_WORDS);
+  if (work > 2 * RB_BITMAP_BYTES + 2 * RB_ARRAY_MAX * sizeof(unsigned short)) {
+    runbuf = tmp + 2 * RB_ARRAY_MAX;
+  }
   while (st == DS_OK && (i < a->size || j < b->size)) {
     rc_t c;
     unsigned key;
@@ -797,7 +1214,7 @@ ds_status_t ds_roaring_combine(const ds_roaring_t *a, const ds_roaring_t *b,
     } else {
       key = (unsigned)a->keys[i];
       st = rb_pair(context, &a->containers[i], &b->containers[j], op, wa,
-                   wa + RB_WORDS, tmp, &c);
+                   wa + RB_WORDS, tmp, runbuf, &c);
       keep = c.cardinality > 0;
       i++;
       j++;

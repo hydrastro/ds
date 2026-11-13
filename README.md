@@ -62,7 +62,7 @@ Core mutable containers:
 - `lib/rank_select`: rank/select capability over static bit vectors with plain, RRR (nH0-compressed) and Elias-Fano backends
 - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
 - `lib/replacement`: cache-replacement policy capability (LRU, FIFO, CLOCK, SIEVE) by frame index with pin awareness
-- `lib/roaring`: Roaring compressed bitmaps of 32-bit integers (array, bitmap and run containers; rank, select, set algebra)
+- `lib/roaring`: Roaring compressed bitmaps of 32-bit integers (array, bitmap and run containers, runs edited and combined natively; rank, select, set algebra)
 - `lib/rtree`: R-trees (Guttman, R*) and bulk R+-trees
 - `lib/scapegoat_tree`: scapegoat trees with pluggable α
 - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees

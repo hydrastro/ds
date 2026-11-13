@@ -192,7 +192,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/link_cut_tree: link-cut trees
 - lib/lazy_segment_tree: generic lazy segment tree
 - lib/elias_fano: Elias-Fano sequences
-- lib/roaring: Roaring bitmaps with array/bitmap/run containers, rank/select, and/or/xor/andnot, optimize
+- lib/roaring: Roaring bitmaps with array/bitmap/run containers, rank/select, and/or/xor/andnot (run containers natively), optimize
 - algo/robust_predicates: Shewchuk-style expansion arithmetic, filtered exact orient2d/3d, incircle, insphere
 - lib/persistent_hamt: persistent CHAMP HAMT with refcounted sharing, canonical deletion, structural equality, in-place transient edits
 - lib/pq_iface: addressable priority-queue ops table with eight heap backends and traits
