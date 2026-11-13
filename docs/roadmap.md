@@ -215,6 +215,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/delaunay: Delaunay triangulation built on the robust predicates.
 - lib/hollow_heap: one-tree hollow heap, pq_iface backend
 - lib/louds: LOUDS succinct tree over the rank/select capability
+- algo/voronoi: Voronoi diagram from the Delaunay triangulation, box-clipped cells
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

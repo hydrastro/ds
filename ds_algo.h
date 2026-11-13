@@ -66,6 +66,7 @@
 #include "algo/tree_edit.h"
 #include "algo/tsp.h"
 #include "algo/visibility.h"
+#include "algo/voronoi.h"
 #include "algo/weighted_matching.h"
 
 #endif /* DS_ALGO_H */
