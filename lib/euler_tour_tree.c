@@ -200,8 +200,13 @@ static node_t *ett_reroot(ds_ett_t *t, size_t v) {
 /* push pending actions from the root down to x, x included (so that x
  * can be recomputed from its children) */
 static void ett_push_path(ds_ett_t *t, node_t *x) {
-  node_t *n = ett_root(x);
-  size_t i = ett_index(x);
+  node_t *n;
+  size_t i;
+  if (t->config.tag_size == 0) {
+    return; /* without actions no node is ever tagged */
+  }
+  n = ett_root(x);
+  i = ett_index(x);
   while (n != x) {
     ett_push(t, n);
     if (i < ett_size(n->left)) {
@@ -590,6 +595,50 @@ ds_status_t ds_ett_set(ds_ett_t *t, size_t v, const void *elem) {
     ett_update(t, x);
   }
   return DS_OK;
+}
+
+ds_status_t ds_ett_component_find(ds_ett_t *t, size_t v,
+                                  ds_ett_summary_pred_t has, void *user,
+                                  size_t *out_vertex) {
+  const ds_ett_config_t *c;
+  node_t *x;
+  if (t == NULL || has == NULL || out_vertex == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (v >= t->n) {
+    return DS_ERR_RANGE;
+  }
+  c = &t->config;
+  if (c->summary_size == 0) {
+    return DS_ERR_STATE;
+  }
+  x = ett_root(ett_vertex(t, v));
+  ett_push(t, x);
+  if (x->vcount == 0 || !has(ett_sum(t, x), user)) {
+    return DS_NOT_FOUND;
+  }
+  for (;;) {
+    if (x->left != NULL && x->left->vcount > 0 &&
+        has(ett_sum(t, x->left), user)) {
+      x = x->left;
+      ett_push(t, x);
+      continue;
+    }
+    if (x->vertex != ETT_NONE) {
+      c->summarize(t->scratch, ett_elem(t, x), c->user);
+      if (has(t->scratch, user)) {
+        *out_vertex = x->vertex;
+        return DS_OK;
+      }
+    }
+    if (x->right != NULL && x->right->vcount > 0 &&
+        has(ett_sum(t, x->right), user)) {
+      x = x->right;
+      ett_push(t, x);
+      continue;
+    }
+    return DS_NOT_FOUND; /* has() does not decompose over combine */
+  }
 }
 
 ds_status_t ds_ett_visit_component(ds_ett_t *t, size_t v,

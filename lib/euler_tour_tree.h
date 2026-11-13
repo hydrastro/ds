@@ -110,6 +110,16 @@ ds_status_t ds_ett_subtree_apply(ds_ett_t *t, size_t v, size_t p,
                                  const void *tag);
 ds_status_t ds_ett_get(ds_ett_t *t, size_t v, void *out_elem);
 ds_status_t ds_ett_set(ds_ett_t *t, size_t v, const void *elem);
+/* the first vertex of v's component, in tour order, whose own summary
+ * (summarize of its element) satisfies has; subtrees whose summary fails
+ * has are skipped. When has(a) or has(b) follows from has(combine(a, b))
+ * (counts or flags of interesting vertices, the usual case), a hit costs
+ * O(log n) expected whatever the component's size. DS_NOT_FOUND when no
+ * vertex qualifies, DS_ERR_STATE without summaries. */
+typedef bool (*ds_ett_summary_pred_t)(const void *summary, void *user);
+ds_status_t ds_ett_component_find(ds_ett_t *t, size_t v,
+                                  ds_ett_summary_pred_t has, void *user,
+                                  size_t *out_vertex);
 /* the vertices of v's component in tour order (pending actions applied
  * first); stops when visit returns false */
 ds_status_t ds_ett_visit_component(ds_ett_t *t, size_t v,
