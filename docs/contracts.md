@@ -82,7 +82,7 @@ says what remains:
 | Module | Guarantee |
 |---|---|
 | `lib/paged_btree` | put and remove prepare every page (splits, borrows, merges) before changing any; pages a failed put took return to the free list |
-| `lib/topology_tree` | reserves work space before committing; a failed commit leaves an explicit broken state, and `ds_topology_tree_rebuild` repairs it |
+| `lib/topology_tree` | reserves cluster slots and work lists for the per-level bound before committing, so a committed update does not allocate; a failed commit still leaves an explicit broken state, and `ds_topology_tree_rebuild` repairs it |
 | `lib/pq_iface` | a copying meld stops at the failing item, with both queues valid and every item in exactly one of them |
 | `lib/pager` | `ds_pager_close` keeps dirty pages and can be retried; `ds_pager_discard` drops them |
 | `lib/map_iface` | put is all or nothing; removing a present key always succeeds |

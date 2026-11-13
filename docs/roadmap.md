@@ -183,7 +183,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/dynamization: logarithmic-method dynamization
 - lib/plop_hash: PLOP-hashing
 - lib/confluent_list: confluently persistent lists
-- lib/topology_tree: topology trees
+- lib/topology_tree: topology trees, O(log n) worst-case link and cut, path aggregates
 - lib/checked: checked size arithmetic
 - algo/weighted_matching: weighted general matching
 - lib/map_iface: pluggable map capability

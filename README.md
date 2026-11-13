@@ -81,7 +81,7 @@ Core mutable containers:
 - `lib/sstable`: SSTables (prefix-compressed blocks, index, built-in Bloom or pluggable AMQ filter, verification, merge)
 - `lib/strict_fibonacci_heap`: strict Fibonacci heap (Brodal–Lagogiannis–Tarjan: O(1) push, decrease and meld, O(log n) pop and remove, all worst case), also a `lib/pq_iface` backend
 - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
-- `lib/topology_tree`: Frederickson topology trees (maximal restricted partitions maintained under link/cut, component aggregates)
+- `lib/topology_tree`: Frederickson topology trees (maximal restricted partitions with same-level neighbour links: O(log n) worst-case link and cut; path and component aggregates)
 - `lib/tree_automaton`: bottom-up (NFTA/DFTA: run, determinize, intersection, union, complement, emptiness with witness) and top-down tree automata
 - `lib/tst`: ternary search trees with prefix, partial-match and near-neighbour searches
 - `lib/turing_machine`: deterministic/nondeterministic multi-tape Turing machines, transducers, compact notation parser, busy-beaver champions and search

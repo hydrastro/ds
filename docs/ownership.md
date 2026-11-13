@@ -109,9 +109,10 @@ arithmetic that does not fit as `DS_ERR_OVERFLOW`. Unless its header says
 otherwise, a failed operation leaves the structure unchanged and usable.
 Where that cannot hold, the header states exactly what remains, for example:
 
-- `lib/topology_tree` reserves its work lists before committing; if a
-  commit still fails it marks the tree broken, queries report it, and
-  `ds_topology_tree_rebuild` restores it from the adjacency;
+- `lib/topology_tree` reserves cluster slots and work lists for the
+  re-clustering bound before committing; if a commit still fails it marks
+  the tree broken, queries report it, and `ds_topology_tree_rebuild`
+  restores it from the adjacency;
 - `lib/paged_btree` prepares every page a split needs before changing any;
 - `lib/pq_iface`'s copying meld stops at the failing item with both queues
   valid and every item in exactly one of them;

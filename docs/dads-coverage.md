@@ -31,8 +31,8 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 752 |
-| restricted | 3 |
+| implemented | 753 |
+| restricted | 2 |
 | variant | 1 |
 | reference | 5 |
 | missing | 2 |
@@ -1359,7 +1359,7 @@ the term covers is provided.
 | top-down tree automaton | structure | implemented | lib/tree_automaton |  |
 | topological order | algorithm | implemented | algo/graph_view |  |
 | topological sort | algorithm | implemented | algo/graph_view, lib/graph |  |
-| topology tree | structure | restricted | lib/topology_tree | updates cost O(log^2 n); no path aggregates |
+| topology tree | structure | implemented | lib/topology_tree | same-level neighbour links: O(log n) worst-case link and cut; path and component aggregates |
 | total function | concept | n/a |  |  |
 | totally decidable language | concept | n/a |  |  |
 | totally decidable problem | concept | n/a |  |  |
