@@ -1,9 +1,10 @@
 # Contracts between components
 
 The capability interfaces (maps, ordered maps, priority queues, rank/select,
-approximate membership, replacement policies, page stores, and the inverted
-index's dictionaries, codecs and scorers) let one structure be built from
-another chosen by the caller. An operation table alone does not
+approximate membership, replacement policies, page stores, the inverted
+index's dictionaries, codecs and scorers, and the suffix array builders that
+`lib/fm_index`, `lib/suffix_array` and `lib/r_index` share) let one structure
+be built from another chosen by the caller. An operation table alone does not
 make two components compatible, though: they also have to agree on element
 layout and ownership, on order, on memory, on what a failure leaves behind,
 on how long cursors and handles live, and on what each operation costs. This
@@ -94,6 +95,10 @@ says what remains:
 | `lib/rrb_vector` | every update builds a new version; on failure the inputs are unchanged and no clone leaks |
 | `algo/delaunay` constraints | memory is reserved before any flip; a failure leaves a valid constrained triangulation of the segments already inserted, which are counted; a crossing segment is refused before anything changes |
 | `lib/rank_pairing_heap` | update and remove never allocate, so they cannot fail on a queued item |
+| `lib/chromatic_tree` | inserts and removes reserve their memory (nodes, a pending slot) before changing anything; rebalancing never allocates in eager mode (the path buffer covers any red-black height), and a deferred rebalance that cannot grow its path returns `DS_ERR_ALLOC` with the tree valid and the work still pending |
+| `lib/top_tree` | all memory is taken at init: no operation allocates or fails for lack of memory |
+| `algo/planarity` | every call allocates its working memory before it starts; an embedding is filled only on success and is otherwise left empty, safe to destroy; a too small certificate buffer gives `DS_ERR_RANGE` with the size needed |
+| `lib/suffix_array`, `lib/r_index` | builds are all or nothing: a failed build frees what it took and leaves nothing to destroy |
 | `lib/hollow_heap` | an update that cannot allocate its new node changes nothing |
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 
@@ -114,6 +119,9 @@ says what remains:
 | inverted-index dictionary cursors | the next add | ordered dictionaries only |
 | RRB vector element pointers and iterators | the version is released | versions share nodes; nothing is edited in place |
 | rank-pairing heap item pointers | the item leaves | nodes never move, even on increase |
+| chromatic-tree element pointers (get, select, floor, ceiling) | the element is removed | leaves never move; rebalancing rotates internal nodes only |
+| top-tree vertex values (`ds_top_value`) | the tree is destroyed | vertex nodes are allocated once |
+| planar embeddings and their graph views | `ds_planar_embedding_destroy` | a view also needs its `ds_gview_csr_t` alive |
 
 ## Costs
 
@@ -142,6 +150,21 @@ says what remains:
 - **Succinct trees.** Balanced-parentheses and DFUDS operations cost a
   rank or select of the chosen backend plus one or two excess searches,
   each O(B / 8 + log(n / B)) over blocks of B = 512 bits.
+- **Planarity.** The test, its embedding and the embedding check are
+  O(n + m); a straight-line drawing is O(n). A Kuratowski certificate costs
+  one planarity test per shrinking attempt on graphs that shrink
+  geometrically while deletions succeed, which is the usual case; the worst
+  case is O(m^2 log m). A maximal planar subgraph costs O((r + 1) log m)
+  tests for r rejected edges.
+- **Relaxed balance.** Chromatic-tree updates walk one path and never
+  rotate, so in deferred mode the height can reach n; rebalancing costs
+  O(1) amortized transformations per update, each found by a walk of the
+  current height, and eager mode keeps the height of a red-black tree.
+- **Dynamic trees.** Top-tree operations cost O(log n) amortized splay
+  steps, each calling the cluster callbacks O(1) times.
+- **Text indexes.** SA-IS builds a suffix array in O(n). The r-index counts
+  in O(m log r) and locates each occurrence in O(log r), in 6r + 1 words
+  for r BWT runs; building it needs the full suffix array for a while.
 - **Fairness.** CTL checking with k fairness sets costs O(|f| (n + m + n k))
   instead of O(|f| (n + m)), and only the `_fair` witness helpers follow
   the fair semantics.
@@ -160,7 +183,14 @@ Augmented structures state the laws their callbacks must satisfy:
   the current tour, so only order-independent combines are stable across
   link and cut.
 - **Roots.** Which operations reroot. Link-cut path operations, link and cut
-  all reroot.
+  all reroot; so do the top tree's link, cut, expose, subtree and path
+  search, while `ds_top_evert` reroots on purpose and `ds_top_find_root`
+  reports the current root.
+- **Clusters.** Top-tree callbacks: compress is associative (not
+  necessarily commutative), rake associative and commutative, and reverse
+  an involution with reverse(compress(a, b)) = compress(reverse(b),
+  reverse(a)); outputs never alias inputs. vertex receives NULL for an
+  empty point cluster, so no identity element is needed.
 
 ## Outcomes
 
@@ -191,6 +221,10 @@ operations already make.
 - **Why a run stopped.** Annealing reports its stop reason (iterations,
   temperature, target, callback) and the largest energy correction made
   when move-mode deltas are resynchronized.
+- **Certified or claimed.** A planarity answer comes with its proof: an
+  embedding that `ds_planar_embedding_check` verifies (Euler's formula per
+  component), or a K5 or K3,3 subdivision that `ds_kuratowski_classify`
+  verifies by tracing its paths.
 - **Exact, numerically qualified, heuristic.**
   - Robust predicates give exact signs within stated input ranges.
   - Weighted matching is exact in integer mode and within a stated tolerance
