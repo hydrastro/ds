@@ -27,6 +27,7 @@
 #include "lib/bitset.h"
 #include "lib/bitvector.h"
 #include "lib/bloom_filter.h"
+#include "lib/bp_tree.h"
 #include "lib/bplus_tree.h"
 #include "lib/bsp_tree.h"
 #include "lib/bst.h"

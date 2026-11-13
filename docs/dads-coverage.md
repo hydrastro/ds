@@ -1522,6 +1522,7 @@ the term covers is provided.
 | addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, packed, binomial, leftist, weight-biased, skew, randomized, pairing and hollow backends; per-operation cost classes |
 | zero-suppressed decision diagram | structure | implemented | `lib/zdd` | hash-consed families of sets: union, intersection, differences, subset0/1, change, join, meet, nonsup, nonsub, minimal, maximal; counting, membership, enumeration; iterative |
 | LOUDS succinct tree | structure | implemented | `lib/louds` | level-order unary degree sequence over any rank/select backend: 2n + 1 bits; navigation by select; byte-labelled static tries |
+| balanced-parentheses succinct tree | structure | implemented | `lib/bp_tree` | range min-max tree over the parentheses (excess searches, range minima and their counts) on any rank/select backend; preorder navigation including degree, k-th child, LCA, level ancestor, height and postorder |
 | hollow heap | structure | implemented | `lib/hollow_heap`, `lib/pq_iface` | one-tree hollow heap: O(1) push, decrease and meld, O(log n) amortized pop; a rebuild keeps nodes O(n) |
 | rank-pairing heap | structure | implemented | `lib/rank_pairing_heap`, `lib/pq_iface` | type-1 and type-2 rank rules: O(1) push, meld and amortized decrease without cascading cuts, O(log n) amortized pop by one-pass linking |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
