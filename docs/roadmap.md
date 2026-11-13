@@ -179,7 +179,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/model_check: CTL model checking
 - algo/tree_edit: tree and forest edit distance
 - algo/visibility: visibility maps
-- lib/inverted_index: inverted and forward indexes; term dictionary interface (open addressing, map capability, sorted); posting codec interface (vbyte, gamma, delta, Rice); skip tables, cursor advance and merge or skip intersection; deletion marks and all-or-nothing compaction
+- lib/inverted_index: inverted and forward indexes; term dictionary interface (open addressing, map capability, sorted); posting codec interface (vbyte, gamma, delta, Rice); skip tables, cursor advance and merge or skip intersection; deletion marks and all-or-nothing compaction; ranking engine (scorer ops: BM25, TF-IDF, Dirichlet; top-k through pq_iface; conjunctive or disjunctive)
 - algo/dynamization: logarithmic-method dynamization
 - lib/plop_hash: PLOP-hashing
 - lib/confluent_list: confluently persistent lists

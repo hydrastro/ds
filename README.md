@@ -37,7 +37,7 @@ Core mutable containers:
 - `lib/hash_heap`: hash heaps (priority queues addressable by key)
 - `lib/hb_tree`: hB-trees, buddy trees, BD-trees, GBD-trees, BV-trees
 - `lib/hollow_heap`: hollow heap (one-tree; O(1) push, decrease and meld, lazy deletion, rebuild keeps nodes O(n)), also a `lib/pq_iface` backend
-- `lib/inverted_index`: inverted file, full (positional), block addressing and forward indexes with a pluggable term dictionary (open addressing, any map backend, or a sorted one for term walks and prefix queries) and postings in a pluggable codec (variable byte, Elias gamma and delta, Golomb-Rice) with skip tables; boolean queries by merging or by skipping, phrase, prefix and BM25 queries; document deletion and compaction
+- `lib/inverted_index`: inverted file, full (positional), block addressing and forward indexes with a pluggable term dictionary (open addressing, any map backend, or a sorted one for term walks and prefix queries) and postings in a pluggable codec (variable byte, Elias gamma and delta, Golomb-Rice) with skip tables; boolean queries by merging or by skipping, phrase and prefix queries, ranking with a pluggable scorer (BM25, TF-IDF, Dirichlet-smoothed query likelihood) and any priority-queue backend as the top-k queue; document deletion and compaction
 - `lib/jump_list`: jump lists (uniquely represented, O(n^(1/3)))
 - `lib/k2_tree`: k^2-trees (compact adjacency matrices)
 - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees

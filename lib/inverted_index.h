@@ -69,7 +69,14 @@
  * Queries: posting cursors (documents or blocks, frequencies, positions,
  * advance), boolean queries (all of "must", at least one of "should" if
  * any, none of "must not"), phrase queries on positional indexes, and
- * Okapi BM25 ranking (top k) on document and positional indexes. With an
+ * ranked retrieval on document and positional indexes. Ranking is an
+ * engine with two pluggable parts: a scorer (an ops table: Okapi BM25,
+ * TF-IDF with pivoted length normalization, query likelihood with
+ * Dirichlet smoothing, or your own) and the top-k queue, any
+ * lib/pq_iface backend. Documents are visited one at a time across the
+ * query terms' cursors (disjunctive), or only those holding every term,
+ * found by leapfrogging with advance (conjunctive), so memory is
+ * O(terms + k) whatever the collection size. With an
  * ordered dictionary, terms can be walked in byte order from any point
  * and prefix queries ("comput*") return the documents holding any term
  * with the prefix. Results are allocated from the index's context and
@@ -77,6 +84,7 @@
  */
 
 #include "context.h"
+#include "pq_iface.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -255,6 +263,46 @@ typedef struct ds_invidx_cursor {
   bool ended; /* next found no further posting */
 } ds_invidx_cursor_t;
 
+/* collection statistics for scoring (deleted documents excluded) */
+typedef struct ds_invidx_stats {
+  double documents;      /* N */
+  double average_length; /* tokens per document */
+  double tokens;         /* tokens in all documents */
+} ds_invidx_stats_t;
+
+/*
+ * A scorer. weight() is called once per query term with its document
+ * and collection frequencies, score() once per query term present in a
+ * document, with the weight, the term's frequency there and the
+ * document's length, and document() (NULL for none) once per scored
+ * document with the number of query terms. A document's score is the sum
+ * of its term scores, in query order, plus the document part. param
+ * holds the scorer's parameters. Scores must not be NaN
+ * (DS_ERR_CALLBACK).
+ */
+typedef struct ds_invidx_scorer {
+  const char *name;
+  double (*weight)(const ds_invidx_stats_t *stats, size_t df, size_t cf,
+                   const double *param);
+  double (*score)(const ds_invidx_stats_t *stats, double weight, size_t tf,
+                  size_t length, const double *param);
+  double (*document)(const ds_invidx_stats_t *stats, size_t length,
+                     size_t query_terms, const double *param);
+  double param[4];
+} ds_invidx_scorer_t;
+
+/* Okapi BM25: idf * tf (k1 + 1) / (tf + k1 (1 - b + b len / avg)), idf =
+ * ln(1 + (N - df + 0.5) / (df + 0.5)); k1 >= 0, 0 <= b <= 1 */
+ds_status_t ds_invidx_scorer_bm25(ds_invidx_scorer_t *scorer, double k1,
+                                  double b);
+/* (1 + ln tf) ln(1 + N / df) / (1 - slope + slope len / avg), the pivoted
+ * normalization of Singhal et al.; 0 <= slope <= 1 (0: none) */
+ds_status_t ds_invidx_scorer_tfidf(ds_invidx_scorer_t *scorer, double slope);
+/* query likelihood with Dirichlet smoothing, in its rank-equivalent form:
+ * sum of ln(1 + tf / (mu cf / tokens)) plus |q| ln(mu / (len + mu));
+ * mu > 0 (about 2000 for prose) */
+ds_status_t ds_invidx_scorer_dirichlet(ds_invidx_scorer_t *scorer, double mu);
+
 typedef struct ds_invidx_result {
   size_t *docs;   /* document ids (block numbers in block mode) */
   double *scores; /* BM25 only, else NULL */
@@ -368,8 +416,23 @@ ds_invidx_boolean(const ds_inverted_index_t *idx, const ds_invidx_term_t *must,
 ds_status_t ds_invidx_phrase(const ds_inverted_index_t *idx,
                              const ds_invidx_term_t *terms, size_t count,
                              ds_invidx_result_t *result);
-/* top_k documents by Okapi BM25 (k1, b; e.g. 1.2 and 0.75), best first,
- * ties by smaller id */
+typedef struct ds_invidx_rank_options {
+  const ds_invidx_scorer_t *scorer; /* NULL: BM25 with k1 1.2, b 0.75 */
+  size_t top_k;
+  /* the top-k queue (a min-queue of k entries), NULL: binary heap */
+  const ds_pq_ops_t *queue;
+  /* only documents holding every query term */
+  bool conjunctive;
+} ds_invidx_rank_options_t;
+
+/* the top_k documents by score, best first, ties by smaller id, with
+ * their scores; DS_ERR_STATE in block mode. options NULL: BM25, the top
+ * 10, a binary heap, disjunctive. */
+ds_status_t ds_invidx_rank(const ds_inverted_index_t *idx,
+                           const ds_invidx_term_t *terms, size_t count,
+                           const ds_invidx_rank_options_t *options,
+                           ds_invidx_result_t *result);
+/* ds_invidx_rank with the BM25 scorer (k1, b; e.g. 1.2 and 0.75) */
 ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
                            const ds_invidx_term_t *terms, size_t count,
                            double k1, double b, size_t top_k,

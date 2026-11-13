@@ -2047,110 +2047,326 @@ ds_status_t ds_invidx_phrase(const ds_inverted_index_t *idx,
   return DS_OK;
 }
 
-typedef struct ii_scored {
-  double score;
-  size_t doc;
-} ii_scored_t;
+/* ------------------------------------------------------------ ranking */
 
-static int ii_scored_cmp(const void *x, const void *y) {
-  const ii_scored_t *a = (const ii_scored_t *)x;
-  const ii_scored_t *b = (const ii_scored_t *)y;
-  if (a->score > b->score) {
-    return -1;
-  }
-  if (a->score < b->score) {
-    return 1;
-  }
-  return a->doc < b->doc ? -1 : a->doc > b->doc ? 1 : 0;
+static double ii_bm25_weight(const ds_invidx_stats_t *st, size_t df, size_t cf,
+                             const double *param) {
+  double f = (double)df;
+  (void)cf;
+  (void)param;
+  return log(1.0 + (st->documents - f + 0.5) / (f + 0.5));
 }
 
-ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
+static double ii_bm25_score(const ds_invidx_stats_t *st, double weight,
+                            size_t tf, size_t length, const double *param) {
+  double k1 = param[0];
+  double b = param[1];
+  double f = (double)tf;
+  double norm =
+      st->average_length > 0.0 ? (double)length / st->average_length : 0.0;
+  return weight * f * (k1 + 1.0) / (f + k1 * (1.0 - b + b * norm));
+}
+
+static double ii_tfidf_weight(const ds_invidx_stats_t *st, size_t df, size_t cf,
+                              const double *param) {
+  (void)cf;
+  (void)param;
+  return log(1.0 + st->documents / (double)(df > 0 ? df : 1));
+}
+
+static double ii_tfidf_score(const ds_invidx_stats_t *st, double weight,
+                             size_t tf, size_t length, const double *param) {
+  double slope = param[0];
+  double norm =
+      st->average_length > 0.0 ? (double)length / st->average_length : 1.0;
+  return (1.0 + log((double)tf)) * weight / (1.0 - slope + slope * norm);
+}
+
+/* mu p(w | C), the smoothing mass of the term */
+static double ii_dirichlet_weight(const ds_invidx_stats_t *st, size_t df,
+                                  size_t cf, const double *param) {
+  (void)df;
+  return param[0] * (double)(cf > 0 ? cf : 1) /
+         (st->tokens > 0.0 ? st->tokens : 1.0);
+}
+
+static double ii_dirichlet_score(const ds_invidx_stats_t *st, double weight,
+                                 size_t tf, size_t length,
+                                 const double *param) {
+  (void)st;
+  (void)length;
+  (void)param;
+  return log(1.0 + (double)tf / weight);
+}
+
+static double ii_dirichlet_document(const ds_invidx_stats_t *st, size_t length,
+                                    size_t query_terms, const double *param) {
+  double mu = param[0];
+  (void)st;
+  return (double)query_terms * log(mu / ((double)length + mu));
+}
+
+ds_status_t ds_invidx_scorer_bm25(ds_invidx_scorer_t *scorer, double k1,
+                                  double b) {
+  if (scorer == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (!(k1 >= 0.0) || !(b >= 0.0) || b > 1.0) {
+    return DS_ERR_INVALID;
+  }
+  memset(scorer, 0, sizeof(*scorer));
+  scorer->name = "bm25";
+  scorer->weight = ii_bm25_weight;
+  scorer->score = ii_bm25_score;
+  scorer->param[0] = k1;
+  scorer->param[1] = b;
+  return DS_OK;
+}
+
+ds_status_t ds_invidx_scorer_tfidf(ds_invidx_scorer_t *scorer, double slope) {
+  if (scorer == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (!(slope >= 0.0) || slope > 1.0) {
+    return DS_ERR_INVALID;
+  }
+  memset(scorer, 0, sizeof(*scorer));
+  scorer->name = "tf-idf";
+  scorer->weight = ii_tfidf_weight;
+  scorer->score = ii_tfidf_score;
+  scorer->param[0] = slope;
+  return DS_OK;
+}
+
+ds_status_t ds_invidx_scorer_dirichlet(ds_invidx_scorer_t *scorer, double mu) {
+  if (scorer == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (!(mu > 0.0)) {
+    return DS_ERR_INVALID;
+  }
+  memset(scorer, 0, sizeof(*scorer));
+  scorer->name = "dirichlet";
+  scorer->weight = ii_dirichlet_weight;
+  scorer->score = ii_dirichlet_score;
+  scorer->document = ii_dirichlet_document;
+  scorer->param[0] = mu;
+  return DS_OK;
+}
+
+typedef struct ii_hit {
+  double score;
+  size_t doc;
+} ii_hit_t;
+
+/* the worse hit first: lower score, then larger id */
+static int ii_hit_worse(const void *x, const void *y, void *user) {
+  const ii_hit_t *a = (const ii_hit_t *)x;
+  const ii_hit_t *b = (const ii_hit_t *)y;
+  (void)user;
+  if (a->score < b->score) {
+    return -1;
+  }
+  if (a->score > b->score) {
+    return 1;
+  }
+  return a->doc > b->doc ? -1 : a->doc < b->doc ? 1 : 0;
+}
+
+static bool ii_is_nan(double x) { return !(x < 0.0 || x >= 0.0); }
+
+/* offer a hit to the top-k queue */
+static ds_status_t ii_offer(ds_pq_t *q, size_t k, const ii_hit_t *hit) {
+  if (ds_pq_size(q) == k) {
+    const ii_hit_t *worst = (const ii_hit_t *)ds_pq_top(q);
+    if (ii_hit_worse(hit, worst, NULL) <= 0) {
+      return DS_OK;
+    }
+    (void)ds_pq_pop(q, NULL);
+  }
+  return ds_pq_push(q, hit, NULL);
+}
+
+ds_status_t ds_invidx_rank(const ds_inverted_index_t *idx,
                            const ds_invidx_term_t *terms, size_t count,
-                           double k1, double b, size_t top_k,
+                           const ds_invidx_rank_options_t *options,
                            ds_invidx_result_t *result) {
-  double *score;
-  unsigned char *hit;
-  ii_scored_t *list;
-  double avgdl;
-  double live;
-  size_t n = 0;
+  ds_invidx_scorer_t bm25;
+  const ds_invidx_scorer_t *sc;
+  ds_invidx_stats_t stats;
+  ds_invidx_cursor_t *cur = NULL;
+  double *weight = NULL;
+  ds_pq_t queue;
+  bool queue_live = false;
+  size_t top_k;
+  size_t live;
   size_t i;
-  size_t d;
+  size_t n;
+  ds_status_t st = DS_OK;
   if (idx == NULL || result == NULL || (count > 0 && terms == NULL)) {
     return DS_ERR_NULL;
   }
   if (idx->mode == DS_INVIDX_BLOCK) {
     return DS_ERR_STATE;
   }
-  if (!(k1 >= 0.0) || !(b >= 0.0) || b > 1.0) {
-    return DS_ERR_INVALID;
+  if (options != NULL && options->scorer != NULL) {
+    sc = options->scorer;
+    if (sc->weight == NULL || sc->score == NULL) {
+      return DS_ERR_INVALID;
+    }
+  } else {
+    (void)ds_invidx_scorer_bm25(&bm25, 1.2, 0.75);
+    sc = &bm25;
   }
+  top_k = options != NULL ? options->top_k : 10;
   result->docs = NULL;
   result->scores = NULL;
   result->count = 0;
-  if (idx->docs == idx->deleted_count || top_k == 0) {
+  live = idx->docs - idx->deleted_count;
+  if (live == 0 || top_k == 0 || count == 0) {
     return DS_OK;
   }
-  score = (double *)ds_context_alloc(idx->context, idx->docs * sizeof(double));
-  hit = (unsigned char *)ds_context_calloc(idx->context, idx->docs, 1);
-  list = (ii_scored_t *)ds_context_alloc(idx->context,
-                                         idx->docs * sizeof(ii_scored_t));
-  if (score == NULL || hit == NULL || list == NULL) {
-    ds_context_free(idx->context, score);
-    ds_context_free(idx->context, hit);
-    ds_context_free(idx->context, list);
-    return DS_ERR_ALLOC;
+  stats.documents = (double)live;
+  stats.tokens = (double)(idx->total_tokens - idx->deleted_tokens);
+  stats.average_length = stats.tokens / stats.documents;
+  cur = (ds_invidx_cursor_t *)ds_context_alloc(
+      idx->context, count * sizeof(ds_invidx_cursor_t));
+  weight = (double *)ds_context_alloc(idx->context, count * sizeof(double));
+  if (cur == NULL || weight == NULL) {
+    st = DS_ERR_ALLOC;
+    goto done;
   }
-  live = (double)(idx->docs - idx->deleted_count);
-  avgdl = (double)(idx->total_tokens - idx->deleted_tokens) / live;
-  for (d = 0; d < idx->docs; d++) {
-    score[d] = 0.0;
+  st = ds_pq_init(&queue, options != NULL ? options->queue : NULL,
+                  sizeof(ii_hit_t), ii_hit_worse, NULL, idx->context);
+  if (st != DS_OK) {
+    goto done;
   }
+  queue_live = true;
   for (i = 0; i < count; i++) {
-    ds_invidx_cursor_t c;
-    double df;
-    double idf;
-    ds_invidx_cursor_open(idx, terms[i].text, terms[i].length, &c);
-    if (c.term == II_NONE) {
-      continue;
+    ds_invidx_cursor_open(idx, terms[i].text, terms[i].length, &cur[i]);
+    weight[i] = 0.0;
+    if (cur[i].term != II_NONE) {
+      const ds_invidx_posting_list_t *pl = &idx->postings[cur[i].term];
+      weight[i] = sc->weight(&stats, pl->df, pl->cf, sc->param);
     }
-    df = (double)idx->postings[c.term].df;
-    idf = log(1.0 + (live - df + 0.5) / (df + 0.5));
-    while (ds_invidx_cursor_next(&c)) {
-      size_t di = ii_doc_index(idx, c.doc);
-      double tf = (double)c.freq;
-      double norm = avgdl > 0.0 ? (double)idx->doc_len[di] / avgdl : 0.0;
-      score[di] += idf * tf * (k1 + 1.0) / (tf + k1 * (1.0 - b + b * norm));
-      hit[di] = 1;
+    (void)ds_invidx_cursor_next(&cur[i]);
+  }
+  for (;;) {
+    size_t d = (size_t)-1;
+    bool any = false;
+    ii_hit_t hit;
+    size_t len;
+    if (options != NULL && options->conjunctive) {
+      /* leapfrog: advance everyone to the largest document until they
+       * agree */
+      bool agree = false;
+      while (!agree) {
+        agree = true;
+        d = 0;
+        for (i = 0; i < count; i++) {
+          if (cur[i].ended || cur[i].term == II_NONE) {
+            goto collect;
+          }
+          if (cur[i].doc > d) {
+            d = cur[i].doc;
+          }
+        }
+        for (i = 0; i < count; i++) {
+          if (!ds_invidx_cursor_advance(&cur[i], d)) {
+            goto collect;
+          }
+          if (cur[i].doc != d) {
+            agree = false;
+          }
+        }
+      }
+      any = true;
+    } else {
+      for (i = 0; i < count; i++) {
+        if (cur[i].started && !cur[i].ended && cur[i].term != II_NONE &&
+            cur[i].doc < d) {
+          d = cur[i].doc;
+          any = true;
+        }
+      }
+    }
+    if (!any) {
+      break;
+    }
+    len = idx->doc_len[ii_doc_index(idx, d)];
+    hit.score = 0.0;
+    hit.doc = d;
+    for (i = 0; i < count; i++) {
+      if (cur[i].started && !cur[i].ended && cur[i].term != II_NONE &&
+          cur[i].doc == d) {
+        hit.score += sc->score(&stats, weight[i], cur[i].freq, len, sc->param);
+      }
+    }
+    if (sc->document != NULL) {
+      hit.score += sc->document(&stats, len, count, sc->param);
+    }
+    if (ii_is_nan(hit.score)) {
+      st = DS_ERR_CALLBACK;
+      goto done;
+    }
+    st = ii_offer(&queue, top_k, &hit);
+    if (st != DS_OK) {
+      goto done;
+    }
+    for (i = 0; i < count; i++) {
+      if (cur[i].started && !cur[i].ended && cur[i].term != II_NONE &&
+          cur[i].doc == d) {
+        (void)ds_invidx_cursor_next(&cur[i]);
+      }
     }
   }
-  for (d = 0; d < idx->docs; d++) {
-    if (hit[d]) {
-      list[n].score = score[d];
-      list[n].doc = idx->doc_id[d];
-      n++;
-    }
-  }
-  qsort(list, n, sizeof(ii_scored_t), ii_scored_cmp);
-  if (n > top_k) {
-    n = top_k;
-  }
-  ds_context_free(idx->context, score);
-  ds_context_free(idx->context, hit);
+collect:
+  n = ds_pq_size(&queue);
   result->docs =
       (size_t *)ds_context_alloc(idx->context, (n + 1) * sizeof(size_t));
   result->scores =
       (double *)ds_context_alloc(idx->context, (n + 1) * sizeof(double));
   if (result->docs == NULL || result->scores == NULL) {
     ds_invidx_result_free(idx, result);
-    ds_context_free(idx->context, list);
-    return DS_ERR_ALLOC;
+    st = DS_ERR_ALLOC;
+    goto done;
   }
-  for (i = 0; i < n; i++) {
-    result->docs[i] = list[i].doc;
-    result->scores[i] = list[i].score;
+  /* the queue gives the worst first: fill from the back */
+  for (i = n; i > 0; i--) {
+    ii_hit_t hit;
+    (void)ds_pq_pop(&queue, &hit);
+    result->docs[i - 1] = hit.doc;
+    result->scores[i - 1] = hit.score;
   }
   result->count = n;
-  ds_context_free(idx->context, list);
-  return DS_OK;
+done:
+  if (queue_live) {
+    ds_pq_destroy(&queue);
+  }
+  ds_context_free(idx->context, cur);
+  ds_context_free(idx->context, weight);
+  return st;
+}
+
+ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
+                           const ds_invidx_term_t *terms, size_t count,
+                           double k1, double b, size_t top_k,
+                           ds_invidx_result_t *result) {
+  ds_invidx_scorer_t scorer;
+  ds_invidx_rank_options_t o;
+  ds_status_t st;
+  if (idx == NULL || result == NULL || (count > 0 && terms == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (idx->mode == DS_INVIDX_BLOCK) {
+    return DS_ERR_STATE;
+  }
+  st = ds_invidx_scorer_bm25(&scorer, k1, b);
+  if (st != DS_OK) {
+    return st;
+  }
+  memset(&o, 0, sizeof(o));
+  o.scorer = &scorer;
+  o.top_k = top_k;
+  return ds_invidx_rank(idx, terms, count, &o, result);
 }
