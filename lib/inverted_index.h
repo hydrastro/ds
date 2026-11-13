@@ -5,10 +5,26 @@
  * Inverted indexes over a growing document collection.
  *
  * Terms are byte strings, interned in a dictionary (term ids in order of
- * first appearance). Documents are added in increasing id order as token
- * sequences (or as text through a tokenizer); each term keeps a posting
- * list of gaps, frequencies and position gaps, compressed by a codec
- * chosen at init (ds_invidx_options_t.codec):
+ * first appearance). Their bytes are kept in stable chunks, so a term's
+ * text never moves while the index lives. The dictionary is pluggable
+ * (ds_invidx_options_t.dictionary), an ops table mapping bytes to term
+ * ids:
+ *
+ *   ds_invidx_dict_open()    linear probing over the term bytes (the
+ *                            default): expected O(1) lookups
+ *   ds_invidx_dict_map()     any lib/map_iface backend (dictionary_param:
+ *                            its ops, NULL for Robin Hood hashing)
+ *   ds_invidx_dict_sorted()  ordered: the terms in byte order, kept in a
+ *                            large and a small sorted array merged when the
+ *                            small one outgrows the square root of the
+ *                            large one; O(log V) lookups, O(sqrt V)
+ *                            amortized insertions, and the term cursors and
+ *                            prefix queries below
+ *
+ * Documents are added in increasing id order as token sequences (or as
+ * text through a tokenizer); each term keeps a posting list of gaps,
+ * frequencies and position gaps, compressed by a codec chosen at init
+ * (ds_invidx_options_t.codec):
  *
  *   ds_invidx_codec_vbyte()    variable byte (the default): 7 bits per
  *                              byte, byte aligned, fast
@@ -38,9 +54,11 @@
  * Queries: posting cursors (documents or blocks, frequencies, positions),
  * boolean queries (all of "must", at least one of "should" if any, none
  * of "must not") by merging, phrase queries on positional indexes, and
- * Okapi BM25 ranking (top k) on document and positional indexes. Results
- * are allocated from the index's context and released with
- * ds_invidx_result_free.
+ * Okapi BM25 ranking (top k) on document and positional indexes. With an
+ * ordered dictionary, terms can be walked in byte order from any point
+ * and prefix queries ("comput*") return the documents holding any term
+ * with the prefix. Results are allocated from the index's context and
+ * released with ds_invidx_result_free.
  */
 
 #include "context.h"
@@ -89,6 +107,47 @@ const ds_invidx_codec_t *ds_invidx_codec_delta(void);
 /* k from 0 to 31 (NULL otherwise) */
 const ds_invidx_codec_t *ds_invidx_codec_rice(unsigned k);
 
+/*
+ * Term dictionaries. A backend stores, for every term, its bytes (a
+ * pointer the index keeps valid until the term is removed or the index
+ * destroyed, so a backend may keep it instead of copying) and its id.
+ * find must not change the dictionary, so concurrent readers are safe.
+ * remove is only needed to roll back a failed add: the index removes the
+ * terms that add created, newest first. DS_INVIDX_DICT_ORDERED backends
+ * also walk the terms in byte order (unsigned bytes, a prefix before its
+ * extensions) through a cursor of four words of their choosing.
+ */
+#define DS_INVIDX_DICT_ORDERED 0x1u
+
+typedef struct ds_invidx_dict_cursor {
+  size_t state[4];
+} ds_invidx_dict_cursor_t;
+
+typedef struct ds_invidx_dict_ops {
+  const char *name;
+  unsigned traits;
+  size_t instance_size;
+  /* param: ds_invidx_options_t.dictionary_param */
+  ds_status_t (*init)(void *dict, const void *param, ds_context_t *context);
+  void (*destroy)(void *dict);
+  /* the id of the term with these bytes, DS_INVIDX_NONE when absent */
+  size_t (*find)(const void *dict, const void *text, size_t length);
+  /* add a term that is absent */
+  ds_status_t (*insert)(void *dict, const void *text, size_t length,
+                        size_t term);
+  void (*remove)(void *dict, const void *text, size_t length, size_t term);
+  /* ordered backends: position the cursor at the first term >= text */
+  void (*seek)(const void *dict, const void *text, size_t length,
+               ds_invidx_dict_cursor_t *cursor);
+  /* the term at the cursor, which then advances; DS_INVIDX_NONE at the
+   * end */
+  size_t (*next)(const void *dict, ds_invidx_dict_cursor_t *cursor);
+} ds_invidx_dict_ops_t;
+
+const ds_invidx_dict_ops_t *ds_invidx_dict_open(void);
+const ds_invidx_dict_ops_t *ds_invidx_dict_map(void);
+const ds_invidx_dict_ops_t *ds_invidx_dict_sorted(void);
+
 typedef struct ds_invidx_posting_list {
   unsigned char *bytes;
   size_t length; /* bytes in use */
@@ -104,17 +163,19 @@ typedef struct ds_inverted_index {
   size_t block_size;
   bool keep_forward;
   const ds_invidx_codec_t *codec;
-  /* dictionary */
-  unsigned char *text;
-  size_t text_used;
-  size_t text_capacity;
-  size_t *term_off;
+  /* terms: bytes in chunks that never move, interned by the dictionary */
+  const ds_invidx_dict_ops_t *dict_ops;
+  void *dict;
+  unsigned char **chunks;
+  size_t chunk_count;
+  size_t chunk_capacity;
+  size_t chunk_used; /* bytes used in the last chunk */
+  size_t chunk_size; /* size of the last chunk */
+  const unsigned char **term_text;
   size_t *term_len;
   ds_invidx_posting_list_t *postings;
   size_t terms;
   size_t term_capacity;
-  size_t *slot;
-  size_t slots;
   /* documents in addition order */
   size_t *doc_id;
   size_t *doc_len;
@@ -151,12 +212,18 @@ typedef struct ds_invidx_result {
 ds_status_t ds_invidx_init(ds_inverted_index_t *idx, ds_invidx_mode_t mode,
                            size_t block_size, bool keep_forward,
                            ds_context_t *context);
-/* the same with every choice in one place (NULL: document mode, vbyte) */
+/* the same with every choice in one place (NULL, or zero fields: document
+ * mode, vbyte postings, the open-addressing dictionary) */
 typedef struct ds_invidx_options {
   ds_invidx_mode_t mode;
   size_t block_size; /* block mode */
   bool keep_forward;
   const ds_invidx_codec_t *codec; /* NULL: ds_invidx_codec_vbyte() */
+  /* NULL: ds_invidx_dict_open() */
+  const ds_invidx_dict_ops_t *dictionary;
+  /* passed to the dictionary's init (ds_invidx_dict_map: the
+   * const ds_map_ops_t *, NULL for Robin Hood hashing) */
+  const void *dictionary_param;
 } ds_invidx_options_t;
 ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
                                 const ds_invidx_options_t *options,
@@ -178,8 +245,18 @@ size_t ds_invidx_documents(const ds_inverted_index_t *idx);
 /* DS_INVIDX_NONE when absent */
 size_t ds_invidx_term_id(const ds_inverted_index_t *idx, const void *text,
                          size_t length);
+/* the term's bytes, valid until the index is destroyed */
 ds_status_t ds_invidx_term_text(const ds_inverted_index_t *idx, size_t term,
                                 const void **text, size_t *length);
+/* ordered dictionaries (DS_ERR_UNSUPPORTED otherwise): position a cursor
+ * at the first term >= text in byte order; ds_invidx_term_next then
+ * returns the terms in order, DS_INVIDX_NONE after the last. The cursor
+ * is valid until the next add. */
+ds_status_t ds_invidx_term_seek(const ds_inverted_index_t *idx,
+                                const void *text, size_t length,
+                                ds_invidx_dict_cursor_t *cursor);
+size_t ds_invidx_term_next(const ds_inverted_index_t *idx,
+                           ds_invidx_dict_cursor_t *cursor);
 size_t ds_invidx_document_frequency(const ds_inverted_index_t *idx,
                                     const void *text, size_t length);
 /* compressed size of all posting lists, in bytes */
@@ -219,6 +296,13 @@ ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
                            const ds_invidx_term_t *terms, size_t count,
                            double k1, double b, size_t top_k,
                            ds_invidx_result_t *result);
+/* ordered dictionaries (DS_ERR_UNSUPPORTED otherwise): the documents
+ * (blocks in block mode) holding at least one term that starts with the
+ * prefix, ascending; *terms_matched (optional) gets the number of such
+ * terms */
+ds_status_t ds_invidx_prefix(const ds_inverted_index_t *idx, const void *prefix,
+                             size_t length, ds_invidx_result_t *result,
+                             size_t *terms_matched);
 void ds_invidx_result_free(const ds_inverted_index_t *idx,
                            ds_invidx_result_t *result);
 

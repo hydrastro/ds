@@ -1,4 +1,5 @@
 #include "inverted_index.h"
+#include "map_iface.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -279,6 +280,469 @@ static size_t ii_hash(const unsigned char *s, size_t n) {
   return (size_t)h;
 }
 
+/* byte order, a prefix before its extensions */
+static int ii_text_cmp(const unsigned char *a, size_t na,
+                       const unsigned char *b, size_t nb) {
+  size_t n = na < nb ? na : nb;
+  int c = n > 0 ? memcmp(a, b, n) : 0;
+  if (c != 0) {
+    return c;
+  }
+  return na < nb ? -1 : na > nb ? 1 : 0;
+}
+
+static bool ii_text_eq(const unsigned char *a, size_t na,
+                       const unsigned char *b, size_t nb) {
+  return na == nb && (na == 0 || memcmp(a, b, na) == 0);
+}
+
+/* ---- dictionary: linear probing ---- */
+
+typedef struct ii_entry {
+  const unsigned char *text;
+  size_t length;
+  size_t term; /* II_NONE: empty slot */
+} ii_entry_t;
+
+typedef struct ii_open {
+  ii_entry_t *slot;
+  size_t slots; /* 0 or a power of two */
+  size_t count;
+  ds_context_t *context;
+} ii_open_t;
+
+static ds_status_t ii_open_init(void *d, const void *param,
+                                ds_context_t *context) {
+  ii_open_t *o = (ii_open_t *)d;
+  (void)param;
+  memset(o, 0, sizeof(*o));
+  o->context = context;
+  return DS_OK;
+}
+
+static void ii_open_destroy(void *d) {
+  ii_open_t *o = (ii_open_t *)d;
+  ds_context_free(o->context, o->slot);
+  o->slot = NULL;
+}
+
+static size_t ii_open_find(const void *d, const void *text, size_t length) {
+  const ii_open_t *o = (const ii_open_t *)d;
+  const unsigned char *t = (const unsigned char *)text;
+  size_t at;
+  if (o->slots == 0) {
+    return II_NONE;
+  }
+  at = ii_hash(t, length) & (o->slots - 1);
+  while (o->slot[at].term != II_NONE) {
+    if (ii_text_eq(o->slot[at].text, o->slot[at].length, t, length)) {
+      return o->slot[at].term;
+    }
+    at = (at + 1) & (o->slots - 1);
+  }
+  return II_NONE;
+}
+
+static void ii_open_place(ii_entry_t *slot, size_t slots, const ii_entry_t *e) {
+  size_t at = ii_hash(e->text, e->length) & (slots - 1);
+  while (slot[at].term != II_NONE) {
+    at = (at + 1) & (slots - 1);
+  }
+  slot[at] = *e;
+}
+
+static ds_status_t ii_open_insert(void *d, const void *text, size_t length,
+                                  size_t term) {
+  ii_open_t *o = (ii_open_t *)d;
+  ii_entry_t e;
+  if (2 * (o->count + 1) > o->slots) {
+    size_t slots = o->slots < 16 ? 32 : o->slots * 2;
+    ii_entry_t *s;
+    size_t i;
+    if (o->slots > (size_t)-1 / 4 / sizeof(ii_entry_t)) {
+      return DS_ERR_OVERFLOW;
+    }
+    s = (ii_entry_t *)ds_context_alloc(o->context, slots * sizeof(ii_entry_t));
+    if (s == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    for (i = 0; i < slots; i++) {
+      s[i].term = II_NONE;
+    }
+    for (i = 0; i < o->slots; i++) {
+      if (o->slot[i].term != II_NONE) {
+        ii_open_place(s, slots, &o->slot[i]);
+      }
+    }
+    ds_context_free(o->context, o->slot);
+    o->slot = s;
+    o->slots = slots;
+  }
+  e.text = (const unsigned char *)text;
+  e.length = length;
+  e.term = term;
+  ii_open_place(o->slot, o->slots, &e);
+  o->count++;
+  return DS_OK;
+}
+
+/* backward-shift deletion: no tombstones, probes stay short */
+static void ii_open_remove(void *d, const void *text, size_t length,
+                           size_t term) {
+  ii_open_t *o = (ii_open_t *)d;
+  size_t mask;
+  size_t i;
+  size_t j;
+  if (o->slots == 0) {
+    return;
+  }
+  mask = o->slots - 1;
+  i = ii_hash((const unsigned char *)text, length) & mask;
+  while (o->slot[i].term != term) {
+    if (o->slot[i].term == II_NONE) {
+      return;
+    }
+    i = (i + 1) & mask;
+  }
+  j = i;
+  for (;;) {
+    size_t home;
+    j = (j + 1) & mask;
+    if (o->slot[j].term == II_NONE) {
+      break;
+    }
+    home = ii_hash(o->slot[j].text, o->slot[j].length) & mask;
+    /* move j back to i unless its home lies cyclically in (i, j] */
+    if (i <= j ? (home <= i || home > j) : (home <= i && home > j)) {
+      o->slot[i] = o->slot[j];
+      i = j;
+    }
+  }
+  o->slot[i].term = II_NONE;
+  o->count--;
+}
+
+static const ds_invidx_dict_ops_t ii_dict_open = {"open addressing",
+                                                  0u,
+                                                  sizeof(ii_open_t),
+                                                  ii_open_init,
+                                                  ii_open_destroy,
+                                                  ii_open_find,
+                                                  ii_open_insert,
+                                                  ii_open_remove,
+                                                  NULL,
+                                                  NULL};
+
+const ds_invidx_dict_ops_t *ds_invidx_dict_open(void) { return &ii_dict_open; }
+
+/* ---- dictionary: the map capability ---- */
+
+typedef struct ii_key {
+  const unsigned char *text;
+  size_t length;
+} ii_key_t;
+
+typedef struct ii_mapdict {
+  ds_map_t map;
+} ii_mapdict_t;
+
+static unsigned long ii_key_hash(const void *key, void *user) {
+  const ii_key_t *k = (const ii_key_t *)key;
+  (void)user;
+  return (unsigned long)ii_hash(k->text, k->length);
+}
+
+static bool ii_key_equal(const void *a, const void *b, void *user) {
+  const ii_key_t *x = (const ii_key_t *)a;
+  const ii_key_t *y = (const ii_key_t *)b;
+  (void)user;
+  return ii_text_eq(x->text, x->length, y->text, y->length);
+}
+
+static ds_status_t ii_map_init(void *d, const void *param,
+                               ds_context_t *context) {
+  ii_mapdict_t *m = (ii_mapdict_t *)d;
+  return ds_map_init(&m->map, (const ds_map_ops_t *)param, sizeof(ii_key_t),
+                     sizeof(size_t), ii_key_hash, ii_key_equal, NULL, context);
+}
+
+static void ii_map_destroy(void *d) {
+  ds_map_destroy(&((ii_mapdict_t *)d)->map);
+}
+
+static size_t ii_map_find(const void *d, const void *text, size_t length) {
+  const ii_mapdict_t *m = (const ii_mapdict_t *)d;
+  ii_key_t k;
+  const void *v;
+  size_t term;
+  k.text = (const unsigned char *)text;
+  k.length = length;
+  v = ds_map_get(&m->map, &k);
+  if (v == NULL) {
+    return II_NONE;
+  }
+  memcpy(&term, v, sizeof(term)); /* values need not be aligned */
+  return term;
+}
+
+static ds_status_t ii_map_insert(void *d, const void *text, size_t length,
+                                 size_t term) {
+  ii_mapdict_t *m = (ii_mapdict_t *)d;
+  ii_key_t k;
+  ds_status_t st;
+  k.text = (const unsigned char *)text;
+  k.length = length;
+  st = ds_map_put(&m->map, &k, &term);
+  return st == DS_EXISTS ? DS_ERR_STATE : st;
+}
+
+static void ii_map_remove(void *d, const void *text, size_t length,
+                          size_t term) {
+  ii_mapdict_t *m = (ii_mapdict_t *)d;
+  ii_key_t k;
+  (void)term;
+  k.text = (const unsigned char *)text;
+  k.length = length;
+  (void)ds_map_remove(&m->map, &k, NULL);
+}
+
+static const ds_invidx_dict_ops_t ii_dict_map = {"map capability",
+                                                 0u,
+                                                 sizeof(ii_mapdict_t),
+                                                 ii_map_init,
+                                                 ii_map_destroy,
+                                                 ii_map_find,
+                                                 ii_map_insert,
+                                                 ii_map_remove,
+                                                 NULL,
+                                                 NULL};
+
+const ds_invidx_dict_ops_t *ds_invidx_dict_map(void) { return &ii_dict_map; }
+
+/* ---- dictionary: sorted, a large and a small sorted array ---- */
+
+typedef struct ii_sorted {
+  ii_entry_t *main;
+  size_t main_n;
+  size_t main_cap;
+  ii_entry_t *side; /* at most about sqrt(main_n) entries */
+  size_t side_n;
+  size_t side_cap;
+  ds_context_t *context;
+} ii_sorted_t;
+
+static ds_status_t ii_sorted_init(void *d, const void *param,
+                                  ds_context_t *context) {
+  ii_sorted_t *o = (ii_sorted_t *)d;
+  (void)param;
+  memset(o, 0, sizeof(*o));
+  o->context = context;
+  return DS_OK;
+}
+
+static void ii_sorted_destroy(void *d) {
+  ii_sorted_t *o = (ii_sorted_t *)d;
+  ds_context_free(o->context, o->main);
+  ds_context_free(o->context, o->side);
+  o->main = NULL;
+  o->side = NULL;
+}
+
+/* the first entry >= text */
+static size_t ii_lower(const ii_entry_t *e, size_t n, const unsigned char *t,
+                       size_t length) {
+  size_t lo = 0;
+  size_t hi = n;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2;
+    if (ii_text_cmp(e[mid].text, e[mid].length, t, length) < 0) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}
+
+static size_t ii_sorted_find(const void *d, const void *text, size_t length) {
+  const ii_sorted_t *o = (const ii_sorted_t *)d;
+  const unsigned char *t = (const unsigned char *)text;
+  size_t i = ii_lower(o->main, o->main_n, t, length);
+  if (i < o->main_n &&
+      ii_text_eq(o->main[i].text, o->main[i].length, t, length)) {
+    return o->main[i].term;
+  }
+  i = ii_lower(o->side, o->side_n, t, length);
+  if (i < o->side_n &&
+      ii_text_eq(o->side[i].text, o->side[i].length, t, length)) {
+    return o->side[i].term;
+  }
+  return II_NONE;
+}
+
+/* merge the small array into the large one, from the back */
+static void ii_sorted_merge(ii_sorted_t *o) {
+  size_t i = o->main_n;
+  size_t j = o->side_n;
+  size_t k = o->main_n + o->side_n;
+  while (j > 0) {
+    if (i > 0 && ii_text_cmp(o->main[i - 1].text, o->main[i - 1].length,
+                             o->side[j - 1].text, o->side[j - 1].length) > 0) {
+      o->main[--k] = o->main[--i];
+    } else {
+      o->main[--k] = o->side[--j];
+    }
+  }
+  o->main_n += o->side_n;
+  o->side_n = 0;
+}
+
+static ds_status_t ii_sorted_insert(void *d, const void *text, size_t length,
+                                    size_t term) {
+  ii_sorted_t *o = (ii_sorted_t *)d;
+  const unsigned char *t = (const unsigned char *)text;
+  size_t limit = 32;
+  size_t i;
+  ds_status_t st = ii_reserve(o->context, (void **)&o->side, &o->side_cap,
+                              o->side_n + 1, sizeof(ii_entry_t));
+  if (st != DS_OK) {
+    return st;
+  }
+  i = ii_lower(o->side, o->side_n, t, length);
+  memmove(o->side + i + 1, o->side + i, (o->side_n - i) * sizeof(ii_entry_t));
+  o->side[i].text = t;
+  o->side[i].length = length;
+  o->side[i].term = term;
+  o->side_n++;
+  while (limit < o->main_n / limit) {
+    limit *= 2;
+  }
+  /* a failed merge leaves the term in the small array, still found */
+  if (o->side_n > limit &&
+      ii_reserve(o->context, (void **)&o->main, &o->main_cap,
+                 o->main_n + o->side_n, sizeof(ii_entry_t)) == DS_OK) {
+    ii_sorted_merge(o);
+  }
+  return DS_OK;
+}
+
+static void ii_sorted_remove(void *d, const void *text, size_t length,
+                             size_t term) {
+  ii_sorted_t *o = (ii_sorted_t *)d;
+  const unsigned char *t = (const unsigned char *)text;
+  size_t i = ii_lower(o->side, o->side_n, t, length);
+  if (i < o->side_n && o->side[i].term == term) {
+    memmove(o->side + i, o->side + i + 1,
+            (o->side_n - i - 1) * sizeof(ii_entry_t));
+    o->side_n--;
+    return;
+  }
+  i = ii_lower(o->main, o->main_n, t, length);
+  if (i < o->main_n && o->main[i].term == term) {
+    memmove(o->main + i, o->main + i + 1,
+            (o->main_n - i - 1) * sizeof(ii_entry_t));
+    o->main_n--;
+  }
+}
+
+static void ii_sorted_seek(const void *d, const void *text, size_t length,
+                           ds_invidx_dict_cursor_t *c) {
+  const ii_sorted_t *o = (const ii_sorted_t *)d;
+  const unsigned char *t = (const unsigned char *)text;
+  memset(c, 0, sizeof(*c));
+  c->state[0] = ii_lower(o->main, o->main_n, t, length);
+  c->state[1] = ii_lower(o->side, o->side_n, t, length);
+}
+
+static size_t ii_sorted_next(const void *d, ds_invidx_dict_cursor_t *c) {
+  const ii_sorted_t *o = (const ii_sorted_t *)d;
+  size_t i = c->state[0];
+  size_t j = c->state[1];
+  if (i < o->main_n &&
+      (j >= o->side_n || ii_text_cmp(o->main[i].text, o->main[i].length,
+                                     o->side[j].text, o->side[j].length) < 0)) {
+    c->state[0]++;
+    return o->main[i].term;
+  }
+  if (j < o->side_n) {
+    c->state[1]++;
+    return o->side[j].term;
+  }
+  return II_NONE;
+}
+
+static const ds_invidx_dict_ops_t ii_dict_sorted = {
+    "sorted",         DS_INVIDX_DICT_ORDERED, sizeof(ii_sorted_t),
+    ii_sorted_init,   ii_sorted_destroy,      ii_sorted_find,
+    ii_sorted_insert, ii_sorted_remove,       ii_sorted_seek,
+    ii_sorted_next};
+
+const ds_invidx_dict_ops_t *ds_invidx_dict_sorted(void) {
+  return &ii_dict_sorted;
+}
+
+/* ---- term bytes, in chunks that never move ---- */
+
+static const unsigned char ii_empty[1] = {0};
+
+typedef struct ii_chunk_mark {
+  size_t count;
+  size_t used;
+  size_t size;
+} ii_chunk_mark_t;
+
+static void ii_chunk_mark(const ds_inverted_index_t *idx, ii_chunk_mark_t *m) {
+  m->count = idx->chunk_count;
+  m->used = idx->chunk_used;
+  m->size = idx->chunk_size;
+}
+
+/* give back the chunks and bytes taken since the mark */
+static void ii_chunk_rewind(ds_inverted_index_t *idx,
+                            const ii_chunk_mark_t *m) {
+  while (idx->chunk_count > m->count) {
+    ds_context_free(idx->context, idx->chunks[--idx->chunk_count]);
+  }
+  idx->chunk_used = m->used;
+  idx->chunk_size = m->size;
+}
+
+static ds_status_t ii_store_text(ds_inverted_index_t *idx, const void *text,
+                                 size_t length, const unsigned char **out) {
+  unsigned char *p;
+  if (length == 0) {
+    *out = ii_empty;
+    return DS_OK;
+  }
+  if (idx->chunk_count == 0 || idx->chunk_size - idx->chunk_used < length) {
+    size_t size = idx->chunk_size < 256     ? 256
+                  : idx->chunk_size > 32768 ? 65536
+                                            : 2 * idx->chunk_size;
+    unsigned char *chunk;
+    ds_status_t st;
+    if (size < length) {
+      size = length;
+    }
+    st = ii_reserve(idx->context, (void **)&idx->chunks, &idx->chunk_capacity,
+                    idx->chunk_count + 1, sizeof(unsigned char *));
+    if (st != DS_OK) {
+      return st;
+    }
+    chunk = (unsigned char *)ds_context_alloc(idx->context, size);
+    if (chunk == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    idx->chunks[idx->chunk_count++] = chunk;
+    idx->chunk_size = size;
+    idx->chunk_used = 0;
+  }
+  p = idx->chunks[idx->chunk_count - 1] + idx->chunk_used;
+  memcpy(p, text, length);
+  idx->chunk_used += length;
+  *out = p;
+  return DS_OK;
+}
+
 ds_status_t ds_invidx_init(ds_inverted_index_t *idx, ds_invidx_mode_t mode,
                            size_t block_size, bool keep_forward,
                            ds_context_t *context) {
@@ -294,9 +758,11 @@ ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
                                 const ds_invidx_options_t *options,
                                 ds_context_t *context) {
   ds_invidx_options_t def;
+  const ds_invidx_dict_ops_t *dict;
   ds_invidx_mode_t mode;
   size_t block_size;
   bool keep_forward;
+  ds_status_t st;
   if (idx == NULL) {
     return DS_ERR_NULL;
   }
@@ -314,12 +780,31 @@ ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
        options->codec->get == NULL)) {
     return DS_ERR_INVALID;
   }
+  dict = options->dictionary != NULL ? options->dictionary : &ii_dict_open;
+  if (dict->init == NULL || dict->destroy == NULL || dict->find == NULL ||
+      dict->insert == NULL || dict->remove == NULL ||
+      ((dict->traits & DS_INVIDX_DICT_ORDERED) != 0 &&
+       (dict->seek == NULL || dict->next == NULL))) {
+    return DS_ERR_INVALID;
+  }
   idx->codec = options->codec != NULL ? options->codec : &ii_codec_vbyte;
   if ((mode != DS_INVIDX_DOCUMENT && mode != DS_INVIDX_POSITIONAL &&
        mode != DS_INVIDX_BLOCK) ||
       (mode == DS_INVIDX_BLOCK && block_size == 0)) {
     return DS_ERR_INVALID;
   }
+  idx->dict = ds_context_alloc(
+      context, dict->instance_size > 0 ? dict->instance_size : 1);
+  if (idx->dict == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  st = dict->init(idx->dict, options->dictionary_param, context);
+  if (st != DS_OK) {
+    ds_context_free(context, idx->dict);
+    idx->dict = NULL;
+    return st;
+  }
+  idx->dict_ops = dict;
   idx->mode = mode;
   idx->block_size = mode == DS_INVIDX_BLOCK ? block_size : 1;
   idx->keep_forward = keep_forward;
@@ -335,11 +820,17 @@ void ds_invidx_destroy(ds_inverted_index_t *idx) {
   for (t = 0; t < idx->terms; t++) {
     ds_context_free(idx->context, idx->postings[t].bytes);
   }
-  ds_context_free(idx->context, idx->text);
-  ds_context_free(idx->context, idx->term_off);
+  if (idx->dict_ops != NULL) {
+    idx->dict_ops->destroy(idx->dict);
+    ds_context_free(idx->context, idx->dict);
+  }
+  for (t = 0; t < idx->chunk_count; t++) {
+    ds_context_free(idx->context, idx->chunks[t]);
+  }
+  ds_context_free(idx->context, idx->chunks);
+  ds_context_free(idx->context, (void *)idx->term_text);
   ds_context_free(idx->context, idx->term_len);
   ds_context_free(idx->context, idx->postings);
-  ds_context_free(idx->context, idx->slot);
   ds_context_free(idx->context, idx->doc_id);
   ds_context_free(idx->context, idx->doc_len);
   ds_context_free(idx->context, idx->fwd_off);
@@ -350,64 +841,30 @@ void ds_invidx_destroy(ds_inverted_index_t *idx) {
 
 size_t ds_invidx_term_id(const ds_inverted_index_t *idx, const void *text,
                          size_t length) {
-  size_t at;
-  if (idx == NULL || idx->slots == 0 || (length > 0 && text == NULL)) {
+  if (idx == NULL || idx->dict_ops == NULL || (length > 0 && text == NULL)) {
     return II_NONE;
   }
-  at = ii_hash((const unsigned char *)text, length) & (idx->slots - 1);
-  while (idx->slot[at] != II_NONE) {
-    size_t t = idx->slot[at];
-    if (idx->term_len[t] == length &&
-        (length == 0 ||
-         memcmp(idx->text + idx->term_off[t], text, length) == 0)) {
-      return t;
-    }
-    at = (at + 1) & (idx->slots - 1);
-  }
-  return II_NONE;
+  return idx->dict_ops->find(idx->dict, length > 0 ? text : ii_empty, length);
 }
 
-static ds_status_t ii_rehash(ds_inverted_index_t *idx, size_t slots) {
-  size_t *s = (size_t *)ds_context_alloc(idx->context, slots * sizeof(size_t));
-  size_t i;
-  if (s == NULL) {
-    return DS_ERR_ALLOC;
-  }
-  for (i = 0; i < slots; i++) {
-    s[i] = II_NONE;
-  }
-  for (i = 0; i < idx->terms; i++) {
-    size_t at =
-        ii_hash(idx->text + idx->term_off[i], idx->term_len[i]) & (slots - 1);
-    while (s[at] != II_NONE) {
-      at = (at + 1) & (slots - 1);
-    }
-    s[at] = i;
-  }
-  ds_context_free(idx->context, idx->slot);
-  idx->slot = s;
-  idx->slots = slots;
-  return DS_OK;
-}
-
+/* the term with these bytes, created when absent (its bytes and the
+ * dictionary entry are given back by the caller's rollback on failure) */
 static ds_status_t ii_intern(ds_inverted_index_t *idx, const void *text,
                              size_t length, size_t *out) {
   size_t t = ds_invidx_term_id(idx, text, length);
   size_t cap;
+  const unsigned char *stored;
   ds_status_t st;
   if (t != II_NONE) {
     *out = t;
     return DS_OK;
   }
-  if (2 * (idx->terms + 1) > idx->slots) {
-    st = ii_rehash(idx, idx->slots < 16 ? 32 : idx->slots * 2);
-    if (st != DS_OK) {
-      return st;
-    }
+  if (idx->terms == II_NONE - 1) {
+    return DS_ERR_OVERFLOW;
   }
   cap = idx->term_capacity;
-  st = ii_reserve(idx->context, (void **)&idx->term_off, &cap, idx->terms + 1,
-                  sizeof(size_t));
+  st = ii_reserve(idx->context, (void **)&idx->term_text, &cap, idx->terms + 1,
+                  sizeof(const unsigned char *));
   if (st == DS_OK) {
     cap = idx->term_capacity;
     st = ii_reserve(idx->context, (void **)&idx->term_len, &cap, idx->terms + 1,
@@ -418,30 +875,21 @@ static ds_status_t ii_intern(ds_inverted_index_t *idx, const void *text,
     st = ii_reserve(idx->context, (void **)&idx->postings, &cap, idx->terms + 1,
                     sizeof(ds_invidx_posting_list_t));
   }
-  if (st == DS_OK) {
-    st = ii_reserve(idx->context, (void **)&idx->text, &idx->text_capacity,
-                    idx->text_used + length + 1, 1);
-  }
   if (st != DS_OK) {
     return st;
   }
   idx->term_capacity = cap;
-  if (length > 0) {
-    memcpy(idx->text + idx->text_used, text, length);
+  st = ii_store_text(idx, text, length, &stored);
+  if (st == DS_OK) {
+    st = idx->dict_ops->insert(idx->dict, stored, length, idx->terms);
+  }
+  if (st != DS_OK) {
+    return st;
   }
   t = idx->terms++;
-  idx->term_off[t] = idx->text_used;
+  idx->term_text[t] = stored;
   idx->term_len[t] = length;
-  idx->text_used += length;
   memset(&idx->postings[t], 0, sizeof(ds_invidx_posting_list_t));
-  {
-    size_t at =
-        ii_hash(idx->text + idx->term_off[t], length) & (idx->slots - 1);
-    while (idx->slot[at] != II_NONE) {
-      at = (at + 1) & (idx->slots - 1);
-    }
-    idx->slot[at] = t;
-  }
   *out = t;
   return DS_OK;
 }
@@ -464,6 +912,7 @@ ds_status_t ds_invidx_add(ds_inverted_index_t *idx, size_t doc_id,
                           const ds_invidx_term_t *tokens, size_t count) {
   ii_pair_t *pairs = NULL;
   ds_invidx_posting_list_t *saved = NULL;
+  ii_chunk_mark_t mark;
   size_t old_terms;
   size_t old_fwd;
   size_t block;
@@ -502,6 +951,7 @@ ds_status_t ds_invidx_add(ds_inverted_index_t *idx, size_t doc_id,
   idx->doc_capacity = cap;
   old_terms = idx->terms;
   old_fwd = idx->fwd_used;
+  ii_chunk_mark(idx, &mark);
   pairs = (ii_pair_t *)ds_context_alloc(idx->context,
                                         (count + 1) * sizeof(ii_pair_t));
   if (pairs == NULL) {
@@ -613,25 +1063,13 @@ fail:
       }
     }
   }
-  for (i = old_terms; i < idx->terms; i++) {
-    ds_context_free(idx->context, idx->postings[i].bytes);
+  /* forget the new terms, newest first, before their bytes go */
+  while (idx->terms > old_terms) {
+    size_t t = --idx->terms;
+    idx->dict_ops->remove(idx->dict, idx->term_text[t], idx->term_len[t], t);
+    ds_context_free(idx->context, idx->postings[t].bytes);
   }
-  if (idx->terms > old_terms) {
-    idx->text_used = idx->term_off[old_terms];
-    idx->terms = old_terms;
-    /* rebuild the table in place without the new terms */
-    for (i = 0; i < idx->slots; i++) {
-      idx->slot[i] = II_NONE;
-    }
-    for (i = 0; i < idx->terms; i++) {
-      size_t at = ii_hash(idx->text + idx->term_off[i], idx->term_len[i]) &
-                  (idx->slots - 1);
-      while (idx->slot[at] != II_NONE) {
-        at = (at + 1) & (idx->slots - 1);
-      }
-      idx->slot[at] = i;
-    }
-  }
+  ii_chunk_rewind(idx, &mark);
   idx->fwd_used = old_fwd;
   ds_context_free(idx->context, pairs);
   ds_context_free(idx->context, saved);
@@ -732,9 +1170,32 @@ ds_status_t ds_invidx_term_text(const ds_inverted_index_t *idx, size_t term,
   if (term >= idx->terms) {
     return DS_ERR_RANGE;
   }
-  *text = idx->text + idx->term_off[term];
+  *text = idx->term_text[term];
   *length = idx->term_len[term];
   return DS_OK;
+}
+
+ds_status_t ds_invidx_term_seek(const ds_inverted_index_t *idx,
+                                const void *text, size_t length,
+                                ds_invidx_dict_cursor_t *cursor) {
+  if (idx == NULL || cursor == NULL || (length > 0 && text == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (idx->dict_ops == NULL ||
+      (idx->dict_ops->traits & DS_INVIDX_DICT_ORDERED) == 0) {
+    return DS_ERR_UNSUPPORTED;
+  }
+  idx->dict_ops->seek(idx->dict, length > 0 ? text : ii_empty, length, cursor);
+  return DS_OK;
+}
+
+size_t ds_invidx_term_next(const ds_inverted_index_t *idx,
+                           ds_invidx_dict_cursor_t *cursor) {
+  if (idx == NULL || cursor == NULL || idx->dict_ops == NULL ||
+      (idx->dict_ops->traits & DS_INVIDX_DICT_ORDERED) == 0) {
+    return II_NONE;
+  }
+  return idx->dict_ops->next(idx->dict, cursor);
 }
 
 size_t ds_invidx_document_frequency(const ds_inverted_index_t *idx,
@@ -1071,6 +1532,77 @@ ds_invidx_boolean(const ds_inverted_index_t *idx, const ds_invidx_term_t *must,
   }
   result->docs = acc;
   result->count = na;
+  return DS_OK;
+}
+
+static int ii_size_cmp(const void *x, const void *y) {
+  size_t a = *(const size_t *)x;
+  size_t b = *(const size_t *)y;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+ds_status_t ds_invidx_prefix(const ds_inverted_index_t *idx, const void *prefix,
+                             size_t length, ds_invidx_result_t *result,
+                             size_t *terms_matched) {
+  ds_invidx_dict_cursor_t c;
+  size_t *acc = NULL;
+  size_t na = 0;
+  size_t cap = 0;
+  size_t matched = 0;
+  size_t t;
+  ds_status_t st;
+  if (idx == NULL || result == NULL || (length > 0 && prefix == NULL)) {
+    return DS_ERR_NULL;
+  }
+  result->docs = NULL;
+  result->scores = NULL;
+  result->count = 0;
+  st = ds_invidx_term_seek(idx, prefix, length, &c);
+  if (st != DS_OK) {
+    return st;
+  }
+  while ((t = idx->dict_ops->next(idx->dict, &c)) != II_NONE) {
+    ds_invidx_cursor_t pc;
+    size_t df = idx->postings[t].df;
+    if (idx->term_len[t] < length ||
+        (length > 0 && memcmp(idx->term_text[t], prefix, length) != 0)) {
+      break; /* past the terms with the prefix */
+    }
+    matched++;
+    if (df > (size_t)-1 - 1 - na) {
+      st = DS_ERR_OVERFLOW;
+      break;
+    }
+    st = ii_reserve(idx->context, (void **)&acc, &cap, na + df + 1,
+                    sizeof(size_t));
+    if (st != DS_OK) {
+      break;
+    }
+    ii_cursor_term(idx, t, &pc);
+    while (ds_invidx_cursor_next(&pc)) {
+      acc[na++] = pc.doc;
+    }
+  }
+  if (st != DS_OK) {
+    ds_context_free(idx->context, acc);
+    return st;
+  }
+  if (na > 1) {
+    size_t i;
+    size_t k = 1;
+    qsort(acc, na, sizeof(size_t), ii_size_cmp);
+    for (i = 1; i < na; i++) {
+      if (acc[i] != acc[k - 1]) {
+        acc[k++] = acc[i];
+      }
+    }
+    na = k;
+  }
+  result->docs = acc;
+  result->count = na;
+  if (terms_matched != NULL) {
+    *terms_matched = matched;
+  }
   return DS_OK;
 }
 
