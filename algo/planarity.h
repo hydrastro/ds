@@ -51,6 +51,10 @@
  * a claimed certificate independently by tracing the paths between its
  * branch vertices.
  *
+ * ds_planar_draw() turns an embedding into a straight-line drawing on the
+ * integer grid [0, 2n - 4] x [0, n - 2] that realises its rotations, in
+ * O(n) (canonical ordering and the shift method).
+ *
  * Built on the test: ds_outerplanarity_test() (the graph plus one vertex
  * joined to every vertex must be planar; the embedding then has every
  * vertex on one face, recorded in `outer`), and
@@ -144,6 +148,17 @@ ds_status_t ds_kuratowski_classify(size_t vertices, const size_t *u,
                                    const size_t *v, size_t count,
                                    ds_kuratowski_kind_t *out_kind,
                                    ds_context_t *context);
+
+/* a straight-line drawing of the embedding on the integer grid
+ * [0, 2n - 4] x [0, n - 2] (n >= 3): no two edges cross and no vertex lies
+ * on an edge it does not end. The embedding is completed to a connected,
+ * internally triangulated one (the largest face stays outer), and the
+ * vertices are placed in a canonical order by the shift method of de
+ * Fraysseix, Pach and Pollack with Chrobak and Payne's relative offsets:
+ * O(n) time. Around each vertex the neighbours appear in rotation order.
+ * DS_ERR_INVALID if ds_planar_embedding_check() rejects the embedding. */
+ds_status_t ds_planar_draw(const ds_planar_embedding_t *e, size_t *out_x,
+                           size_t *out_y);
 
 /* a maximal planar subgraph of an undirected edge list: keep[i] is set for
  * the edges kept, scanning them in order; *out_kept counts them (may be

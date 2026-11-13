@@ -1961,3 +1961,685 @@ ds_status_t ds_planarity_maximal_subgraph(size_t vertices, const size_t *u,
   ds_context_free(context, stamp);
   return st;
 }
+
+/* ---- straight-line drawings ----------------------------------------------
+ *
+ * The embedding is copied into a growable half-edge structure, made
+ * connected (an edge between components), made 2-connected along every
+ * face (an edge across a vertex that a face visits twice), and every face
+ * but the largest is triangulated by a fan that skips existing edges. A
+ * canonical ordering is then peeled off from the outer face (a vertex with
+ * no chords, keeping the contour), and the shift method of de Fraysseix,
+ * Pach and Pollack places the vertices in that order with relative offsets
+ * in a binary tree (Chrobak and Payne), so the whole drawing is O(n).
+ */
+
+typedef struct dr {
+  ds_context_t *ctx;
+  size_t n;
+  size_t hcap;
+  size_t hcount;
+  size_t *block;
+  size_t *org; /* half-edge: origin */
+  size_t *dst; /* target */
+  size_t *cw;  /* next half-edge clockwise around the origin */
+  size_t *ccw;
+  size_t *first; /* n: a half-edge of each vertex */
+  size_t *tab;   /* edge set: hash of unordered pairs -> half-edge */
+  size_t tmask;
+  unsigned char *seen; /* hcap: half-edge visited */
+} dr_t;
+
+static size_t dr_twin(size_t h) { return h ^ 1u; }
+
+static size_t dr_hash(const dr_t *d, size_t a, size_t b) {
+  size_t x = a < b ? a : b;
+  size_t y = a < b ? b : a;
+  size_t h = x * (size_t)2654435761u;
+  h ^= y + (size_t)0x9e3779b9u + (h << 6) + (h >> 2);
+  h *= (size_t)0x85ebca6bu;
+  h ^= h >> 13;
+  return h & d->tmask;
+}
+
+static bool dr_has(const dr_t *d, size_t a, size_t b) {
+  size_t i = dr_hash(d, a, b);
+  while (d->tab[i] != PL_NONE) {
+    size_t h = d->tab[i];
+    if ((d->org[h] == a && d->dst[h] == b) ||
+        (d->org[h] == b && d->dst[h] == a)) {
+      return true;
+    }
+    i = (i + 1) & d->tmask;
+  }
+  return false;
+}
+
+static void dr_remember(dr_t *d, size_t h) {
+  size_t i = dr_hash(d, d->org[h], d->dst[h]);
+  while (d->tab[i] != PL_NONE) {
+    i = (i + 1) & d->tmask;
+  }
+  d->tab[i] = h;
+}
+
+/* h joins its origin's rotation clockwise right after ref (or alone) */
+static void dr_after(dr_t *d, size_t h, size_t ref) {
+  size_t v = d->org[h];
+  if (ref == PL_NONE) {
+    d->cw[h] = h;
+    d->ccw[h] = h;
+    d->first[v] = h;
+    return;
+  }
+  d->cw[h] = d->cw[ref];
+  d->ccw[h] = ref;
+  d->ccw[d->cw[ref]] = h;
+  d->cw[ref] = h;
+}
+
+/* a new edge a-b: a's half-edge clockwise after ra, b's counterclockwise
+ * before rb (either reference may be NONE for a vertex without edges) */
+static size_t dr_add(dr_t *d, size_t a, size_t b, size_t ra, size_t rb) {
+  size_t h = d->hcount;
+  if (h + 2 > d->hcap) {
+    return PL_NONE;
+  }
+  d->hcount += 2;
+  d->org[h] = a;
+  d->dst[h] = b;
+  d->org[h + 1] = b;
+  d->dst[h + 1] = a;
+  d->seen[h] = 0;
+  d->seen[h + 1] = 0;
+  dr_after(d, h, ra);
+  dr_after(d, h + 1, rb == PL_NONE ? PL_NONE : d->ccw[rb]);
+  dr_remember(d, h);
+  return h;
+}
+
+/* the next half-edge along the face: just before the twin at the target */
+static size_t dr_next(const dr_t *d, size_t h) { return d->ccw[dr_twin(h)]; }
+
+static void dr_free(dr_t *d) {
+  ds_context_free(d->ctx, d->block);
+  ds_context_free(d->ctx, d->seen);
+  d->block = NULL;
+  d->seen = NULL;
+}
+
+static ds_status_t dr_init(dr_t *d, const ds_planar_embedding_t *e) {
+  size_t n = e->vertices;
+  size_t tsize = 16;
+  size_t total;
+  size_t *b;
+  size_t v;
+  size_t h;
+  memset(d, 0, sizeof(*d));
+  d->ctx = e->context;
+  d->n = n;
+  d->hcap = 6 * n + 2 * e->edges + 8;
+  while (tsize < d->hcap) {
+    tsize *= 2;
+  }
+  total = 4 * d->hcap + n + tsize;
+  d->block = (size_t *)pl_alloc(d->ctx, total, sizeof(size_t));
+  d->seen = (unsigned char *)pl_alloc(d->ctx, d->hcap, 1);
+  if (d->block == NULL || d->seen == NULL) {
+    dr_free(d);
+    return DS_ERR_ALLOC;
+  }
+  b = d->block;
+  d->org = b;
+  b += d->hcap;
+  d->dst = b;
+  b += d->hcap;
+  d->cw = b;
+  b += d->hcap;
+  d->ccw = b;
+  b += d->hcap;
+  d->first = b;
+  b += n;
+  d->tab = b;
+  d->tmask = tsize - 1;
+  for (h = 0; h < tsize; h++) {
+    d->tab[h] = PL_NONE;
+  }
+  for (v = 0; v < n; v++) {
+    d->first[v] = PL_NONE;
+  }
+  /* the embedding's half-edges, renumbered so that twins are h, h ^ 1 */
+  {
+    size_t *pairof = d->cw; /* scratch: embedding half-edge -> ours */
+    size_t k = 0;
+    for (h = 0; h < 2 * e->edges; h++) {
+      pairof[h] = PL_NONE;
+    }
+    for (v = 0; v < n; v++) {
+      for (h = e->offsets[v]; h < e->offsets[v + 1]; h++) {
+        if (pairof[h] == PL_NONE) {
+          pairof[h] = k;
+          pairof[e->twin[h]] = k + 1;
+          k += 2;
+        }
+        d->org[pairof[h]] = v;
+        d->dst[pairof[h]] = e->target[h];
+      }
+    }
+    d->hcount = k;
+    /* rotation links, in a second pass (pairof lives in cw) */
+    for (v = 0; v < n; v++) {
+      size_t lo = e->offsets[v];
+      size_t hi = e->offsets[v + 1];
+      for (h = lo; h < hi; h++) {
+        size_t prev = h == lo ? hi - 1 : h - 1;
+        d->ccw[pairof[h]] = pairof[prev];
+      }
+      if (lo < hi) {
+        d->first[v] = pairof[lo];
+      }
+    }
+    for (h = 0; h < k; h++) {
+      d->seen[h] = 0;
+    }
+    for (h = 0; h < k; h++) {
+      d->cw[d->ccw[h]] = h; /* overwrites pairof only after it is read */
+    }
+    for (h = 0; h < k; h += 2) {
+      dr_remember(d, h);
+    }
+  }
+  return DS_OK;
+}
+
+/* contour ordering and shift method on the prepared triangulation */
+typedef struct dr_order {
+  size_t *order;  /* canonical order */
+  size_t *cstart; /* contour list of step k: cstart[k] .. cend[k] - 1 */
+  size_t *cend;
+  size_t *contour;
+  size_t *cwn; /* outer face: clockwise and counterclockwise neighbour */
+  size_t *ccwn;
+  size_t *chords;
+  size_t *ready; /* stack of candidates */
+  unsigned char *marked;
+  unsigned char *inready;
+  unsigned char *newface;
+} dr_order_t;
+
+static bool dr_on_outer(const dr_order_t *o, size_t x, size_t v1) {
+  return !o->marked[x] && (o->ccwn[x] != PL_NONE || x == v1);
+}
+
+static bool dr_outer_nbr(const dr_order_t *o, size_t x, size_t y) {
+  if (o->ccwn[x] == PL_NONE) {
+    return o->cwn[x] == y;
+  }
+  if (o->cwn[x] == PL_NONE) {
+    return o->ccwn[x] == y;
+  }
+  return o->cwn[x] == y || o->ccwn[x] == y;
+}
+
+static void dr_ready_add(dr_order_t *o, size_t *sp, size_t x) {
+  if (!o->inready[x]) {
+    o->inready[x] = 1;
+    o->ready[(*sp)++] = x;
+  }
+}
+
+/* make every face 2-connected; returns a half-edge of the largest face
+ * and its vertex count */
+static size_t dr_faces(dr_t *d, size_t *stamp, size_t *out_len) {
+  size_t best = PL_NONE;
+  size_t best_len = 0;
+  size_t h0;
+  size_t fid = 0;
+  for (h0 = 0; h0 < d->hcount; h0++) {
+    size_t a;
+    size_t b;
+    size_t h;
+    size_t len = 1;
+    size_t guard = 0;
+    if (d->seen[h0]) {
+      continue;
+    }
+    fid++;
+    d->seen[h0] = 1;
+    stamp[d->org[h0]] = fid;
+    a = h0;            /* the half-edge v1 -> v2 */
+    b = dr_next(d, a); /* v2 -> v3 */
+    while (b != h0 && guard++ < 4 * d->hcap) {
+      size_t v2 = d->org[b];
+      if (stamp[v2] == fid) {
+        /* v2 visited twice: the edge v1 - v3 cuts it off */
+        size_t v1 = d->org[a];
+        size_t v3 = d->dst[b];
+        h = dr_add(d, v1, v3, a, dr_twin(b));
+        if (h == PL_NONE) {
+          *out_len = 0;
+          return PL_NONE;
+        }
+        d->seen[b] = 1;
+        d->seen[h + 1] = 1;
+        a = h;
+      } else {
+        stamp[v2] = fid;
+        len++;
+        a = b;
+      }
+      b = dr_next(d, a);
+      d->seen[a] = 1;
+    }
+    if (len > best_len) {
+      best_len = len;
+      best = h0;
+    }
+  }
+  *out_len = best_len;
+  return best;
+}
+
+/* fan triangulation of the face of h, skipping edges that exist */
+static bool dr_triangulate(dr_t *d, size_t h) {
+  size_t h12 = h;
+  size_t h23 = dr_next(d, h12);
+  size_t h34 = dr_next(d, h23);
+  size_t guard = 0;
+  if (d->org[h12] == d->dst[h12] || d->org[h12] == d->dst[h23]) {
+    return true;
+  }
+  while (d->org[h12] != d->dst[h34] && guard++ < 4 * d->hcap) {
+    size_t v1 = d->org[h12];
+    size_t v3 = d->dst[h23];
+    if (dr_has(d, v1, v3)) {
+      h12 = h23;
+      h23 = h34;
+    } else {
+      h12 = dr_add(d, v1, v3, h12, dr_twin(h23));
+      if (h12 == PL_NONE) {
+        return false;
+      }
+      h23 = h34;
+    }
+    h34 = dr_next(d, h23);
+  }
+  return true;
+}
+
+static int dr_canonical(dr_t *d, dr_order_t *o, size_t outer_h,
+                        size_t outer_len) {
+  size_t n = d->n;
+  size_t v1 = d->org[outer_h];
+  size_t v2 = d->dst[outer_h];
+  size_t sp = 0;
+  size_t used = 0; /* contour entries */
+  size_t h;
+  size_t x;
+  size_t k;
+  if (outer_len < 3) {
+    return -1;
+  }
+  for (x = 0; x < n; x++) {
+    o->cwn[x] = PL_NONE;
+    o->ccwn[x] = PL_NONE;
+    o->chords[x] = 0;
+    o->marked[x] = 0;
+    o->inready[x] = 0;
+    o->newface[x] = 0;
+  }
+  /* the outer face v1, v2, ..., in face order; ccwn runs v2 -> ... -> v1
+   * and cwn runs v1 -> ... -> v2, neither across the edge v1 v2 */
+  h = dr_next(d, outer_h);
+  for (k = 2; k < outer_len; k++) {
+    o->ccwn[d->org[h]] = d->dst[h];
+    o->cwn[d->dst[h]] = d->org[h];
+    h = dr_next(d, h);
+  }
+  o->ccwn[d->org[h]] = v1; /* the last vertex closes to v1 */
+  o->cwn[v1] = d->org[h];
+  /* chords of the outer vertices */
+  h = outer_h;
+  for (k = 0; k < outer_len; k++) {
+    size_t v = d->org[h];
+    size_t g = d->first[v];
+    dr_ready_add(o, &sp, v);
+    do {
+      size_t w = d->dst[g];
+      if (dr_on_outer(o, w, v1) && !dr_outer_nbr(o, v, w)) {
+        o->chords[v]++;
+      }
+      g = d->cw[g];
+    } while (g != d->first[v]);
+    if (o->chords[v] > 0) {
+      o->inready[v] = 0;
+    }
+    h = dr_next(d, h);
+  }
+  o->inready[v1] = 0;
+  o->inready[v2] = 0;
+  o->order[0] = v1;
+  o->order[1] = v2;
+  o->cstart[0] = 0;
+  o->cend[0] = 0;
+  o->cstart[1] = 0;
+  o->cend[1] = 0;
+  for (k = n - 1; k >= 2; k--) {
+    size_t v = PL_NONE;
+    size_t g;
+    size_t gp = PL_NONE; /* v -> wp */
+    size_t wq = PL_NONE;
+    size_t start = used;
+    while (sp > 0) {
+      x = o->ready[--sp];
+      if (o->inready[x]) {
+        o->inready[x] = 0;
+        v = x;
+        break;
+      }
+    }
+    if (v == PL_NONE) {
+      return -1;
+    }
+    o->marked[v] = 1;
+    /* wp and wq: v's two neighbours on the outer face */
+    g = d->first[v];
+    do {
+      size_t w = d->dst[g];
+      if (!o->marked[w] && dr_on_outer(o, w, v1)) {
+        if (w == v1) {
+          gp = g;
+        } else if (w == v2) {
+          wq = w;
+        } else if (o->cwn[w] == v) {
+          gp = g;
+        } else {
+          wq = w;
+        }
+      }
+      g = d->cw[g];
+    } while (g != d->first[v] && (gp == PL_NONE || wq == PL_NONE));
+    if (gp == PL_NONE || wq == PL_NONE) {
+      return -1;
+    }
+    /* the new contour: v's neighbours from wp to wq */
+    o->contour[used++] = d->dst[gp];
+    g = gp;
+    while (d->dst[g] != wq) {
+      size_t a = d->dst[g];
+      size_t b;
+      g = d->ccw[g];
+      b = d->dst[g];
+      o->contour[used++] = b;
+      o->cwn[a] = b;
+      o->ccwn[b] = a;
+      if (used > 3 * n + 3) {
+        return -1;
+      }
+    }
+    if (used - start == 2) { /* wp-wq was a chord */
+      size_t wp = o->contour[start];
+      o->chords[wp]--;
+      if (o->chords[wp] == 0) {
+        dr_ready_add(o, &sp, wp);
+      }
+      o->chords[wq]--;
+      if (o->chords[wq] == 0) {
+        dr_ready_add(o, &sp, wq);
+      }
+    } else {
+      size_t i;
+      for (i = start + 1; i + 1 < used; i++) {
+        o->newface[o->contour[i]] = 1;
+      }
+      for (i = start + 1; i + 1 < used; i++) {
+        size_t w = o->contour[i];
+        size_t f = d->first[w];
+        dr_ready_add(o, &sp, w);
+        g = f;
+        do {
+          size_t y = d->dst[g];
+          if (dr_on_outer(o, y, v1) && !dr_outer_nbr(o, w, y)) {
+            o->chords[w]++;
+            o->inready[w] = 0;
+            if (!o->newface[y]) {
+              o->chords[y]++;
+              o->inready[y] = 0;
+            }
+          }
+          g = d->cw[g];
+        } while (g != f);
+      }
+      for (i = start + 1; i + 1 < used; i++) {
+        o->newface[o->contour[i]] = 0;
+      }
+    }
+    o->order[k] = v;
+    o->cstart[k] = start;
+    o->cend[k] = used;
+    if (k == 2) {
+      break;
+    }
+  }
+  return 1;
+}
+
+/* the shift method over the canonical order */
+static void dr_shift(const dr_order_t *o, size_t n, long *dx, long *y,
+                     size_t *left, size_t *right, size_t *stack, size_t *out_x,
+                     size_t *out_y) {
+  size_t a = o->order[0];
+  size_t b = o->order[1];
+  size_t c = o->order[2];
+  size_t k;
+  size_t sp = 0;
+  for (k = 0; k < n; k++) {
+    left[k] = PL_NONE;
+    right[k] = PL_NONE;
+  }
+  dx[a] = 0;
+  y[a] = 0;
+  right[a] = c;
+  dx[b] = 1;
+  y[b] = 0;
+  dx[c] = 1;
+  y[c] = 1;
+  right[c] = b;
+  for (k = 3; k < n; k++) {
+    size_t vk = o->order[k];
+    const size_t *cn = o->contour + o->cstart[k];
+    size_t len = o->cend[k] - o->cstart[k];
+    size_t wp = cn[0];
+    size_t wp1 = cn[1];
+    size_t wq = cn[len - 1];
+    size_t wq1 = cn[len - 2];
+    long span = 0;
+    size_t i;
+    dx[wp1] += 1; /* stretch the gaps */
+    dx[wq] += 1;
+    for (i = 1; i < len; i++) {
+      span += dx[cn[i]];
+    }
+    dx[vk] = (-y[wp] + span + y[wq]) / 2;
+    y[vk] = (y[wp] + span + y[wq]) / 2;
+    dx[wq] = span - dx[vk];
+    if (len > 2) {
+      dx[wp1] -= dx[vk];
+    }
+    right[wp] = vk;
+    right[vk] = wq;
+    if (len > 2) {
+      left[vk] = wp1;
+      right[wq1] = PL_NONE;
+    } else {
+      left[vk] = PL_NONE;
+    }
+  }
+  /* absolute positions down the tree */
+  out_x[a] = 0;
+  out_y[a] = (size_t)y[a];
+  stack[sp++] = a;
+  while (sp > 0) {
+    size_t p = stack[--sp];
+    size_t kid[2];
+    size_t j;
+    kid[0] = left[p];
+    kid[1] = right[p];
+    for (j = 0; j < 2; j++) {
+      if (kid[j] != PL_NONE) {
+        out_x[kid[j]] = (size_t)((long)out_x[p] + dx[kid[j]]);
+        out_y[kid[j]] = (size_t)y[kid[j]];
+        stack[sp++] = kid[j];
+      }
+    }
+  }
+}
+
+ds_status_t ds_planar_draw(const ds_planar_embedding_t *e, size_t *out_x,
+                           size_t *out_y) {
+  dr_t d;
+  dr_order_t o;
+  size_t n;
+  size_t v;
+  size_t outer_h = PL_NONE;
+  size_t outer_len = 0;
+  size_t *sb;
+  unsigned char *fb;
+  long *lb;
+  ds_status_t st;
+  int rc = 1;
+  bool valid = false;
+  if (e == NULL || ((out_x == NULL || out_y == NULL) && e->vertices > 0)) {
+    return DS_ERR_NULL;
+  }
+  n = e->vertices;
+  if (n > ((size_t)-1) / 64 || e->edges > ((size_t)-1) / 64 ||
+      (n > 0 && n > (size_t)(((unsigned long)-1) >> 2))) {
+    return DS_ERR_OVERFLOW;
+  }
+  if (n < 4) {
+    static const size_t px[3] = {0, 2, 1};
+    static const size_t py[3] = {0, 0, 1};
+    for (v = 0; v < n; v++) {
+      out_x[v] = px[v];
+      out_y[v] = py[v];
+    }
+    return DS_OK;
+  }
+  st = ds_planar_embedding_check(e, &valid);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (!valid) {
+    return DS_ERR_INVALID;
+  }
+  st = dr_init(&d, e);
+  if (st != DS_OK) {
+    return st;
+  }
+  sb = (size_t *)pl_alloc(d.ctx, 13 * n + 8, sizeof(size_t));
+  fb = (unsigned char *)pl_alloc(d.ctx, 3 * n, 1);
+  lb = (long *)pl_alloc(d.ctx, 2 * n, sizeof(long));
+  if (sb == NULL || fb == NULL || lb == NULL) {
+    ds_context_free(d.ctx, sb);
+    ds_context_free(d.ctx, fb);
+    ds_context_free(d.ctx, lb);
+    dr_free(&d);
+    return DS_ERR_ALLOC;
+  }
+  /* one component: join each component's first vertex to the next one's */
+  {
+    size_t *comp = sb;
+    size_t *queue = sb + n;
+    size_t prev = PL_NONE;
+    for (v = 0; v < n; v++) {
+      comp[v] = PL_NONE;
+    }
+    for (v = 0; v < n; v++) {
+      size_t head = 0;
+      size_t tail = 0;
+      if (comp[v] != PL_NONE) {
+        continue;
+      }
+      comp[v] = v;
+      queue[tail++] = v;
+      while (head < tail) {
+        size_t x = queue[head++];
+        size_t g = d.first[x];
+        if (g == PL_NONE) {
+          continue;
+        }
+        do {
+          if (comp[d.dst[g]] == PL_NONE) {
+            comp[d.dst[g]] = v;
+            queue[tail++] = d.dst[g];
+          }
+          g = d.cw[g];
+        } while (g != d.first[x]);
+      }
+      if (prev != PL_NONE &&
+          dr_add(&d, prev, v, d.first[prev], d.first[v]) == PL_NONE) {
+        rc = -1;
+      }
+      prev = v;
+    }
+  }
+  /* 2-connected faces, then triangulate all but the largest */
+  if (rc == 1) {
+    size_t *stamp = sb;
+    size_t h;
+    for (v = 0; v < n; v++) {
+      stamp[v] = 0;
+    }
+    outer_h = dr_faces(&d, stamp, &outer_len);
+    if (outer_h == PL_NONE) {
+      rc = -1;
+    }
+    for (h = 0; h < d.hcount && rc == 1; h++) {
+      d.seen[h] = 0;
+    }
+    if (rc == 1) {
+      size_t g = outer_h;
+      do {
+        d.seen[g] = 1;
+        g = dr_next(&d, g);
+      } while (g != outer_h);
+    }
+    for (h = 0; h < d.hcount && rc == 1; h++) {
+      size_t g;
+      if (d.seen[h]) {
+        continue;
+      }
+      g = h;
+      do {
+        d.seen[g] = 1;
+        g = dr_next(&d, g);
+      } while (g != h);
+      if (!dr_triangulate(&d, h)) {
+        rc = -1;
+      }
+    }
+  }
+  o.order = sb;
+  o.cstart = sb + n;
+  o.cend = sb + 2 * n;
+  o.contour = sb + 3 * n; /* 3n + 3 */
+  o.cwn = sb + 6 * n + 3;
+  o.ccwn = sb + 7 * n + 3;
+  o.chords = sb + 8 * n + 3;
+  o.ready = sb + 9 * n + 3; /* 4n + 4 */
+  o.marked = fb;
+  o.inready = fb + n;
+  o.newface = fb + 2 * n;
+  if (rc == 1) {
+    rc = dr_canonical(&d, &o, outer_h, outer_len);
+  }
+  if (rc == 1) { /* the tree arrays reuse the outer-face scratch */
+    dr_shift(&o, n, lb, lb + n, o.cwn, o.ccwn, o.chords, out_x, out_y);
+  }
+  ds_context_free(d.ctx, sb);
+  ds_context_free(d.ctx, fb);
+  ds_context_free(d.ctx, lb);
+  dr_free(&d);
+  return rc == 1 ? DS_OK : DS_ERR_INVALID;
+}

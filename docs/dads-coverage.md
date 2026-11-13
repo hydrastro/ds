@@ -31,12 +31,12 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 751 |
+| implemented | 752 |
 | restricted | 3 |
 | variant | 1 |
 | reference | 5 |
 | missing | 2 |
-| n/a | 544 |
+| n/a | 543 |
 | total | 1306 |
 
 Every indexed term has a classification; implementation scope and known
@@ -1010,7 +1010,7 @@ the term covers is provided.
 | pipelined divide and conquer | concept | n/a |  |  |
 | planar graph | concept | implemented | algo/planarity | decided by the left-right test, with embeddings and Kuratowski certificates |
 | planarization | algorithm | implemented | algo/planarity | by edge deletion: a maximal planar subgraph; no crossing vertices |
-| planar straight-line graph | concept | n/a |  |  |
+| planar straight-line graph | concept | implemented | algo/planarity | a straight-line grid drawing of any planar graph by the shift method |
 | PLOP-hashing | structure | implemented | lib/plop_hash |  |
 | point access method | structure | implemented | lib/quadtree |  |
 | pointer jumping | algorithm | reference | algo/parallel_sim | sequential simulation of the PRAM algorithm |
@@ -1548,6 +1548,8 @@ the term covers is provided.
 | planarity testing | algorithm | implemented | `algo/planarity` | left-right test (de Fraysseix-Rosenstiehl, Brandes) in O(n + m) with a combinatorial embedding; faces; an independent Euler check of any rotation system |
 | Kuratowski subgraph | algorithm | implemented | `algo/planarity` | a K5 or K3,3 subdivision certifying non-planarity, by shrinking a reduced graph (adaptive random deletions, then single ones); an independent classifier |
 | outerplanar graph | concept | implemented | `algo/planarity` | test through the graph plus an apex vertex; embeddings with every vertex on the outer face |
+| straight-line grid drawing | algorithm | implemented | `algo/planarity` | completion to an internally triangulated embedding, canonical ordering, and the de Fraysseix-Pach-Pollack shift method with Chrobak-Payne offsets: O(n) on the (2n - 4) x (n - 2) grid |
+| canonical ordering | algorithm | implemented | `algo/planarity` | of a triangulated plane graph, peeled from the outer face by chord counts (inside ds_planar_draw) |
 | paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager; portable 64-bit format, validated page reads, full verification; no crash recovery |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |
