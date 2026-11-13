@@ -51,9 +51,14 @@
  * With keep_forward the index also stores the forward index: per
  * document, its distinct terms with frequencies.
  *
- * Queries: posting cursors (documents or blocks, frequencies, positions),
- * boolean queries (all of "must", at least one of "should" if any, none
- * of "must not") by merging, phrase queries on positional indexes, and
+ * Every skip_interval-th posting of a list (64 by default) is recorded in
+ * a skip table (the document before it and its bit offset), so a cursor
+ * can advance to the first posting >= a target in O(log(df / interval) +
+ * interval) decodes instead of a linear scan.
+ *
+ * Queries: posting cursors (documents or blocks, frequencies, positions,
+ * advance), boolean queries (all of "must", at least one of "should" if
+ * any, none of "must not"), phrase queries on positional indexes, and
  * Okapi BM25 ranking (top k) on document and positional indexes. With an
  * ordered dictionary, terms can be walked in byte order from any point
  * and prefix queries ("comput*") return the documents holding any term
@@ -148,6 +153,32 @@ const ds_invidx_dict_ops_t *ds_invidx_dict_open(void);
 const ds_invidx_dict_ops_t *ds_invidx_dict_map(void);
 const ds_invidx_dict_ops_t *ds_invidx_dict_sorted(void);
 
+/* a skip point: posting number k * interval starts at bit `bit`, and the
+ * posting before it is for document (block) `doc` */
+typedef struct ds_invidx_skip {
+  size_t doc;
+  size_t bit;
+} ds_invidx_skip_t;
+
+#define DS_INVIDX_SKIP_DEFAULT ((size_t)64)
+#define DS_INVIDX_NO_SKIPS (~(size_t)0)
+
+/*
+ * How boolean queries combine lists. MERGE decodes every list involved
+ * and merges them: O(total postings). SKIP takes the candidates from the
+ * rarest "must" list and probes every other list by advancing its cursor
+ * (small-versus-small through the skip tables): about O(candidates *
+ * lists * (log + interval)), far less when one list is short. AUTO (the
+ * default) chooses SKIP when the rarest "must" list is shorter than a
+ * sixteenth of the longest one, MERGE otherwise. The choice never changes
+ * a result, only its cost; the field may be changed between queries.
+ */
+typedef enum ds_invidx_intersection {
+  DS_INVIDX_INTERSECT_AUTO,
+  DS_INVIDX_INTERSECT_MERGE,
+  DS_INVIDX_INTERSECT_SKIP
+} ds_invidx_intersection_t;
+
 typedef struct ds_invidx_posting_list {
   unsigned char *bytes;
   size_t length; /* bytes in use */
@@ -156,6 +187,9 @@ typedef struct ds_invidx_posting_list {
   size_t df;   /* documents (or blocks) */
   size_t cf;   /* occurrences */
   size_t last; /* last document / block id written */
+  ds_invidx_skip_t *skips;
+  size_t skip_count;
+  size_t skip_capacity;
 } ds_invidx_posting_list_t;
 
 typedef struct ds_inverted_index {
@@ -163,6 +197,8 @@ typedef struct ds_inverted_index {
   size_t block_size;
   bool keep_forward;
   const ds_invidx_codec_t *codec;
+  size_t skip_interval;
+  ds_invidx_intersection_t intersection;
   /* terms: bytes in chunks that never move, interned by the dictionary */
   const ds_invidx_dict_ops_t *dict_ops;
   void *dict;
@@ -201,6 +237,7 @@ typedef struct ds_invidx_cursor {
   size_t positions_left;
   size_t position;
   bool started;
+  bool ended; /* next found no further posting */
 } ds_invidx_cursor_t;
 
 typedef struct ds_invidx_result {
@@ -224,6 +261,9 @@ typedef struct ds_invidx_options {
   /* passed to the dictionary's init (ds_invidx_dict_map: the
    * const ds_map_ops_t *, NULL for Robin Hood hashing) */
   const void *dictionary_param;
+  /* 0: DS_INVIDX_SKIP_DEFAULT; DS_INVIDX_NO_SKIPS: no skip tables */
+  size_t skip_interval;
+  ds_invidx_intersection_t intersection;
 } ds_invidx_options_t;
 ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
                                 const ds_invidx_options_t *options,
@@ -280,6 +320,10 @@ bool ds_invidx_cursor_next(ds_invidx_cursor_t *cursor);
 /* positional mode: the next position of the current document */
 bool ds_invidx_cursor_next_position(ds_invidx_cursor_t *cursor,
                                     size_t *position);
+/* move to the first posting whose document (block) is >= target, staying
+ * on the current one if it already is; false when there is none. Uses the
+ * skip table, so a long way costs O(log(df / interval) + interval). */
+bool ds_invidx_cursor_advance(ds_invidx_cursor_t *cursor, size_t target);
 
 ds_status_t
 ds_invidx_boolean(const ds_inverted_index_t *idx, const ds_invidx_term_t *must,

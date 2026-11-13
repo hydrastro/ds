@@ -270,6 +270,24 @@ static size_t ii_unpost(const ds_inverted_index_t *idx,
   return idx->codec->get(pl->bytes, at, idx->codec->param);
 }
 
+/* before a list's next posting: record a skip point every interval */
+static ds_status_t ii_skip_point(const ds_inverted_index_t *idx,
+                                 ds_invidx_posting_list_t *pl) {
+  ds_status_t st;
+  if (pl->df == 0 || pl->df % idx->skip_interval != 0) {
+    return DS_OK;
+  }
+  st = ii_reserve(idx->context, (void **)&pl->skips, &pl->skip_capacity,
+                  pl->skip_count + 1, sizeof(ds_invidx_skip_t));
+  if (st != DS_OK) {
+    return st;
+  }
+  pl->skips[pl->skip_count].doc = pl->last;
+  pl->skips[pl->skip_count].bit = pl->bits;
+  pl->skip_count++;
+  return DS_OK;
+}
+
 static size_t ii_hash(const unsigned char *s, size_t n) {
   unsigned long h = 2166136261ul;
   size_t i;
@@ -804,6 +822,17 @@ ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
     idx->dict = NULL;
     return st;
   }
+  if (options->intersection != DS_INVIDX_INTERSECT_AUTO &&
+      options->intersection != DS_INVIDX_INTERSECT_MERGE &&
+      options->intersection != DS_INVIDX_INTERSECT_SKIP) {
+    dict->destroy(idx->dict);
+    ds_context_free(context, idx->dict);
+    idx->dict = NULL;
+    return DS_ERR_INVALID;
+  }
+  idx->skip_interval = options->skip_interval != 0 ? options->skip_interval
+                                                   : DS_INVIDX_SKIP_DEFAULT;
+  idx->intersection = options->intersection;
   idx->dict_ops = dict;
   idx->mode = mode;
   idx->block_size = mode == DS_INVIDX_BLOCK ? block_size : 1;
@@ -819,6 +848,7 @@ void ds_invidx_destroy(ds_inverted_index_t *idx) {
   }
   for (t = 0; t < idx->terms; t++) {
     ds_context_free(idx->context, idx->postings[t].bytes);
+    ds_context_free(idx->context, idx->postings[t].skips);
   }
   if (idx->dict_ops != NULL) {
     idx->dict_ops->destroy(idx->dict);
@@ -997,12 +1027,18 @@ ds_status_t ds_invidx_add(ds_inverted_index_t *idx, size_t doc_id,
     saved[runs++] = *pl;
     if (idx->mode == DS_INVIDX_BLOCK) {
       if (pl->df == 0 || pl->last != block) {
-        st = ii_post(idx, pl, block - (pl->df ? pl->last : 0));
+        st = ii_skip_point(idx, pl);
+        if (st == DS_OK) {
+          st = ii_post(idx, pl, block - (pl->df ? pl->last : 0));
+        }
         pl->df++;
         pl->last = block;
       }
     } else {
-      st = ii_post(idx, pl, doc_id - (pl->df ? pl->last : 0));
+      st = ii_skip_point(idx, pl);
+      if (st == DS_OK) {
+        st = ii_post(idx, pl, doc_id - (pl->df ? pl->last : 0));
+      }
       if (st == DS_OK) {
         st = ii_post(idx, pl, j - i);
       }
@@ -1048,9 +1084,13 @@ fail:
         ds_invidx_posting_list_t *pl = &idx->postings[pairs[i].term];
         unsigned char *bytes = pl->bytes;
         size_t capacity = pl->capacity;
+        ds_invidx_skip_t *skips = pl->skips;
+        size_t skip_capacity = pl->skip_capacity;
         *pl = saved[r++];
-        pl->bytes = bytes; /* keep the (possibly moved) buffer */
+        pl->bytes = bytes; /* keep the (possibly moved) buffers */
         pl->capacity = capacity;
+        pl->skips = skips;
+        pl->skip_capacity = skip_capacity;
         /* clear what the failed add wrote, for the next writer */
         if (pl->bytes != NULL) {
           size_t whole = (pl->bits + 7) / 8;
@@ -1068,6 +1108,7 @@ fail:
     size_t t = --idx->terms;
     idx->dict_ops->remove(idx->dict, idx->term_text[t], idx->term_len[t], t);
     ds_context_free(idx->context, idx->postings[t].bytes);
+    ds_context_free(idx->context, idx->postings[t].skips);
   }
   ii_chunk_rewind(idx, &mark);
   idx->fwd_used = old_fwd;
@@ -1306,6 +1347,7 @@ bool ds_invidx_cursor_next(ds_invidx_cursor_t *c) {
     c->positions_left--;
   }
   if (c->at >= pl->bits) {
+    c->ended = true;
     return false;
   }
   c->doc = (c->started ? c->doc : 0) + ii_unpost(c->index, pl, &c->at);
@@ -1319,6 +1361,43 @@ bool ds_invidx_cursor_next(ds_invidx_cursor_t *c) {
     c->positions_left = c->freq;
   }
   return true;
+}
+
+bool ds_invidx_cursor_advance(ds_invidx_cursor_t *c, size_t target) {
+  const ds_invidx_posting_list_t *pl;
+  if (c == NULL || c->index == NULL || c->term == II_NONE || c->ended) {
+    return false;
+  }
+  if (c->started && c->doc >= target) {
+    return true;
+  }
+  pl = &c->index->postings[c->term];
+  if (pl->skip_count > 0) {
+    /* the last skip point after a posting below target: every posting
+     * before it is below target too */
+    size_t lo = 0;
+    size_t hi = pl->skip_count;
+    while (lo < hi) {
+      size_t mid = lo + (hi - lo) / 2;
+      if (pl->skips[mid].doc < target) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    if (lo > 0 && pl->skips[lo - 1].bit > c->at) {
+      c->at = pl->skips[lo - 1].bit;
+      c->doc = pl->skips[lo - 1].doc;
+      c->started = true;
+      c->positions_left = 0;
+    }
+  }
+  while (ds_invidx_cursor_next(c)) {
+    if (c->doc >= target) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool ds_invidx_cursor_next_position(ds_invidx_cursor_t *c, size_t *position) {
@@ -1444,6 +1523,59 @@ static ds_status_t ii_union(const ds_inverted_index_t *idx,
   return DS_OK;
 }
 
+/* filter ascending candidates by probing lists with advancing cursors:
+ * keep those every list holds (II_PROBE_ALL; `skip` names a list already
+ * known to hold them), those some list holds (II_PROBE_ANY) or those no
+ * list holds (II_PROBE_NONE) */
+#define II_PROBE_ALL 0
+#define II_PROBE_ANY 1
+#define II_PROBE_NONE 2
+
+static ds_status_t ii_probe(const ds_inverted_index_t *idx, size_t *acc,
+                            size_t *na, const ds_invidx_term_t *terms,
+                            size_t count, size_t skip, int mode) {
+  ds_invidx_cursor_t *cur;
+  size_t lists = count - (skip < count ? 1 : 0);
+  size_t i;
+  size_t j;
+  size_t k = 0;
+  cur = (ds_invidx_cursor_t *)ds_context_alloc(
+      idx->context, (count + 1) * sizeof(ds_invidx_cursor_t));
+  if (cur == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < count; i++) {
+    ds_invidx_cursor_open(idx, terms[i].text, terms[i].length, &cur[i]);
+  }
+  for (j = 0; j < *na; j++) {
+    size_t d = acc[j];
+    size_t hits = 0;
+    bool over = false;
+    for (i = 0; i < count; i++) {
+      if (i == skip) {
+        continue;
+      }
+      if (ds_invidx_cursor_advance(&cur[i], d) && cur[i].doc == d) {
+        hits++;
+      } else if (mode == II_PROBE_ALL) {
+        over = cur[i].ended; /* no later candidate can pass either */
+        break;
+      }
+    }
+    if (mode == II_PROBE_ALL   ? hits == lists
+        : mode == II_PROBE_ANY ? hits > 0
+                               : hits == 0) {
+      acc[k++] = d;
+    }
+    if (over) {
+      break;
+    }
+  }
+  *na = k;
+  ds_context_free(idx->context, cur);
+  return DS_OK;
+}
+
 void ds_invidx_result_free(const ds_inverted_index_t *idx,
                            ds_invidx_result_t *result) {
   if (idx == NULL || result == NULL) {
@@ -1479,16 +1611,48 @@ ds_invidx_boolean(const ds_inverted_index_t *idx, const ds_invidx_term_t *must,
   if (must_count > 0) {
     /* start from the rarest term */
     size_t best = 0;
-    for (i = 1; i < must_count; i++) {
-      if (ds_invidx_document_frequency(idx, must[i].text, must[i].length) <
-          ds_invidx_document_frequency(idx, must[best].text,
-                                       must[best].length)) {
+    size_t df_best = (size_t)-1;
+    size_t df_max = 0;
+    ds_invidx_intersection_t how = idx->intersection;
+    for (i = 0; i < must_count; i++) {
+      size_t df =
+          ds_invidx_document_frequency(idx, must[i].text, must[i].length);
+      if (df < df_best) {
         best = i;
+        df_best = df;
       }
+      if (df > df_max) {
+        df_max = df;
+      }
+    }
+    if (how == DS_INVIDX_INTERSECT_AUTO) {
+      how = df_best < df_max / 16 ? DS_INVIDX_INTERSECT_SKIP
+                                  : DS_INVIDX_INTERSECT_MERGE;
     }
     st =
         ii_list(idx, ds_invidx_term_id(idx, must[best].text, must[best].length),
                 &acc, &na);
+    if (how == DS_INVIDX_INTERSECT_SKIP) {
+      /* probe the candidates into every other list */
+      if (st == DS_OK && na > 0) {
+        st = ii_probe(idx, acc, &na, must, must_count, best, II_PROBE_ALL);
+      }
+      if (st == DS_OK && should_count > 0 && na > 0) {
+        st = ii_probe(idx, acc, &na, should, should_count, (size_t)-1,
+                      II_PROBE_ANY);
+      }
+      if (st == DS_OK && must_not_count > 0 && na > 0) {
+        st = ii_probe(idx, acc, &na, must_not, must_not_count, (size_t)-1,
+                      II_PROBE_NONE);
+      }
+      if (st != DS_OK) {
+        ds_context_free(idx->context, acc);
+        return st;
+      }
+      result->docs = acc;
+      result->count = na;
+      return DS_OK;
+    }
     for (i = 0; st == DS_OK && i < must_count && na > 0; i++) {
       size_t *l;
       size_t nl;
@@ -1648,9 +1812,7 @@ ds_status_t ds_invidx_phrase(const ds_inverted_index_t *idx,
       }
     }
     for (i = 0; live && i < count; i++) {
-      while (live && cur[i].doc < target) {
-        live = ds_invidx_cursor_next(&cur[i]);
-      }
+      live = ds_invidx_cursor_advance(&cur[i], target);
       if (live && cur[i].doc != target) {
         aligned = false;
       }
