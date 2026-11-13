@@ -21,7 +21,7 @@ ds_status_t ds_dynamization_init(ds_dynamization_t *dyn, size_t elem_size,
     return DS_ERR_NULL;
   }
   memset(dyn, 0, sizeof(*dyn));
-  if (elem_size == 0 || base < 2 || !(rebuild_ratio > 0.0) ||
+  if (elem_size == 0 || base < 2 || !(rebuild_ratio >= 0.0) ||
       ops->build == NULL || ops->destroy == NULL || ops->query == NULL) {
     return DS_ERR_INVALID;
   }
@@ -42,12 +42,27 @@ static void dy_clear_level(ds_dynamization_t *d, ds_dynamization_level_t *l) {
   memset(l, 0, sizeof(*l));
 }
 
+/* release the items of a level, all of them or only the dead ones */
+static void dy_release(ds_dynamization_t *d, ds_dynamization_level_t *l,
+                       bool dead_only) {
+  size_t j;
+  if (d->ops.release == NULL) {
+    return;
+  }
+  for (j = 0; j < l->count; j++) {
+    if (!dead_only || d->dead[l->ids[j]] != 0) {
+      d->ops.release(l->items + j * d->elem_size, d->ops.user);
+    }
+  }
+}
+
 void ds_dynamization_destroy(ds_dynamization_t *dyn) {
   size_t i;
   if (dyn == NULL) {
     return;
   }
   for (i = 0; i < dyn->level_count; i++) {
+    dy_release(dyn, &dyn->levels[i], false);
     dy_clear_level(dyn, &dyn->levels[i]);
   }
   ds_context_free(dyn->context, dyn->levels);
@@ -91,6 +106,7 @@ static ds_status_t dy_make(ds_dynamization_t *d, unsigned char *items,
   out->ids = ids;
   out->count = count;
   out->capacity = count;
+  d->items_built += count;
   return DS_OK;
 }
 
@@ -265,7 +281,9 @@ ds_status_t ds_dynamization_rebuild(ds_dynamization_t *dyn) {
     ds_context_free(dyn->context, fresh);
     return st;
   }
+  /* the live items moved to the fresh levels; the dead ones leave now */
   for (i = 0; i < dyn->level_count; i++) {
+    dy_release(dyn, &dyn->levels[i], true);
     dy_clear_level(dyn, &dyn->levels[i]);
   }
   for (i = 0; i < levels; i++) {

@@ -18,13 +18,41 @@
  * O((base - 1) log_base n) times. base 2 is the binary method; larger
  * bases make queries cheaper and updates dearer.
  *
- * Deletions are weak: the item is marked dead (queries can test
- * ds_dynamization_is_alive with the ids given to build) and, once dead
- * items exceed rebuild_ratio times the live ones, everything is rebuilt
- * from the live items (global rebuilding), one structure per nonzero
- * base-`base` digit of the live count. For invertible problems, a second
- * dynamization of deleted items whose answers are subtracted is the
- * alternative.
+ * Deletions are weak: the item is marked dead and, once dead items
+ * exceed rebuild_ratio times the live ones, everything is rebuilt from the
+ * live items (global rebuilding), one structure per nonzero base-`base`
+ * digit of the live count. For invertible problems, a second dynamization
+ * of deleted items whose answers are subtracted is the alternative.
+ *
+ * Contracts:
+ *
+ *   ownership   items are moved as bytes from level to level and never
+ *               duplicated: each stored item is in exactly one level's
+ *               array. A structure may keep pointers into the items and
+ *               ids it was built from; they stay valid until its destroy.
+ *               With ops.release set, every item is released exactly
+ *               once: when a rebuild drops it after its removal, or at
+ *               destroy. Ids are never reused (the dead flags take a byte
+ *               per id ever issued).
+ *   deletions   a dead item stays inside its static structure until the
+ *               next global rebuild, so the query callback must skip it
+ *               (ds_dynamization_is_alive on the ids given to build).
+ *               A problem whose structure cannot skip items (a
+ *               precomputed maximum, say) needs rebuild_ratio 0, which
+ *               rebuilds at every removal, or the invertible method.
+ *   queries     levels are queried from the smallest up. A callback
+ *               error stops the query and is returned, with the result
+ *               holding the contributions of the levels already visited;
+ *               a callback returning DS_STOP (a success) ends it early,
+ *               for existence queries.
+ *   costs       insert: amortized O((base - 1) log_base n) builds per
+ *               item; worst case one build of every stored item, when all
+ *               levels carry into a new top level. remove: O(1) unless it
+ *               triggers the global rebuild, a build of every live item,
+ *               paid for by the rebuild_ratio * live removals before it.
+ *               Nothing bounds the work of a single operation (no
+ *               incremental rebuilding); items_built and rebuilds count
+ *               the work done, for callers that budget it.
  */
 
 #include "context.h"
@@ -46,6 +74,8 @@ typedef struct ds_dynamization_ops {
   ds_status_t (*query)(const void *structure, const void *query, void *result,
                        const struct ds_dynamization *dyn, void *user);
   void *user;
+  /* optional: an item leaves for good (see ownership) */
+  void (*release)(void *item, void *user);
 } ds_dynamization_ops_t;
 
 typedef struct ds_dynamization_level {
@@ -69,12 +99,13 @@ typedef struct ds_dynamization {
   size_t live;
   size_t dead_count; /* dead items still stored */
   double rebuild_ratio;
-  size_t rebuilds;
+  size_t rebuilds;    /* global rebuilds */
+  size_t items_built; /* items passed to build, in all */
   ds_context_t *context;
 } ds_dynamization_t;
 
-/* base >= 2; rebuild_ratio > 0 (1.0: rebuild when half the stored items
- * are dead) */
+/* base >= 2; rebuild_ratio >= 0 (1.0: rebuild when half the stored items
+ * are dead; 0: at every removal) */
 ds_status_t ds_dynamization_init(ds_dynamization_t *dyn, size_t elem_size,
                                  size_t base, double rebuild_ratio,
                                  const ds_dynamization_ops_t *ops,
@@ -85,7 +116,8 @@ ds_status_t ds_dynamization_insert(ds_dynamization_t *dyn, const void *item,
 /* DS_ERR_RANGE for unknown or already deleted ids */
 ds_status_t ds_dynamization_remove(ds_dynamization_t *dyn, size_t id);
 bool ds_dynamization_is_alive(const ds_dynamization_t *dyn, size_t id);
-/* calls ops.query on every non-empty level, stopping at an error */
+/* calls ops.query on every non-empty level, smallest first, stopping at
+ * an error or DS_STOP (see queries) */
 ds_status_t ds_dynamization_query(const ds_dynamization_t *dyn,
                                   const void *query, void *result);
 /* rebuild from the live items now */
