@@ -221,6 +221,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/bp_tree: balanced-parentheses succinct trees (range min-max tree, Navarro-Sadakane) with a reusable parentheses core
 - lib/dfuds: DFUDS succinct trees on the bp_tree parentheses core
 - lib/dynamic_connectivity: Holm-de Lichtenberg-Thorup fully dynamic connectivity over Euler-tour trees
+- lib/rrb_vector: relaxed radix balanced persistent vectors (concat plan of Stucki et al.)
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

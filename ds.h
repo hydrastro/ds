@@ -128,6 +128,7 @@
 #include "lib/roaring.h"
 #include "lib/rollback_union_find.h"
 #include "lib/rope.h"
+#include "lib/rrb_vector.h"
 #include "lib/rtree.h"
 #include "lib/scapegoat_tree.h"
 #include "lib/schema.h"
