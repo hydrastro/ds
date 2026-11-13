@@ -28,6 +28,14 @@ and destroy callbacks, user data and a representation id.
 - **Containers copy the schema at initialization.**
   `ds_pvec_config_from_schema` and `ds_ftree_config_set_schema` build those
   structures' configurations from a schema.
+- **Owned values elsewhere.** Two algorithm drivers take ownership
+  callbacks of their own:
+  - `algo/dynamization` moves items as bytes between levels and never
+    duplicates them; `ops.release` releases each item exactly once, when a
+    rebuild drops it after its removal or at destroy.
+  - `algo/anneal` takes `clone`, `copy` and `release` for states that own
+    memory: the candidate is cloned once and exchanged bytewise on
+    acceptance, and the best state is assigned with `copy`.
 
 ## Order
 
@@ -79,6 +87,9 @@ says what remains:
 | `lib/yfast_trie` | a skipped rebalance leaves a bucket outside its bounds until a later update retries it |
 | `lib/zipper`, `lib/trie_stores` | release and destruction never need fresh memory |
 | `lib/sstable`, `lib/paged_btree` | malformed stored data gives `DS_ERR_INVALID`, never a read outside the data; each also has a separate full verification call |
+| `lib/spiral_storage` | a put whose growth fails (memory or slot numbers) keeps the key; the table only gets fuller |
+| `lib/inverted_index` | a failed add restores every posting list it touched, bits included |
+| `lib/hollow_heap` | an update that cannot allocate its new node changes nothing |
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 
 ## Cursors and handles
@@ -87,7 +98,7 @@ says what remains:
 |---|---|---|
 | map cursors | the next put or remove | a position a packed cursor cannot hold is reported (`DS_ERR_OVERFLOW` from `ds_map_next_status`) instead of ending the iteration silently |
 | priority-queue handles | their item is popped or removed | |
-| priority-queue item pointers (`top`, `item`) | the item leaves; for `DS_PQ_MOVING_ITEMS` backends, the next modification | |
+| priority-queue item pointers (`top`, `item`) | the item leaves; for `DS_PQ_MOVING_ITEMS` backends (packed, hollow), the next modification | |
 | ordered-map cursors | the next modification | `ds_ordered_for_each` walks in linear time without allocating a cursor per step |
 | SSTable iterators | the table bytes are freed | they borrow the bytes |
 | SSTables opened with `ds_sstable_open_ex` | `ds_sstable_close` | the loaded AMQ filter is owned by the table |
@@ -101,7 +112,18 @@ says what remains:
   the graph-view `*_with` functions say what that means for Dijkstra, Prim
   and A*.
 - **Succinct structures.** The Elias–Fano and rank/select headers give
-  practical cost and space formulas, not only asymptotic ones.
+  practical cost and space formulas, not only asymptotic ones. LOUDS
+  navigation costs one or two selects of the chosen rank/select backend.
+- **Budgets.** Constructions that can blow up take explicit limits and
+  report `DS_ERR_RANGE` when one runs out: the tree-automaton subset
+  construction and product (`ds_fta_budget_t`: states, transitions, work)
+  and tree transductions (output size); the tree edit distance checks its
+  work-table sizes before allocating (`DS_ERR_OVERFLOW`). Where a single
+  operation's work is not bounded (dynamization rebuilds),
+  counters (`items_built`, `rebuilds`) let callers watch it.
+- **Fairness.** CTL checking with k fairness sets costs O(|f| (n + m + n k))
+  instead of O(|f| (n + m)), and only the `_fair` witness helpers follow
+  the fair semantics.
 
 ## Algebraic laws
 
@@ -145,6 +167,9 @@ operations already make.
   - `ds_pq_pop` copies the item out.
   - A native meld transfers nodes and their handles; a copying meld
     invalidates the absorbed queue's handles.
+- **Why a run stopped.** Annealing reports its stop reason (iterations,
+  temperature, target, callback) and the largest energy correction made
+  when move-mode deltas are resynchronized.
 - **Exact, numerically qualified, heuristic.**
   - Robust predicates give exact signs within stated input ranges.
   - Weighted matching is exact in integer mode and within a stated tolerance
