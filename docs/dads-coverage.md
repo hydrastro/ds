@@ -1318,7 +1318,7 @@ the term covers is provided.
 | substring | concept | n/a |  |  |
 | subtree | concept | n/a |  |  |
 | suffix | concept | n/a |  |  |
-| suffix array | algorithm | implemented | algo/stringology |  |
+| suffix array | algorithm | implemented | algo/stringology, lib/suffix_array | prefix doubling in algo/stringology; SA-IS in O(n) in lib/suffix_array |
 | suffix automaton | structure | implemented | lib/suffix_automaton |  |
 | suffix tree | structure | implemented | lib/suffix_tree |  |
 | superimposed code | structure | implemented | lib/signature_file |  |
@@ -1529,6 +1529,7 @@ the term covers is provided.
 | hollow heap | structure | implemented | `lib/hollow_heap`, `lib/pq_iface` | one-tree hollow heap: O(1) push, decrease and meld, O(log n) amortized pop; a rebuild keeps nodes O(n) |
 | chromatic tree | structure | implemented | `lib/chromatic_tree` | relaxed-balance red-black tree (Nurmi, Soisalon-Soininen; Boyar-Larsen transformations): weights instead of colours, updates without rotations, rebalancing eager or deferred along pending paths; rank, select, linked or inline routers |
 | rank-pairing heap | structure | implemented | `lib/rank_pairing_heap`, `lib/pq_iface` | type-1 and type-2 rank rules: O(1) push, meld and amortized decrease without cascading cuts, O(log n) amortized pop by one-pass linking |
+| SA-IS suffix array construction | algorithm | implemented | `lib/suffix_array` | induced sorting (Nong, Zhang, Chan) in O(n) for byte and integer strings, recursion O(log n) deep; inverse, Kasai LCP, BWT |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |
 | wavelet matrix | structure | implemented | `lib/wavelet_matrix`, `lib/fm_index` | quantile and range counting over any rank/select backend; also the FM-index rank backend |
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |

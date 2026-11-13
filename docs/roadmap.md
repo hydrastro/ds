@@ -224,6 +224,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/rrb_vector: relaxed radix balanced persistent vectors (concat plan of Stucki et al.)
 - algo/planarity: left-right planarity test (Brandes) with embeddings, faces, Kuratowski certificates, outerplanarity and maximal planar subgraphs; straight-line grid drawings (canonical ordering, shift method)
 - lib/chromatic_tree: chromatic trees with Boyar-Larsen rebalancing transformations, eager or deferred; rank/select
+- lib/suffix_array: SA-IS suffix arrays in O(n), LCP and BWT
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
