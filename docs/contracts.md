@@ -90,6 +90,7 @@ says what remains:
 | priority-queue item pointers (`top`, `item`) | the item leaves; for `DS_PQ_MOVING_ITEMS` backends, the next modification | |
 | ordered-map cursors | the next modification | `ds_ordered_for_each` walks in linear time without allocating a cursor per step |
 | SSTable iterators | the table bytes are freed | they borrow the bytes |
+| SSTables opened with `ds_sstable_open_ex` | `ds_sstable_close` | the loaded AMQ filter is owned by the table |
 | LSM iterators and returned values | the next modification | |
 | graph-view workspaces | reuse across calls | one call at a time |
 

@@ -70,7 +70,7 @@ Core mutable containers:
 - `lib/sorted_list`: sorted arrays (binary search, bounds, merge), ordered linked lists and unsorted lists
 - `lib/sparse_matrix`: orthogonal-list sparse matrices (sum, product, transpose, CSR), ragged matrices, huge sparse arrays
 - `lib/spiral_storage`: spiral storage (Martin's directory-free dynamic hashing)
-- `lib/sstable`: SSTables (prefix-compressed blocks, index, Bloom filter, merge)
+- `lib/sstable`: SSTables (prefix-compressed blocks, index, built-in Bloom or pluggable AMQ filter, verification, merge)
 - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
 - `lib/topology_tree`: Frederickson topology trees (maximal restricted partitions maintained under link/cut, component aggregates)
 - `lib/tree_automaton`: bottom-up (NFTA/DFTA: run, determinize, intersection, union, complement, emptiness with witness) and top-down tree automata

@@ -1,11 +1,14 @@
 #include "sstable.h"
 #include "checked.h"
+#include <limits.h>
 #include <string.h>
 
 #define SST_MAGIC_V1 0x53535442UL /* version 1 */
 #define SST_MAGIC_V2 0x32545353UL /* bytes "SST2" */
+#define SST_MAGIC_V3 0x33545353UL /* bytes "SST3" */
 #define SST_FOOTER_V1 28
 #define SST_FOOTER_V2 32
+#define SST_FOOTER_V3 36
 #define SST_MAXLEN DS_SSTABLE_MAX_LEN
 
 /* ---- encoding helpers -------------------------------------------------------
@@ -107,6 +110,31 @@ static unsigned long sst_key_hash(const unsigned char *p, size_t n) {
   h = (h * 0xC2B2AE35UL) & 0xFFFFFFFFUL;
   h ^= h >> 16;
   return h;
+}
+
+/* the hash AMQ filters take: as wide as unsigned long */
+static unsigned long sst_amq_hash(const unsigned char *p, size_t n) {
+#if ULONG_MAX > 0xFFFFFFFFUL
+  unsigned long h = 0xCBF29CE484222325UL;
+  size_t i;
+  for (i = 0; i < n; i++) {
+    h ^= p[i];
+    h *= 0x100000001B3UL;
+  }
+  h ^= h >> 33;
+  h *= 0xFF51AFD7ED558CCDUL;
+  h ^= h >> 33;
+  h *= 0xC4CEB9FE1A85EC53UL;
+  h ^= h >> 33;
+  return h;
+#else
+  return sst_key_hash(p, n);
+#endif
+}
+
+static unsigned long sst_filter_hash(const ds_sstable_builder_t *b,
+                                     const unsigned char *p, size_t n) {
+  return b->filter_ops != NULL ? sst_amq_hash(p, n) : sst_key_hash(p, n);
 }
 
 static int sst_bytewise_cmp(const unsigned char *a, size_t na,
@@ -230,31 +258,61 @@ static bool sst_at(size_t base, unsigned long rel, size_t limit, size_t *out) {
 /* ---- builder ----------------------------------------------------------------
  */
 
+void ds_sstable_options_init(ds_sstable_options_t *options) {
+  if (options != NULL) {
+    memset(options, 0, sizeof(*options));
+  }
+}
+
+/* an AMQ backend a table can carry: it saves images and loads them */
+static bool sst_amq_usable(const ds_amq_ops_t *ops) {
+  return ops->save != NULL && ops->load != NULL && ops->id >= 1 &&
+         ops->id <= 255;
+}
+
+ds_status_t ds_sstable_builder_init_opts(ds_sstable_builder_t *b,
+                                         const ds_sstable_options_t *options,
+                                         ds_context_t *context) {
+  ds_sstable_options_t def;
+  if (b == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (options == NULL) {
+    ds_sstable_options_init(&def);
+    options = &def;
+  }
+  if (options->bits_per_key > 32 || !sst_cmp_valid(options->comparator) ||
+      (options->filter != NULL && options->bits_per_key != 0)) {
+    return DS_ERR_INVALID;
+  }
+  if (options->filter != NULL && !sst_amq_usable(options->filter)) {
+    return DS_ERR_UNSUPPORTED;
+  }
+  memset(b, 0, sizeof(*b));
+  b->block_size = options->block_size == 0 ? 4096 : options->block_size;
+  b->restart_interval =
+      options->restart_interval == 0 ? 16 : options->restart_interval;
+  b->bits_per_key = options->bits_per_key;
+  b->filter_ops = options->filter;
+  b->filter_fp_bits = options->filter_fp_bits;
+  b->cmp = options->comparator == NULL ? sst_bytewise : *options->comparator;
+  b->context = context;
+  return DS_OK;
+}
+
 ds_status_t ds_sstable_builder_init_cmp(ds_sstable_builder_t *b,
                                         size_t block_size,
                                         size_t restart_interval,
                                         size_t bits_per_key,
                                         const ds_sstable_comparator_t *cmp,
                                         ds_context_t *context) {
-  if (b == NULL) {
-    return DS_ERR_NULL;
-  }
-  if (block_size == 0) {
-    block_size = 4096;
-  }
-  if (restart_interval == 0) {
-    restart_interval = 16;
-  }
-  if (bits_per_key > 32 || !sst_cmp_valid(cmp)) {
-    return DS_ERR_INVALID;
-  }
-  memset(b, 0, sizeof(*b));
-  b->block_size = block_size;
-  b->restart_interval = restart_interval;
-  b->bits_per_key = bits_per_key;
-  b->cmp = cmp == NULL ? sst_bytewise : *cmp;
-  b->context = context;
-  return DS_OK;
+  ds_sstable_options_t o;
+  ds_sstable_options_init(&o);
+  o.block_size = block_size;
+  o.restart_interval = restart_interval;
+  o.bits_per_key = bits_per_key;
+  o.comparator = cmp;
+  return ds_sstable_builder_init_opts(b, &o, context);
 }
 
 ds_status_t ds_sstable_builder_init(ds_sstable_builder_t *b, size_t block_size,
@@ -389,7 +447,8 @@ static ds_status_t sst_add(ds_sstable_builder_t *b, const void *key,
       shared++;
     }
   }
-  if (b->hash_count == b->hash_cap && b->bits_per_key > 0) {
+  if (b->hash_count == b->hash_cap &&
+      (b->bits_per_key > 0 || b->filter_ops != NULL)) {
     st = sst_reserve_longs(b->context, &b->hashes, &b->hash_cap, 64);
     if (st != DS_OK) {
       return st;
@@ -427,8 +486,8 @@ static ds_status_t sst_add(ds_sstable_builder_t *b, const void *key,
   }
   b->last_len = key_len;
   b->has_last = true;
-  if (b->bits_per_key > 0) {
-    b->hashes[b->hash_count++] = sst_key_hash(k, key_len);
+  if (b->bits_per_key > 0 || b->filter_ops != NULL) {
+    b->hashes[b->hash_count++] = sst_filter_hash(b, k, key_len);
   }
   b->entries++;
   b->block_entries++;
@@ -473,9 +532,53 @@ static bool sst_bloom_params(size_t bits_per_key, size_t n, size_t *out_k,
   return true;
 }
 
+/* the AMQ filter over the collected hashes, appended as an image; a
+ * backend with exact capacity that overflows is rebuilt larger */
+static ds_status_t sst_put_amq(ds_sstable_builder_t *b) {
+  ds_amq_t f;
+  size_t capacity = b->hash_count;
+  size_t len = 0;
+  int attempt;
+  ds_status_t st = DS_ERR_OVERFLOW;
+  for (attempt = 0; attempt < 4 && st == DS_ERR_OVERFLOW; attempt++) {
+    st =
+        ds_amq_init(&f, b->filter_ops, capacity, b->filter_fp_bits, b->context);
+    if (st != DS_OK) {
+      return st;
+    }
+    st = ds_amq_build(&f, b->hashes, b->hash_count);
+    if (st == DS_ERR_OVERFLOW) {
+      ds_amq_destroy(&f);
+      if (!ds_size_mul(capacity < 16 ? 16 : capacity, 2, &capacity)) {
+        return DS_ERR_OVERFLOW;
+      }
+    }
+  }
+  if (st == DS_ERR_OVERFLOW) {
+    return st; /* every attempt overflowed; f is destroyed */
+  }
+  if (st == DS_OK) {
+    st = ds_amq_save(&f, NULL, 0, &len);
+  }
+  if (st == DS_OK) {
+    st = len > SST_MAXLEN || b->len > SST_MAXLEN - len
+             ? DS_ERR_OVERFLOW
+             : sst_grow(b->context, &b->buf, &b->cap, b->len + len);
+  }
+  if (st == DS_OK) {
+    st = ds_amq_save(&f, b->buf + b->len, len, &len);
+  }
+  if (st == DS_OK) {
+    b->len += len;
+  }
+  ds_amq_destroy(&f);
+  return st;
+}
+
 ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
                                       unsigned char **out, size_t *out_len) {
-  unsigned char foot[SST_FOOTER_V2];
+  unsigned char foot[SST_FOOTER_V3];
+  size_t foot_len = SST_FOOTER_V2;
   unsigned char u[4];
   size_t index_off;
   size_t index_len;
@@ -516,7 +619,11 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
   }
   index_len = b->len - index_off;
   filter_off = b->len;
-  if (st == DS_OK && b->bits_per_key > 0) {
+  if (st == DS_OK && b->filter_ops != NULL) {
+    st = sst_put_amq(b);
+    filter_len = b->len - filter_off;
+    foot_len = SST_FOOTER_V3;
+  } else if (st == DS_OK && b->bits_per_key > 0) {
     size_t k;
     size_t bits;
     size_t i;
@@ -550,23 +657,28 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
     }
     filter_len = b->len - filter_off;
   }
-  if (st == DS_OK && b->len > SST_MAXLEN - SST_FOOTER_V2) {
+  if (st == DS_OK && b->len > SST_MAXLEN - foot_len) {
     st = DS_ERR_OVERFLOW;
   }
   if (st == DS_OK) {
     unsigned long crc;
+    size_t fields = foot_len - 8;
     sst_put_u32(foot, (unsigned long)index_off);
     sst_put_u32(foot + 4, (unsigned long)index_len);
     sst_put_u32(foot + 8, (unsigned long)filter_off);
     sst_put_u32(foot + 12, (unsigned long)filter_len);
     sst_put_u32(foot + 16, (unsigned long)b->entries);
     sst_put_u32(foot + 20, b->cmp.id);
+    if (foot_len == SST_FOOTER_V3) {
+      sst_put_u32(foot + 24, DS_SSTABLE_FILTER_AMQ);
+    }
     /* the checksum covers the data and the footer fields before it */
     crc = sst_crc_update(0xFFFFFFFFUL, b->buf, b->len);
-    crc = sst_crc_update(crc, foot, 24) ^ 0xFFFFFFFFUL;
-    sst_put_u32(foot + 24, crc);
-    sst_put_u32(foot + 28, SST_MAGIC_V2);
-    st = sst_put(b->context, &b->buf, &b->len, &b->cap, foot, SST_FOOTER_V2);
+    crc = sst_crc_update(crc, foot, fields) ^ 0xFFFFFFFFUL;
+    sst_put_u32(foot + fields, crc);
+    sst_put_u32(foot + fields + 4,
+                foot_len == SST_FOOTER_V3 ? SST_MAGIC_V3 : SST_MAGIC_V2);
+    st = sst_put(b->context, &b->buf, &b->len, &b->cap, foot, foot_len);
   }
   if (st != DS_OK) {
     b->error = st;
@@ -606,10 +718,13 @@ ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,
   const unsigned char *f;
   unsigned long magic;
   unsigned long id;
+  unsigned long kind = 0;
+  bool have_kind = false; /* versions 1 and 2: from the filter length */
   size_t foot;
   size_t body;
   size_t n;
   size_t end;
+  bool ok;
   if (t == NULL || data == NULL) {
     return DS_ERR_NULL;
   }
@@ -624,15 +739,20 @@ ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,
     return DS_ERR_INVALID;
   }
   magic = sst_get_u32(p + len - 4);
-  if (magic == SST_MAGIC_V2 && len >= SST_FOOTER_V2) {
-    foot = SST_FOOTER_V2;
+  if ((magic == SST_MAGIC_V2 && len >= SST_FOOTER_V2) ||
+      (magic == SST_MAGIC_V3 && len >= SST_FOOTER_V3)) {
+    foot = magic == SST_MAGIC_V3 ? SST_FOOTER_V3 : SST_FOOTER_V2;
     f = p + len - foot;
-    if (sst_get_u32(f + 24) !=
+    if (sst_get_u32(p + len - 8) !=
         (sst_crc_update(0xFFFFFFFFUL, p, len - 8) ^ 0xFFFFFFFFUL)) {
       return DS_ERR_INVALID;
     }
     id = sst_get_u32(f + 20);
-    t->version = 2;
+    t->version = magic == SST_MAGIC_V3 ? 3 : 2;
+    if (magic == SST_MAGIC_V3) {
+      kind = sst_get_u32(f + 24);
+      have_kind = true;
+    }
   } else if (magic == SST_MAGIC_V1) {
     foot = SST_FOOTER_V1;
     f = p + len - foot;
@@ -656,16 +776,78 @@ ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,
   t->filter_len = (size_t)sst_get_u32(f + 12);
   t->entries = (size_t)sst_get_u32(f + 16);
   t->cmp = *cmp;
+  if (!have_kind) {
+    kind =
+        t->filter_len >= 2 ? DS_SSTABLE_FILTER_BLOOM : DS_SSTABLE_FILTER_NONE;
+  }
+  t->filter_kind = (unsigned)(kind & 0xFFUL);
   /* index inside the body with a well-formed restart array; the filter,
-   * when present, after the index; its probe count in 1 .. 30 */
-  if (!sst_block_restarts(t, t->index_off, t->index_len, body, &n, &end) ||
-      (t->filter_len > 0 && (t->filter_off < t->index_off + t->index_len ||
-                             !sst_range(t->filter_off, t->filter_len, body))) ||
-      (t->filter_len >= 2 && (p[t->filter_off] < 1 || p[t->filter_off] > 30))) {
+   * when present, after the index */
+  ok = sst_block_restarts(t, t->index_off, t->index_len, body, &n, &end) &&
+       (t->filter_len == 0 || (t->filter_off >= t->index_off + t->index_len &&
+                               sst_range(t->filter_off, t->filter_len, body)));
+  if (ok && kind == DS_SSTABLE_FILTER_NONE) {
+    ok = t->version < 3 || t->filter_len == 0;
+  } else if (ok && kind == DS_SSTABLE_FILTER_BLOOM) {
+    /* a probe count in 1 .. 30, then the bits */
+    ok = t->filter_len >= 2 && p[t->filter_off] >= 1 && p[t->filter_off] <= 30;
+  } else if (ok && kind == DS_SSTABLE_FILTER_AMQ) {
+    /* one whole image; a version this library does not know is kept but
+     * cannot be loaded */
+    ds_amq_image_t info;
+    ds_status_t ist =
+        ds_amq_image_info(p + t->filter_off, t->filter_len, &info);
+    ok = (ist == DS_OK && info.length == t->filter_len) ||
+         ist == DS_ERR_UNSUPPORTED;
+    t->filter_id = info.id;
+  } else {
+    ok = false;
+  }
+  if (!ok) {
     memset(t, 0, sizeof(*t));
     return DS_ERR_INVALID;
   }
   return DS_OK;
+}
+
+ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
+                               const ds_sstable_comparator_t *cmp,
+                               const ds_amq_ops_t *filter,
+                               ds_context_t *context) {
+  const unsigned char *img;
+  ds_status_t st = ds_sstable_open_cmp(t, data, len, cmp);
+  if (st != DS_OK || t->filter_kind != DS_SSTABLE_FILTER_AMQ) {
+    return st;
+  }
+  img = t->data + t->filter_off;
+  if (filter != NULL && filter->id == t->filter_id) {
+    st = ds_amq_load_with(&t->amq, filter, img, t->filter_len, context);
+  } else {
+    st = ds_amq_load(&t->amq, img, t->filter_len, context);
+  }
+  if (st == DS_ERR_UNSUPPORTED) {
+    return DS_OK; /* readable, without a filter */
+  }
+  if (st != DS_OK) {
+    memset(t, 0, sizeof(*t));
+  }
+  return st;
+}
+
+void ds_sstable_close(ds_sstable_t *t) {
+  if (t == NULL) {
+    return;
+  }
+  ds_amq_destroy(&t->amq);
+  memset(t, 0, sizeof(*t));
+}
+
+bool ds_sstable_has_filter(const ds_sstable_t *t) {
+  if (t == NULL || t->data == NULL) {
+    return false;
+  }
+  return t->filter_kind == DS_SSTABLE_FILTER_BLOOM ||
+         (t->filter_kind == DS_SSTABLE_FILTER_AMQ && t->amq.ops != NULL);
 }
 
 ds_status_t ds_sstable_open(ds_sstable_t *t, const void *data, size_t len) {
@@ -694,7 +876,15 @@ bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
   unsigned long h;
   unsigned long delta;
   size_t j;
-  if (t == NULL || t->data == NULL || t->filter_len < 2) {
+  if (t == NULL || t->data == NULL) {
+    return true;
+  }
+  if (t->filter_kind == DS_SSTABLE_FILTER_AMQ) {
+    return t->amq.ops == NULL ||
+           ds_amq_contains(&t->amq,
+                           sst_amq_hash((const unsigned char *)key, key_len));
+  }
+  if (t->filter_kind != DS_SSTABLE_FILTER_BLOOM || t->filter_len < 2) {
     return true;
   }
   f = t->data + t->filter_off;
@@ -1134,8 +1324,17 @@ static ds_status_t sst_verify_block(const ds_sstable_t *t, size_t off,
   return ridx == rc ? DS_OK : DS_ERR_INVALID;
 }
 
-ds_status_t ds_sstable_verify(const ds_sstable_t *t, bool check_filter,
+static size_t sst_footer_len(const ds_sstable_t *t) {
+  return t->version == 1   ? SST_FOOTER_V1
+         : t->version == 2 ? SST_FOOTER_V2
+                           : SST_FOOTER_V3;
+}
+
+ds_status_t ds_sstable_verify(const ds_sstable_t *table, bool check_filter,
                               ds_context_t *context) {
+  ds_sstable_t tv; /* the table, with its AMQ filter loaded if need be */
+  const ds_sstable_t *t = &tv;
+  bool loaded = false;
   size_t n;
   size_t end;
   size_t i;
@@ -1146,11 +1345,30 @@ ds_status_t ds_sstable_verify(const ds_sstable_t *t, bool check_filter,
   sst_keybuf_t prev;
   sst_keybuf_t cur;
   ds_status_t st = DS_OK;
-  if (t == NULL || t->data == NULL) {
+  if (table == NULL || table->data == NULL) {
     return DS_ERR_NULL;
   }
-  if (!sst_block_restarts(t, t->index_off, t->index_len, t->len, &n, &end)) {
+  tv = *table;
+  if (!sst_block_restarts(t, t->index_off, t->index_len, t->len, &n, &end) ||
+      t->len < sst_footer_len(t)) {
     return DS_ERR_INVALID;
+  }
+  /* the builder writes the filter right after the index and the footer
+   * right after the filter */
+  if (t->filter_off != t->index_off + t->index_len ||
+      t->filter_off + t->filter_len != t->len - sst_footer_len(t)) {
+    return DS_ERR_INVALID;
+  }
+  /* an AMQ filter is checked by loading it, where this platform can */
+  if (t->filter_kind == DS_SSTABLE_FILTER_AMQ && t->amq.ops == NULL) {
+    st = ds_amq_load(&tv.amq, t->data + t->filter_off, t->filter_len, context);
+    if (st == DS_OK) {
+      loaded = true;
+    } else if (st == DS_ERR_UNSUPPORTED) {
+      st = DS_OK;
+    } else {
+      return st;
+    }
   }
   memset(&prev, 0, sizeof(prev));
   memset(&cur, 0, sizeof(cur));
@@ -1202,6 +1420,9 @@ ds_status_t ds_sstable_verify(const ds_sstable_t *t, bool check_filter,
   }
   ds_context_free(context, prev.p);
   ds_context_free(context, cur.p);
+  if (loaded) {
+    ds_amq_destroy(&tv.amq);
+  }
   return st;
 }
 
@@ -1213,27 +1434,57 @@ ds_status_t ds_sstable_merge(const ds_sstable_t *tables, size_t n,
                              size_t restart_interval, size_t bits_per_key,
                              unsigned char **out, size_t *out_len,
                              ds_context_t *context) {
+  ds_sstable_options_t o;
+  ds_sstable_options_init(&o);
+  o.block_size = block_size;
+  o.restart_interval = restart_interval;
+  o.bits_per_key = bits_per_key;
+  return ds_sstable_merge_opts(tables, n, drop_tombstones, &o, out, out_len,
+                               context);
+}
+
+static bool sst_same_cmp(const ds_sstable_comparator_t *a,
+                         const ds_sstable_comparator_t *b) {
+  return a->id == b->id && a->compare == b->compare;
+}
+
+ds_status_t ds_sstable_merge_opts(const ds_sstable_t *tables, size_t n,
+                                  bool drop_tombstones,
+                                  const ds_sstable_options_t *options,
+                                  unsigned char **out, size_t *out_len,
+                                  ds_context_t *context) {
   ds_sstable_iter_t *its;
   ds_sstable_builder_t b;
+  ds_sstable_options_t o;
   const ds_sstable_comparator_t *cmp = &sst_bytewise;
   size_t i;
   ds_status_t st;
   if ((n > 0 && tables == NULL) || out == NULL || out_len == NULL) {
     return DS_ERR_NULL;
   }
+  if (options == NULL) {
+    ds_sstable_options_init(&o);
+  } else {
+    o = *options;
+  }
   if (n > 0) {
     cmp = &tables[0].cmp;
+  } else if (o.comparator != NULL) {
+    cmp = o.comparator;
   }
   for (i = 0; i < n; i++) {
     if (tables[i].data == NULL) {
       return DS_ERR_STATE;
     }
-    if (tables[i].cmp.id != cmp->id || tables[i].cmp.compare != cmp->compare) {
+    if (!sst_same_cmp(&tables[i].cmp, cmp)) {
       return DS_ERR_INVALID;
     }
   }
-  st = ds_sstable_builder_init_cmp(&b, block_size, restart_interval,
-                                   bits_per_key, cmp, context);
+  if (o.comparator != NULL && !sst_same_cmp(o.comparator, cmp)) {
+    return DS_ERR_INVALID;
+  }
+  o.comparator = cmp;
+  st = ds_sstable_builder_init_opts(&b, &o, context);
   if (st != DS_OK) {
     return st;
   }

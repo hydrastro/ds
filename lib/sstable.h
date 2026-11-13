@@ -13,18 +13,34 @@
  *                 at the end of the block, so a block is searched by
  *                 binary search over its restarts, then a short scan
  *   index block   the last key of each data block with its offset and size
- *   filter block  optional Bloom filter over all keys (bits_per_key)
+ *   filter block  optional: the built-in Bloom filter over all keys
+ *                 (bits_per_key), or the image of an AMQ filter from any
+ *                 lib/amq_iface backend (options.filter)
  *   footer        index and filter positions, entry count, comparator id,
- *                 a CRC-32C of everything before the checksum (data and
- *                 the footer's own fields) and a magic number
+ *                 the filter kind (version 3), a CRC-32C of everything
+ *                 before the checksum (data and the footer's own fields)
+ *                 and a magic number
  * Keys order by a comparator: bytes (memcmp, shorter prefix first) by
  * default, or a ds_sstable_comparator_t whose id is recorded in the
  * footer, so a table is only opened with the order it was written in. A
  * value may be a tombstone (a deletion marker for merging).
  *
- * Format versions: version 2 (written now) checksums the footer fields
- * with CRC-32C; version 1 tables (FNV-1a over the data only, bytewise
- * keys) are still read.
+ * Format versions: version 3 adds the filter kind and is written for
+ * tables with an AMQ filter; other tables are still written as version 2
+ * (CRC-32C over the data and the footer fields), which older readers
+ * understand; version 1 tables (FNV-1a over the data only, bytewise keys)
+ * are still read.
+ *
+ * AMQ filters: the builder hashes every key to an unsigned long (64-bit
+ * FNV-1a with a finalizer where unsigned long has 64 bits, the built-in
+ * filter's 32-bit hash otherwise) and builds the chosen backend over the
+ * hashes, enlarging it if a backend with exact capacity overflows. Images
+ * depend on the width of unsigned long (see lib/amq_iface), so a table
+ * whose filter this platform cannot load (another width, an unknown
+ * backend) opens without a filter and stays readable;
+ * ds_sstable_has_filter() tells. ds_sstable_open and ds_sstable_open_cmp
+ * never allocate and so ignore an AMQ filter; ds_sstable_open_ex loads
+ * it, and such a table is released with ds_sstable_close.
  *
  * Untrusted input: every length, offset and count read from a table is
  * checked against the table's bounds with overflow-checked arithmetic
@@ -35,9 +51,11 @@
  * checks the footer, checksum and region layout in O(len);
  * ds_sstable_verify additionally checks the whole structure (block
  * tiling, restart points, key order within and across blocks, index keys,
- * entry count, optionally the filter), so a table that verifies is one
- * the builder could have written. Without verification a corrupted but
- * checksum-matching table can only give wrong answers, not unsafe reads.
+ * entry count, the placement of the filter, the structure of an AMQ
+ * filter this platform can load, and optionally every key against the
+ * filter), so a table that verifies is one the builder could have
+ * written. Without verification a corrupted but checksum-matching table
+ * can only give wrong answers, not unsafe reads.
  *
  * ds_sstable_builder_t writes a table into memory from keys added in
  * strictly increasing order; ds_sstable_t reads one in place (zero-copy)
@@ -49,6 +67,7 @@
  * Memory comes from the ds_context_t.
  */
 
+#include "amq_iface.h"
 #include "context.h"
 #include "status.h"
 #include <stdbool.h>
@@ -59,6 +78,11 @@ extern "C" {
 #endif
 
 #define DS_SSTABLE_MAX_LEN 0x7FFFFFFFUL
+
+/* filter kinds */
+#define DS_SSTABLE_FILTER_NONE 0u
+#define DS_SSTABLE_FILTER_BLOOM 1u /* the built-in Bloom filter */
+#define DS_SSTABLE_FILTER_AMQ 2u   /* an AMQ filter image */
 
 /* Key order. compare returns <0, 0, >0 like memcmp; it must be a strict
  * weak order consistent across runs, since tables persist it. id names
@@ -76,6 +100,22 @@ typedef struct ds_sstable_comparator {
 /* the default: bytes in memcmp order, shorter prefix first; id 0 */
 const ds_sstable_comparator_t *ds_sstable_bytewise(void);
 
+/* How tables are written. */
+typedef struct ds_sstable_options {
+  size_t block_size;       /* 0: 4096 */
+  size_t restart_interval; /* 0: 16 */
+  size_t bits_per_key;     /* the built-in Bloom filter, at most 32; 0: none */
+  /* an AMQ backend for the filter instead (bits_per_key must then be 0);
+   * it must support images. NULL: the built-in filter or none */
+  const ds_amq_ops_t *filter;
+  unsigned filter_fp_bits;                   /* its fp_bits (0: default) */
+  const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
+} ds_sstable_options_t;
+
+/* all defaults: 4096-byte blocks, restarts every 16 entries, no filter,
+ * bytewise keys */
+void ds_sstable_options_init(ds_sstable_options_t *options);
+
 typedef struct ds_sstable_builder {
   unsigned char *buf; /* the table so far */
   size_t len;
@@ -83,6 +123,8 @@ typedef struct ds_sstable_builder {
   size_t block_size;
   size_t restart_interval;
   size_t bits_per_key;
+  const ds_amq_ops_t *filter_ops; /* AMQ filter backend, or NULL */
+  unsigned filter_fp_bits;
   /* current data block */
   size_t block_start;
   size_t block_entries;
@@ -122,6 +164,12 @@ ds_status_t ds_sstable_builder_init_cmp(ds_sstable_builder_t *b,
                                         size_t bits_per_key,
                                         const ds_sstable_comparator_t *cmp,
                                         ds_context_t *context);
+/* the same from options (NULL: defaults); DS_ERR_INVALID for an invalid
+ * comparator, bits_per_key above 32, or both bits_per_key and filter;
+ * DS_ERR_UNSUPPORTED for a filter backend without images */
+ds_status_t ds_sstable_builder_init_opts(ds_sstable_builder_t *b,
+                                         const ds_sstable_options_t *options,
+                                         ds_context_t *context);
 /* Keys strictly increasing (DS_ERR_INVALID otherwise). */
 ds_status_t ds_sstable_builder_add(ds_sstable_builder_t *b, const void *key,
                                    size_t key_len, const void *value,
@@ -141,7 +189,10 @@ typedef struct ds_sstable {
   size_t filter_off;
   size_t filter_len;
   size_t entries;
-  unsigned version; /* format version, 1 or 2 */
+  unsigned version;     /* format version, 1 to 3 */
+  unsigned filter_kind; /* DS_SSTABLE_FILTER_* */
+  unsigned filter_id;   /* the AMQ backend id, for DS_SSTABLE_FILTER_AMQ */
+  ds_amq_t amq;         /* the loaded AMQ filter (ops NULL when not loaded) */
   ds_sstable_comparator_t cmp;
 } ds_sstable_t;
 
@@ -152,13 +203,26 @@ ds_status_t ds_sstable_open(ds_sstable_t *t, const void *data, size_t len);
 /* the same with the table's key order (NULL: bytewise) */
 ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,
                                 const ds_sstable_comparator_t *cmp);
+/* the same, also loading an AMQ filter with memory from the context: with
+ * the backend `filter` when the image has its id, with a built-in backend
+ * otherwise; a filter no backend here can load is skipped. A malformed
+ * filter image is DS_ERR_INVALID. Release with ds_sstable_close. */
+ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
+                               const ds_sstable_comparator_t *cmp,
+                               const ds_amq_ops_t *filter,
+                               ds_context_t *context);
+/* frees a loaded filter; harmless for any opened table */
+void ds_sstable_close(ds_sstable_t *t);
+/* true when may_contain can rule keys out */
+bool ds_sstable_has_filter(const ds_sstable_t *t);
 /* full structural check in O(len) plus O(longest key) memory: DS_OK,
  * DS_ERR_INVALID, or DS_ERR_ALLOC; check_filter also probes every key */
 ds_status_t ds_sstable_verify(const ds_sstable_t *t, bool check_filter,
                               ds_context_t *context);
 size_t ds_sstable_entries(const ds_sstable_t *t);
 size_t ds_sstable_blocks(const ds_sstable_t *t);
-/* false when the filter rules the key out (true without a filter). */
+/* false when the filter rules the key out (true without a usable
+ * filter). */
 bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
                             size_t key_len);
 /* DS_OK with the value (pointing into the table) or DS_NOT_FOUND; a
@@ -203,6 +267,13 @@ ds_status_t ds_sstable_merge(const ds_sstable_t *tables, size_t n,
                              size_t restart_interval, size_t bits_per_key,
                              unsigned char **out, size_t *out_len,
                              ds_context_t *context);
+/* the same with the output written by options (NULL: defaults); a
+ * comparator set there must be the tables' (DS_ERR_INVALID otherwise) */
+ds_status_t ds_sstable_merge_opts(const ds_sstable_t *tables, size_t n,
+                                  bool drop_tombstones,
+                                  const ds_sstable_options_t *options,
+                                  unsigned char **out, size_t *out_len,
+                                  ds_context_t *context);
 
 #ifdef __cplusplus
 }

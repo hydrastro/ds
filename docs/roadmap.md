@@ -168,7 +168,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - `lib/binary_tree_repr`: stack trees (check and build).
 - algo/space_order: space ordering methods.
 - lib/spiral_storage: spiral storage.
-- lib/sstable: SSTables.
+- lib/sstable: SSTables; format 3 carries an AMQ filter image from any backend.
 - lib/zipper: zippers over persistent binary trees
 - algo/markov: Markov chain analysis
 - algo/anneal: simulated annealing
