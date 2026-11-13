@@ -19,8 +19,33 @@
  *
  * Keys and values are stored by value; hashing and equality are callbacks
  * with a user pointer. The table grows when the average chain exceeds
- * max_load and shrinks below a quarter of it. Memory comes from the
- * ds_context_t.
+ * max_load and shrinks below a quarter of it.
+ *
+ * Numbers and limits:
+ *
+ *   slot numbers  the active window [first, floor(d first) + 1) holds
+ *                 about (d - 1) first slots, so first tracks the table's
+ *                 size (n lies between max_load / 4 and max_load times
+ *                 (d - 1) first) and falls back when keys are removed:
+ *                 logical slot numbers do not drift with the history of
+ *                 the table, and no renormalization of S is needed.
+ *   mapping       h takes the low 32 bits of the hash, and slots are
+ *                 found in double precision by the same repeated
+ *                 multiplication every time, so a key's slot never
+ *                 depends on rounding luck. Growth stops when first
+ *                 would pass 2^52 / d (or ULONG_MAX / d), where doubles
+ *                 and unsigned long stop counting slots exactly; past
+ *                 about 2^32 / ln d slots (some six billion for d = 2)
+ *                 the 32 bits of h no longer separate neighbouring slots
+ *                 and some slots stay empty. A table that cannot grow
+ *                 (no memory, no slot numbers) stays correct and only
+ *                 gets fuller.
+ *   storage       the window lives in a circular array indexed by slot
+ *                 number modulo its capacity, which doubles (an O(window)
+ *                 remap) when the window outgrows it and is not shrunk;
+ *                 entries live in one array with a free list.
+ *
+ * Memory comes from the ds_context_t.
  */
 
 #include "context.h"

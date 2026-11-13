@@ -134,6 +134,9 @@ static ds_status_t sp_reserve(ds_spiral_map_t *m, unsigned long first,
     return DS_OK;
   }
   while (ncap < (size_t)(end - first)) {
+    if (ncap > ((size_t)-1) / 2 / sizeof(size_t)) {
+      return DS_ERR_OVERFLOW;
+    }
     ncap *= 2;
   }
   nh = (size_t *)ds_context_alloc(m->context, ncap * sizeof(size_t));
@@ -164,13 +167,28 @@ static void sp_respread(ds_spiral_map_t *m, size_t chain, unsigned long first) {
   }
 }
 
+/* the largest first slot whose window ends where doubles still count
+ * every slot exactly and unsigned long can number it */
+static double sp_first_limit(const ds_spiral_map_t *m) {
+  double top = 4503599627370496.0; /* 2^52 */
+  if ((double)(~0UL) < top) {
+    top = (double)(~0UL);
+  }
+  return top / m->growth - 2.0;
+}
+
 static ds_status_t sp_grow(ds_spiral_map_t *m) {
   unsigned long old_end = sp_end(m, m->first);
   unsigned long nf = m->first + 1;
-  unsigned long ne = sp_end(m, nf);
+  unsigned long ne;
   size_t chain;
   unsigned long j;
-  ds_status_t st = sp_reserve(m, m->first, ne);
+  ds_status_t st;
+  if ((double)nf > sp_first_limit(m)) {
+    return DS_ERR_OVERFLOW;
+  }
+  ne = sp_end(m, nf);
+  st = sp_reserve(m, m->first, ne);
   if (st != DS_OK) {
     return st;
   }
@@ -278,9 +296,8 @@ ds_status_t ds_spiral_map_put(ds_spiral_map_t *m, const void *key,
   m->size++;
   while ((double)m->size >
          m->max_load * (double)(sp_end(m, m->first) - m->first)) {
-    ds_status_t st = sp_grow(m);
-    if (st != DS_OK) {
-      return st == DS_ERR_ALLOC ? DS_OK : st; /* stays correct, just fuller */
+    if (sp_grow(m) != DS_OK) {
+      break; /* no memory or no more slot numbers: correct, just fuller */
     }
   }
   return DS_OK;
