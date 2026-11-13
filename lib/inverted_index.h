@@ -7,8 +7,21 @@
  * Terms are byte strings, interned in a dictionary (term ids in order of
  * first appearance). Documents are added in increasing id order as token
  * sequences (or as text through a tokenizer); each term keeps a posting
- * list compressed with delta + variable-byte coding. The granularity is
- * chosen at init:
+ * list of gaps, frequencies and position gaps, compressed by a codec
+ * chosen at init (ds_invidx_options_t.codec):
+ *
+ *   ds_invidx_codec_vbyte()    variable byte (the default): 7 bits per
+ *                              byte, byte aligned, fast
+ *   ds_invidx_codec_gamma()    Elias gamma: 2 log2(v + 1) + 1 bits, good
+ *                              for small numbers (frequencies, dense gaps)
+ *   ds_invidx_codec_delta()    Elias delta: log2 v + 2 log2 log2 v + O(1)
+ *                              bits, better for large gaps
+ *   ds_invidx_codec_rice(k)    Golomb-Rice with parameter 2^k: v >> k in
+ *                              unary, then k bits; optimal for geometric
+ *                              gaps of mean about 2^k ln 2
+ *
+ * A codec is an ops table (bits, put, get over a bit stream), so others
+ * can be supplied. The granularity is chosen at init:
  *
  *   DS_INVIDX_DOCUMENT  inverted file index: per term, the documents and
  *                       the term frequency in each
@@ -58,10 +71,29 @@ typedef bool (*ds_invidx_tokenizer_fn)(const char *text, size_t length,
                                        size_t *cursor, size_t *start,
                                        size_t *token_length, void *user);
 
+/* An integer codec over bit streams (bits are filled from the least
+ * significant bit of each byte up). put writes v at bit *pos of a buffer
+ * that is zero from *pos on and has room for bits(v) more bits, advancing
+ * *pos; get reads one value back. Values are below SIZE_MAX. */
+typedef struct ds_invidx_codec {
+  const char *name;
+  size_t (*bits)(size_t v, unsigned param);
+  void (*put)(unsigned char *buf, size_t *pos, size_t v, unsigned param);
+  size_t (*get)(const unsigned char *buf, size_t *pos, unsigned param);
+  unsigned param;
+} ds_invidx_codec_t;
+
+const ds_invidx_codec_t *ds_invidx_codec_vbyte(void);
+const ds_invidx_codec_t *ds_invidx_codec_gamma(void);
+const ds_invidx_codec_t *ds_invidx_codec_delta(void);
+/* k from 0 to 31 (NULL otherwise) */
+const ds_invidx_codec_t *ds_invidx_codec_rice(unsigned k);
+
 typedef struct ds_invidx_posting_list {
   unsigned char *bytes;
-  size_t length;
+  size_t length; /* bytes in use */
   size_t capacity;
+  size_t bits; /* bits in use */
   size_t df;   /* documents (or blocks) */
   size_t cf;   /* occurrences */
   size_t last; /* last document / block id written */
@@ -71,6 +103,7 @@ typedef struct ds_inverted_index {
   ds_invidx_mode_t mode;
   size_t block_size;
   bool keep_forward;
+  const ds_invidx_codec_t *codec;
   /* dictionary */
   unsigned char *text;
   size_t text_used;
@@ -101,7 +134,7 @@ typedef struct ds_inverted_index {
 typedef struct ds_invidx_cursor {
   const ds_inverted_index_t *index;
   size_t term; /* DS_INVIDX_NONE: empty */
-  size_t at;
+  size_t at;   /* bit offset in the posting list */
   size_t doc;  /* document id, or block number in block mode */
   size_t freq; /* occurrences in the document (0 in block mode) */
   size_t positions_left;
@@ -118,8 +151,19 @@ typedef struct ds_invidx_result {
 ds_status_t ds_invidx_init(ds_inverted_index_t *idx, ds_invidx_mode_t mode,
                            size_t block_size, bool keep_forward,
                            ds_context_t *context);
+/* the same with every choice in one place (NULL: document mode, vbyte) */
+typedef struct ds_invidx_options {
+  ds_invidx_mode_t mode;
+  size_t block_size; /* block mode */
+  bool keep_forward;
+  const ds_invidx_codec_t *codec; /* NULL: ds_invidx_codec_vbyte() */
+} ds_invidx_options_t;
+ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
+                                const ds_invidx_options_t *options,
+                                ds_context_t *context);
 void ds_invidx_destroy(ds_inverted_index_t *idx);
-/* tokens in order (position = index); doc_id must exceed the last one */
+/* tokens in order (position = index); doc_id must exceed the last one
+ * (DS_ERR_STATE) and be below SIZE_MAX (DS_ERR_RANGE) */
 ds_status_t ds_invidx_add(ds_inverted_index_t *idx, size_t doc_id,
                           const ds_invidx_term_t *tokens, size_t count);
 /* tokenizer NULL: maximal runs of ASCII letters and digits; fold_case

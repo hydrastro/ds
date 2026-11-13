@@ -54,6 +54,221 @@ static size_t ii_get_varint(const unsigned char *buf, size_t *at) {
   return v;
 }
 
+/* ---- posting codecs over bit streams ---- */
+
+/* n bits of v (n < II_W) at bit *pos, least significant first */
+static void ii_put_bits(unsigned char *buf, size_t *pos, size_t v, unsigned n) {
+  unsigned done = 0;
+  while (done < n) {
+    unsigned off = (unsigned)(*pos & 7u);
+    unsigned take = 8 - off < n - done ? 8 - off : n - done;
+    size_t chunk = (v >> done) & (((size_t)1 << take) - 1);
+    buf[*pos >> 3] = (unsigned char)(buf[*pos >> 3] | (chunk << off));
+    *pos += take;
+    done += take;
+  }
+}
+
+static size_t ii_get_bits(const unsigned char *buf, size_t *pos, unsigned n) {
+  size_t v = 0;
+  unsigned done = 0;
+  while (done < n) {
+    unsigned off = (unsigned)(*pos & 7u);
+    unsigned take = 8 - off < n - done ? 8 - off : n - done;
+    size_t chunk = ((size_t)buf[*pos >> 3] >> off) & (((size_t)1 << take) - 1);
+    v |= chunk << done;
+    *pos += take;
+    done += take;
+  }
+  return v;
+}
+
+/* q zero bits then a one */
+static void ii_put_unary(unsigned char *buf, size_t *pos, size_t q) {
+  *pos += q; /* the buffer is zero there already */
+  ii_put_bits(buf, pos, 1, 1);
+}
+
+static size_t ii_get_unary(const unsigned char *buf, size_t *pos) {
+  size_t zeros = 0;
+  for (;;) {
+    unsigned off = (unsigned)(*pos & 7u);
+    unsigned b = (unsigned)buf[*pos >> 3] >> off;
+    if (b != 0) {
+      unsigned t = 0;
+      while ((b & 1u) == 0) {
+        b >>= 1;
+        t++;
+      }
+      *pos += t + 1;
+      return zeros + t;
+    }
+    zeros += 8 - off;
+    *pos += 8 - off;
+  }
+}
+
+static unsigned ii_bitlen(size_t v) {
+  unsigned n = 0;
+  while (v != 0) {
+    v >>= 1;
+    n++;
+  }
+  return n;
+}
+
+static size_t ii_vb_bits(size_t v, unsigned param) {
+  size_t n = 8;
+  (void)param;
+  while (v >= 0x80) {
+    v >>= 7;
+    n += 8;
+  }
+  return n;
+}
+
+static void ii_vb_put(unsigned char *buf, size_t *pos, size_t v,
+                      unsigned param) {
+  (void)param;
+  while (v >= 0x80) {
+    ii_put_bits(buf, pos, (v & 0x7Fu) | 0x80u, 8);
+    v >>= 7;
+  }
+  ii_put_bits(buf, pos, v, 8);
+}
+
+static size_t ii_vb_get(const unsigned char *buf, size_t *pos, unsigned param) {
+  size_t v = 0;
+  unsigned shift = 0;
+  size_t c;
+  (void)param;
+  do {
+    c = ii_get_bits(buf, pos, 8);
+    v |= (c & 0x7Fu) << shift;
+    shift += 7;
+  } while ((c & 0x80u) != 0);
+  return v;
+}
+
+/* gamma of N = v + 1 >= 1: L - 1 zeros, a one, then N's low L - 1 bits */
+static size_t ii_gamma_bits(size_t v, unsigned param) {
+  (void)param;
+  return 2 * (size_t)ii_bitlen(v + 1) - 1;
+}
+
+static void ii_gamma_put_n(unsigned char *buf, size_t *pos, size_t n) {
+  unsigned l = ii_bitlen(n);
+  ii_put_unary(buf, pos, l - 1);
+  ii_put_bits(buf, pos, n, l - 1);
+}
+
+static size_t ii_gamma_get_n(const unsigned char *buf, size_t *pos) {
+  size_t l = ii_get_unary(buf, pos);
+  return ((size_t)1 << l) | ii_get_bits(buf, pos, (unsigned)l);
+}
+
+static void ii_gamma_put(unsigned char *buf, size_t *pos, size_t v,
+                         unsigned param) {
+  (void)param;
+  ii_gamma_put_n(buf, pos, v + 1);
+}
+
+static size_t ii_gamma_get(const unsigned char *buf, size_t *pos,
+                           unsigned param) {
+  (void)param;
+  return ii_gamma_get_n(buf, pos) - 1;
+}
+
+/* delta of N = v + 1: gamma of its length L, then its low L - 1 bits */
+static size_t ii_delta_bits(size_t v, unsigned param) {
+  unsigned l = ii_bitlen(v + 1);
+  (void)param;
+  return 2 * (size_t)ii_bitlen(l) - 1 + l - 1;
+}
+
+static void ii_delta_put(unsigned char *buf, size_t *pos, size_t v,
+                         unsigned param) {
+  size_t n = v + 1;
+  unsigned l = ii_bitlen(n);
+  (void)param;
+  ii_gamma_put_n(buf, pos, l);
+  ii_put_bits(buf, pos, n, l - 1);
+}
+
+static size_t ii_delta_get(const unsigned char *buf, size_t *pos,
+                           unsigned param) {
+  size_t l = ii_gamma_get_n(buf, pos);
+  (void)param;
+  return (((size_t)1 << (l - 1)) | ii_get_bits(buf, pos, (unsigned)(l - 1))) -
+         1;
+}
+
+/* Rice: v >> k in unary, then the low k bits */
+static size_t ii_rice_bits(size_t v, unsigned k) { return (v >> k) + 1 + k; }
+
+static void ii_rice_put(unsigned char *buf, size_t *pos, size_t v, unsigned k) {
+  ii_put_unary(buf, pos, v >> k);
+  ii_put_bits(buf, pos, v, k);
+}
+
+static size_t ii_rice_get(const unsigned char *buf, size_t *pos, unsigned k) {
+  size_t q = ii_get_unary(buf, pos);
+  return (q << k) | ii_get_bits(buf, pos, k);
+}
+
+static const ds_invidx_codec_t ii_codec_vbyte = {"vbyte", ii_vb_bits, ii_vb_put,
+                                                 ii_vb_get, 0};
+static const ds_invidx_codec_t ii_codec_gamma = {"gamma", ii_gamma_bits,
+                                                 ii_gamma_put, ii_gamma_get, 0};
+static const ds_invidx_codec_t ii_codec_delta = {"delta", ii_delta_bits,
+                                                 ii_delta_put, ii_delta_get, 0};
+#define II_RICE(k)                                                             \
+  { "rice", ii_rice_bits, ii_rice_put, ii_rice_get, k }
+static const ds_invidx_codec_t ii_codec_rice[32] = {
+    II_RICE(0),  II_RICE(1),  II_RICE(2),  II_RICE(3),  II_RICE(4),
+    II_RICE(5),  II_RICE(6),  II_RICE(7),  II_RICE(8),  II_RICE(9),
+    II_RICE(10), II_RICE(11), II_RICE(12), II_RICE(13), II_RICE(14),
+    II_RICE(15), II_RICE(16), II_RICE(17), II_RICE(18), II_RICE(19),
+    II_RICE(20), II_RICE(21), II_RICE(22), II_RICE(23), II_RICE(24),
+    II_RICE(25), II_RICE(26), II_RICE(27), II_RICE(28), II_RICE(29),
+    II_RICE(30), II_RICE(31)};
+#undef II_RICE
+
+const ds_invidx_codec_t *ds_invidx_codec_vbyte(void) { return &ii_codec_vbyte; }
+const ds_invidx_codec_t *ds_invidx_codec_gamma(void) { return &ii_codec_gamma; }
+const ds_invidx_codec_t *ds_invidx_codec_delta(void) { return &ii_codec_delta; }
+const ds_invidx_codec_t *ds_invidx_codec_rice(unsigned k) {
+  return k < 32 ? &ii_codec_rice[k] : NULL;
+}
+
+/* append v to a posting list through the index's codec */
+static ds_status_t ii_post(const ds_inverted_index_t *idx,
+                           ds_invidx_posting_list_t *pl, size_t v) {
+  size_t need = idx->codec->bits(v, idx->codec->param);
+  size_t bytes;
+  size_t old = pl->capacity;
+  ds_status_t st;
+  if (need > (size_t)-1 - pl->bits - 15) {
+    return DS_ERR_OVERFLOW;
+  }
+  bytes = (pl->bits + need + 7) / 8 + 1;
+  st = ii_reserve(idx->context, (void **)&pl->bytes, &pl->capacity, bytes, 1);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (pl->capacity > old) {
+    memset(pl->bytes + old, 0, pl->capacity - old); /* writers OR bits in */
+  }
+  idx->codec->put(pl->bytes, &pl->bits, v, idx->codec->param);
+  pl->length = (pl->bits + 7) / 8;
+  return DS_OK;
+}
+
+static size_t ii_unpost(const ds_inverted_index_t *idx,
+                        const ds_invidx_posting_list_t *pl, size_t *at) {
+  return idx->codec->get(pl->bytes, at, idx->codec->param);
+}
+
 static size_t ii_hash(const unsigned char *s, size_t n) {
   unsigned long h = 2166136261ul;
   size_t i;
@@ -67,10 +282,39 @@ static size_t ii_hash(const unsigned char *s, size_t n) {
 ds_status_t ds_invidx_init(ds_inverted_index_t *idx, ds_invidx_mode_t mode,
                            size_t block_size, bool keep_forward,
                            ds_context_t *context) {
+  ds_invidx_options_t o;
+  memset(&o, 0, sizeof(o));
+  o.mode = mode;
+  o.block_size = block_size;
+  o.keep_forward = keep_forward;
+  return ds_invidx_init_opts(idx, &o, context);
+}
+
+ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
+                                const ds_invidx_options_t *options,
+                                ds_context_t *context) {
+  ds_invidx_options_t def;
+  ds_invidx_mode_t mode;
+  size_t block_size;
+  bool keep_forward;
   if (idx == NULL) {
     return DS_ERR_NULL;
   }
+  if (options == NULL) {
+    memset(&def, 0, sizeof(def));
+    def.mode = DS_INVIDX_DOCUMENT;
+    options = &def;
+  }
+  mode = options->mode;
+  block_size = options->block_size;
+  keep_forward = options->keep_forward;
   memset(idx, 0, sizeof(*idx));
+  if (options->codec != NULL &&
+      (options->codec->bits == NULL || options->codec->put == NULL ||
+       options->codec->get == NULL)) {
+    return DS_ERR_INVALID;
+  }
+  idx->codec = options->codec != NULL ? options->codec : &ii_codec_vbyte;
   if ((mode != DS_INVIDX_DOCUMENT && mode != DS_INVIDX_POSITIONAL &&
        mode != DS_INVIDX_BLOCK) ||
       (mode == DS_INVIDX_BLOCK && block_size == 0)) {
@@ -233,6 +477,9 @@ ds_status_t ds_invidx_add(ds_inverted_index_t *idx, size_t doc_id,
   if (idx->docs > 0 && doc_id <= idx->doc_id[idx->docs - 1]) {
     return DS_ERR_STATE;
   }
+  if (doc_id == (size_t)-1) {
+    return DS_ERR_RANGE; /* codecs take values below SIZE_MAX */
+  }
   if (count > (size_t)-1 / sizeof(ii_pair_t)) {
     return DS_ERR_OVERFLOW;
   }
@@ -300,24 +547,20 @@ ds_status_t ds_invidx_add(ds_inverted_index_t *idx, size_t doc_id,
     saved[runs++] = *pl;
     if (idx->mode == DS_INVIDX_BLOCK) {
       if (pl->df == 0 || pl->last != block) {
-        st = ii_put_varint(idx->context, &pl->bytes, &pl->length, &pl->capacity,
-                           block - (pl->df ? pl->last : 0));
+        st = ii_post(idx, pl, block - (pl->df ? pl->last : 0));
         pl->df++;
         pl->last = block;
       }
     } else {
-      st = ii_put_varint(idx->context, &pl->bytes, &pl->length, &pl->capacity,
-                         doc_id - (pl->df ? pl->last : 0));
+      st = ii_post(idx, pl, doc_id - (pl->df ? pl->last : 0));
       if (st == DS_OK) {
-        st = ii_put_varint(idx->context, &pl->bytes, &pl->length, &pl->capacity,
-                           j - i);
+        st = ii_post(idx, pl, j - i);
       }
       if (idx->mode == DS_INVIDX_POSITIONAL) {
         size_t k;
         size_t prev = 0;
         for (k = i; st == DS_OK && k < j; k++) {
-          st = ii_put_varint(idx->context, &pl->bytes, &pl->length,
-                             &pl->capacity, pairs[k].pos - prev);
+          st = ii_post(idx, pl, pairs[k].pos - prev);
           prev = pairs[k].pos;
         }
       }
@@ -358,6 +601,15 @@ fail:
         *pl = saved[r++];
         pl->bytes = bytes; /* keep the (possibly moved) buffer */
         pl->capacity = capacity;
+        /* clear what the failed add wrote, for the next writer */
+        if (pl->bytes != NULL) {
+          size_t whole = (pl->bits + 7) / 8;
+          if (pl->bits % 8 != 0) {
+            pl->bytes[pl->bits / 8] &=
+                (unsigned char)((1u << (pl->bits % 8)) - 1u);
+          }
+          memset(pl->bytes + whole, 0, pl->capacity - whole);
+        }
       }
     }
   }
@@ -589,18 +841,18 @@ bool ds_invidx_cursor_next(ds_invidx_cursor_t *c) {
   }
   pl = &c->index->postings[c->term];
   while (c->positions_left > 0) {
-    (void)ii_get_varint(pl->bytes, &c->at);
+    (void)ii_unpost(c->index, pl, &c->at);
     c->positions_left--;
   }
-  if (c->at >= pl->length) {
+  if (c->at >= pl->bits) {
     return false;
   }
-  c->doc = (c->started ? c->doc : 0) + ii_get_varint(pl->bytes, &c->at);
+  c->doc = (c->started ? c->doc : 0) + ii_unpost(c->index, pl, &c->at);
   c->started = true;
   c->freq = 0;
   c->position = 0;
   if (c->index->mode != DS_INVIDX_BLOCK) {
-    c->freq = ii_get_varint(pl->bytes, &c->at);
+    c->freq = ii_unpost(c->index, pl, &c->at);
   }
   if (c->index->mode == DS_INVIDX_POSITIONAL) {
     c->positions_left = c->freq;
@@ -615,7 +867,7 @@ bool ds_invidx_cursor_next_position(ds_invidx_cursor_t *c, size_t *position) {
   if (c->positions_left == c->freq) {
     c->position = 0;
   }
-  c->position += ii_get_varint(c->index->postings[c->term].bytes, &c->at);
+  c->position += ii_unpost(c->index, &c->index->postings[c->term], &c->at);
   c->positions_left--;
   *position = c->position;
   return true;
