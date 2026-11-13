@@ -1544,6 +1544,7 @@ the term covers is provided.
 | cache replacement policy | concept | implemented | `lib/replacement` | LRU, FIFO, CLOCK, SIEVE; drives lib/pager |
 | Voronoi diagram | structure | implemented | `algo/voronoi` | the Delaunay dual: circumcenter vertices, segment/ray/line edges, CCW cells with rays, box-clipped cells that tile the box; collinear and repeated sites |
 | Delaunay triangulation | algorithm | implemented | `algo/delaunay` | Bowyer-Watson insertion with ghost triangles on the exact orient2d/incircle predicates; Hilbert insertion order |
+| constrained Delaunay triangulation | algorithm | implemented | `algo/delaunay` | segment insertion by Sloan flips on the exact predicates; segments through points split at them, crossing segments refused; constrained edges flagged |
 | paged B+ tree | structure | implemented | `lib/paged_btree` | B+ tree persisted through lib/pager; portable 64-bit format, validated page reads, full verification; no crash recovery |
 | space-constrained Lempel-Ziv-Welch | algorithm | implemented | `algo/compress` | LZW with freeze/reset dictionary policies |
 | Wu's line algorithm | algorithm | implemented | `algo/geometry` | anti-aliased line rasterisation |

@@ -237,7 +237,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `algo/dynamization`: Bentley-Saxe dynamization of static structures (any base, weak deletions with global rebuilding)
 - `algo/weighted_matching`: maximum weight (and maximum cardinality) matching and minimum weight perfect matching in general graphs, Edmonds/Galil O(n^3)
 - `algo/robust_predicates`: expansion arithmetic and exact orient2d/orient3d/incircle/insphere with floating-point filters
-- `delaunay`: Delaunay triangulation on exact predicates (Bowyer-Watson, ghost triangles, Hilbert order)
+- `delaunay`: Delaunay triangulation on exact predicates (Bowyer-Watson, ghost triangles, Hilbert order), and constrained Delaunay triangulation by segment insertion (Sloan flips; segments through points split, crossings refused)
 - `algo/voronoi`: Voronoi diagrams as the Delaunay dual (vertices, segment/ray/line edges, CCW cells with rays, box-clipped cells; repeated and collinear sites)
 
 Newer high-level modules:

@@ -212,7 +212,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/amq_iface: AMQ ops table with Bloom, cuckoo, quotient and xor backends; images (save, load with full validation)
 - lib/adj_matrix: dense adjacency-matrix graph with sparse-set rows, graph-view adapter.
 - lib/schema: element schema descriptors shared by containers (layout, ownership, transfer).
-- algo/delaunay: Delaunay triangulation built on the robust predicates.
+- algo/delaunay: Delaunay triangulation built on the robust predicates; constrained Delaunay triangulation by segment insertion (Sloan flips).
 - lib/hollow_heap: one-tree hollow heap, pq_iface backend
 - lib/louds: LOUDS succinct tree over the rank/select capability
 - algo/voronoi: Voronoi diagram from the Delaunay triangulation, box-clipped cells
