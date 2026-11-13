@@ -60,7 +60,7 @@ Core mutable containers:
 - `lib/persistent_hamt`: persistent CHAMP hash trie (structural sharing, canonical deletes, in-place edits of unshared versions)
 - `lib/persistent_vector`: persistent bit-partitioned vector (configurable branching, tail buffer, in-place edits of unshared versions, deep-copy element callbacks)
 - `lib/plop_hash`: PLOP-hashing, directory-free order-preserving multidimensional linear hashing (midpoint or median splits, box queries)
-- `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld, per-operation cost classes) over binary, 4-ary, packed binary, binomial, leftist, weight-biased, skew, randomized, pairing, hollow and rank-pairing (type 1 and 2) heaps
+- `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld, per-operation cost classes) over binary, 4-ary, packed binary, binomial, leftist, weight-biased, skew, randomized, pairing, hollow, rank-pairing (type 1 and 2) and strict Fibonacci heaps
 - `lib/pushdown`: pushdown automata (exact nondeterministic membership via [pXq] summaries, DPDA check and simulation, pushdown transducers)
 - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - `lib/quotient_filter`: quotient filter (packed remainders, deletion, ordered fingerprint enumeration)
@@ -78,6 +78,7 @@ Core mutable containers:
 - `lib/sparse_matrix`: orthogonal-list sparse matrices (sum, product, transpose, CSR), ragged matrices, huge sparse arrays
 - `lib/spiral_storage`: spiral storage (Martin's directory-free dynamic hashing)
 - `lib/sstable`: SSTables (prefix-compressed blocks, index, built-in Bloom or pluggable AMQ filter, verification, merge)
+- `lib/strict_fibonacci_heap`: strict Fibonacci heap (Brodal–Lagogiannis–Tarjan: O(1) push, decrease and meld, O(log n) pop and remove, all worst case), also a `lib/pq_iface` backend
 - `lib/threaded_tree`: fully and right-threaded binary search trees, stackless (Cupif-Giannini / Morris) traversal
 - `lib/topology_tree`: Frederickson topology trees (maximal restricted partitions maintained under link/cut, component aggregates)
 - `lib/tree_automaton`: bottom-up (NFTA/DFTA: run, determinize, intersection, union, complement, emptiness with witness) and top-down tree automata

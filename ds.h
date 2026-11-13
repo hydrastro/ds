@@ -149,6 +149,7 @@
 #include "lib/splay_tree.h"
 #include "lib/sstable.h"
 #include "lib/stack.h"
+#include "lib/strict_fibonacci_heap.h"
 #include "lib/string_map.h"
 #include "lib/suffix_array.h"
 #include "lib/suffix_automaton.h"

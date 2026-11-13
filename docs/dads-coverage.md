@@ -523,7 +523,7 @@ the term covers is provided.
 | Ferguson-Forcade algorithm | algorithm | implemented | algo/lattice |  |
 | FFT | algorithm | implemented | algo/fft |  |
 | Fibonaccian search | algorithm | implemented | algo/search |  |
-| Fibonacci heap | structure | implemented | lib/fibonacci_heap |  |
+| Fibonacci heap | structure | implemented | lib/fibonacci_heap, lib/strict_fibonacci_heap | amortized bounds; lib/strict_fibonacci_heap has them in the worst case |
 | Fibonacci number | algorithm | implemented | algo/number_theory |  |
 | Fibonacci tree | concept | n/a |  |  |
 | FIFO | structure | implemented | lib/queue |  |
@@ -1519,7 +1519,7 @@ the term covers is provided.
 | robust geometric predicates | algorithm | implemented | `algo/robust_predicates`, `algo/geometry` | filtered exact orient2d/orient3d/incircle/insphere over expansion arithmetic, per-predicate input ranges; algo/geometry orientation uses orient2d |
 | floating-point expansion arithmetic | algorithm | implemented | `algo/robust_predicates` | error-free sum/product, expansion sum/scale/product/compress |
 | CHAMP (persistent hash trie) | structure | implemented | `lib/persistent_hamt` | canonical deletes, structural sharing, in-place edits of unshared versions |
-| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, packed, binomial, leftist, weight-biased, skew, randomized, pairing and hollow backends; per-operation cost classes |
+| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, packed, binomial, leftist, weight-biased, skew, randomized, pairing, hollow, rank-pairing and strict Fibonacci backends; per-operation cost classes |
 | zero-suppressed decision diagram | structure | implemented | `lib/zdd` | hash-consed families of sets: union, intersection, differences, subset0/1, change, join, meet, nonsup, nonsub, minimal, maximal; counting, membership, enumeration; iterative |
 | LOUDS succinct tree | structure | implemented | `lib/louds` | level-order unary degree sequence over any rank/select backend: 2n + 1 bits; navigation by select; byte-labelled static tries |
 | balanced-parentheses succinct tree | structure | implemented | `lib/bp_tree` | range min-max tree over the parentheses (excess searches, range minima and their counts) on any rank/select backend; preorder navigation including degree, k-th child, LCA, level ancestor, height and postorder |
@@ -1529,6 +1529,7 @@ the term covers is provided.
 | hollow heap | structure | implemented | `lib/hollow_heap`, `lib/pq_iface` | one-tree hollow heap: O(1) push, decrease and meld, O(log n) amortized pop; a rebuild keeps nodes O(n) |
 | chromatic tree | structure | implemented | `lib/chromatic_tree` | relaxed-balance red-black tree (Nurmi, Soisalon-Soininen; Boyar-Larsen transformations): weights instead of colours, updates without rotations, rebalancing eager or deferred along pending paths; rank, select, linked or inline routers |
 | rank-pairing heap | structure | implemented | `lib/rank_pairing_heap`, `lib/pq_iface` | type-1 and type-2 rank rules: O(1) push, meld and amortized decrease without cascading cuts, O(log n) amortized pop by one-pass linking |
+| strict Fibonacci heap | structure | implemented | `lib/strict_fibonacci_heap`, `lib/pq_iface` | Brodal-Lagogiannis-Tarjan: the Fibonacci heap bounds in the worst case (O(1) push, decrease and meld, O(log n) pop and remove) by active and passive nodes, a queue of all nodes and four reductions; ranks as records in a list per heap, released incrementally after melds |
 | SA-IS suffix array construction | algorithm | implemented | `lib/suffix_array` | induced sorting (Nong, Zhang, Chan) in O(n) for byte and integer strings, recursion O(log n) deep; inverse, Kasai LCP, BWT |
 | r-index | structure | implemented | `lib/r_index` | run-length FM-index with toehold locating and phi (Gagie, Navarro, Prezza): 6r words for r BWT runs; count O(m log r), locate O(log r) per occurrence |
 | FM-index | structure | implemented | `lib/fm_index` | count/locate/extract with occurrence-table or wavelet-matrix rank |

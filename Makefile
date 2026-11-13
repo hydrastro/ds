@@ -223,7 +223,8 @@ LIB_SRC := \
   $(LIB_DIR)/chromatic_tree.c \
   $(LIB_DIR)/suffix_array.c \
   $(LIB_DIR)/r_index.c \
-  $(LIB_DIR)/top_tree.c
+  $(LIB_DIR)/top_tree.c \
+  $(LIB_DIR)/strict_fibonacci_heap.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -302,6 +303,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/strict_fibonacci_heap.c $(LIB_DIR)/strict_fibonacci_heap.h \
   $(LIB_DIR)/top_tree.c $(LIB_DIR)/top_tree.h \
   $(LIB_DIR)/r_index.c $(LIB_DIR)/r_index.h \
   $(LIB_DIR)/suffix_array.c $(LIB_DIR)/suffix_array.h \

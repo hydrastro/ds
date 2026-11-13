@@ -227,6 +227,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/suffix_array: SA-IS suffix arrays in O(n), LCP and BWT
 - lib/r_index: r-index with count, toehold locate, phi, LF
 - lib/top_tree: self-adjusting top trees with compress/rake cluster callbacks, path search
+- lib/strict_fibonacci_heap: strict Fibonacci heap, worst-case bounds, pq_iface backend
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
