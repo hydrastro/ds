@@ -14,7 +14,7 @@ algorithms, and timeline/history utilities.
 Core mutable containers:
 
 - `adj_matrix`: adjacency-matrix graph, O(1) edge tests and O(degree) row enumeration
-- `lib/amq_iface`: approximate-membership capability over Bloom, cuckoo, quotient and xor filters
+- `lib/amq_iface`: approximate-membership capability over Bloom, cuckoo, quotient and xor filters, with checked serialized images
 - `lib/association_list`: association lists (shadowing bindings) and property lists
 - `lib/bang_file`: EXCELL, BANG files and R-files
 - `lib/binary_tree_repr`: first child-next sibling (filial-heir) trees and doubly-chained (de la Briandais) tries, stack trees

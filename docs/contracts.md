@@ -79,6 +79,7 @@ says what remains:
 | `lib/yfast_trie` | a skipped rebalance leaves a bucket outside its bounds until a later update retries it |
 | `lib/zipper`, `lib/trie_stores` | release and destruction never need fresh memory |
 | `lib/sstable`, `lib/paged_btree` | malformed stored data gives `DS_ERR_INVALID`, never a read outside the data; each also has a separate full verification call |
+| `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 
 ## Cursors and handles
 

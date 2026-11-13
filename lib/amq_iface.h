@@ -48,6 +48,48 @@
  *               Xor: exactly the built set.
  *   false negatives  none, apart from removing keys that were never
  *               inserted.
+ *   fp_bits     Bloom: values above 64 count as 64. Quotient: at most
+ *               the bits of unsigned long left after the quotient. Xor:
+ *               values above 32 count as 32.
+ *
+ * Images: ds_amq_save writes a filter as bytes and ds_amq_load restores
+ * it, for filters kept in files, pages or SSTables. An image is
+ *
+ *   0    magic "DSAQ"
+ *   4    format version (1)
+ *   5    backend id
+ *   6    bits in unsigned long where the image was written
+ *   7    zero
+ *   8    image length (8 bytes)
+ *   16   the backend's payload
+ *   end  CRC-32C of everything before it (4 bytes)
+ *
+ * with integers little-endian and bit arrays as little-endian bit
+ * streams, zero-padded to whole bytes. Payloads:
+ *
+ *   Bloom (1)     m (8), k (4), the m bits
+ *   cuckoo (2)    buckets (8), count (8), victim bucket (8), generator
+ *                 state (4), victim (2), slots per bucket (1), then the
+ *                 buckets * slots 16-bit fingerprints
+ *   quotient (3)  q (1), r (1), count (8), the 2^q r-bit remainders, then
+ *                 the 2^q 3-bit slot flags (occupied 1, continuation 2,
+ *                 shifted 4)
+ *   xor (4)       fp_bits (1), built (1); once built also segment (8),
+ *                 count (8), seed (8) and the 3 * segment fp_bits-bit
+ *                 slots
+ *
+ * Hash positions depend on the width of unsigned long, so an image loads
+ * only where unsigned long has the width it was written with; another
+ * width, an unknown format version or an unknown backend is
+ * DS_ERR_UNSUPPORTED. Loading checks everything else: the checksum, every
+ * size against the image length (a load never allocates much more than
+ * the image's own size), zero padding, counts against the stored entries,
+ * the cuckoo victim's bucket, and the whole slot structure of a quotient
+ * filter (ds_quotient_filter_check). A malformed image is DS_ERR_INVALID;
+ * a loaded filter is one its backend could have built, so every
+ * operation on it behaves as on a built one. What an image cannot reveal
+ * is which keys built it: a well-formed image may answer for any set, and
+ * the checksum detects accidents, not tampering.
  *
  * Memory comes from the context.
  */
@@ -78,6 +120,19 @@ typedef struct ds_amq_ops {
   bool (*contains)(const void *f, unsigned long hash);
   ds_status_t (*remove)(void *f, unsigned long hash);
   size_t (*bytes)(const void *f);
+  /* images (optional: save and load NULL when the backend has none). id
+   * names the backend in images: 1 to 4 are the built-in backends, 128 to
+   * 255 are free for others. */
+  unsigned id;
+  /* the payload into out[0 .. cap) and its length into *out_len; out
+   * NULL computes the length only; DS_ERR_RANGE when cap is short */
+  ds_status_t (*save)(const void *f, unsigned char *out, size_t cap,
+                      size_t *out_len);
+  /* initialize f, as init does, from a payload of len bytes, checking all
+   * of it: DS_ERR_INVALID for a malformed payload, and on any failure f
+   * needs no destroy */
+  ds_status_t (*load)(void *f, const unsigned char *in, size_t len,
+                      ds_context_t *context);
 } ds_amq_ops_t;
 
 const ds_amq_ops_t *ds_amq_bloom(void);
@@ -102,6 +157,40 @@ bool ds_amq_contains(const ds_amq_t *f, unsigned long hash);
 /* DS_ERR_UNSUPPORTED without DS_AMQ_DELETE */
 ds_status_t ds_amq_remove(ds_amq_t *f, unsigned long hash);
 size_t ds_amq_bytes(const ds_amq_t *f);
+
+/* ---- images ---- */
+
+#define DS_AMQ_IMAGE_OVERHEAD 20 /* header and checksum */
+
+typedef struct ds_amq_image {
+  unsigned version;
+  unsigned id;        /* backend */
+  unsigned word_bits; /* bits in unsigned long where it was written */
+  size_t length;      /* the whole image */
+  size_t payload_offset;
+  size_t payload_length;
+} ds_amq_image_t;
+
+/* the built-in backend with this id, or NULL */
+const ds_amq_ops_t *ds_amq_builtin(unsigned id);
+/* the image of f into out[0 .. cap) and its length into *out_len; out
+ * NULL computes the length only. DS_ERR_RANGE when cap is short (with
+ * *out_len set), DS_ERR_UNSUPPORTED for a backend without images */
+ds_status_t ds_amq_save(const ds_amq_t *f, void *out, size_t cap,
+                        size_t *out_len);
+/* the header of an image at the start of avail bytes (bytes after the
+ * image are allowed), with its length and checksum checked:
+ * DS_ERR_INVALID, or DS_ERR_UNSUPPORTED for an unknown format version */
+ds_status_t ds_amq_image_info(const void *in, size_t avail,
+                              ds_amq_image_t *info);
+/* restore a filter from an image of exactly len bytes, with the built-in
+ * backend its id names; on failure f needs no destroy */
+ds_status_t ds_amq_load(ds_amq_t *f, const void *in, size_t len,
+                        ds_context_t *context);
+/* the same with the given backend, whose id must be the image's
+ * (DS_ERR_INVALID otherwise) */
+ds_status_t ds_amq_load_with(ds_amq_t *f, const ds_amq_ops_t *ops,
+                             const void *in, size_t len, ds_context_t *context);
 
 #ifdef __cplusplus
 }
