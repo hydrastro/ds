@@ -36,6 +36,7 @@ Core mutable containers:
 - `lib/euler_tour_tree`: Euler-tour trees (link, cut, connectivity, component and subtree aggregates with lazy actions) over a treap, edges in a pluggable map
 - `lib/finger_tree`: persistent 2-3 finger trees with a user monoid (deque ends, concat, split/lookup by monotone predicate)
 - `lib/fm_index`: FM-index (count, locate, extract, backward steps) over a pluggable rank backend: sampled occurrence table or wavelet matrix
+- `lib/fusion_tree`: fusion tree (Fredman–Willard: a B-tree of K-key nodes over machine words, each searched by parallel sketch comparison inside one word; floor, ceiling, predecessor, successor, rank, select, bulk loading)
 - `lib/grid_file`: fixed grids, grid files, twin, two-level and multilayer grid files
 - `lib/hash_heap`: hash heaps (priority queues addressable by key)
 - `lib/hb_tree`: hB-trees, buddy trees, BD-trees, GBD-trees, BV-trees

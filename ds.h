@@ -62,6 +62,7 @@
 #include "lib/fibonacci_heap.h"
 #include "lib/finger_tree.h"
 #include "lib/fm_index.h"
+#include "lib/fusion_tree.h"
 #include "lib/gap_buffer.h"
 #include "lib/graph.h"
 #include "lib/grid_file.h"

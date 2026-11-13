@@ -228,6 +228,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/r_index: r-index with count, toehold locate, phi, LF
 - lib/top_tree: self-adjusting top trees with compress/rake cluster callbacks, path search
 - lib/strict_fibonacci_heap: strict Fibonacci heap, worst-case bounds, pq_iface backend
+- lib/fusion_tree: fusion trees over machine words, sketch-based node search
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
