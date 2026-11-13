@@ -20,7 +20,10 @@
  * Merges use ds_sstable_merge (newest wins on equal keys); tombstones are
  * dropped only when merging into the deepest occupied level. A lookup
  * checks the memtable, then each table newest to oldest, consulting the
- * Bloom filter first (bits_per_key, or DS_LSM_NO_FILTER for none).
+ * table's filter first: the built-in Bloom filter (bits_per_key, or
+ * DS_LSM_NO_FILTER for none) or an AMQ filter from the backend in
+ * config.filter (cuckoo, quotient, xor or any backend with images, see
+ * lib/amq_iface), loaded when the table is opened.
  * Iterators merge every source in key order with the same precedence and
  * skip deleted keys.
  *
@@ -67,6 +70,10 @@ typedef struct ds_lsm_config {
   size_t block_size;     /* sstable settings (0: defaults) */
   size_t restart_interval;
   size_t bits_per_key; /* 0: 10; DS_LSM_NO_FILTER: none */
+  /* an AMQ backend for the table filters instead of the built-in Bloom
+   * filter (bits_per_key must then be 0), with its fp_bits (0: default) */
+  const ds_amq_ops_t *filter;
+  unsigned filter_fp_bits;
   ds_lsm_memtable_t memtable;
   const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
   ds_context_t *context;
@@ -110,7 +117,9 @@ typedef struct ds_lsm_iter {
 } ds_lsm_iter_t;
 
 void ds_lsm_config_init(ds_lsm_config_t *config);
-/* DS_ERR_INVALID for an unknown memtable kind or an invalid comparator */
+/* DS_ERR_INVALID for an unknown memtable kind, an invalid comparator, or
+ * both bits_per_key and filter; DS_ERR_UNSUPPORTED for a filter backend
+ * without images */
 ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config);
 void ds_lsm_destroy(ds_lsm_t *lsm);
 ds_status_t ds_lsm_put(ds_lsm_t *lsm, const void *key, size_t key_len,

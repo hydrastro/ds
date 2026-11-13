@@ -176,8 +176,25 @@ static void lsm_free_mem(ds_lsm_t *l) {
 }
 
 static void lsm_free_table(ds_lsm_t *l, ds_lsm_table_t *t) {
+  ds_sstable_close(&t->table);
   ds_context_free(l->config.context, t->data);
   memset(t, 0, sizeof(*t));
+}
+
+/* how this tree writes tables */
+static void lsm_options(const ds_lsm_t *l, ds_sstable_options_t *o) {
+  ds_sstable_options_init(o);
+  o->block_size = l->config.block_size;
+  o->restart_interval = l->config.restart_interval;
+  o->bits_per_key = l->config.bits_per_key;
+  o->filter = l->config.filter;
+  o->filter_fp_bits = l->config.filter_fp_bits;
+  o->comparator = &l->cmp;
+}
+
+static ds_status_t lsm_open(ds_lsm_t *l, ds_lsm_table_t *t) {
+  return ds_sstable_open_ex(&t->table, t->data, t->len, &l->cmp,
+                            l->config.filter, l->config.context);
 }
 
 void ds_lsm_config_init(ds_lsm_config_t *config) {
@@ -209,7 +226,15 @@ ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config) {
   if (lsm->config.fanout < 2) {
     lsm->config.fanout = 10;
   }
-  if (lsm->config.bits_per_key == 0) {
+  if (lsm->config.filter != NULL) {
+    if (lsm->config.bits_per_key != 0) {
+      return DS_ERR_INVALID;
+    }
+    if (lsm->config.filter->save == NULL || lsm->config.filter->load == NULL ||
+        lsm->config.filter->id < 1 || lsm->config.filter->id > 255) {
+      return DS_ERR_UNSUPPORTED;
+    }
+  } else if (lsm->config.bits_per_key == 0) {
     lsm->config.bits_per_key = 10;
   } else if (lsm->config.bits_per_key == DS_LSM_NO_FILTER) {
     lsm->config.bits_per_key = 0; /* the sstable setting for none */
@@ -304,6 +329,7 @@ static bool lsm_deeper_empty(const ds_lsm_t *l, size_t level) {
 static ds_status_t lsm_merge_into(ds_lsm_t *l, ds_lsm_table_t **srcs, size_t n,
                                   size_t target) {
   ds_sstable_t tables[DS_LSM_MAX_LEVELS + 64];
+  ds_sstable_options_t o;
   ds_lsm_table_t out;
   size_t i;
   ds_status_t st;
@@ -311,17 +337,16 @@ static ds_status_t lsm_merge_into(ds_lsm_t *l, ds_lsm_table_t **srcs, size_t n,
     return DS_ERR_RANGE;
   }
   for (i = 0; i < n; i++) {
-    tables[i] = srcs[i]->table;
+    tables[i] = srcs[i]->table; /* shallow copies, only read */
   }
   memset(&out, 0, sizeof(out));
-  st = ds_sstable_merge(tables, n, lsm_deeper_empty(l, target),
-                        l->config.block_size, l->config.restart_interval,
-                        l->config.bits_per_key, &out.data, &out.len,
-                        l->config.context);
+  lsm_options(l, &o);
+  st = ds_sstable_merge_opts(tables, n, lsm_deeper_empty(l, target), &o,
+                             &out.data, &out.len, l->config.context);
   if (st != DS_OK) {
     return st;
   }
-  st = ds_sstable_open_cmp(&out.table, out.data, out.len, &l->cmp);
+  st = lsm_open(l, &out);
   if (st != DS_OK) {
     ds_context_free(l->config.context, out.data);
     return st;
@@ -330,7 +355,7 @@ static ds_status_t lsm_merge_into(ds_lsm_t *l, ds_lsm_table_t **srcs, size_t n,
     lsm_free_table(l, srcs[i]);
   }
   if (ds_sstable_entries(&out.table) == 0) {
-    ds_context_free(l->config.context, out.data);
+    lsm_free_table(l, &out);
   } else {
     l->levels[target] = out;
   }
@@ -373,6 +398,7 @@ static ds_status_t lsm_compact(ds_lsm_t *l) {
 
 ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   ds_sstable_builder_t b;
+  ds_sstable_options_t o;
   ds_lsm_table_t t;
   ds_status_t st;
   lsm_mcur_t c;
@@ -389,9 +415,8 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
       return st;
     }
   }
-  st = ds_sstable_builder_init_cmp(
-      &b, lsm->config.block_size, lsm->config.restart_interval,
-      lsm->config.bits_per_key, &lsm->cmp, lsm->config.context);
+  lsm_options(lsm, &o);
+  st = ds_sstable_builder_init_opts(&b, &o, lsm->config.context);
   if (st != DS_OK) {
     return st;
   }
@@ -410,7 +435,7 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   if (st != DS_OK) {
     return st;
   }
-  st = ds_sstable_open_cmp(&t.table, t.data, t.len, &lsm->cmp);
+  st = lsm_open(lsm, &t);
   if (st != DS_OK) {
     ds_context_free(lsm->config.context, t.data);
     return st;
