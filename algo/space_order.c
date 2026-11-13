@@ -208,9 +208,19 @@ ds_status_t ds_space_order_decode(ds_space_order_t order, unsigned long param,
     if (position >= 65535UL * 65535UL) {
       return DS_ERR_OVERFLOW;
     }
-    r = 1;
-    while ((2 * r + 1) * (2 * r + 1) <= position) {
-      r++;
+    /* the ring: the largest r with (2r - 1)^2 <= position, by bisection
+     * over 1 .. 32767 (no product exceeds 32 bits) */
+    {
+      unsigned long lo = 1, hi = 32767;
+      while (lo < hi) {
+        unsigned long mid = lo + (hi - lo + 1) / 2;
+        if ((2 * mid - 1) * (2 * mid - 1) <= position) {
+          lo = mid;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      r = lo;
     }
     base = (2 * r - 1) * (2 * r - 1);
     off = position - base;
@@ -242,12 +252,25 @@ ds_status_t ds_space_order_decode(ds_space_order_t order, unsigned long param,
     }
     break;
   case DS_ORDER_CANTOR: {
-    unsigned long s = 0;
-    while ((s + 1) * (s + 2) / 2 <= position) {
-      s++;
+    /* the diagonal: the largest s with s (s + 1) / 2 <= position, by
+     * bisection over the encodable diagonals 0 .. 65535 */
+    unsigned long lo = 0, hi = 65535;
+    if (position > 65535UL * 65536UL / 2 + 65535UL) {
+      return DS_ERR_OVERFLOW; /* past the diagonals encode produces */
     }
-    uy = position - s * (s + 1) / 2;
-    ux = s - uy;
+    while (lo < hi) {
+      unsigned long mid = lo + (hi - lo + 1) / 2;
+      if (mid * (mid + 1) / 2 <= position) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    uy = position - lo * (lo + 1) / 2;
+    if (uy > lo) {
+      return DS_ERR_OVERFLOW; /* beyond diagonal 65535 */
+    }
+    ux = lo - uy;
     break;
   }
   case DS_ORDER_MORTON:
@@ -298,8 +321,38 @@ ds_status_t ds_space_order_decode(ds_space_order_t order, unsigned long param,
 
 static ds_status_t so_nd_check(size_t dims, unsigned bits, size_t words) {
   if (dims == 0 || dims > SO_MAXD || bits == 0 || bits > 32 ||
-      dims * bits > 32 * words) {
+      words < (dims * bits + 31) / 32) {
     return DS_ERR_INVALID;
+  }
+  return DS_OK;
+}
+
+/* every coordinate below 2^bits */
+static ds_status_t so_nd_coords(const unsigned long *coords, size_t dims,
+                                unsigned bits) {
+  size_t a;
+  for (a = 0; a < dims; a++) {
+    if (((coords[a] >> (bits - 1)) >> 1) != 0) {
+      return DS_ERR_RANGE;
+    }
+  }
+  return DS_OK;
+}
+
+/* a position: 32-bit words with no bit set at or past dims * bits */
+static ds_status_t so_nd_position(const unsigned long *w, size_t words,
+                                  size_t used) {
+  size_t i;
+  for (i = 0; i < words; i++) {
+    size_t lowbit = (words - 1 - i) * 32; /* bit number of the word's bit 0 */
+    unsigned long v = w[i];
+    if (((v >> 16) >> 16) != 0) {
+      return DS_ERR_RANGE; /* not a 32-bit word */
+    }
+    if (lowbit >= used ? v != 0
+                       : (used - lowbit < 32 && (v >> (used - lowbit)) != 0)) {
+      return DS_ERR_RANGE;
+    }
   }
   return DS_OK;
 }
@@ -324,6 +377,9 @@ ds_status_t ds_morton_encode_nd(const unsigned long *coords, size_t dims,
     return DS_ERR_NULL;
   }
   st = so_nd_check(dims, bits, words);
+  if (st == DS_OK) {
+    st = so_nd_coords(coords, dims, bits);
+  }
   if (st != DS_OK) {
     return st;
   }
@@ -348,6 +404,9 @@ ds_status_t ds_morton_decode_nd(const unsigned long *position, size_t words,
     return DS_ERR_NULL;
   }
   st = so_nd_check(dims, bits, words);
+  if (st == DS_OK) {
+    st = so_nd_position(position, words, dims * bits);
+  }
   if (st != DS_OK) {
     return st;
   }
@@ -434,11 +493,14 @@ ds_status_t ds_hilbert_encode_nd(const unsigned long *coords, size_t dims,
     return DS_ERR_NULL;
   }
   st = so_nd_check(dims, bits, words);
+  if (st == DS_OK) {
+    st = so_nd_coords(coords, dims, bits);
+  }
   if (st != DS_OK) {
     return st;
   }
   for (a = 0; a < dims; a++) {
-    x[a] = coords[a] & (bits == 32 ? 0xFFFFFFFFUL : (1UL << bits) - 1UL);
+    x[a] = coords[a];
   }
   so_axes_to_transpose(x, bits, dims);
   /* the transposed form interleaves: bit b of x[a] is index bit
@@ -464,6 +526,9 @@ ds_status_t ds_hilbert_decode_nd(const unsigned long *position, size_t words,
     return DS_ERR_NULL;
   }
   st = so_nd_check(dims, bits, words);
+  if (st == DS_OK) {
+    st = so_nd_position(position, words, dims * bits);
+  }
   if (st != DS_OK) {
     return st;
   }

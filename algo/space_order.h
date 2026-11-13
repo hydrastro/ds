@@ -24,13 +24,37 @@
  *                         diagonals x + y = 0, 1, 2, ... in turn
  *   DS_ORDER_SPIRAL       square spiral of the whole lattice around the
  *                         origin (signed coordinates)
- * The row orders take the grid width; the bit orders take the bits per
- * coordinate (positions need 2 bits per coordinate bit in an unsigned
- * long); Cantor and spiral orders are unbounded and report overflow.
+ * Domains, per order (W = bits of unsigned long, 32 or 64; positions are
+ * unsigned long, coordinates long). Encoding outside the domain is
+ * DS_ERR_RANGE for a coordinate out of range and DS_ERR_OVERFLOW for a
+ * position that would not fit; decoding a position no encoding produces
+ * is DS_ERR_RANGE or DS_ERR_OVERFLOW the same way.
+ *
+ *   ROW, ROW_PRIME    param = width w >= 1; 0 <= x < w, y >= 0 with
+ *                     y w + w - 1 <= ULONG_MAX. Decoding accepts every
+ *                     position whose y fits in a long.
+ *   bit orders        MORTON, HILBERT, GRAY, DOUBLE_GRAY, U: param =
+ *                     bits per coordinate, 1 <= bits <= W / 2 (16 on
+ *                     32-bit targets, 32 on LP64); 0 <= x, y < 2^bits;
+ *                     positions below 2^(2 bits), the same on every
+ *                     target for the same bits, x and y.
+ *   CANTOR            x, y >= 0 with x + y <= 65535: positions below
+ *                     2^32 on every target; decoding past them is
+ *                     DS_ERR_OVERFLOW.
+ *   SPIRAL            the only signed order: |x|, |y| <= 32767, positions
+ *                     below 65535^2 < 2^32 on every target.
+ *
+ * Negative coordinates are DS_ERR_RANGE for every order but the spiral.
+ * Decoding is O(bits) for the bit orders and O(log) (a bisection) for
+ * Cantor and spiral orders.
  *
  * k dimensions: ds_morton_encode_nd and ds_hilbert_encode_nd (Skilling's
- * transposition algorithm) with their inverses; positions are arrays of
- * 32-bit words, most significant first.
+ * transposition algorithm) with their inverses: 1 <= dims <= 32 and
+ * 1 <= bits <= 32 per coordinate, every coordinate below 2^bits
+ * (DS_ERR_RANGE otherwise). Positions are arrays of 32-bit words held in
+ * unsigned long, most significant first, using dims * bits bits; a word
+ * of 32 bits or more, or a bit set at or past dims * bits, makes a
+ * decode DS_ERR_RANGE.
  */
 
 #include "../lib/status.h"
