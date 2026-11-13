@@ -36,7 +36,7 @@ int main(void) {
   ds_context_t b;
   ds_pq_t p;
   ds_pq_t q;
-  ds_pq_handle_t h;
+  ds_pq_handle_t h = NULL;
   int i;
   int x;
 

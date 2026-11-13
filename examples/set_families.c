@@ -17,8 +17,8 @@ static ds_status_t path_families(ds_zdd_t *m, size_t n, size_t *independent,
   size_t v;
   ds_status_t st = DS_OK;
   for (v = 0; v < n && st == DS_OK; v++) {
-    size_t single;
-    size_t choice;
+    size_t single = DS_ZDD_EMPTY;
+    size_t choice = DS_ZDD_EMPTY;
     /* all subsets: join with {{}, {v}} for every vertex */
     st = ds_zdd_single(m, v, &single);
     if (st == DS_OK) {

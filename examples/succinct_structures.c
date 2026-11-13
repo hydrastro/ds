@@ -18,8 +18,8 @@ static void bitset_demo(void) {
     }
   }
   printf("bitset: %lu bits set, bit 10 = %d, bit 11 = %d\n",
-         (unsigned long)ds_bitset_count(bs), (int)ds_bitset_test(bs, 10),
-         (int)ds_bitset_test(bs, 11));
+         (unsigned long)ds_bitset_count(bs), ds_bitset_test(bs, 10) ? 1 : 0,
+         ds_bitset_test(bs, 11) ? 1 : 0);
   ds_bitset_destroy(bs);
 }
 

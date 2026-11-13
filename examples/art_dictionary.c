@@ -25,7 +25,8 @@ static void put(ds_art_t *art, const char *key, long value) {
 }
 
 static long get(ds_art_t *art, const char *key) {
-  return (long)(size_t)ds_art_get(art, (const unsigned char *)key, strlen(key));
+  void *value = ds_art_get(art, (const unsigned char *)key, strlen(key));
+  return (long)(size_t)value;
 }
 
 int main(void) {
