@@ -1,8 +1,9 @@
 # Contracts between components
 
 The capability interfaces (maps, ordered maps, priority queues, rank/select,
-approximate membership, replacement policies, page stores) let one structure
-be built from another chosen by the caller. An operation table alone does not
+approximate membership, replacement policies, page stores, and the inverted
+index's dictionaries, codecs and scorers) let one structure be built from
+another chosen by the caller. An operation table alone does not
 make two components compatible, though: they also have to agree on element
 layout and ownership, on order, on memory, on what a failure leaves behind,
 on how long cursors and handles live, and on what each operation costs. This
@@ -88,7 +89,11 @@ says what remains:
 | `lib/zipper`, `lib/trie_stores` | release and destruction never need fresh memory |
 | `lib/sstable`, `lib/paged_btree` | malformed stored data gives `DS_ERR_INVALID`, never a read outside the data; each also has a separate full verification call |
 | `lib/spiral_storage` | a put whose growth fails (memory or slot numbers) keeps the key; the table only gets fuller |
-| `lib/inverted_index` | a failed add restores every posting list it touched, bits included |
+| `lib/inverted_index` | a failed add restores every posting list it touched, bits and skip tables included, and removes the terms it created; compaction builds every new list before freeing an old one, so it is all or nothing |
+| `lib/dynamic_connectivity` | insert is all or nothing; a delete that runs out of memory while recording a replacement leaves an explicit broken state (`ds_dc_broken`), repaired by `ds_dc_rebuild`, which can be retried |
+| `lib/rrb_vector` | every update builds a new version; on failure the inputs are unchanged and no clone leaks |
+| `algo/delaunay` constraints | memory is reserved before any flip; a failure leaves a valid constrained triangulation of the segments already inserted, which are counted; a crossing segment is refused before anything changes |
+| `lib/rank_pairing_heap` | update and remove never allocate, so they cannot fail on a queued item |
 | `lib/hollow_heap` | an update that cannot allocate its new node changes nothing |
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 
@@ -104,6 +109,11 @@ says what remains:
 | SSTables opened with `ds_sstable_open_ex` | `ds_sstable_close` | the loaded AMQ filter is owned by the table |
 | LSM iterators and returned values | the next modification | |
 | graph-view workspaces | reuse across calls | one call at a time |
+| inverted-index term texts | the index is destroyed | term bytes live in chunks that never move |
+| inverted-index posting cursors | the next add, remove or compaction | cursors skip deleted documents |
+| inverted-index dictionary cursors | the next add | ordered dictionaries only |
+| RRB vector element pointers and iterators | the version is released | versions share nodes; nothing is edited in place |
+| rank-pairing heap item pointers | the item leaves | nodes never move, even on increase |
 
 ## Costs
 
@@ -121,6 +131,17 @@ says what remains:
   work-table sizes before allocating (`DS_ERR_OVERFLOW`). Where a single
   operation's work is not bounded (dynamization rebuilds),
   counters (`items_built`, `rebuilds`) let callers watch it.
+- **Ranking.** The inverted index's ranking visits documents one at a time
+  across the query terms' cursors: disjunctive ranking costs one queue
+  offer (O(log k) on a binary heap) per document holding a query term;
+  conjunctive ranking leapfrogs the cursors with skip-table advances.
+  Memory is O(terms + k).
+- **Dynamic graphs.** Fully dynamic connectivity costs O(log^2 n) amortized
+  per update and O(log n) expected per query, in O(n log n + m) space (one
+  Euler-tour forest per level).
+- **Succinct trees.** Balanced-parentheses and DFUDS operations cost a
+  rank or select of the chosen backend plus one or two excess searches,
+  each O(B / 8 + log(n / B)) over blocks of B = 512 bits.
 - **Fairness.** CTL checking with k fairness sets costs O(|f| (n + m + n k))
   instead of O(|f| (n + m)), and only the `_fair` witness helpers follow
   the fair semantics.
