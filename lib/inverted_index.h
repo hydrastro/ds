@@ -51,6 +51,16 @@
  * With keep_forward the index also stores the forward index: per
  * document, its distinct terms with frequencies.
  *
+ * Deletion: ds_invidx_remove marks a document deleted, and from then on
+ * cursors and every query skip it (a block in block mode once all its
+ * documents are deleted). Its postings stay until ds_invidx_compact
+ * rewrites the lists without it, so until then document and collection
+ * frequencies still count it, while the document count and the length
+ * statistics used for ranking do not. An update is a removal and an add
+ * under a new, larger id. In block mode a block stays a candidate while
+ * any of its documents is live, even when only deleted ones held the
+ * term (candidates are verified by scanning anyway).
+ *
  * Every skip_interval-th posting of a list (64 by default) is recorded in
  * a skip table (the document before it and its bit offset), so a cursor
  * can advance to the first posting >= a target in O(log(df / interval) +
@@ -222,6 +232,11 @@ typedef struct ds_inverted_index {
   size_t fwd_used;
   size_t fwd_capacity;
   size_t total_tokens;
+  /* deletion marks, by position in addition order (bits) */
+  unsigned char *deleted;
+  size_t deleted_capacity; /* bytes */
+  size_t deleted_count;
+  size_t deleted_tokens;
   /* scratch */
   size_t *scratch;
   size_t scratch_capacity;
@@ -281,7 +296,25 @@ ds_status_t ds_invidx_add_text(ds_inverted_index_t *idx, size_t doc_id,
                                bool fold_case);
 
 size_t ds_invidx_terms(const ds_inverted_index_t *idx);
+/* the documents in the index, deleted ones excluded */
 size_t ds_invidx_documents(const ds_inverted_index_t *idx);
+/* whether the document is in the index (added and not deleted) */
+bool ds_invidx_contains(const ds_inverted_index_t *idx, size_t doc_id);
+/* mark a document deleted; DS_NOT_FOUND when it is not in the index */
+ds_status_t ds_invidx_remove(ds_inverted_index_t *idx, size_t doc_id);
+/* deleted documents whose postings or slots remain */
+size_t ds_invidx_deleted(const ds_inverted_index_t *idx);
+/* rewrite the posting lists (and skip tables) without the deleted
+ * documents and recompute df and cf; in document and positional modes
+ * the deleted documents then leave the index entirely (forward index
+ * included). In block mode documents keep their slots so blocks keep
+ * their numbers: lists only lose the blocks with no live document left,
+ * and cf, which block postings cannot recompute, keeps counting the
+ * deleted occurrences. All or nothing: the new lists are built before
+ * the old ones go (about twice the postings memory at the peak), so a
+ * failure (DS_ERR_ALLOC) leaves the index as it was. Terms whose lists
+ * become empty keep their ids. */
+ds_status_t ds_invidx_compact(ds_inverted_index_t *idx);
 /* DS_INVIDX_NONE when absent */
 size_t ds_invidx_term_id(const ds_inverted_index_t *idx, const void *text,
                          size_t length);
@@ -301,7 +334,8 @@ size_t ds_invidx_document_frequency(const ds_inverted_index_t *idx,
                                     const void *text, size_t length);
 /* compressed size of all posting lists, in bytes */
 size_t ds_invidx_postings_bytes(const ds_inverted_index_t *idx);
-/* documents (ids, in order) covered by a block */
+/* documents (ids, in order) covered by a block, deleted ones included
+ * (ds_invidx_contains tells them apart) */
 ds_status_t ds_invidx_block_documents(const ds_inverted_index_t *idx,
                                       size_t block, const size_t **ids,
                                       size_t *count);

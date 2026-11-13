@@ -866,6 +866,7 @@ void ds_invidx_destroy(ds_inverted_index_t *idx) {
   ds_context_free(idx->context, idx->fwd_off);
   ds_context_free(idx->context, idx->fwd);
   ds_context_free(idx->context, idx->scratch);
+  ds_context_free(idx->context, idx->deleted);
   memset(idx, 0, sizeof(*idx));
 }
 
@@ -1200,7 +1201,7 @@ size_t ds_invidx_terms(const ds_inverted_index_t *idx) {
 }
 
 size_t ds_invidx_documents(const ds_inverted_index_t *idx) {
-  return idx == NULL ? 0 : idx->docs;
+  return idx == NULL ? 0 : idx->docs - idx->deleted_count;
 }
 
 ds_status_t ds_invidx_term_text(const ds_inverted_index_t *idx, size_t term,
@@ -1288,6 +1289,68 @@ static size_t ii_doc_index(const ds_inverted_index_t *idx, size_t doc_id) {
   return lo < idx->docs && idx->doc_id[lo] == doc_id ? lo : II_NONE;
 }
 
+static bool ii_dead(const ds_inverted_index_t *idx, size_t d) {
+  return d / 8 < idx->deleted_capacity &&
+         ((idx->deleted[d / 8] >> (d % 8)) & 1u) != 0;
+}
+
+/* whether a posting's document (block) is gone */
+static bool ii_skip_posting(const ds_inverted_index_t *idx, size_t doc) {
+  size_t d;
+  size_t end;
+  if (idx->mode != DS_INVIDX_BLOCK) {
+    d = ii_doc_index(idx, doc);
+    return d == II_NONE || ii_dead(idx, d);
+  }
+  d = doc * idx->block_size;
+  end = idx->docs - d < idx->block_size ? idx->docs : d + idx->block_size;
+  for (; d < end; d++) {
+    if (!ii_dead(idx, d)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ds_invidx_contains(const ds_inverted_index_t *idx, size_t doc_id) {
+  size_t d;
+  if (idx == NULL) {
+    return false;
+  }
+  d = ii_doc_index(idx, doc_id);
+  return d != II_NONE && !ii_dead(idx, d);
+}
+
+ds_status_t ds_invidx_remove(ds_inverted_index_t *idx, size_t doc_id) {
+  size_t d;
+  size_t old;
+  ds_status_t st;
+  if (idx == NULL) {
+    return DS_ERR_NULL;
+  }
+  d = ii_doc_index(idx, doc_id);
+  if (d == II_NONE || ii_dead(idx, d)) {
+    return DS_NOT_FOUND;
+  }
+  old = idx->deleted_capacity;
+  st = ii_reserve(idx->context, (void **)&idx->deleted, &idx->deleted_capacity,
+                  idx->docs / 8 + 1, 1);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (idx->deleted_capacity > old) {
+    memset(idx->deleted + old, 0, idx->deleted_capacity - old);
+  }
+  idx->deleted[d / 8] = (unsigned char)(idx->deleted[d / 8] | (1u << (d % 8)));
+  idx->deleted_count++;
+  idx->deleted_tokens += idx->doc_len[d];
+  return DS_OK;
+}
+
+size_t ds_invidx_deleted(const ds_inverted_index_t *idx) {
+  return idx == NULL ? 0 : idx->deleted_count;
+}
+
 ds_status_t ds_invidx_document_terms(const ds_inverted_index_t *idx,
                                      size_t doc_id, size_t *terms,
                                      size_t *freqs, size_t capacity,
@@ -1305,7 +1368,7 @@ ds_status_t ds_invidx_document_terms(const ds_inverted_index_t *idx,
     return DS_ERR_STATE;
   }
   d = ii_doc_index(idx, doc_id);
-  if (d == II_NONE) {
+  if (d == II_NONE || ii_dead(idx, d)) {
     return DS_ERR_RANGE;
   }
   at = idx->fwd_off[d];
@@ -1336,12 +1399,9 @@ void ds_invidx_cursor_open(const ds_inverted_index_t *idx, const void *text,
   ii_cursor_term(idx, ds_invidx_term_id(idx, text, length), cursor);
 }
 
-bool ds_invidx_cursor_next(ds_invidx_cursor_t *c) {
-  const ds_invidx_posting_list_t *pl;
-  if (c == NULL || c->index == NULL || c->term == II_NONE) {
-    return false;
-  }
-  pl = &c->index->postings[c->term];
+/* the next posting, deleted documents included */
+static bool ii_raw_next(ds_invidx_cursor_t *c) {
+  const ds_invidx_posting_list_t *pl = &c->index->postings[c->term];
   while (c->positions_left > 0) {
     (void)ii_unpost(c->index, pl, &c->at);
     c->positions_left--;
@@ -1361,6 +1421,18 @@ bool ds_invidx_cursor_next(ds_invidx_cursor_t *c) {
     c->positions_left = c->freq;
   }
   return true;
+}
+
+bool ds_invidx_cursor_next(ds_invidx_cursor_t *c) {
+  if (c == NULL || c->index == NULL || c->term == II_NONE || c->ended) {
+    return false;
+  }
+  while (ii_raw_next(c)) {
+    if (c->index->deleted_count == 0 || !ii_skip_posting(c->index, c->doc)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool ds_invidx_cursor_advance(ds_invidx_cursor_t *c, size_t target) {
@@ -1411,6 +1483,113 @@ bool ds_invidx_cursor_next_position(ds_invidx_cursor_t *c, size_t *position) {
   c->positions_left--;
   *position = c->position;
   return true;
+}
+
+/* ------------------------------------------------------------ compaction */
+
+/* a list re-encoded without the deleted documents (blocks) */
+static ds_status_t ii_rewrite(const ds_inverted_index_t *idx, size_t t,
+                              ds_invidx_posting_list_t *out) {
+  ds_invidx_cursor_t c;
+  ds_status_t st = DS_OK;
+  memset(out, 0, sizeof(*out));
+  ii_cursor_term(idx, t, &c);
+  while (st == DS_OK && ii_raw_next(&c)) {
+    size_t doc = c.doc;
+    if (ii_skip_posting(idx, doc)) {
+      continue; /* its positions are passed over by the next step */
+    }
+    st = ii_skip_point(idx, out);
+    if (st == DS_OK) {
+      st = ii_post(idx, out, doc - (out->df ? out->last : 0));
+    }
+    if (idx->mode != DS_INVIDX_BLOCK) {
+      if (st == DS_OK) {
+        st = ii_post(idx, out, c.freq);
+      }
+      while (st == DS_OK && c.positions_left > 0) {
+        st = ii_post(idx, out, ii_unpost(idx, &idx->postings[t], &c.at));
+        c.positions_left--;
+      }
+      out->cf += c.freq;
+    }
+    out->df++;
+    out->last = doc;
+  }
+  if (idx->mode == DS_INVIDX_BLOCK) {
+    out->cf = idx->postings[t].cf;
+  }
+  if (st != DS_OK) {
+    ds_context_free(idx->context, out->bytes);
+    ds_context_free(idx->context, out->skips);
+    memset(out, 0, sizeof(*out));
+  }
+  return st;
+}
+
+ds_status_t ds_invidx_compact(ds_inverted_index_t *idx) {
+  ds_invidx_posting_list_t *fresh;
+  size_t t;
+  ds_status_t st = DS_OK;
+  if (idx == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (idx->deleted_count == 0) {
+    return DS_OK;
+  }
+  fresh = (ds_invidx_posting_list_t *)ds_context_alloc(
+      idx->context, (idx->terms + 1) * sizeof(ds_invidx_posting_list_t));
+  if (fresh == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (t = 0; t < idx->terms && st == DS_OK; t++) {
+    st = ii_rewrite(idx, t, &fresh[t]);
+  }
+  if (st != DS_OK) {
+    size_t k;
+    for (k = 0; k < t; k++) {
+      ds_context_free(idx->context, fresh[k].bytes);
+      ds_context_free(idx->context, fresh[k].skips);
+    }
+    ds_context_free(idx->context, fresh);
+    return st;
+  }
+  for (t = 0; t < idx->terms; t++) {
+    ds_context_free(idx->context, idx->postings[t].bytes);
+    ds_context_free(idx->context, idx->postings[t].skips);
+    idx->postings[t] = fresh[t];
+  }
+  ds_context_free(idx->context, fresh);
+  if (idx->mode != DS_INVIDX_BLOCK) {
+    /* the documents leave too: slide the live ones down */
+    size_t d;
+    size_t k = 0;
+    size_t w = 0;
+    for (d = 0; d < idx->docs; d++) {
+      size_t from = idx->fwd_off[d];
+      size_t end = d + 1 < idx->docs ? idx->fwd_off[d + 1] : idx->fwd_used;
+      if (ii_dead(idx, d)) {
+        continue;
+      }
+      idx->doc_id[k] = idx->doc_id[d];
+      idx->doc_len[k] = idx->doc_len[d];
+      idx->fwd_off[k] = w;
+      if (idx->keep_forward) {
+        memmove(idx->fwd + w, idx->fwd + from, end - from);
+        w += end - from;
+      }
+      k++;
+    }
+    if (idx->keep_forward) {
+      idx->fwd_used = w;
+    }
+    idx->docs = k;
+    idx->total_tokens -= idx->deleted_tokens;
+    idx->deleted_count = 0;
+    idx->deleted_tokens = 0;
+    memset(idx->deleted, 0, idx->deleted_capacity);
+  }
+  return DS_OK;
 }
 
 /* ------------------------------------------------------------ queries */
@@ -1893,6 +2072,7 @@ ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
   unsigned char *hit;
   ii_scored_t *list;
   double avgdl;
+  double live;
   size_t n = 0;
   size_t i;
   size_t d;
@@ -1908,7 +2088,7 @@ ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
   result->docs = NULL;
   result->scores = NULL;
   result->count = 0;
-  if (idx->docs == 0 || top_k == 0) {
+  if (idx->docs == idx->deleted_count || top_k == 0) {
     return DS_OK;
   }
   score = (double *)ds_context_alloc(idx->context, idx->docs * sizeof(double));
@@ -1921,7 +2101,8 @@ ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
     ds_context_free(idx->context, list);
     return DS_ERR_ALLOC;
   }
-  avgdl = (double)idx->total_tokens / (double)idx->docs;
+  live = (double)(idx->docs - idx->deleted_count);
+  avgdl = (double)(idx->total_tokens - idx->deleted_tokens) / live;
   for (d = 0; d < idx->docs; d++) {
     score[d] = 0.0;
   }
@@ -1934,7 +2115,7 @@ ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
       continue;
     }
     df = (double)idx->postings[c.term].df;
-    idf = log(1.0 + ((double)idx->docs - df + 0.5) / (df + 0.5));
+    idf = log(1.0 + (live - df + 0.5) / (df + 0.5));
     while (ds_invidx_cursor_next(&c)) {
       size_t di = ii_doc_index(idx, c.doc);
       double tf = (double)c.freq;
