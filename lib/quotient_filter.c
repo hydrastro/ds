@@ -286,6 +286,109 @@ ds_status_t ds_quotient_filter_remove(ds_quotient_filter_t *f,
   return DS_OK;
 }
 
+/* no occupied bit strictly between slots a and e (cyclically) */
+static bool qf_no_occ_between(const ds_quotient_filter_t *f, size_t a,
+                              size_t e) {
+  for (a = qf_inc(f, a); a != e; a = qf_inc(f, a)) {
+    if (f->meta[a] & QF_OCC) {
+      return false;
+    }
+  }
+  return true;
+}
+
+ds_status_t ds_quotient_filter_check(const ds_quotient_filter_t *f) {
+  size_t used = 0;
+  size_t i;
+  size_t k;
+  size_t start;
+  size_t q = 0;
+  unsigned long prev = 0;
+  bool in = false;
+  if (f == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (f->meta == NULL || f->rem == NULL) {
+    return f->count == 0 ? DS_OK : DS_ERR_INVALID;
+  }
+  if (f->q == 0 || f->r == 0 || f->q + f->r > QF_W ||
+      f->q >= sizeof(size_t) * CHAR_BIT - 1 || f->slots != (size_t)1 << f->q) {
+    return DS_ERR_INVALID;
+  }
+  for (i = 0; i < f->slots; i++) {
+    if ((f->meta[i] & ~(QF_OCC | QF_CONT | QF_SHIFT)) != 0) {
+      return DS_ERR_INVALID;
+    }
+    if (f->meta[i] != 0) {
+      used++;
+    }
+  }
+  if (used != f->count) {
+    return DS_ERR_INVALID;
+  }
+  if (used == 0) {
+    return DS_OK;
+  }
+  /* walk every slot once, from just after an empty slot (or, when every
+   * slot is in use, from a slot holding a run in its canonical place) */
+  start = f->slots;
+  for (i = 0; i < f->slots && start == f->slots; i++) {
+    if (f->meta[i] == 0) {
+      start = qf_inc(f, i);
+    }
+  }
+  for (i = 0; i < f->slots && start == f->slots; i++) {
+    if (!(f->meta[i] & QF_SHIFT)) {
+      start = i;
+    }
+  }
+  if (start == f->slots) {
+    return DS_ERR_INVALID;
+  }
+  for (k = 0; k < f->slots; k++) {
+    size_t s = (start + k) & (f->slots - 1);
+    unsigned m = f->meta[s];
+    unsigned long rem;
+    if (m == 0) {
+      /* a cluster ends: every occupied quotient in it has had its run */
+      if (in && !qf_no_occ_between(f, q, s)) {
+        return DS_ERR_INVALID;
+      }
+      in = false;
+      continue;
+    }
+    rem = qf_get_rem(f, s);
+    if (!in) {
+      /* a cluster begins with a run in its canonical slot */
+      if ((m & (QF_CONT | QF_SHIFT)) != 0 || !(m & QF_OCC)) {
+        return DS_ERR_INVALID;
+      }
+      in = true;
+      q = s;
+    } else if (m & QF_CONT) {
+      /* the run goes on: shifted, remainders in order */
+      if (!(m & QF_SHIFT) || rem < prev) {
+        return DS_ERR_INVALID;
+      }
+    } else {
+      /* a new run belongs to the next occupied quotient, which lies at or
+       * before this slot, and it is shifted exactly when it lies before */
+      do {
+        q = qf_inc(f, q);
+      } while (q != s && !(f->meta[q] & QF_OCC));
+      if (!(f->meta[q] & QF_OCC) || (q != s) != ((m & QF_SHIFT) != 0)) {
+        return DS_ERR_INVALID;
+      }
+    }
+    prev = rem;
+  }
+  /* every slot in use: the one cluster closes where the walk began */
+  if (in && !qf_no_occ_between(f, q, start)) {
+    return DS_ERR_INVALID;
+  }
+  return DS_OK;
+}
+
 size_t ds_quotient_filter_count(const ds_quotient_filter_t *f) {
   return f == NULL ? 0 : f->count;
 }

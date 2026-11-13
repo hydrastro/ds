@@ -56,6 +56,14 @@ bool ds_quotient_filter_contains(const ds_quotient_filter_t *f,
 /* only remove what was inserted (fingerprints are shared otherwise) */
 ds_status_t ds_quotient_filter_remove(ds_quotient_filter_t *f,
                                       unsigned long hash);
+/* DS_OK when the slots describe a filter that inserts and removes could
+ * have produced: the count matches the slots in use, every cluster starts
+ * with a run in its canonical slot, each run belongs to the next occupied
+ * quotient, shifted exactly when it lies past that slot, every occupied
+ * quotient has its run, and remainders never decrease within a run.
+ * DS_ERR_INVALID otherwise. O(slots); for filters restored from untrusted
+ * bytes, since the lookup loops assume this structure. */
+ds_status_t ds_quotient_filter_check(const ds_quotient_filter_t *f);
 size_t ds_quotient_filter_count(const ds_quotient_filter_t *f);
 size_t ds_quotient_filter_bytes(const ds_quotient_filter_t *f);
 /* the stored (q + r)-bit fingerprints in increasing order */
