@@ -62,6 +62,122 @@ static ds_status_t ta_check_tree(const size_t *rank, size_t symbols,
   return need == 0 ? DS_OK : DS_ERR_INVALID;
 }
 
+/* ---------------------------------------------- left-hand-side index */
+
+/* an entry's key: a head value and k more values */
+typedef void (*ta_key_fn)(const void *owner, size_t e, size_t *head,
+                          const size_t **vals, size_t *k);
+
+static size_t ta_key_hash(size_t head, const size_t *v, size_t k) {
+  size_t h = head * (size_t)2654435761UL + (size_t)0x9E3779B9UL;
+  size_t i;
+  for (i = 0; i < k; i++) {
+    h ^= v[i] + (size_t)0x9E3779B9UL + (h << 6) + (h >> 2);
+  }
+  h ^= h >> 15;
+  return h;
+}
+
+/* the indexed entry with this key, or TA_NONE */
+static size_t ta_index_find(const size_t *slot, size_t slots, const void *owner,
+                            ta_key_fn key, size_t head, const size_t *v,
+                            size_t k) {
+  size_t at;
+  if (slots == 0) {
+    return TA_NONE;
+  }
+  at = ta_key_hash(head, v, k) & (slots - 1);
+  while (slot[at] != TA_NONE) {
+    size_t eh;
+    size_t ek;
+    const size_t *ev;
+    key(owner, slot[at], &eh, &ev, &ek);
+    if (eh == head && ek == k &&
+        (k == 0 || memcmp(ev, v, k * sizeof(size_t)) == 0)) {
+      return slot[at];
+    }
+    at = (at + 1) & (slots - 1);
+  }
+  return TA_NONE;
+}
+
+/* keep the index at most half full for entries + 1 entries */
+static ds_status_t ta_index_reserve(ds_context_t *ctx, size_t **slot,
+                                    size_t *slots, size_t entries,
+                                    const void *owner, ta_key_fn key) {
+  size_t ns;
+  size_t i;
+  size_t *t;
+  if (2 * (entries + 1) <= *slots) {
+    return DS_OK;
+  }
+  ns = *slots < 16 ? 32 : *slots;
+  while (ns < 2 * (entries + 1)) {
+    if (ns > (size_t)-1 / 2 / sizeof(size_t)) {
+      return DS_ERR_OVERFLOW;
+    }
+    ns *= 2;
+  }
+  t = (size_t *)ds_context_alloc(ctx, ns * sizeof(size_t));
+  if (t == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (i = 0; i < ns; i++) {
+    t[i] = TA_NONE;
+  }
+  for (i = 0; i < *slots; i++) {
+    if ((*slot)[i] != TA_NONE) {
+      size_t h;
+      size_t k;
+      const size_t *v;
+      size_t at;
+      key(owner, (*slot)[i], &h, &v, &k);
+      at = ta_key_hash(h, v, k) & (ns - 1);
+      while (t[at] != TA_NONE) {
+        at = (at + 1) & (ns - 1);
+      }
+      t[at] = (*slot)[i];
+    }
+  }
+  ds_context_free(ctx, *slot);
+  *slot = t;
+  *slots = ns;
+  return DS_OK;
+}
+
+static void ta_index_put(size_t *slot, size_t slots, size_t head,
+                         const size_t *v, size_t k, size_t e) {
+  size_t at = ta_key_hash(head, v, k) & (slots - 1);
+  while (slot[at] != TA_NONE) {
+    at = (at + 1) & (slots - 1);
+  }
+  slot[at] = e;
+}
+
+static void ta_fta_key(const void *owner, size_t t, size_t *head,
+                       const size_t **vals, size_t *k) {
+  const ds_fta_t *f = (const ds_fta_t *)owner;
+  *head = f->sym[t];
+  *vals = f->pool + f->args[t];
+  *k = f->rank[f->sym[t]];
+}
+
+static void ta_tdta_key(const void *owner, size_t t, size_t *head,
+                        const size_t **vals, size_t *k) {
+  const ds_tdta_t *d = (const ds_tdta_t *)owner;
+  *head = d->sym[t];
+  *vals = d->from + t;
+  *k = 1;
+}
+
+static void ta_tt_key(const void *owner, size_t r, size_t *head,
+                      const size_t **vals, size_t *k) {
+  const ds_tree_transducer_t *tt = (const ds_tree_transducer_t *)owner;
+  *head = tt->sym[r];
+  *vals = tt->pool + tt->args[r];
+  *k = tt->in_rank[tt->sym[r]];
+}
+
 /* ------------------------------------------------------- bottom-up */
 
 ds_status_t ds_fta_init(ds_fta_t *fta, size_t states, size_t symbols,
@@ -75,9 +191,12 @@ ds_status_t ds_fta_init(ds_fta_t *fta, size_t states, size_t symbols,
   }
   fta->rank = (size_t *)ds_context_alloc(context, symbols * sizeof(size_t));
   fta->final = (bool *)ds_context_calloc(context, states, sizeof(bool));
-  if (fta->rank == NULL || fta->final == NULL) {
+  fta->lhs_count =
+      (size_t *)ds_context_calloc(context, symbols, sizeof(size_t));
+  if (fta->rank == NULL || fta->final == NULL || fta->lhs_count == NULL) {
     ds_context_free(context, fta->rank);
     ds_context_free(context, fta->final);
+    ds_context_free(context, fta->lhs_count);
     memset(fta, 0, sizeof(*fta));
     return DS_ERR_ALLOC;
   }
@@ -98,6 +217,8 @@ void ds_fta_destroy(ds_fta_t *fta) {
   ds_context_free(fta->context, fta->target);
   ds_context_free(fta->context, fta->args);
   ds_context_free(fta->context, fta->pool);
+  ds_context_free(fta->context, fta->index);
+  ds_context_free(fta->context, fta->lhs_count);
   memset(fta, 0, sizeof(*fta));
 }
 
@@ -117,6 +238,7 @@ ds_status_t ds_fta_add(ds_fta_t *fta, size_t symbol, const size_t *args,
   size_t k;
   size_t i;
   size_t cap;
+  size_t prev;
   ds_status_t st;
   if (fta == NULL) {
     return DS_ERR_NULL;
@@ -150,9 +272,15 @@ ds_status_t ds_fta_add(ds_fta_t *fta, size_t symbol, const size_t *args,
     st = ta_reserve(fta->context, (void **)&fta->pool, &fta->pool_capacity,
                     fta->pool_used + k, sizeof(size_t));
   }
+  if (st == DS_OK) {
+    st = ta_index_reserve(fta->context, &fta->index, &fta->index_slots,
+                          fta->count, fta, ta_fta_key);
+  }
   if (st != DS_OK) {
     return st;
   }
+  prev = ta_index_find(fta->index, fta->index_slots, fta, ta_fta_key, symbol,
+                       args, k);
   fta->capacity = cap;
   fta->sym[fta->count] = symbol;
   fta->target[fta->count] = target;
@@ -160,77 +288,42 @@ ds_status_t ds_fta_add(ds_fta_t *fta, size_t symbol, const size_t *args,
   if (k > 0) {
     memcpy(fta->pool + fta->pool_used, args, k * sizeof(size_t));
   }
+  if (prev == TA_NONE) {
+    ta_index_put(fta->index, fta->index_slots, symbol,
+                 fta->pool + fta->pool_used, k, fta->count);
+    fta->lhs_count[symbol]++;
+  } else if (fta->target[prev] != target) {
+    fta->nondet++;
+  }
   fta->pool_used += k;
   fta->count++;
   return DS_OK;
 }
 
-static bool ta_same_lhs(const ds_fta_t *f, size_t a, size_t b) {
-  size_t k = f->rank[f->sym[a]];
-  return f->sym[a] == f->sym[b] &&
-         (k == 0 || memcmp(f->pool + f->args[a], f->pool + f->args[b],
-                           k * sizeof(size_t)) == 0);
-}
-
 bool ds_fta_is_deterministic(const ds_fta_t *fta) {
-  size_t i;
-  size_t j;
-  if (fta == NULL) {
-    return false;
-  }
-  for (i = 0; i < fta->count; i++) {
-    for (j = i + 1; j < fta->count; j++) {
-      if (ta_same_lhs(fta, i, j) && fta->target[i] != fta->target[j]) {
-        return false;
-      }
-    }
-  }
-  return true;
+  return fta != NULL && fta->nondet == 0;
 }
 
 bool ds_fta_is_complete(const ds_fta_t *fta) {
   size_t f;
-  bool ok = true;
   if (fta == NULL) {
     return false;
   }
-  for (f = 0; ok && f < fta->symbols; f++) {
-    size_t k = fta->rank[f];
+  /* every tuple of states, for every symbol, has a left-hand side */
+  for (f = 0; f < fta->symbols; f++) {
     size_t total = 1;
-    size_t have = 0;
     size_t i;
-    size_t t;
-    size_t idx;
-    for (t = 0; t < fta->count; t++) {
-      if (fta->sym[t] == f) {
-        have++;
-      }
-    }
-    for (i = 0; i < k; i++) {
-      if (total > have / fta->states) {
-        return false; /* more tuples than transitions */
+    for (i = 0; i < fta->rank[f]; i++) {
+      if (total > fta->lhs_count[f] / fta->states) {
+        return false; /* more tuples than left-hand sides */
       }
       total *= fta->states;
     }
-    if (total > have) {
+    if (total != fta->lhs_count[f]) {
       return false;
     }
-    /* every tuple, as a base-states number, needs a transition */
-    for (idx = 0; ok && idx < total; idx++) {
-      bool found = false;
-      for (t = 0; !found && t < fta->count; t++) {
-        size_t rest = idx;
-        bool match = fta->sym[t] == f;
-        for (i = 0; match && i < k; i++) {
-          match = fta->pool[fta->args[t] + i] == rest % fta->states;
-          rest /= fta->states;
-        }
-        found = match;
-      }
-      ok = found;
-    }
   }
-  return ok;
+  return true;
 }
 
 /* transitions bucketed by symbol */
@@ -438,7 +531,26 @@ static ds_status_t ta_sets_find(ta_sets_t *s, const unsigned long *set,
 
 ds_status_t ds_fta_determinize(const ds_fta_t *fta, size_t max_states,
                                ds_fta_t *out, ds_context_t *context) {
+  ds_fta_budget_t b;
+  if (max_states == 0) {
+    return DS_ERR_INVALID;
+  }
+  memset(&b, 0, sizeof(b));
+  b.max_states = max_states;
+  return ds_fta_determinize_ex(fta, &b, out, context);
+}
+
+/* a budget's limit, 0 meaning none */
+static size_t ta_limit(size_t limit) { return limit == 0 ? TA_NONE : limit; }
+
+ds_status_t ds_fta_determinize_ex(const ds_fta_t *fta,
+                                  const ds_fta_budget_t *budget, ds_fta_t *out,
+                                  ds_context_t *context) {
   ta_sets_t sets;
+  size_t max_states = ta_limit(budget == NULL ? 0 : budget->max_states);
+  size_t max_trans = ta_limit(budget == NULL ? 0 : budget->max_transitions);
+  size_t max_work = ta_limit(budget == NULL ? 0 : budget->max_work);
+  size_t work = 0;
   size_t *off = NULL;
   size_t *ord = NULL;
   size_t *tuple = NULL;
@@ -452,9 +564,6 @@ ds_status_t ds_fta_determinize(const ds_fta_t *fta, size_t max_states,
   ds_status_t st;
   if (fta == NULL || out == NULL) {
     return DS_ERR_NULL;
-  }
-  if (max_states == 0) {
-    return DS_ERR_INVALID;
   }
   memset(&sets, 0, sizeof(sets));
   sets.w = ta_words(fta->states);
@@ -519,10 +628,18 @@ ds_status_t ds_fta_determinize(const ds_fta_t *fta, size_t max_states,
       }
       for (;;) {
         size_t id;
+        size_t cost;
         bool fresh;
         for (j = 0; j < k; j++) {
           args[j] = sets.bits + tuple[j] * sets.w;
         }
+        /* the work: the transitions of f this tuple tests */
+        cost = off[f + 1] - off[f] + 1;
+        if (cost > max_work || work > max_work - cost) {
+          st = DS_ERR_RANGE;
+          break;
+        }
+        work += cost;
         ta_apply(fta, off, ord, f, args, tmp, sets.w);
         st = ta_sets_find(&sets, tmp, max_states, &id, &fresh);
         if (st != DS_OK) {
@@ -534,6 +651,10 @@ ds_status_t ds_fta_determinize(const ds_fta_t *fta, size_t max_states,
         if (emit) {
           for (j = 0; j < k; j++) {
             ids[j] = tuple[j];
+          }
+          if (out->count >= max_trans) {
+            st = DS_ERR_RANGE;
+            break;
           }
           st = ds_fta_add(out, f, ids, id);
           if (st != DS_OK) {
@@ -576,6 +697,16 @@ static ds_status_t ta_same_alphabet(const ds_fta_t *a, const ds_fta_t *b) {
 
 ds_status_t ds_fta_intersection(const ds_fta_t *a, const ds_fta_t *b,
                                 ds_fta_t *out, ds_context_t *context) {
+  return ds_fta_intersection_ex(a, b, NULL, out, context);
+}
+
+ds_status_t ds_fta_intersection_ex(const ds_fta_t *a, const ds_fta_t *b,
+                                   const ds_fta_budget_t *budget, ds_fta_t *out,
+                                   ds_context_t *context) {
+  size_t max_states = ta_limit(budget == NULL ? 0 : budget->max_states);
+  size_t max_trans = ta_limit(budget == NULL ? 0 : budget->max_transitions);
+  size_t max_work = ta_limit(budget == NULL ? 0 : budget->max_work);
+  size_t work = 0;
   size_t *offa;
   size_t *orda;
   size_t *offb;
@@ -594,6 +725,9 @@ ds_status_t ds_fta_intersection(const ds_fta_t *a, const ds_fta_t *b,
   }
   if (a->states > (size_t)-1 / b->states) {
     return DS_ERR_OVERFLOW;
+  }
+  if (a->states * b->states > max_states) {
+    return DS_ERR_RANGE;
   }
   for (i = 0; i < a->symbols; i++) {
     if (a->rank[i] > maxrank) {
@@ -625,6 +759,10 @@ ds_status_t ds_fta_intersection(const ds_fta_t *a, const ds_fta_t *b,
         size_t ta = orda[x];
         size_t tb = ordb[y];
         size_t j;
+        if (++work > max_work || out->count >= max_trans) {
+          st = DS_ERR_RANGE;
+          break;
+        }
         for (j = 0; j < a->rank[f]; j++) {
           tuple[j] =
               a->pool[a->args[ta] + j] * b->states + b->pool[b->args[tb] + j];
@@ -840,6 +978,7 @@ void ds_tdta_destroy(ds_tdta_t *tdta) {
   ds_context_free(tdta->context, tdta->sym);
   ds_context_free(tdta->context, tdta->args);
   ds_context_free(tdta->context, tdta->pool);
+  ds_context_free(tdta->context, tdta->index);
   memset(tdta, 0, sizeof(*tdta));
 }
 
@@ -881,8 +1020,18 @@ ds_status_t ds_tdta_add(ds_tdta_t *tdta, size_t from, size_t symbol,
     st = ta_reserve(tdta->context, (void **)&tdta->pool, &tdta->pool_capacity,
                     tdta->pool_used + k, sizeof(size_t));
   }
+  if (st == DS_OK) {
+    st = ta_index_reserve(tdta->context, &tdta->index, &tdta->index_slots,
+                          tdta->count, tdta, ta_tdta_key);
+  }
   if (st != DS_OK) {
     return st;
+  }
+  if (ta_index_find(tdta->index, tdta->index_slots, tdta, ta_tdta_key, symbol,
+                    &from, 1) == TA_NONE) {
+    ta_index_put(tdta->index, tdta->index_slots, symbol, &from, 1, tdta->count);
+  } else {
+    tdta->nondet++;
   }
   tdta->capacity = cap;
   tdta->from[tdta->count] = from;
@@ -897,19 +1046,7 @@ ds_status_t ds_tdta_add(ds_tdta_t *tdta, size_t from, size_t symbol,
 }
 
 bool ds_tdta_is_deterministic(const ds_tdta_t *tdta) {
-  size_t i;
-  size_t j;
-  if (tdta == NULL) {
-    return false;
-  }
-  for (i = 0; i < tdta->count; i++) {
-    for (j = i + 1; j < tdta->count; j++) {
-      if (tdta->from[i] == tdta->from[j] && tdta->sym[i] == tdta->sym[j]) {
-        return false;
-      }
-    }
-  }
-  return true;
+  return tdta != NULL && tdta->nondet == 0;
 }
 
 ds_status_t ds_tdta_to_fta(const ds_tdta_t *tdta, ds_fta_t *out,
@@ -937,10 +1074,8 @@ ds_status_t ds_tdta_to_fta(const ds_tdta_t *tdta, ds_fta_t *out,
 ds_status_t ds_tdta_accepts(const ds_tdta_t *tdta, const size_t *tree,
                             size_t length, bool *out_accepted) {
   size_t *stack;
-  size_t *off;
   size_t sp = 0;
   size_t i;
-  size_t t;
   ds_status_t st;
   if (tdta == NULL || out_accepted == NULL) {
     return DS_ERR_NULL;
@@ -958,51 +1093,26 @@ ds_status_t ds_tdta_accepts(const ds_tdta_t *tdta, const size_t *tree,
     }
     return st;
   }
-  /* transitions grouped by source state */
-  off = (size_t *)ds_context_calloc(
-      tdta->context, 2 * tdta->states + 1 + tdta->count, sizeof(size_t));
   stack =
       (size_t *)ds_context_alloc(tdta->context, (length + 1) * sizeof(size_t));
-  if (off == NULL || stack == NULL) {
-    ds_context_free(tdta->context, off);
-    ds_context_free(tdta->context, stack);
+  if (stack == NULL) {
     return DS_ERR_ALLOC;
   }
-  {
-    size_t *ord = off + tdta->states + 1;
-    size_t *fill = ord + tdta->count;
-    for (t = 0; t < tdta->count; t++) {
-      off[tdta->from[t] + 1]++;
+  *out_accepted = true;
+  stack[sp++] = tdta->initial;
+  for (i = 0; i < length; i++) {
+    size_t q = stack[--sp];
+    size_t k;
+    size_t t = ta_index_find(tdta->index, tdta->index_slots, tdta, ta_tdta_key,
+                             tree[i], &q, 1);
+    if (t == TA_NONE) {
+      *out_accepted = false;
+      break;
     }
-    for (i = 0; i < tdta->states; i++) {
-      off[i + 1] += off[i];
-      fill[i] = off[i];
-    }
-    for (t = 0; t < tdta->count; t++) {
-      ord[fill[tdta->from[t]]++] = t;
-    }
-    *out_accepted = true;
-    stack[sp++] = tdta->initial;
-    for (i = 0; i < length; i++) {
-      size_t q = stack[--sp];
-      size_t found = TA_NONE;
-      size_t k;
-      for (t = off[q]; t < off[q + 1]; t++) {
-        if (tdta->sym[ord[t]] == tree[i]) {
-          found = ord[t];
-          break;
-        }
-      }
-      if (found == TA_NONE) {
-        *out_accepted = false;
-        break;
-      }
-      for (k = tdta->rank[tree[i]]; k-- > 0;) {
-        stack[sp++] = tdta->pool[tdta->args[found] + k];
-      }
+    for (k = tdta->rank[tree[i]]; k-- > 0;) {
+      stack[sp++] = tdta->pool[tdta->args[t] + k];
     }
   }
-  ds_context_free(tdta->context, off);
   ds_context_free(tdta->context, stack);
   return DS_OK;
 }
@@ -1055,6 +1165,7 @@ void ds_tt_destroy(ds_tree_transducer_t *tt) {
   ds_context_free(tt->context, tt->rhs);
   ds_context_free(tt->context, tt->rhs_len);
   ds_context_free(tt->context, tt->pool);
+  ds_context_free(tt->context, tt->index);
   memset(tt, 0, sizeof(*tt));
 }
 
@@ -1072,15 +1183,8 @@ ds_status_t ds_tt_set_final(ds_tree_transducer_t *tt, size_t state,
 
 static size_t tt_find(const ds_tree_transducer_t *tt, size_t symbol,
                       const size_t *args) {
-  size_t r;
-  size_t k = tt->in_rank[symbol];
-  for (r = 0; r < tt->count; r++) {
-    if (tt->sym[r] == symbol && (k == 0 || memcmp(tt->pool + tt->args[r], args,
-                                                  k * sizeof(size_t)) == 0)) {
-      return r;
-    }
-  }
-  return TA_NONE;
+  return ta_index_find(tt->index, tt->index_slots, tt, ta_tt_key, symbol, args,
+                       tt->in_rank[symbol]);
 }
 
 ds_status_t ds_tt_add(ds_tree_transducer_t *tt, size_t symbol,
@@ -1143,9 +1247,14 @@ ds_status_t ds_tt_add(ds_tree_transducer_t *tt, size_t symbol,
     st = ta_reserve(tt->context, (void **)&tt->pool, &tt->pool_capacity,
                     tt->pool_used + k + rhs_len, sizeof(size_t));
   }
+  if (st == DS_OK) {
+    st = ta_index_reserve(tt->context, &tt->index, &tt->index_slots, tt->count,
+                          tt, ta_tt_key);
+  }
   if (st != DS_OK) {
     return st;
   }
+  ta_index_put(tt->index, tt->index_slots, symbol, args, k, tt->count);
   tt->capacity = cap;
   tt->sym[tt->count] = symbol;
   tt->target[tt->count] = target;

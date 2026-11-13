@@ -27,6 +27,17 @@
  *           nondeterministic ones are run as the equivalent bottom-up
  *           automaton (ds_tdta_to_fta).
  *
+ * Indexes and budgets. Transitions are indexed by left-hand side as they
+ * are added, so ds_fta_is_deterministic and ds_tdta_is_deterministic are
+ * O(1), ds_fta_is_complete O(symbols), and a deterministic top-down run
+ * or a transducer run finds each node's transition in O(1) expected;
+ * bottom-up runs bucket the transitions by symbol. The subset
+ * construction, the product and transductions can grow exponentially
+ * (subsets of states, pairs of transitions, copied outputs): the _ex
+ * versions take a ds_fta_budget_t bounding the result's states and
+ * transitions and the work (transitions tested), DS_ERR_RANGE when one
+ * runs out, and ds_tt_run takes an output budget.
+ *
  * Memory comes from the ds_context_t given at init.
  */
 
@@ -52,8 +63,20 @@ typedef struct ds_fta {
   size_t *pool;
   size_t pool_used;
   size_t pool_capacity;
+  /* index of left-hand sides: the first transition of each */
+  size_t *index;
+  size_t index_slots;
+  size_t *lhs_count; /* per symbol: distinct left-hand sides */
+  size_t nondet;     /* transitions disagreeing with an earlier one */
   ds_context_t *context;
 } ds_fta_t;
+
+/* limits for the constructions that can blow up; 0 means no limit */
+typedef struct ds_fta_budget {
+  size_t max_states;      /* of the result */
+  size_t max_transitions; /* of the result */
+  size_t max_work;        /* transitions tested */
+} ds_fta_budget_t;
 
 ds_status_t ds_fta_init(ds_fta_t *fta, size_t states, size_t symbols,
                         const size_t *rank, ds_context_t *context);
@@ -72,8 +95,15 @@ ds_status_t ds_fta_run(const ds_fta_t *fta, const size_t *tree, size_t length,
                        bool *reached);
 ds_status_t ds_fta_determinize(const ds_fta_t *fta, size_t max_states,
                                ds_fta_t *out, ds_context_t *context);
+/* the same within a budget (NULL: none) */
+ds_status_t ds_fta_determinize_ex(const ds_fta_t *fta,
+                                  const ds_fta_budget_t *budget, ds_fta_t *out,
+                                  ds_context_t *context);
 ds_status_t ds_fta_intersection(const ds_fta_t *a, const ds_fta_t *b,
                                 ds_fta_t *out, ds_context_t *context);
+ds_status_t ds_fta_intersection_ex(const ds_fta_t *a, const ds_fta_t *b,
+                                   const ds_fta_budget_t *budget, ds_fta_t *out,
+                                   ds_context_t *context);
 ds_status_t ds_fta_union(const ds_fta_t *a, const ds_fta_t *b, ds_fta_t *out,
                          ds_context_t *context);
 /* DS_ERR_STATE unless fta is a complete DFTA; complements in place */
@@ -98,6 +128,9 @@ typedef struct ds_tdta {
   size_t *pool;
   size_t pool_used;
   size_t pool_capacity;
+  size_t *index; /* by (state, symbol): the first transition */
+  size_t index_slots;
+  size_t nondet; /* transitions sharing a (state, symbol) */
   ds_context_t *context;
 } ds_tdta_t;
 
@@ -144,6 +177,8 @@ typedef struct ds_tree_transducer {
   size_t *pool;
   size_t pool_used;
   size_t pool_capacity;
+  size_t *index; /* rules by left-hand side */
+  size_t index_slots;
   ds_context_t *context;
 } ds_tree_transducer_t;
 
