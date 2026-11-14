@@ -509,7 +509,7 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
+.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp check-headers sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
 all: $(LIB_STATIC) $(LIB_SHARED)
 
 # Install only into ds's own include directory and uninstall only the
@@ -630,6 +630,21 @@ $(TEST_BUILD_DIR)/cpp_smoke: $(TEST_DIR)/cpp_smoke.cpp $(LIB_STATIC) | $(TEST_BU
 
 check-cpp: $(TEST_BUILD_DIR)/cpp_smoke
 	$(TEST_BUILD_DIR)/cpp_smoke
+
+# Installs into a scratch prefix and compiles every installed header on
+# its own, and the umbrella headers, with only -I<prefix>/include/ds: what a
+# consumer that does not use pkg-config sees.
+HDR_CHECK_DIR := $(BUILD_DIR)/header-check
+check-headers: all
+	@rm -rf $(HDR_CHECK_DIR)
+	@$(MAKE) --no-print-directory install DESTDIR=$(CURDIR)/$(HDR_CHECK_DIR) PREFIX=/usr >/dev/null
+	@inc=$(CURDIR)/$(HDR_CHECK_DIR)/usr/include/ds; fail=0; \
+	for h in ds.h ds_algo.h $$(cd $$inc && ls lib/*.h algo/*.h); do \
+	  printf '#include "%s"\nint main(void) { return 0; }\n' $$h > $(HDR_CHECK_DIR)/tu.c; \
+	  $(CC) -std=c89 -pedantic-errors -Wall -Wextra -Werror -I$$inc \
+	    -c $(HDR_CHECK_DIR)/tu.c -o $(HDR_CHECK_DIR)/tu.o || { echo "header $$h"; fail=1; }; \
+	done; \
+	test $$fail = 0 && echo "every installed header compiles alone with -I<prefix>/include/ds"
 
 # Line-coverage report. Builds an instrumented copy of the library, links and
 # runs every test against it, then aggregates with gcovr.

@@ -56,8 +56,8 @@
  *                      (orient3d(a,b,c,d) > 0)
  */
 
-#include "context.h"
-#include "status.h"
+#include "../lib/context.h"
+#include "../lib/status.h"
 #include <stddef.h>
 
 #ifdef __cplusplus

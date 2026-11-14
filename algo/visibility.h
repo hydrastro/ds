@@ -33,8 +33,8 @@
  * Results that depend on crossing segments are unspecified.
  */
 
-#include "context.h"
-#include "status.h"
+#include "../lib/context.h"
+#include "../lib/status.h"
 #include <stddef.h>
 
 #ifdef __cplusplus

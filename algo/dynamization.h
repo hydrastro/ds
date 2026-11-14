@@ -55,8 +55,8 @@
  *               the work done, for callers that budget it.
  */
 
-#include "context.h"
-#include "status.h"
+#include "../lib/context.h"
+#include "../lib/status.h"
 #include <stdbool.h>
 #include <stddef.h>
 

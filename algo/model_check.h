@@ -40,8 +40,8 @@
  * Memory comes from the ds_context_t given at init.
  */
 
-#include "context.h"
-#include "status.h"
+#include "../lib/context.h"
+#include "../lib/status.h"
 #include <stdbool.h>
 #include <stddef.h>
 

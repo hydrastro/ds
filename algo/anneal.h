@@ -43,9 +43,9 @@
  * result.stop says why the run ended.
  */
 
-#include "context.h"
+#include "../lib/context.h"
+#include "../lib/status.h"
 #include "random.h"
-#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 

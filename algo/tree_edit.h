@@ -29,8 +29,8 @@
  * words; every size is overflow-checked (DS_ERR_OVERFLOW).
  */
 
-#include "context.h"
-#include "status.h"
+#include "../lib/context.h"
+#include "../lib/status.h"
 #include <stddef.h>
 
 #ifdef __cplusplus
