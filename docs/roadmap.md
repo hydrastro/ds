@@ -238,6 +238,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/matrix: Cholesky, LU, determinants, inverses, Jacobi eigenvalues
 - algo/sdp: semidefinite programming (HKM interior point), theta, max-cut
 - algo/sort_misc: Bentley-McIlroy qsort (ninther, split-end three-way partitioning), ds_qsort
+- lib/ab_tree: (a,b)-trees for any admissible (a, b): finger search, rank/select, join, split
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

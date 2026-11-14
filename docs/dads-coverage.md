@@ -31,8 +31,8 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 756 |
-| restricted | 2 |
+| implemented | 757 |
+| restricted | 1 |
 | variant | 0 |
 | reference | 5 |
 | missing | 0 |
@@ -69,7 +69,7 @@ No row is classified missing.
 | ρ-approximation algorithm | concept | n/a |  |  |
 | ∼ | concept | n/a |  |  |
 | Θ | concept | n/a |  |  |
-| (a,b)-tree | structure | restricted | lib/btree | the (t, 2t) family only, not every allowed (a, b) pair; minimum degree t gives a (t, 2t)-tree |
+| (a,b)-tree | structure | implemented | lib/ab_tree | every admissible (a, b): level links, finger search, rank and select, O(log n) join and split |
 | 8 queens | algorithm | implemented | algo/combinatorics |  |
 | 1-based indexing | concept | n/a |  |  |
 | 2-choice hashing | structure | implemented | lib/two_choice_map |  |

@@ -10,6 +10,7 @@
 #include "lib/result.h"
 #include "lib/status.h"
 
+#include "lib/ab_tree.h"
 #include "lib/adj_matrix.h"
 #include "lib/aho_corasick.h"
 #include "lib/amq_iface.h"
