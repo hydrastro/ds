@@ -109,6 +109,11 @@ says what remains:
 | `algo/alternating_tm` | all or nothing: an error frees everything the exploration took and leaves `*out` unchanged |
 | `algo/sdp` | a solve takes its memory before iterating; after an error status the solution holds nothing, after any other status it must be destroyed; problems only grow by `ds_sdp_add`, which changes nothing when it cannot |
 | `algo/matrix` factorizations | they work in place: a failed Cholesky or LU leaves the factorization partly done; determinants and inverses factor a copy, taken before anything else |
+| `lib/ab_tree` | every insert and remove, and every split and join, takes all the nodes it may need before changing anything, so each is all or nothing |
+| `lib/ordered_iface` (a,b)-tree backend | split and join are the tree's own, all or nothing; they move nodes, so the two contexts must be compatible (`DS_ERR_INVALID` otherwise, with nothing moved) |
+| `lib/rdf_canon` | adding a quad or parsing a document changes nothing when it fails (a syntax error adds no quad and names the line); a canonicalization that fails (memory, a poison-dataset limit) leaves its result empty |
+| `algo/parallel_sim` | every call takes its memory before the first round; on failure the outputs are untouched |
+| `lib/lsm_tree` with a page store | an update whose log record cannot be buffered changes nothing; a flush or merge whose tables cannot be written changes nothing in memory; a failed publish keeps every update in the log; a publish that fails after its slot write began leaves the tree broken (`DS_ERR_STATE` for updates) until it is reopened, which recovers it |
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 
 ## Cursors and handles
@@ -122,6 +127,9 @@ says what remains:
 | SSTable iterators | the table bytes are freed | they borrow the bytes |
 | SSTables opened with `ds_sstable_open_ex` | `ds_sstable_close` | the loaded AMQ filter is owned by the table |
 | LSM iterators and returned values | the next modification | |
+| (a,b)-tree item pointers and cursors | the next insert, remove, split or join | items move within and between leaves; finger searches start from any valid cursor |
+| RDF dataset term strings | `ds_rdf_dataset_clear` or destroy | strings live in chunks that never move; the quad array itself may move when it grows |
+| RDFC results (canonical form, identifier map) | `ds_rdfc_result_destroy` | copies: the dataset may be destroyed first |
 | graph-view workspaces | reuse across calls | one call at a time |
 | inverted-index term texts | the index is destroyed | term bytes live in chunks that never move |
 | inverted-index posting cursors | the next add, remove or compaction | cursors skip deleted documents |
@@ -207,6 +215,27 @@ says what remains:
   sweeps of the step lengths; typical problems take 10 to 30 iterations.
   A Jacobi sweep costs O(n^3), and few sweeps are needed once the matrix
   is nearly diagonal.
+- **(a,b)-trees.** Insert, remove, rank and select in O(log n) (base a
+  logarithms); a finger search O(log d) for a target d items away; join and
+  split O(log n). Restructuring is O(1) amortized per update when b >= 2a
+  (the tree's split, fusion and share counters show it), not for
+  b = 2a - 1. A bulk load is O(n).
+- **RDF canonicalization.** First-degree hashing costs O(q log q) for q
+  quads, plus hashing the quads' text. Hash N-Degree Quads can take
+  exponential time on symmetric blank-node structures: each blank node may
+  run it at most `max_node_calls` times (default max(N, 64) for N blank
+  nodes sharing hashes), so a run makes at most O(N^2) calls by default,
+  each costing its node's quads and permutations; `max_calls` caps the
+  total. Past a limit the result is `DS_ERR_RANGE`.
+- **Persistent LSM tree.** A sync writes the pending log records (about
+  one page per page of records, plus the partly filled page) and syncs
+  once; a flush also writes the new tables and a manifest and syncs twice.
+  Recovery reads every table into memory and replays the log, then flushes
+  what it replayed.
+- **qsort.** Bentley and McIlroy's `ds_q_sort` / `ds_qsort` take O(n log n)
+  comparisons on typical inputs and O(n) on inputs with few distinct keys,
+  with O(log n) stack; like every library qsort an adversary can force
+  O(n^2) comparisons (`ds_intro_sort` bounds them).
 - **Text indexes.** SA-IS builds a suffix array in O(n). The r-index counts
   in O(m log r) and locates each occurrence in O(log r), in 6r + 1 words
   for r BWT runs; building it needs the full suffix array for a while.
