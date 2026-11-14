@@ -31,9 +31,9 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 755 |
+| implemented | 756 |
 | restricted | 2 |
-| variant | 1 |
+| variant | 0 |
 | reference | 5 |
 | missing | 0 |
 | n/a | 543 |
@@ -1072,7 +1072,7 @@ No row is classified missing.
 | entry | kind | state | module | note |
 |---|---|---|---|---|
 | qm sort | algorithm | implemented | algo/sort_misc |  |
-| q sort | algorithm | variant | algo/sort_misc | one member of the quicksort + insertion sort family (ds_q_sort preset) |
+| q sort | algorithm | implemented | algo/sort_misc | Bentley-McIlroy qsort: ds_q_sort, and ds_qsort with the C library signature |
 | quadratic probing | structure | implemented | lib/hash_table |  |
 | quadtree | structure | implemented | lib/quadtree |  |
 | quadtree complexity theorem | concept | n/a |  |  |

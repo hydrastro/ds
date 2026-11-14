@@ -304,13 +304,147 @@ void ds_quicksort_plain(void *base, size_t count, size_t elem_size,
   ds_quicksort(base, count, elem_size, compare, user, &cfg);
 }
 
+/* ---- q sort: Bentley and McIlroy's library qsort ---- */
+
+/* n bytes of a and b exchanged, a long word at a time where possible */
+static void bm_swap(unsigned char *a, unsigned char *b, size_t n) {
+  while (n >= sizeof(long)) {
+    long t;
+    memcpy(&t, a, sizeof(long));
+    memcpy(a, b, sizeof(long));
+    memcpy(b, &t, sizeof(long));
+    a += sizeof(long);
+    b += sizeof(long);
+    n -= sizeof(long);
+  }
+  while (n-- > 0) {
+    unsigned char t = *a;
+    *a++ = *b;
+    *b++ = t;
+  }
+}
+
+static unsigned char *bm_med3(unsigned char *a, unsigned char *b,
+                              unsigned char *c, ds_compare_func_t cmp,
+                              void *user) {
+  return cmp(a, b, user) < 0
+             ? (cmp(b, c, user) < 0 ? b : (cmp(a, c, user) < 0 ? c : a))
+             : (cmp(b, c, user) > 0 ? b : (cmp(a, c, user) < 0 ? a : c));
+}
+
+static void bm_sort(unsigned char *a, size_t n, size_t es,
+                    ds_compare_func_t cmp, void *user) {
+  for (;;) {
+    unsigned char *pa;
+    unsigned char *pb;
+    unsigned char *pc;
+    unsigned char *pd;
+    unsigned char *pl;
+    unsigned char *pm;
+    unsigned char *pn;
+    size_t r;
+    size_t left;
+    size_t right;
+    if (n < 7) { /* insertion sort */
+      for (pm = a + es; pm < a + n * es; pm += es) {
+        for (pl = pm; pl > a && cmp(pl - es, pl, user) > 0; pl -= es) {
+          bm_swap(pl, pl - es, es);
+        }
+      }
+      return;
+    }
+    pm = a + (n / 2) * es;
+    if (n > 7) {
+      pl = a;
+      pn = a + (n - 1) * es;
+      if (n > 40) { /* Tukey's ninther */
+        size_t d = (n / 8) * es;
+        pl = bm_med3(pl, pl + d, pl + 2 * d, cmp, user);
+        pm = bm_med3(pm - d, pm, pm + d, cmp, user);
+        pn = bm_med3(pn - 2 * d, pn - d, pn, cmp, user);
+      }
+      pm = bm_med3(pl, pm, pn, cmp, user);
+    }
+    bm_swap(a, pm, es); /* the pivot at a */
+    pa = pb = a + es;
+    pc = pd = a + (n - 1) * es;
+    for (;;) { /* split-end partitioning: = < ... > = */
+      int c;
+      while (pb <= pc && (c = cmp(pb, a, user)) <= 0) {
+        if (c == 0) {
+          bm_swap(pa, pb, es);
+          pa += es;
+        }
+        pb += es;
+      }
+      while (pb <= pc && (c = cmp(pc, a, user)) >= 0) {
+        if (c == 0) {
+          bm_swap(pc, pd, es);
+          pd -= es;
+        }
+        pc -= es;
+      }
+      if (pb > pc) {
+        break;
+      }
+      bm_swap(pb, pc, es);
+      pb += es;
+      pc -= es;
+    }
+    pn = a + n * es; /* the equal keys from both ends into the middle */
+    r = (size_t)(pa - a) < (size_t)(pb - pa) ? (size_t)(pa - a)
+                                             : (size_t)(pb - pa);
+    bm_swap(a, pb - r, r);
+    r = (size_t)(pd - pc) < (size_t)(pn - pd) - es ? (size_t)(pd - pc)
+                                                   : (size_t)(pn - pd) - es;
+    bm_swap(pb, pn - r, r);
+    left = (size_t)(pb - pa) / es;  /* the keys below the pivot */
+    right = (size_t)(pd - pc) / es; /* and above it */
+    if (left <= right) { /* recurse into the smaller side, loop on the other */
+      if (left > 1) {
+        bm_sort(a, left, es, cmp, user);
+      }
+      if (right <= 1) {
+        return;
+      }
+      a = pn - right * es;
+      n = right;
+    } else {
+      if (right > 1) {
+        bm_sort(pn - right * es, right, es, cmp, user);
+      }
+      if (left <= 1) {
+        return;
+      }
+      n = left;
+    }
+  }
+}
+
 void ds_q_sort(void *base, size_t count, size_t elem_size,
                ds_compare_func_t compare, void *user) {
-  ds_quicksort_config_t cfg;
-  ds_quicksort_config_default(&cfg);
-  cfg.pivot = DS_QS_PIVOT_MIDDLE;
-  cfg.introspective = false;
-  ds_quicksort(base, count, elem_size, compare, user, &cfg);
+  if (base == NULL || compare == NULL || elem_size == 0 || count < 2) {
+    return;
+  }
+  bm_sort((unsigned char *)base, count, elem_size, compare, user);
+}
+
+typedef struct bm_plain {
+  int (*compare)(const void *, const void *);
+} bm_plain_t;
+
+static int bm_plain_compare(const void *a, const void *b, void *user) {
+  return ((const bm_plain_t *)user)->compare(a, b);
+}
+
+void ds_qsort(void *base, size_t count, size_t elem_size,
+              int (*compare)(const void *, const void *)) {
+  bm_plain_t p;
+  if (compare == NULL) {
+    return;
+  }
+  p.compare = compare;
+  ds_q_sort(base, count, elem_size, bm_plain_compare, &p);
 }
 
 void ds_median3_quicksort(void *base, size_t count, size_t elem_size,

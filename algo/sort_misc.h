@@ -19,9 +19,20 @@
  * The recursion is an explicit stack (larger part deferred), so stack use
  * is O(log n) whatever the input. Presets:
  *   ds_quicksort_plain  Hoare's original: first element pivot, no cutoff
- *   ds_q_sort           q sort: one member of the "library sort" family
- *                       DADS describes (quicksort finished by insertion
- *                       sort): middle pivot, insertion sort below 16
+ * The library sort DADS calls q sort (the `qsort` of most C libraries) is
+ * ds_q_sort: Bentley and McIlroy's "Engineering a Sort Function" (1993),
+ * as in the BSD libraries. The pivot is the middle element below 8
+ * elements' worth of work, the median of the first, middle and last up to
+ * 40, and Tukey's ninther (a median of three medians of three) above;
+ * partitioning is split-end three-way (keys equal to the pivot gather at
+ * both ends, then swap into the middle, so many duplicates cost O(n));
+ * fewer than 7 elements are insertion sorted; swaps move long words where
+ * the element size allows. It recurses into the smaller side only (O(log n)
+ * stack) and leaves out 4.4BSD's switch to insertion sort after a
+ * partition without swaps, which can go quadratic. Like every library
+ * qsort it is not stable and an adversary can still force O(n^2)
+ * comparisons; ds_intro_sort bounds them. ds_qsort has qsort's own
+ * signature, a drop-in replacement. Presets of the configurable quicksort:
  *   ds_median3_quicksort  median-of-three pivot, insertion cutoff, no
  *                       introspection
  *   ds_balanced_quicksort  median pivot (guaranteed balanced splits)
@@ -107,6 +118,9 @@ void ds_quicksort_plain(void *base, size_t count, size_t elem_size,
                         ds_compare_func_t compare, void *user);
 void ds_q_sort(void *base, size_t count, size_t elem_size,
                ds_compare_func_t compare, void *user);
+/* qsort(3): the same sort with the C library's comparison signature */
+void ds_qsort(void *base, size_t count, size_t elem_size,
+              int (*compare)(const void *, const void *));
 void ds_median3_quicksort(void *base, size_t count, size_t elem_size,
                           ds_compare_func_t compare, void *user);
 void ds_balanced_quicksort(void *base, size_t count, size_t elem_size,

@@ -237,6 +237,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/alternating_tm: alternating Turing machines (bounded exploration, attractor)
 - algo/matrix: Cholesky, LU, determinants, inverses, Jacobi eigenvalues
 - algo/sdp: semidefinite programming (HKM interior point), theta, max-cut
+- algo/sort_misc: Bentley-McIlroy qsort (ninther, split-end three-way partitioning), ds_qsort
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
