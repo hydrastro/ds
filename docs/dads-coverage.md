@@ -31,8 +31,8 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 762 |
-| restricted | 1 |
+| implemented | 763 |
+| restricted | 0 |
 | variant | 0 |
 | reference | 0 |
 | missing | 0 |
@@ -770,7 +770,7 @@ No row is classified missing.
 | linear quadtree | structure | implemented | lib/quadtree |  |
 | linear search | algorithm | implemented | algo/search | ds_find |
 | link | concept | n/a |  |  |
-| linked data signature | structure | restricted | lib/ld_signature | colour-refinement canonicalisation, not RDFC-1.0; shared-key MAC suite by default |
+| linked data signature | structure | implemented | lib/ld_signature | RDFC-1.0 through lib/rdf_canon; the Data Integrity hash data with any lib/sha2 digest; pluggable suites, HMAC-SHA256 by default |
 | linked list | structure | implemented | lib/list, lib/dlist |  |
 | list | structure | implemented | lib/list |  |
 | list contraction | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |

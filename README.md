@@ -50,7 +50,7 @@ Core mutable containers:
 - `lib/k2_tree`: k^2-trees (compact adjacency matrices)
 - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
 - `lib/lazy_segment_tree`: generic lazy segment trees over monoid actions (range query/apply, max_right/min_left)
-- `lib/ld_signature`: linked data signatures (SHA-256 and HMAC-SHA256 now in `lib/sha2`)
+- `lib/ld_signature`: linked data signatures over RDFC-1.0 (`lib/rdf_canon`): the W3C Data Integrity hash data with any `lib/sha2` digest, pluggable signature suites (HMAC-SHA256 by default)
 - `lib/link_cut_tree`: link-cut trees (link, cut, reroot, LCA, monoid path aggregates and lazy path actions)
 - `lib/louds`: LOUDS succinct trees (2n + 1 bits over any rank/select backend, select-based navigation, byte-labelled tries)
 - `lib/lsm_tree`: log-structured merge tree (memtable, level 0, leveled runs, tombstones, merging iterators, choice of table filter) built from `lib/sstable`

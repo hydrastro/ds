@@ -2,38 +2,44 @@
 #define DS_LD_SIGNATURE_H
 
 /*
- * Linked data signatures (LDS): a digital signature, and the information
- * to verify it, for linked data, after the W3C Linked Data Signatures 1.0
- * draft.
+ * Linked data signatures: a digital signature, and the information to
+ * verify it, for linked data (W3C Linked Data Signatures 1.0, and the
+ * hashing step of the Data Integrity cryptosuites over RDF, such as
+ * eddsa-rdfc-2022 and ecdsa-rdfc-2019).
  *
- * A dataset is a list of N-Quads statements. Signing canonicalises the
- * dataset and the proof options, hashes both with SHA-256, and signs the
- * 64-byte concatenation (options hash, then dataset hash) with a pluggable
- * signature suite; verification recomputes it. The default suite is
- * HMAC-SHA256 with a shared key; asymmetric suites plug in through the
- * sign and verify callbacks.
+ * Signing canonicalizes the document and the proof options with RDF
+ * Dataset Canonicalization (RDFC-1.0, lib/rdf_canon), hashes each
+ * canonical form, and signs the concatenation (proof options hash, then
+ * document hash) with a pluggable signature suite; verification
+ * recomputes it. The data can come in two ways:
  *
- * Canonicalisation sorts and deduplicates the statements after relabelling
- * blank nodes canonically: every blank node gets a hash of the statements
- * it occurs in (itself as _:a, other blank nodes as _:z), refined with its
- * neighbours' hashes until the partition is stable, and is renamed
- * _:c14n0, _:c14n1, ... in hash order (blank nodes that remain
- * indistinguishable keep their relative input order). Isomorphic datasets
- * without such symmetric blank nodes canonicalise identically.
+ * - As RDF datasets (lib/rdf_canon) for both the document and the proof
+ *   options: ds_lds_hash_data computes the hash data of Data Integrity,
+ *   H(c14n(proof options)) || H(c14n(document)), with any lib/sha2 digest
+ *   (SHA-256 by default, SHA-384 for P-384 suites). Given the same RDF it
+ *   matches other implementations; turning JSON-LD into RDF is up to the
+ *   caller. ds_lds_sign_data and ds_lds_verify_data then sign or check
+ *   those bytes.
+ * - As N-Quads statements (one per string) with proof options as
+ *   name/value pairs: ds_lds_tbs, ds_lds_sign and ds_lds_verify. The
+ *   statements are canonicalized with RDFC-1.0 too, but the options are
+ *   hashed as sorted "name value" lines, a local convention, so these
+ *   signatures only verify here.
  *
- * Profile and limits: this is a colour-refinement canonicalisation, NOT
- * the W3C RDF Dataset Canonicalization algorithm (RDFC-1.0 / URDNA2015):
- * datasets whose blank nodes stay symmetric after refinement may
- * canonicalise differently depending on input order, and signatures are
- * not interoperable with other Linked Data Proof implementations. The
- * default suite is a shared-key MAC (HMAC-SHA256), i.e. an integrity
- * check between parties sharing the key, not a public-key signature.
+ * Suites: sign and verify callbacks receive the hash data, so Ed25519,
+ * ECDSA or anything else plugs in; without callbacks the suite is
+ * HMAC-SHA256 with a shared key, an integrity check between parties that
+ * share the key rather than a public-key signature.
  *
- * SHA-256 and HMAC-SHA256 live in lib/sha2, which this header includes.
- * Memory comes from the ds_context_t.
+ * Canonicalization errors pass through: DS_ERR_INVALID for statements
+ * that are not N-Quads, DS_ERR_RANGE for poison datasets (see
+ * lib/rdf_canon). SHA-256 and HMAC-SHA256, formerly declared here, live
+ * in lib/sha2, which this header includes. Memory comes from the
+ * ds_context_t.
  */
 
 #include "context.h"
+#include "rdf_canon.h"
 #include "sha2.h"
 #include "status.h"
 #include <stdbool.h>
@@ -43,14 +49,15 @@
 extern "C" {
 #endif
 
-/* Canonical form of the statements (each an N-Quads line without the
- * newline): the lines, relabelled, sorted, unique, each ending in '\n'.
- * *out is allocated from the context (free with ds_context_free). */
+/* RDFC-1.0 canonical form of the statements (each one N-Quads statement,
+ * with or without its newline): the distinct quads relabelled, sorted,
+ * each ending in '\n'. *out is allocated from the context (free with
+ * ds_context_free). */
 ds_status_t ds_lds_canonicalize(const char *const *quads, size_t n, char **out,
                                 size_t *out_len, ds_context_t *context);
 
-/* A signature suite: sign the to-be-signed bytes into sig (capacity in
- * *sig_len, actual length out); verify returns whether sig matches. */
+/* A signature suite: sign the hash data into sig (capacity in *sig_len,
+ * actual length out); verify returns whether sig matches. */
 typedef ds_status_t (*ds_lds_sign_func_t)(const unsigned char *tbs, size_t len,
                                           unsigned char *sig, size_t *sig_len,
                                           void *user);
@@ -73,7 +80,27 @@ typedef struct ds_lds_option {
   const char *value;
 } ds_lds_option_t;
 
-/* The 64 bytes that get signed. */
+/* the hash data of Data Integrity for RDF: digest (NULL: SHA-256) of the
+ * RDFC-1.0 canonical proof options, then of the canonical document; out
+ * holds 2 * digest size bytes (at most 2 * DS_DIGEST_MAX_SIZE), *out_len
+ * gets the length. c14n: canonicalization options (NULL: defaults). */
+ds_status_t ds_lds_hash_data(const ds_rdf_dataset_t *document,
+                             const ds_rdf_dataset_t *proof,
+                             const ds_digest_ops_t *digest,
+                             const ds_rdfc_options_t *c14n, unsigned char *out,
+                             size_t *out_len);
+/* sign or check any hash data with a suite; verify gives DS_OK when the
+ * signature matches and DS_NOT_FOUND when it does not */
+ds_status_t ds_lds_sign_data(const unsigned char *data, size_t len,
+                             const ds_lds_suite_t *suite, unsigned char *sig,
+                             size_t *sig_len);
+ds_status_t ds_lds_verify_data(const unsigned char *data, size_t len,
+                               const ds_lds_suite_t *suite,
+                               const unsigned char *sig, size_t sig_len);
+
+/* The 64 bytes that get signed for N-Quads statements and name/value
+ * options: SHA-256 of the options lines, then of the canonical
+ * statements. */
 ds_status_t ds_lds_tbs(const char *const *quads, size_t n,
                        const ds_lds_option_t *options, size_t n_options,
                        unsigned char *out, ds_context_t *context);
