@@ -18,6 +18,21 @@
  * Index mapping, packing and unpacking, matrix-vector products, products
  * of two triangular matrices of the same kind (which stay in the kind),
  * and forward / back substitution for the non-strict kinds.
+ *
+ * Factorizations of square matrices (full storage, row major, in place):
+ *   ds_cholesky         A = L L^T for symmetric positive definite A,
+ *                       O(n^3 / 3); also the test for positive
+ *                       definiteness
+ *   ds_lu               P A = L U by Gaussian elimination with partial
+ *                       pivoting, O(2 n^3 / 3); solving, determinants and
+ *                       inverses on top of it
+ *   ds_symmetric_eigen  the eigenvalues (ascending) and an orthonormal
+ *                       basis of eigenvectors of a symmetric matrix by
+ *                       cyclic Jacobi rotations: each sweep O(n^3), the
+ *                       off-diagonal mass falling quadratically once small;
+ *                       an entry is dropped once negligible next to its
+ *                       two diagonal entries (the relative test that keeps
+ *                       small eigenvalues of graded matrices accurate)
  */
 
 #include "../lib/context.h"
@@ -68,6 +83,37 @@ ds_status_t ds_tri_multiply(const double *a, const double *b, double *c,
  * b. DS_ERR_INVALID for a zero diagonal entry or a strict kind. */
 ds_status_t ds_tri_solve(const double *packed, size_t n, ds_tri_kind_t kind,
                          const double *b, double *x);
+
+/* ---- factorizations ---- */
+
+/* A = L L^T: reads the lower triangle of the symmetric matrix a, writes L
+ * there and zeros above it. DS_ERR_INVALID (a unchanged up to the failing
+ * row) when a pivot is not positive: A is not positive definite. */
+ds_status_t ds_cholesky(double *a, size_t n);
+/* solves L L^T x = b with the factor of ds_cholesky; x may alias b */
+ds_status_t ds_cholesky_solve(const double *l, size_t n, const double *b,
+                              double *x);
+
+/* P A = L U: L (unit diagonal, not stored) below the diagonal of a, U on
+ * and above it; perm[i] is the row of A now at row i; *out_sign (may be
+ * NULL) the sign of P. DS_ERR_INVALID if a pivot is zero (A singular);
+ * the factorization then stops there. */
+ds_status_t ds_lu(double *a, size_t n, size_t *perm, int *out_sign);
+/* solves A x = b from the factorization; x must not alias b
+ * (DS_ERR_INVALID) */
+ds_status_t ds_lu_solve(const double *lu, const size_t *perm, size_t n,
+                        const double *b, double *x);
+/* det A, 0 for a singular A */
+ds_status_t ds_determinant(const double *a, size_t n, double *out,
+                           ds_context_t *context);
+/* A^-1 into out (which may alias a); DS_ERR_INVALID if A is singular */
+ds_status_t ds_matrix_inverse(const double *a, size_t n, double *out,
+                              ds_context_t *context);
+
+/* The symmetric matrix a (destroyed; both triangles read) as V diag(w) V^T:
+ * w ascending, v (n x n, may be NULL) with the eigenvectors as columns.
+ * DS_ERR_STATE if 100 sweeps did not converge (they do in practice). */
+ds_status_t ds_symmetric_eigen(double *a, size_t n, double *w, double *v);
 
 #ifdef __cplusplus
 }

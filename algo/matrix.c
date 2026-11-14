@@ -1,4 +1,6 @@
 #include "matrix.h"
+#include <float.h>
+#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -448,4 +450,345 @@ ds_status_t ds_tri_solve(const double *packed, size_t n, ds_tri_kind_t kind,
     }
   }
   return DS_OK;
+}
+
+/* ---- factorizations ------------------------------------------------------ */
+
+static bool mx_nonzero(double x) { return x < 0.0 || x > 0.0; }
+
+ds_status_t ds_cholesky(double *a, size_t n) {
+  size_t i;
+  size_t j;
+  size_t k;
+  if (n > 0 && a == NULL) {
+    return DS_ERR_NULL;
+  }
+  for (j = 0; j < n; j++) {
+    double d = a[j * n + j];
+    for (k = 0; k < j; k++) {
+      d -= a[j * n + k] * a[j * n + k];
+    }
+    if (!(d > 0.0)) { /* also NaN */
+      return DS_ERR_INVALID;
+    }
+    d = sqrt(d);
+    a[j * n + j] = d;
+    for (i = j + 1; i < n; i++) {
+      double s = a[i * n + j];
+      for (k = 0; k < j; k++) {
+        s -= a[i * n + k] * a[j * n + k];
+      }
+      a[i * n + j] = s / d;
+    }
+  }
+  for (i = 0; i < n; i++) {
+    for (j = i + 1; j < n; j++) {
+      a[i * n + j] = 0.0;
+    }
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_cholesky_solve(const double *l, size_t n, const double *b,
+                              double *x) {
+  size_t i;
+  size_t k;
+  if (n > 0 && (l == NULL || b == NULL || x == NULL)) {
+    return DS_ERR_NULL;
+  }
+  for (i = 0; i < n; i++) { /* L z = b */
+    double s = b[i];
+    for (k = 0; k < i; k++) {
+      s -= l[i * n + k] * x[k];
+    }
+    x[i] = s / l[i * n + i];
+  }
+  for (i = n; i-- > 0;) { /* L^T x = z */
+    double s = x[i];
+    for (k = i + 1; k < n; k++) {
+      s -= l[k * n + i] * x[k];
+    }
+    x[i] = s / l[i * n + i];
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_lu(double *a, size_t n, size_t *perm, int *out_sign) {
+  size_t i;
+  size_t j;
+  size_t k;
+  int sign = 1;
+  if (n > 0 && (a == NULL || perm == NULL)) {
+    return DS_ERR_NULL;
+  }
+  for (i = 0; i < n; i++) {
+    perm[i] = i;
+  }
+  for (k = 0; k < n; k++) {
+    size_t p = k;
+    double best = fabs(a[k * n + k]);
+    for (i = k + 1; i < n; i++) {
+      if (fabs(a[i * n + k]) > best) {
+        best = fabs(a[i * n + k]);
+        p = i;
+      }
+    }
+    if (!(best > 0.0)) {
+      if (out_sign != NULL) {
+        *out_sign = sign;
+      }
+      return DS_ERR_INVALID;
+    }
+    if (p != k) {
+      size_t t = perm[p];
+      perm[p] = perm[k];
+      perm[k] = t;
+      for (j = 0; j < n; j++) {
+        double x = a[p * n + j];
+        a[p * n + j] = a[k * n + j];
+        a[k * n + j] = x;
+      }
+      sign = -sign;
+    }
+    for (i = k + 1; i < n; i++) {
+      double f = a[i * n + k] / a[k * n + k];
+      a[i * n + k] = f;
+      if (mx_nonzero(f)) {
+        for (j = k + 1; j < n; j++) {
+          a[i * n + j] -= f * a[k * n + j];
+        }
+      }
+    }
+  }
+  if (out_sign != NULL) {
+    *out_sign = sign;
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_lu_solve(const double *lu, const size_t *perm, size_t n,
+                        const double *b, double *x) {
+  size_t i;
+  size_t k;
+  if (n > 0 && (lu == NULL || perm == NULL || b == NULL || x == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (x == b) { /* permuting in place needs a cycle walk: a copy is simpler */
+    return DS_ERR_INVALID;
+  }
+  for (i = 0; i < n; i++) {
+    double s = b[perm[i]];
+    for (k = 0; k < i; k++) {
+      s -= lu[i * n + k] * x[k];
+    }
+    x[i] = s;
+  }
+  for (i = n; i-- > 0;) {
+    double s = x[i];
+    for (k = i + 1; k < n; k++) {
+      s -= lu[i * n + k] * x[k];
+    }
+    x[i] = s / lu[i * n + i];
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_determinant(const double *a, size_t n, double *out,
+                           ds_context_t *context) {
+  double *w;
+  size_t *perm;
+  size_t i;
+  int sign = 1;
+  ds_status_t st;
+  double d = 1.0;
+  if (out == NULL || (n > 0 && a == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (n == 0) {
+    *out = 1.0;
+    return DS_OK;
+  }
+  if (n > (size_t)-1 / n / sizeof(double)) {
+    return DS_ERR_OVERFLOW;
+  }
+  w = (double *)ds_context_alloc(context, n * n * sizeof(double));
+  perm = (size_t *)ds_context_alloc(context, n * sizeof(size_t));
+  if (w == NULL || perm == NULL) {
+    ds_context_free(context, w);
+    ds_context_free(context, perm);
+    return DS_ERR_ALLOC;
+  }
+  memcpy(w, a, n * n * sizeof(double));
+  st = ds_lu(w, n, perm, &sign);
+  if (st == DS_OK) {
+    for (i = 0; i < n; i++) {
+      d *= w[i * n + i];
+    }
+    *out = sign < 0 ? -d : d;
+  } else if (st == DS_ERR_INVALID) {
+    *out = 0.0;
+    st = DS_OK;
+  }
+  ds_context_free(context, w);
+  ds_context_free(context, perm);
+  return st;
+}
+
+ds_status_t ds_matrix_inverse(const double *a, size_t n, double *out,
+                              ds_context_t *context) {
+  double *w;
+  double *col;
+  size_t *perm;
+  size_t i;
+  size_t j;
+  ds_status_t st;
+  if (n > 0 && (a == NULL || out == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (n == 0) {
+    return DS_OK;
+  }
+  if (n > (size_t)-1 / n / sizeof(double) - 2) {
+    return DS_ERR_OVERFLOW;
+  }
+  w = (double *)ds_context_alloc(context, (n * n + 2 * n) * sizeof(double));
+  perm = (size_t *)ds_context_alloc(context, n * sizeof(size_t));
+  if (w == NULL || perm == NULL) {
+    ds_context_free(context, w);
+    ds_context_free(context, perm);
+    return DS_ERR_ALLOC;
+  }
+  col = w + n * n;
+  memcpy(w, a, n * n * sizeof(double));
+  st = ds_lu(w, n, perm, NULL);
+  for (j = 0; j < n && st == DS_OK; j++) {
+    for (i = 0; i < n; i++) {
+      col[i] = i == j ? 1.0 : 0.0;
+    }
+    (void)ds_lu_solve(w, perm, n, col, col + n);
+    for (i = 0; i < n; i++) {
+      out[i * n + j] = col[n + i];
+    }
+  }
+  ds_context_free(context, w);
+  ds_context_free(context, perm);
+  return st;
+}
+
+/* one Jacobi rotation zeroing a[p][q] (p < q) of the full symmetric a */
+static void mx_rotate(double *a, double *v, size_t n, size_t p, size_t q) {
+  double apq = a[p * n + q];
+  double theta = (a[q * n + q] - a[p * n + p]) / (2.0 * apq);
+  double t = 1.0 / (fabs(theta) + sqrt(theta * theta + 1.0));
+  double c;
+  double s;
+  size_t r;
+  if (theta < 0.0) {
+    t = -t;
+  }
+  if (fabs(theta) > 1e150) { /* theta^2 overflows: t ~ 1 / (2 theta) */
+    t = 0.5 / theta;
+  }
+  c = 1.0 / sqrt(t * t + 1.0);
+  s = t * c;
+  a[p * n + p] -= t * apq;
+  a[q * n + q] += t * apq;
+  a[p * n + q] = 0.0;
+  a[q * n + p] = 0.0;
+  for (r = 0; r < n; r++) {
+    if (r != p && r != q) {
+      double arp = a[r * n + p];
+      double arq = a[r * n + q];
+      a[r * n + p] = c * arp - s * arq;
+      a[p * n + r] = a[r * n + p];
+      a[r * n + q] = s * arp + c * arq;
+      a[q * n + r] = a[r * n + q];
+    }
+  }
+  if (v != NULL) {
+    for (r = 0; r < n; r++) {
+      double vrp = v[r * n + p];
+      double vrq = v[r * n + q];
+      v[r * n + p] = c * vrp - s * vrq;
+      v[r * n + q] = s * vrp + c * vrq;
+    }
+  }
+}
+
+ds_status_t ds_symmetric_eigen(double *a, size_t n, double *w, double *v) {
+  size_t sweep;
+  size_t p;
+  size_t q;
+  size_t i;
+  double norm = 0.0;
+  double floor_abs;
+  bool done = n < 2;
+  if (n > 0 && (a == NULL || w == NULL)) {
+    return DS_ERR_NULL;
+  }
+  for (p = 0; p < n; p++) { /* symmetrize: both triangles are read */
+    for (q = p + 1; q < n; q++) {
+      double m = 0.5 * (a[p * n + q] + a[q * n + p]);
+      a[p * n + q] = m;
+      a[q * n + p] = m;
+    }
+  }
+  for (p = 0; p < n * n; p++) {
+    norm += a[p] * a[p];
+  }
+  /* entries below this are rounding noise next to the matrix */
+  floor_abs = DBL_EPSILON * DBL_EPSILON * sqrt(norm);
+  if (v != NULL) {
+    for (p = 0; p < n; p++) {
+      for (q = 0; q < n; q++) {
+        v[p * n + q] = p == q ? 1.0 : 0.0;
+      }
+    }
+  }
+  /* a sweep rotates every pair whose coupling is not negligible next to
+   * its diagonal entries; none left: converged */
+  for (sweep = 0; sweep < 100 && !done; sweep++) {
+    done = true;
+    for (p = 0; p < n; p++) {
+      for (q = p + 1; q < n; q++) {
+        double apq = fabs(a[p * n + q]);
+        if (!mx_nonzero(apq)) {
+          continue;
+        }
+        if (apq <= floor_abs || apq <= DBL_EPSILON * sqrt(fabs(a[p * n + p]) *
+                                                          fabs(a[q * n + q]))) {
+          a[p * n + q] = 0.0;
+          a[q * n + p] = 0.0;
+          continue;
+        }
+        mx_rotate(a, v, n, p, q);
+        done = false;
+      }
+    }
+  }
+  for (i = 0; i < n; i++) {
+    w[i] = a[i * n + i];
+  }
+  for (i = 0; i + 1 < n; i++) { /* ascending, the vectors along */
+    size_t best = i;
+    size_t j;
+    for (j = i + 1; j < n; j++) {
+      if (w[j] < w[best]) {
+        best = j;
+      }
+    }
+    if (best != i) {
+      double t = w[i];
+      w[i] = w[best];
+      w[best] = t;
+      if (v != NULL) {
+        for (j = 0; j < n; j++) {
+          t = v[j * n + i];
+          v[j * n + i] = v[j * n + best];
+          v[j * n + best] = t;
+        }
+      }
+    }
+  }
+  return done ? DS_OK : DS_ERR_STATE;
 }

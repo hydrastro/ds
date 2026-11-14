@@ -235,6 +235,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/ordered_iface: fusion-tree backend (split and join by rebuilding)
 - algo/game: reachability games on graphs (attractors, ranks, strategies)
 - algo/alternating_tm: alternating Turing machines (bounded exploration, attractor)
+- algo/matrix: Cholesky, LU, determinants, inverses, Jacobi eigenvalues
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

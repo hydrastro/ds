@@ -1508,6 +1508,9 @@ the term covers is provided.
 | entry | kind | state | module | note |
 |---|---|---|---|---|
 | skew heap | structure | implemented | `lib/meldable_heap` | self-adjusting meldable heap policy |
+| Cholesky decomposition | algorithm | implemented | `algo/matrix` | A = L L^T in place from the lower triangle; the positive-definiteness test; solves |
+| LU decomposition | algorithm | implemented | `algo/matrix` | Gaussian elimination with partial pivoting: P A = L U, solves, determinants, inverses |
+| Jacobi eigenvalue algorithm | algorithm | implemented | `algo/matrix` | cyclic Jacobi rotations for symmetric matrices: ascending eigenvalues, orthonormal eigenvectors, relative drop test |
 | spectral test | algorithm | implemented | `algo/lattice`, `algo/random` | 2 <= t <= 8 dimensions, m < 2^26 (algo/lattice); 2-D in algo/random |
 | stable marriage problem | problem | implemented | `algo/matching` | Gale-Shapley (the DADS entry is "marriage problem") |
 | ternary search | algorithm | implemented | `algo/search` | extremum search on unimodal functions/arrays |
