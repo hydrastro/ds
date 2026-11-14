@@ -1552,7 +1552,7 @@ No row is classified missing.
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
 | RRR compressed bit vector | structure | implemented | `lib/rank_select` | fixed 15-bit class/offset blocks: nH0 + n/3.75 bits plus a rank and pointer per 32 blocks |
 | buffer pool (pager) | structure | implemented | `lib/pager` | page-store capability, LRU with pinning and write-back |
-| log-structured merge tree | structure | implemented | `lib/lsm_tree` | in memory: skip-list or array memtable, comparator policy, level 0, leveled runs over SSTables; no WAL, manifest, recovery or storage-backed compaction |
+| log-structured merge tree | structure | implemented | `lib/lsm_tree` | skip-list or array memtable, comparator policy, level 0, leveled runs over SSTables; durable through any lib/pager page store: write-ahead log (sealed pages, two-location tail), double-slot manifest, crash recovery to a prefix of the updates |
 | quotient filter | structure | implemented | `lib/quotient_filter` | packed remainders, deletion (multiset), ordered enumeration |
 | xor filter | structure | implemented | `lib/xor_filter` | static, peeling construction |
 | approximate membership query | concept | implemented | `lib/amq_iface` | capability over Bloom, cuckoo, quotient and xor filters; checked serialized images, pluggable SSTable filters |

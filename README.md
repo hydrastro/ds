@@ -53,7 +53,7 @@ Core mutable containers:
 - `lib/ld_signature`: linked data signatures over RDFC-1.0 (`lib/rdf_canon`): the W3C Data Integrity hash data with any `lib/sha2` digest, pluggable signature suites (HMAC-SHA256 by default)
 - `lib/link_cut_tree`: link-cut trees (link, cut, reroot, LCA, monoid path aggregates and lazy path actions)
 - `lib/louds`: LOUDS succinct trees (2n + 1 bits over any rank/select backend, select-based navigation, byte-labelled tries)
-- `lib/lsm_tree`: log-structured merge tree (memtable, level 0, leveled runs, tombstones, merging iterators, choice of table filter) built from `lib/sstable`
+- `lib/lsm_tree`: log-structured merge tree (memtable, level 0, leveled runs, tombstones, merging iterators, choice of table filter) built from `lib/sstable`; durable through any `lib/pager` page store (write-ahead log, double-slot manifest, crash recovery)
 - `lib/map_iface`: the associative-map capability (ops table with traits; Robin Hood, Swiss table, cuckoo, linear hashing, extendible hashing, coalesced hashing and open addressing backends) for composing structures
 - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)

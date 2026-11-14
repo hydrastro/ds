@@ -245,6 +245,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/ld_signature: RDFC-1.0 canonicalization, Data Integrity hash data, signing any hash data
 - lib/ordered_iface: (a,b)-tree backend (O(log n) split and join, DS_ORDERED_SPLIT_LOG)
 - lib/map_iface: coalesced hashing and open addressing backends
+- lib/lsm_tree: persistence through a page store (write-ahead log, manifest slots, crash recovery)
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

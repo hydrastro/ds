@@ -199,6 +199,10 @@ typedef struct ds_sstable {
 /* Checks the footer, checksum and region layout (bytewise order); the
  * bytes must outlive the table. DS_ERR_INVALID for anything malformed or
  * for a table written with another comparator. */
+/* CRC-32C (Castagnoli), the checksum tables carry, for other formats to
+ * share: the CRC of n bytes at p continuing from crc (0 to start) */
+unsigned long ds_sstable_crc32c(unsigned long crc, const void *p, size_t n);
+
 ds_status_t ds_sstable_open(ds_sstable_t *t, const void *data, size_t len);
 /* the same with the table's key order (NULL: bytewise) */
 ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,

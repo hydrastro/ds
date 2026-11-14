@@ -102,6 +102,15 @@ static unsigned long sst_crc_update(unsigned long c, const unsigned char *p,
   return c & 0xFFFFFFFFUL;
 }
 
+unsigned long ds_sstable_crc32c(unsigned long crc, const void *p, size_t n) {
+  if (p == NULL || n == 0) {
+    return crc & 0xFFFFFFFFUL;
+  }
+  return sst_crc_update((crc & 0xFFFFFFFFUL) ^ 0xFFFFFFFFUL,
+                        (const unsigned char *)p, n) ^
+         0xFFFFFFFFUL;
+}
+
 static unsigned long sst_key_hash(const unsigned char *p, size_t n) {
   unsigned long h = sst_fnv(p, n);
   h ^= h >> 16;

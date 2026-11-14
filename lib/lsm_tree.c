@@ -197,6 +197,828 @@ static ds_status_t lsm_open(ds_lsm_t *l, ds_lsm_table_t *t) {
                             l->config.filter, l->config.context);
 }
 
+/* ---- persistence through a page store ---- */
+
+static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
+                           const void *value, size_t vlen, int tomb);
+static ds_status_t lsm_compact(ds_lsm_t *l);
+
+#define LSM_LOG_HEADER 44
+#define LSM_SEALED 1u
+#define LSM_M32 0xFFFFFFFFUL
+
+static const char lsm_slot_magic[8] = {'D', 'S', 'L', 'S', 'M', 'S', 'L', '1'};
+static const char lsm_man_magic[8] = {'D', 'S', 'L', 'S', 'M', 'M', 'F', '1'};
+static const char lsm_log_magic[8] = {'D', 'S', 'L', 'S', 'M', 'L', 'G', '1'};
+
+static void lsm_put4(unsigned char *p, unsigned long v) {
+  p[0] = (unsigned char)(v & 0xFFUL);
+  p[1] = (unsigned char)((v >> 8) & 0xFFUL);
+  p[2] = (unsigned char)((v >> 16) & 0xFFUL);
+  p[3] = (unsigned char)((v >> 24) & 0xFFUL);
+}
+
+static unsigned long lsm_get4(const unsigned char *p) {
+  return (unsigned long)p[0] | ((unsigned long)p[1] << 8) |
+         ((unsigned long)p[2] << 16) | ((unsigned long)p[3] << 24);
+}
+
+static void lsm_put8(unsigned char *p, unsigned long v) {
+  lsm_put4(p, v & LSM_M32);
+  lsm_put4(p + 4, ((v >> 16) >> 16) & LSM_M32);
+}
+
+/* 0 when the value does not fit an unsigned long */
+static int lsm_get8(const unsigned char *p, unsigned long *v) {
+  unsigned long lo = lsm_get4(p);
+  unsigned long hi = lsm_get4(p + 4);
+  unsigned long back = (hi << 16) << 16;
+  if (hi != 0 && ((back >> 16) >> 16) != hi) {
+    return 0;
+  }
+  *v = lo | back;
+  return 1;
+}
+
+/* whether a length read from the store fits a size_t */
+static int lsm_fits(unsigned long v) {
+  size_t s = (size_t)v;
+  return (unsigned long)s == v;
+}
+
+static size_t lsm_page_size(const ds_lsm_t *l) {
+  return l->config.store->page_size;
+}
+
+/* the extent list: sorted by start, each tagged with the newest manifest
+ * that references it (l->seq + 1 for pages not yet published) */
+static ds_status_t lsm_ext_insert(ds_lsm_t *l, unsigned long start,
+                                  unsigned long pages, unsigned long seq) {
+  size_t i = l->extent_count;
+  if (l->extent_count == l->extent_capacity) {
+    size_t nc = l->extent_capacity < 16 ? 32 : 2 * l->extent_capacity;
+    void *p = ds_context_realloc(l->config.context, l->extents,
+                                 nc * sizeof(ds_lsm_extent_t));
+    if (p == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    l->extents = (ds_lsm_extent_t *)p;
+    l->extent_capacity = nc;
+  }
+  while (i > 0 && l->extents[i - 1].start > start) {
+    l->extents[i] = l->extents[i - 1];
+    i--;
+  }
+  l->extents[i].start = start;
+  l->extents[i].pages = pages;
+  l->extents[i].seq = seq;
+  l->extent_count++;
+  return DS_OK;
+}
+
+/* first fit after the two slot pages */
+static ds_status_t lsm_ext_alloc(ds_lsm_t *l, unsigned long pages,
+                                 unsigned long *start) {
+  unsigned long at = 2;
+  size_t i;
+  for (i = 0; i < l->extent_count; i++) {
+    if (l->extents[i].start >= at && l->extents[i].start - at >= pages) {
+      break;
+    }
+    if (l->extents[i].start + l->extents[i].pages > at) {
+      at = l->extents[i].start + l->extents[i].pages;
+    }
+  }
+  if (at > (unsigned long)-1 - pages) {
+    return DS_ERR_OVERFLOW;
+  }
+  *start = at;
+  return lsm_ext_insert(l, at, pages, l->seq + 1);
+}
+
+static void lsm_ext_mark(ds_lsm_t *l, unsigned long start, unsigned long seq) {
+  size_t lo = 0;
+  size_t hi = l->extent_count;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2;
+    if (l->extents[mid].start < start) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  if (lo < l->extent_count && l->extents[lo].start == start) {
+    l->extents[lo].seq = seq;
+  }
+}
+
+/* forget pages no manifest that might be read references any more, and
+ * shrink the store past the last page in use */
+static void lsm_ext_sweep(ds_lsm_t *l) {
+  size_t i;
+  size_t k = 0;
+  unsigned long end = 2;
+  for (i = 0; i < l->extent_count; i++) {
+    if (l->extents[i].seq + 1 >= l->seq) {
+      l->extents[k++] = l->extents[i];
+      if (l->extents[i].start + l->extents[i].pages > end) {
+        end = l->extents[i].start + l->extents[i].pages;
+      }
+    }
+  }
+  l->extent_count = k;
+  if (ds_page_store_count(l->config.store) > end) {
+    (void)ds_page_store_truncate(l->config.store, end);
+  }
+}
+
+static unsigned long lsm_pages_for(const ds_lsm_t *l, size_t len) {
+  size_t ps = lsm_page_size(l);
+  return (unsigned long)(len / ps + (len % ps != 0 || len == 0 ? 1 : 0));
+}
+
+/* len bytes at page start, the last page padded with zeros */
+static ds_status_t lsm_write_run(ds_lsm_t *l, unsigned long start,
+                                 const unsigned char *data, size_t len) {
+  size_t ps = lsm_page_size(l);
+  unsigned long pages = lsm_pages_for(l, len);
+  unsigned long k;
+  unsigned char *buf;
+  ds_status_t st = DS_OK;
+  buf = (unsigned char *)ds_context_alloc(l->config.context, ps);
+  if (buf == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (k = 0; k < pages && st == DS_OK; k++) {
+    size_t off = (size_t)k * ps;
+    size_t take = len - off < ps ? len - off : ps;
+    if (off < len) {
+      memcpy(buf, data + off, take);
+    } else {
+      take = 0;
+    }
+    memset(buf + take, 0, ps - take);
+    st = ds_page_store_write(l->config.store, start + k, buf);
+  }
+  ds_context_free(l->config.context, buf);
+  return st;
+}
+
+static ds_status_t lsm_read_run(ds_lsm_t *l, unsigned long start, size_t len,
+                                unsigned char **out) {
+  size_t ps = lsm_page_size(l);
+  unsigned long pages = lsm_pages_for(l, len);
+  unsigned long k;
+  unsigned char *buf;
+  size_t bytes;
+  ds_status_t st = DS_OK;
+  if (!ds_size_mul((size_t)pages, ps, &bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
+  buf = (unsigned char *)ds_context_alloc(l->config.context, bytes);
+  if (buf == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (k = 0; k < pages && st == DS_OK; k++) {
+    st = ds_page_store_read(l->config.store, start + k, buf + (size_t)k * ps);
+  }
+  if (st != DS_OK) {
+    ds_context_free(l->config.context, buf);
+    return st;
+  }
+  *out = buf;
+  return DS_OK;
+}
+
+/* writes a new table's bytes to fresh pages */
+static ds_status_t lsm_store_table(ds_lsm_t *l, ds_lsm_table_t *t) {
+  ds_status_t st;
+  unsigned long start;
+  unsigned long pages;
+  if (l->config.store == NULL) {
+    return DS_OK;
+  }
+  pages = lsm_pages_for(l, t->len);
+  st = lsm_ext_alloc(l, pages, &start);
+  if (st == DS_OK) {
+    st = lsm_write_run(l, start, t->data, t->len);
+  }
+  if (st == DS_OK) {
+    t->page = start;
+    t->pages = pages;
+  }
+  return st;
+}
+
+static ds_status_t lsm_pending_reserve(ds_lsm_t *l, size_t extra) {
+  size_t need;
+  if (!ds_size_add(l->pending_len, extra, &need)) {
+    return DS_ERR_OVERFLOW;
+  }
+  if (need > l->pending_capacity) {
+    size_t nc = l->pending_capacity < 256 ? 512 : l->pending_capacity;
+    void *p;
+    while (nc < need) {
+      if (nc > (size_t)-1 / 2) {
+        return DS_ERR_OVERFLOW;
+      }
+      nc *= 2;
+    }
+    p = ds_context_realloc(l->config.context, l->pending, nc);
+    if (p == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    l->pending = (unsigned char *)p;
+    l->pending_capacity = nc;
+  }
+  return DS_OK;
+}
+
+static size_t lsm_varint(unsigned char *p, size_t v) {
+  size_t n = 0;
+  while (v >= 0x80) {
+    p[n++] = (unsigned char)((v & 0x7F) | 0x80);
+    v >>= 7;
+  }
+  p[n++] = (unsigned char)v;
+  return n;
+}
+
+/* appends an update to the records not yet written */
+static ds_status_t lsm_log_record(ds_lsm_t *l, const void *key, size_t klen,
+                                  const void *value, size_t vlen, int tomb) {
+  unsigned char head[1 + 2 * (2 * sizeof(size_t) + 1)];
+  size_t h = 0;
+  size_t total;
+  ds_status_t st;
+  head[h++] = (unsigned char)(tomb ? 2 : 1);
+  h += lsm_varint(head + h, klen);
+  if (!tomb) {
+    h += lsm_varint(head + h, vlen);
+  }
+  if (!ds_size_add(h, klen, &total) || !ds_size_add(total, vlen, &total)) {
+    return DS_ERR_OVERFLOW;
+  }
+  st = lsm_pending_reserve(l, total);
+  if (st != DS_OK) {
+    return st;
+  }
+  memcpy(l->pending + l->pending_len, head, h);
+  if (klen > 0) {
+    memcpy(l->pending + l->pending_len + h, key, klen);
+  }
+  if (vlen > 0) {
+    memcpy(l->pending + l->pending_len + h + klen, value, vlen);
+  }
+  l->pending_len += total;
+  return DS_OK;
+}
+
+/* writes the page being filled: version log_version at the pair's
+ * location for it */
+static ds_status_t lsm_log_write_page(ds_lsm_t *l, int sealed) {
+  unsigned char *pg = l->log_page;
+  size_t ps = lsm_page_size(l);
+  unsigned long crc;
+  ds_status_t st;
+  if (l->log_next == 0) {
+    /* the pair after this one is chosen before the page is first written,
+     * so every version names the same successor */
+    st = lsm_ext_alloc(l, 2, &l->log_next);
+    if (st != DS_OK) {
+      l->log_next = 0;
+      return st;
+    }
+    lsm_ext_mark(l, l->log_next, l->seq);
+  }
+  memcpy(pg, lsm_log_magic, 8);
+  lsm_put8(pg + 8, l->log_id);
+  lsm_put4(pg + 16, l->log_index & LSM_M32);
+  lsm_put4(pg + 20, l->log_version & LSM_M32);
+  lsm_put8(pg + 24, l->log_next);
+  lsm_put4(pg + 32, (unsigned long)l->log_used);
+  pg[36] = (unsigned char)(sealed ? LSM_SEALED : 0u);
+  pg[37] = pg[38] = pg[39] = 0;
+  memset(pg + LSM_LOG_HEADER + l->log_used, 0,
+         ps - LSM_LOG_HEADER - l->log_used);
+  crc = ds_sstable_crc32c(0, pg, 40);
+  crc = ds_sstable_crc32c(crc, pg + LSM_LOG_HEADER, l->log_used);
+  lsm_put4(pg + 40, crc);
+  st = ds_page_store_write(l->config.store,
+                           l->log_slot + (l->log_version & 1UL), pg);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (sealed) {
+    l->log_slot = l->log_next;
+    l->log_next = 0;
+    l->log_index++;
+    l->log_version = 0;
+    l->log_used = 0;
+    l->log_written = 0;
+  } else {
+    l->log_version++;
+    l->log_written = 1;
+  }
+  l->log_dirty = 0;
+  return DS_OK;
+}
+
+/* moves the records not yet written into log pages: full pages are
+ * sealed, the last one is written partly filled */
+static ds_status_t lsm_log_flush_pending(ds_lsm_t *l) {
+  size_t payload = lsm_page_size(l) - LSM_LOG_HEADER;
+  size_t off = 0;
+  ds_status_t st = DS_OK;
+  for (;;) {
+    size_t take;
+    if (l->log_used == payload) {
+      st = lsm_log_write_page(l, 1);
+      if (st != DS_OK) {
+        break;
+      }
+    }
+    if (off == l->pending_len) {
+      break;
+    }
+    take = payload - l->log_used;
+    if (take > l->pending_len - off) {
+      take = l->pending_len - off;
+    }
+    memcpy(l->log_page + LSM_LOG_HEADER + l->log_used, l->pending + off, take);
+    l->log_used += take;
+    off += take;
+    l->log_dirty = 1;
+  }
+  if (st == DS_OK && l->log_dirty) {
+    st = lsm_log_write_page(l, 0);
+  }
+  /* what was copied stays in the page image even if a write failed */
+  if (off > 0) {
+    memmove(l->pending, l->pending + off, l->pending_len - off);
+    l->pending_len -= off;
+  }
+  return st;
+}
+
+ds_status_t ds_lsm_sync(ds_lsm_t *lsm) {
+  ds_status_t st;
+  if (lsm == NULL || lsm->l0 == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (lsm->config.store == NULL) {
+    return DS_OK;
+  }
+  st = lsm_log_flush_pending(lsm);
+  if (st == DS_OK) {
+    st = ds_page_store_sync(lsm->config.store);
+  }
+  if (st == DS_OK) {
+    lsm->unsynced = 0;
+  }
+  return st;
+}
+
+/* the manifest: every table with its pages, the log, the counters */
+static ds_status_t lsm_encode_manifest(ds_lsm_t *l, unsigned long seq,
+                                       unsigned long log_head,
+                                       unsigned char **out, size_t *len) {
+  size_t n = l->l0_count;
+  size_t i;
+  size_t k = 0;
+  unsigned char *p;
+  for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
+    n += l->levels[i].data != NULL ? 1U : 0U;
+  }
+  *len = 8 + 8 * 8 + n * 32;
+  p = (unsigned char *)ds_context_alloc(l->config.context, *len);
+  if (p == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  memcpy(p, lsm_man_magic, 8);
+  lsm_put8(p + 8, seq);
+  lsm_put8(p + 16, (unsigned long)lsm_page_size(l));
+  lsm_put8(p + 24, l->cmp.id);
+  lsm_put8(p + 32, seq); /* the log id is the manifest's sequence */
+  lsm_put8(p + 40, log_head);
+  lsm_put8(p + 48, l->flushes);
+  lsm_put8(p + 56, l->compactions);
+  lsm_put8(p + 64, (unsigned long)n);
+  for (i = 0; i < l->l0_count + DS_LSM_MAX_LEVELS; i++) {
+    const ds_lsm_table_t *t =
+        i < l->l0_count ? &l->l0[i] : &l->levels[i - l->l0_count];
+    unsigned char *e = p + 72 + 32 * k;
+    if (t->data == NULL) {
+      continue;
+    }
+    lsm_put8(e, i < l->l0_count ? 0UL : (unsigned long)(i - l->l0_count + 1));
+    lsm_put8(e + 8, t->page);
+    lsm_put8(e + 16, t->pages);
+    lsm_put8(e + 24, (unsigned long)t->len);
+    k++;
+  }
+  *out = p;
+  return DS_OK;
+}
+
+/* writes the manifest of the current tables with an empty log, then
+ * publishes it through the alternate slot; the memtable must be empty */
+static ds_status_t lsm_publish(ds_lsm_t *l) {
+  unsigned char *man = NULL;
+  unsigned char *slot = NULL;
+  size_t len = 0;
+  size_t i;
+  unsigned long head = 0;
+  unsigned long mstart = 0;
+  unsigned long seq = l->seq + 1;
+  ds_status_t st;
+  if (l->config.store == NULL) {
+    return DS_OK;
+  }
+  if (l->broken) {
+    return DS_ERR_STATE;
+  }
+  st = lsm_ext_alloc(l, 2, &head);
+  if (st == DS_OK) {
+    st = lsm_encode_manifest(l, seq, head, &man, &len);
+  }
+  if (st == DS_OK) {
+    st = lsm_ext_alloc(l, lsm_pages_for(l, len), &mstart);
+  }
+  if (st == DS_OK) {
+    st = lsm_write_run(l, mstart, man, len);
+  }
+  if (st == DS_OK) {
+    st = ds_page_store_sync(l->config.store);
+  }
+  if (st == DS_OK) {
+    slot = (unsigned char *)ds_context_calloc(l->config.context, 1,
+                                              lsm_page_size(l));
+    if (slot == NULL) {
+      st = DS_ERR_ALLOC;
+    }
+  }
+  if (st == DS_OK) {
+    memcpy(slot, lsm_slot_magic, 8);
+    lsm_put8(slot + 8, seq);
+    lsm_put8(slot + 16, mstart);
+    lsm_put8(slot + 24, (unsigned long)len);
+    lsm_put4(slot + 32, ds_sstable_crc32c(0, man, len));
+    lsm_put4(slot + 36, ds_sstable_crc32c(0, slot, 36));
+    st = ds_page_store_write(l->config.store, seq & 1UL, slot);
+    if (st == DS_OK) {
+      st = ds_page_store_sync(l->config.store);
+    }
+    if (st != DS_OK) {
+      /* the slot may or may not have reached the store: further updates
+       * could land in a log the store no longer reads */
+      l->broken = 1;
+    }
+  }
+  ds_context_free(l->config.context, man);
+  ds_context_free(l->config.context, slot);
+  if (st != DS_OK) {
+    return st;
+  }
+  l->seq = seq;
+  lsm_ext_mark(l, mstart, seq);
+  lsm_ext_mark(l, head, seq);
+  for (i = 0; i < l->l0_count; i++) {
+    lsm_ext_mark(l, l->l0[i].page, seq);
+  }
+  for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
+    if (l->levels[i].data != NULL) {
+      lsm_ext_mark(l, l->levels[i].page, seq);
+    }
+  }
+  /* the new log starts empty: everything logged so far is in tables */
+  l->log_id = seq;
+  l->log_head = l->log_slot = head;
+  l->log_index = 0;
+  l->log_next = 0;
+  l->log_version = 0;
+  l->log_written = 0;
+  l->log_dirty = 0;
+  l->log_used = 0;
+  l->pending_len = 0;
+  l->unsynced = 0;
+  lsm_ext_sweep(l);
+  return DS_OK;
+}
+
+/* ---- recovery ---- */
+
+typedef struct lsm_slot {
+  unsigned long seq;
+  unsigned long start;
+  unsigned long len;
+  unsigned long crc;
+} lsm_slot_t;
+
+static int lsm_read_slot(ds_lsm_t *l, unsigned long page, unsigned char *buf,
+                         lsm_slot_t *s) {
+  if (ds_page_store_read(l->config.store, page, buf) != DS_OK ||
+      memcmp(buf, lsm_slot_magic, 8) != 0 ||
+      lsm_get4(buf + 36) != ds_sstable_crc32c(0, buf, 36) ||
+      !lsm_get8(buf + 8, &s->seq) || !lsm_get8(buf + 16, &s->start) ||
+      !lsm_get8(buf + 24, &s->len) || (s->seq & 1UL) != page || s->start < 2 ||
+      s->len < 72) {
+    return 0;
+  }
+  s->crc = lsm_get4(buf + 32);
+  return 1;
+}
+
+/* loads the tables of a manifest; *log_head gets the log */
+static ds_status_t lsm_load(ds_lsm_t *l, const lsm_slot_t *slot,
+                            unsigned long *log_head) {
+  unsigned char *man = NULL;
+  unsigned long v;
+  unsigned long n;
+  unsigned long i;
+  size_t l0 = 0;
+  ds_status_t st;
+  if (!lsm_fits(slot->len)) {
+    return DS_ERR_INVALID;
+  }
+  st = lsm_read_run(l, slot->start, (size_t)slot->len, &man);
+  if (st != DS_OK) {
+    return st;
+  }
+  st = DS_ERR_INVALID;
+  if (ds_sstable_crc32c(0, man, (size_t)slot->len) != slot->crc ||
+      memcmp(man, lsm_man_magic, 8) != 0 || !lsm_get8(man + 8, &v) ||
+      v != slot->seq || !lsm_get8(man + 16, &v) ||
+      v != (unsigned long)lsm_page_size(l) || !lsm_get8(man + 24, &v) ||
+      v != l->cmp.id || !lsm_get8(man + 32, &v) || v != slot->seq ||
+      !lsm_get8(man + 40, log_head) || !lsm_get8(man + 48, &l->flushes) ||
+      !lsm_get8(man + 56, &l->compactions) || !lsm_get8(man + 64, &n) ||
+      n > 63 + DS_LSM_MAX_LEVELS || 72 + 32 * n != slot->len) {
+    goto done;
+  }
+  for (i = 0; i < n; i++) {
+    if (lsm_get8(man + 72 + 32 * i, &v) && v == 0) {
+      l0++;
+    }
+  }
+  if (l0 > l->config.l0_tables) {
+    void *p = ds_context_realloc(l->config.context, l->l0,
+                                 (l0 + 1) * sizeof(ds_lsm_table_t));
+    if (p == NULL) {
+      st = DS_ERR_ALLOC;
+      goto done;
+    }
+    l->l0 = (ds_lsm_table_t *)p;
+    memset(l->l0, 0, (l0 + 1) * sizeof(ds_lsm_table_t));
+  }
+  st = lsm_ext_insert(l, slot->start, lsm_pages_for(l, (size_t)slot->len),
+                      slot->seq);
+  for (i = 0; i < n && st == DS_OK; i++) {
+    const unsigned char *e = man + 72 + 32 * i;
+    unsigned long level;
+    unsigned long start;
+    unsigned long pages;
+    unsigned long len;
+    ds_lsm_table_t *t;
+    if (!lsm_get8(e, &level) || !lsm_get8(e + 8, &start) ||
+        !lsm_get8(e + 16, &pages) || !lsm_get8(e + 24, &len) ||
+        level > DS_LSM_MAX_LEVELS || start < 2 || pages == 0 ||
+        !lsm_fits(len) || pages != lsm_pages_for(l, (size_t)len)) {
+      st = DS_ERR_INVALID;
+      break;
+    }
+    t = level == 0 ? &l->l0[l->l0_count] : &l->levels[level - 1];
+    if (t->data != NULL) {
+      st = DS_ERR_INVALID;
+      break;
+    }
+    st = lsm_ext_insert(l, start, pages, slot->seq);
+    if (st == DS_OK) {
+      st = lsm_read_run(l, start, (size_t)len, &t->data);
+    }
+    if (st == DS_OK) {
+      t->len = (size_t)len;
+      t->page = start;
+      t->pages = pages;
+      st = lsm_open(l, t);
+      if (st != DS_OK) {
+        ds_context_free(l->config.context, t->data);
+        t->data = NULL;
+        st = st == DS_ERR_ALLOC ? st : DS_ERR_INVALID;
+      } else if (level == 0) {
+        l->l0_count++;
+      }
+    }
+  }
+  /* extents must not overlap */
+  for (i = 1; st == DS_OK && i < (unsigned long)l->extent_count; i++) {
+    if (l->extents[i - 1].start + l->extents[i - 1].pages >
+        l->extents[i].start) {
+      st = DS_ERR_INVALID;
+    }
+  }
+done:
+  ds_context_free(l->config.context, man);
+  return st;
+}
+
+static size_t lsm_get_varint(const unsigned char *p, size_t n, size_t *pos,
+                             size_t *v) {
+  size_t shift = 0;
+  *v = 0;
+  while (*pos < n) {
+    unsigned char b = p[(*pos)++];
+    if (shift >= 8 * sizeof(size_t) ||
+        ((size_t)(b & 0x7F) << shift) >> shift != (size_t)(b & 0x7F)) {
+      return 0;
+    }
+    *v |= (size_t)(b & 0x7F) << shift;
+    if ((b & 0x80) == 0) {
+      return 1;
+    }
+    shift += 7;
+  }
+  return 0;
+}
+
+/* replays the log into the memtable: pages in chain order, each the newer
+ * valid version of its pair, until one is missing or a page that is not
+ * sealed ends it; a record cut short at the end is dropped */
+static ds_status_t lsm_replay(ds_lsm_t *l, unsigned long head) {
+  size_t ps = lsm_page_size(l);
+  unsigned char *a = NULL;
+  unsigned char *b = NULL;
+  unsigned char *data = NULL;
+  size_t len = 0;
+  size_t cap = 0;
+  size_t pos = 0;
+  unsigned long pair = head;
+  unsigned long index = 0;
+  ds_status_t st = DS_OK;
+  a = (unsigned char *)ds_context_alloc(l->config.context, ps);
+  b = (unsigned char *)ds_context_alloc(l->config.context, ps);
+  if (a == NULL || b == NULL) {
+    st = DS_ERR_ALLOC;
+    goto done;
+  }
+  st = lsm_ext_insert(l, head, 2, l->seq);
+  while (st == DS_OK) {
+    unsigned char *pg[2];
+    unsigned char *best = NULL;
+    unsigned long best_version = 0;
+    unsigned long used;
+    unsigned long next = 0;
+    int k;
+    pg[0] = a;
+    pg[1] = b;
+    for (k = 0; k < 2; k++) {
+      unsigned long id;
+      unsigned long ver;
+      unsigned long u;
+      unsigned long nx;
+      if (ds_page_store_read(l->config.store, pair + (unsigned long)k, pg[k]) !=
+              DS_OK ||
+          memcmp(pg[k], lsm_log_magic, 8) != 0 || !lsm_get8(pg[k] + 8, &id) ||
+          id != l->seq || lsm_get4(pg[k] + 16) != (index & LSM_M32)) {
+        continue;
+      }
+      ver = lsm_get4(pg[k] + 20);
+      u = lsm_get4(pg[k] + 32);
+      if ((ver & 1UL) != (unsigned long)k || u > ps - LSM_LOG_HEADER ||
+          !lsm_get8(pg[k] + 24, &nx) ||
+          lsm_get4(pg[k] + 40) !=
+              ds_sstable_crc32c(ds_sstable_crc32c(0, pg[k], 40),
+                                pg[k] + LSM_LOG_HEADER, (size_t)u)) {
+        continue;
+      }
+      if (best == NULL || ver > best_version) {
+        best = pg[k];
+        best_version = ver;
+      }
+    }
+    if (best == NULL) {
+      break;
+    }
+    used = lsm_get4(best + 32);
+    if (len + (size_t)used > cap) {
+      size_t nc = cap < 4096 ? 8192 : 2 * cap;
+      void *p;
+      while (nc < len + (size_t)used) {
+        nc *= 2;
+      }
+      p = ds_context_realloc(l->config.context, data, nc);
+      if (p == NULL) {
+        st = DS_ERR_ALLOC;
+        break;
+      }
+      data = (unsigned char *)p;
+      cap = nc;
+    }
+    memcpy(data + len, best + LSM_LOG_HEADER, (size_t)used);
+    len += (size_t)used;
+    if ((best[36] & LSM_SEALED) == 0 || !lsm_get8(best + 24, &next) ||
+        next < 2) {
+      break;
+    }
+    pair = next;
+    index++;
+    st = lsm_ext_insert(l, pair, 2, l->seq);
+  }
+  /* the records */
+  while (st == DS_OK && pos < len) {
+    size_t klen;
+    size_t vlen = 0;
+    unsigned char type = data[pos++];
+    if ((type != 1 && type != 2) || !lsm_get_varint(data, len, &pos, &klen) ||
+        (type == 1 && !lsm_get_varint(data, len, &pos, &vlen)) ||
+        klen > len - pos || vlen > len - pos - klen) {
+      break; /* cut short */
+    }
+    st = lsm_set(l, data + pos, klen, data + pos + klen, vlen, type == 2);
+    pos += klen + vlen;
+  }
+done:
+  ds_context_free(l->config.context, a);
+  ds_context_free(l->config.context, b);
+  ds_context_free(l->config.context, data);
+  return st;
+}
+
+/* opens the tree a store holds, or starts one in an empty store */
+static ds_status_t lsm_recover(ds_lsm_t *l) {
+  lsm_slot_t slots[2];
+  int ok[2];
+  int order[2];
+  int k;
+  unsigned long head = 0;
+  unsigned char *buf;
+  ds_status_t st = DS_ERR_INVALID;
+  if (ds_page_store_count(l->config.store) == 0) {
+    return lsm_publish(l);
+  }
+  buf = (unsigned char *)ds_context_alloc(l->config.context, lsm_page_size(l));
+  if (buf == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  ok[0] = lsm_read_slot(l, 0, buf, &slots[0]);
+  ok[1] = lsm_read_slot(l, 1, buf, &slots[1]);
+  ds_context_free(l->config.context, buf);
+  /* newest first */
+  order[0] = ok[1] && (!ok[0] || slots[1].seq > slots[0].seq) ? 1 : 0;
+  order[1] = 1 - order[0];
+  for (k = 0; k < 2; k++) {
+    int s = order[k];
+    size_t i;
+    if (!ok[s]) {
+      continue;
+    }
+    l->seq = slots[s].seq;
+    st = lsm_load(l, &slots[s], &head);
+    if (st == DS_OK) {
+      break;
+    }
+    /* undo a partial load before trying the older manifest */
+    for (i = 0; i < l->l0_count; i++) {
+      lsm_free_table(l, &l->l0[i]);
+    }
+    for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
+      lsm_free_table(l, &l->levels[i]);
+    }
+    l->l0_count = 0;
+    l->extent_count = 0;
+    if (st == DS_ERR_ALLOC) {
+      return st;
+    }
+  }
+  if (st != DS_OK) {
+    return st;
+  }
+  l->log_id = l->seq;
+  l->log_head = l->log_slot = head;
+  l->replaying = 1;
+  st = lsm_replay(l, head);
+  l->replaying = 0;
+  if (st != DS_OK) {
+    return st;
+  }
+  for (k = 1; k < (int)l->extent_count; k++) {
+    if (l->extents[k - 1].start + l->extents[k - 1].pages >
+        l->extents[k].start) {
+      return DS_ERR_INVALID; /* the log runs into a table */
+    }
+  }
+  if (l->mem_count > 0) {
+    /* a checkpoint: the replayed updates go into a table, the log restarts */
+    st = ds_lsm_flush(l);
+  } else if (l->l0_count > l->config.l0_tables) {
+    st = lsm_compact(l);
+    if (st == DS_OK) {
+      st = lsm_publish(l);
+    }
+  }
+  return st;
+}
+
 void ds_lsm_config_init(ds_lsm_config_t *config) {
   if (config != NULL) {
     memset(config, 0, sizeof(*config));
@@ -278,6 +1100,18 @@ ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config) {
     lsm->skip_head = NULL;
     return DS_ERR_ALLOC;
   }
+  if (lsm->config.store != NULL) {
+    ds_status_t st = DS_ERR_INVALID;
+    if (lsm->config.store->ops != NULL && lsm->config.store->page_size >= 128) {
+      lsm->log_page = (unsigned char *)ds_context_calloc(
+          config->context, 1, lsm->config.store->page_size);
+      st = lsm->log_page == NULL ? DS_ERR_ALLOC : lsm_recover(lsm);
+    }
+    if (st != DS_OK) {
+      ds_lsm_destroy(lsm);
+      return st;
+    }
+  }
   return DS_OK;
 }
 
@@ -296,6 +1130,9 @@ void ds_lsm_destroy(ds_lsm_t *lsm) {
     lsm_free_table(lsm, &lsm->levels[i]);
   }
   ds_context_free(lsm->config.context, lsm->l0);
+  ds_context_free(lsm->config.context, lsm->extents);
+  ds_context_free(lsm->config.context, lsm->log_page);
+  ds_context_free(lsm->config.context, lsm->pending);
   memset(lsm, 0, sizeof(*lsm));
 }
 
@@ -350,6 +1187,13 @@ static ds_status_t lsm_merge_into(ds_lsm_t *l, ds_lsm_table_t **srcs, size_t n,
   if (st != DS_OK) {
     ds_context_free(l->config.context, out.data);
     return st;
+  }
+  if (ds_sstable_entries(&out.table) != 0) {
+    st = lsm_store_table(l, &out);
+    if (st != DS_OK) {
+      lsm_free_table(l, &out);
+      return st;
+    }
   }
   for (i = 0; i < n; i++) {
     lsm_free_table(l, srcs[i]);
@@ -408,6 +1252,9 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   if (lsm->mem_count == 0) {
     return DS_OK;
   }
+  if (lsm->broken) {
+    return DS_ERR_STATE;
+  }
   if (lsm->l0_count > lsm->config.l0_tables) {
     /* an earlier compaction failed: retry it before adding a table */
     st = lsm_compact(lsm);
@@ -440,6 +1287,11 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
     ds_context_free(lsm->config.context, t.data);
     return st;
   }
+  st = lsm_store_table(lsm, &t);
+  if (st != DS_OK) {
+    lsm_free_table(lsm, &t);
+    return st;
+  }
   memmove(lsm->l0 + 1, lsm->l0, lsm->l0_count * sizeof(ds_lsm_table_t));
   lsm->l0[0] = t;
   lsm->l0_count++;
@@ -447,7 +1299,9 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   lsm->flushes++;
   /* the data is safe in level 0 even if a compaction fails now */
   (void)lsm_compact(lsm);
-  return DS_OK;
+  /* with a store: the tables become durable and the log restarts (if this
+   * fails, the log still holds the updates) */
+  return lsm_publish(lsm);
 }
 
 static void ent_fill(lsm_ent_t *e, const void *key, size_t klen,
@@ -557,24 +1411,45 @@ static ds_status_t arr_set(ds_lsm_t *l, const void *key, size_t klen,
 static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
                            const void *value, size_t vlen, int tomb) {
   size_t bytes;
+  size_t mark;
+  int logged;
   ds_status_t st;
   if (l == NULL || l->l0 == NULL || (key == NULL && klen > 0) ||
       (value == NULL && vlen > 0)) {
     return DS_ERR_NULL;
   }
+  if (l->broken) {
+    return DS_ERR_STATE;
+  }
   if (!ds_size_add(sizeof(lsm_ent_t), klen, &bytes) ||
       !ds_size_add(bytes, vlen, &bytes)) {
     return DS_ERR_OVERFLOW;
   }
+  logged = l->config.store != NULL && !l->replaying;
+  mark = l->pending_len;
+  if (logged) {
+    st = lsm_log_record(l, key, klen, value, vlen, tomb);
+    if (st != DS_OK) {
+      return st;
+    }
+  }
   st = lsm_skip(l) ? sl_set(l, key, klen, value, vlen, tomb, bytes)
                    : arr_set(l, key, klen, value, vlen, tomb, bytes);
   if (st != DS_OK) {
+    l->pending_len = mark; /* not applied, so not logged */
     return st;
   }
+  if (l->replaying) {
+    return DS_OK;
+  }
+  l->unsynced++;
   if (l->mem_bytes >= l->config.memtable_bytes) {
-    /* a failed flush leaves the entry in the memtable; the next
-     * modification retries */
+    /* a failed flush leaves the entry in the memtable (and the log); the
+     * next modification retries */
     (void)ds_lsm_flush(l);
+  } else if (logged && l->config.sync_every != 0 &&
+             l->unsynced >= l->config.sync_every) {
+    return ds_lsm_sync(l);
   }
   return DS_OK;
 }
@@ -667,6 +1542,7 @@ ds_status_t ds_lsm_compact_all(ds_lsm_t *lsm) {
   st = lsm_merge_into(lsm, srcs, n, target);
   if (st == DS_OK) {
     lsm->l0_count = 0;
+    st = lsm_publish(lsm);
   }
   return st;
 }

@@ -37,15 +37,47 @@
  * memtable_bytes * l0_tables * fanout^(i-1) bytes of table data; level 0
  * is bounded by its table count, l0_tables.
  *
- * Scope: tables live in memory. There is no write-ahead log, manifest or
- * recovery, and compaction does not go through storage (a store-backed
- * variant would write finished table bytes through a ds_page_store_t), so
- * the structure is an in-memory LSM organization, not a durable store.
+ * Persistence (config.store, a lib/pager page store; NULL keeps everything
+ * in memory): every table is also written to a run of pages, a manifest
+ * lists the tables, and a write-ahead log keeps the updates since the last
+ * flush, so ds_lsm_init on a store that holds a tree recovers it.
+ *   log       each put and delete is appended to the log; ds_lsm_sync
+ *             writes the pending records and syncs the store (sync_every
+ *             N does it after every N updates). A log page is never
+ *             overwritten in place while it holds synced records: the
+ *             page being filled alternates between two locations, with a
+ *             version and a checksum, and full pages are sealed, so a torn
+ *             or lost write costs at most the records after the last sync
+ *   flush     writes the new tables (from the flush and the compactions it
+ *             triggers), then a new manifest, syncs, and only then
+ *             publishes it by writing one of two alternating slot pages
+ *             (pages 0 and 1, with a sequence number and checksum) and
+ *             syncing again; the log restarts empty
+ *   space     pages referenced by the published manifest or by the one
+ *             before it (the fallback if the newest slot is torn) are
+ *             never reused; other pages are reused first fit, and the
+ *             store is truncated past the last page in use
+ *   recovery  ds_lsm_init reads both slots, takes the newest whose
+ *             manifest checks out, loads its tables and replays the log up
+ *             to the first page that is missing, torn or not sealed before
+ *             a later one; replayed updates are flushed into a table at
+ *             once. The result is the state after some prefix of the
+ *             updates, including every update before the last completed
+ *             ds_lsm_sync or flush
+ * Durability is only as good as the store's sync (lib/pager's
+ * DS_PAGE_STORE_DURABLE_SYNC trait: the stdio file store's sync is fflush,
+ * which survives a crash of the process, not of the machine). An empty
+ * store starts a new tree; a store with pages but no valid slot is
+ * DS_ERR_INVALID. Tables are read back into memory when the tree opens:
+ * the store gives durability, not out-of-core lookups. Updates since the
+ * last sync are lost at ds_lsm_destroy unless synced first.
+ *
  * Values returned by get and by iterators stay valid until the next
  * modification. Memory comes from the context.
  */
 
 #include "context.h"
+#include "pager.h"
 #include "sstable.h"
 #include "status.h"
 #include <stdbool.h>
@@ -77,13 +109,27 @@ typedef struct ds_lsm_config {
   ds_lsm_memtable_t memtable;
   const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
   ds_context_t *context;
+  /* persistence (see above): a page store of at least 128-byte pages, and
+   * how many updates trigger a sync of the log (0: only ds_lsm_sync and
+   * flushes) */
+  ds_page_store_t *store;
+  size_t sync_every;
 } ds_lsm_config_t;
 
 typedef struct ds_lsm_table {
   unsigned char *data;
   size_t len;
   ds_sstable_t table;
+  unsigned long page; /* where the store keeps it (pages > 0) */
+  unsigned long pages;
 } ds_lsm_table_t;
+
+/* pages of the store in use, and the newest manifest referencing them */
+typedef struct ds_lsm_extent {
+  unsigned long start;
+  unsigned long pages;
+  unsigned long seq;
+} ds_lsm_extent_t;
 
 typedef struct ds_lsm {
   ds_lsm_config_t config;
@@ -100,6 +146,28 @@ typedef struct ds_lsm {
   ds_lsm_table_t levels[DS_LSM_MAX_LEVELS]; /* levels[0] is level 1 */
   unsigned long flushes;
   unsigned long compactions;
+  /* persistence: the published manifest's sequence, the pages in use, and
+   * the log (records not yet written, the page being filled) */
+  unsigned long seq;
+  ds_lsm_extent_t *extents;
+  size_t extent_count;
+  size_t extent_capacity;
+  unsigned long log_id;    /* the sequence that started the log */
+  unsigned long log_head;  /* first page pair */
+  unsigned long log_slot;  /* page pair being filled */
+  unsigned long log_index; /* its position in the chain */
+  unsigned long log_next;  /* the pair that follows it */
+  unsigned long log_version;
+  int log_written;         /* the page being filled has been written */
+  int log_dirty;           /* and holds records since */
+  unsigned char *log_page; /* its image */
+  size_t log_used;         /* payload bytes in it */
+  unsigned char *pending;  /* records not yet written */
+  size_t pending_len;
+  size_t pending_capacity;
+  size_t unsynced; /* updates since the last sync */
+  int replaying;
+  int broken; /* a publish failed after its slot write: reopen the tree */
 } ds_lsm_t;
 
 typedef struct ds_lsm_iter {
@@ -127,8 +195,12 @@ ds_status_t ds_lsm_put(ds_lsm_t *lsm, const void *key, size_t key_len,
 ds_status_t ds_lsm_delete(ds_lsm_t *lsm, const void *key, size_t key_len);
 ds_status_t ds_lsm_get(ds_lsm_t *lsm, const void *key, size_t key_len,
                        const unsigned char **out_value, size_t *out_len);
-/* move the memtable into level 0 (and compact as needed) */
+/* move the memtable into level 0 (and compact as needed); with a store,
+ * also publishes the new tables (see above) */
 ds_status_t ds_lsm_flush(ds_lsm_t *lsm);
+/* with a store: write the log records not yet written and sync, so every
+ * update so far survives a crash; DS_OK without a store */
+ds_status_t ds_lsm_sync(ds_lsm_t *lsm);
 /* merge everything into one table at the deepest level */
 ds_status_t ds_lsm_compact_all(ds_lsm_t *lsm);
 size_t ds_lsm_table_count(const ds_lsm_t *lsm);
