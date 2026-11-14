@@ -233,6 +233,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/dynamic_msf: fully dynamic minimum spanning forest (HDT reduction)
 - lib/fibonacci_heap: item heap with handles, pq_iface backend, iterative cascading cuts and teardown
 - lib/ordered_iface: fusion-tree backend (split and join by rebuilding)
+- algo/game: reachability games on graphs (attractors, ranks, strategies)
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

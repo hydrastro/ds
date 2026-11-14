@@ -213,3 +213,112 @@ ds_status_t ds_game_search(const ds_game_t *game, void *state, size_t depth,
   ds_context_free(context, s.buf);
   return DS_OK;
 }
+
+/* ---- game graphs: the attractor of the TRUE nodes ---- */
+
+ds_status_t ds_game_attractor(size_t n, const unsigned char *kind,
+                              const size_t *offset, const size_t *succ,
+                              size_t *out_rank, size_t *out_choice,
+                              ds_context_t *context) {
+  size_t *pred_at;
+  size_t *pred;
+  size_t *left; /* AND nodes: successors not yet won (per edge) */
+  size_t *queue;
+  size_t m;
+  size_t head = 0;
+  size_t tail = 0;
+  size_t v;
+  size_t e;
+  if (n > 0 && (kind == NULL || offset == NULL || out_rank == NULL)) {
+    return DS_ERR_NULL;
+  }
+  if (n == 0) {
+    return DS_OK;
+  }
+  m = offset[n];
+  if (m > 0 && succ == NULL) {
+    return DS_ERR_NULL;
+  }
+  for (v = 0; v < n; v++) {
+    if (kind[v] > DS_GAME_FALSE || offset[v] > offset[v + 1]) {
+      return DS_ERR_RANGE;
+    }
+  }
+  for (e = 0; e < m; e++) {
+    if (succ[e] >= n) {
+      return DS_ERR_RANGE;
+    }
+  }
+  if (n > (size_t)-1 / sizeof(size_t) - 1 || m > (size_t)-1 / sizeof(size_t)) {
+    return DS_ERR_OVERFLOW;
+  }
+  pred_at = (size_t *)ds_context_calloc(context, n + 1, sizeof(size_t));
+  pred = (size_t *)ds_context_alloc(context, (m + 1) * sizeof(size_t));
+  left = (size_t *)ds_context_alloc(context, n * sizeof(size_t));
+  queue = (size_t *)ds_context_alloc(context, n * sizeof(size_t));
+  if (pred_at == NULL || pred == NULL || left == NULL || queue == NULL) {
+    ds_context_free(context, pred_at);
+    ds_context_free(context, pred);
+    ds_context_free(context, left);
+    ds_context_free(context, queue);
+    return DS_ERR_ALLOC;
+  }
+  /* predecessor lists, over the edges out of OR and AND nodes only */
+  for (v = 0; v < n; v++) {
+    if (kind[v] == DS_GAME_OR || kind[v] == DS_GAME_AND) {
+      for (e = offset[v]; e < offset[v + 1]; e++) {
+        pred_at[succ[e] + 1]++;
+      }
+    }
+  }
+  for (v = 0; v < n; v++) {
+    pred_at[v + 1] += pred_at[v];
+  }
+  for (v = 0; v < n; v++) { /* fill with left[] as the cursor */
+    left[v] = pred_at[v];
+  }
+  for (v = 0; v < n; v++) {
+    if (kind[v] == DS_GAME_OR || kind[v] == DS_GAME_AND) {
+      for (e = offset[v]; e < offset[v + 1]; e++) {
+        pred[left[succ[e]]++] = v;
+      }
+    }
+  }
+  for (v = 0; v < n; v++) {
+    out_rank[v] = DS_GAME_LOSE;
+    if (out_choice != NULL) {
+      out_choice[v] = DS_GAME_NO_CHOICE;
+    }
+    left[v] = offset[v + 1] - offset[v];
+    if (kind[v] == DS_GAME_TRUE ||
+        (kind[v] == DS_GAME_AND && offset[v] == offset[v + 1])) {
+      out_rank[v] = 0;
+      queue[tail++] = v;
+    }
+  }
+  /* breadth first: nodes are won in order of rank */
+  while (head < tail) {
+    size_t u = queue[head++];
+    for (e = pred_at[u]; e < pred_at[u + 1]; e++) {
+      size_t p = pred[e];
+      if (out_rank[p] != DS_GAME_LOSE) {
+        continue;
+      }
+      if (kind[p] == DS_GAME_OR) {
+        out_rank[p] = out_rank[u] + 1;
+        if (out_choice != NULL) {
+          out_choice[p] = u;
+        }
+        queue[tail++] = p;
+      } else if (--left[p] == 0) { /* u was the last successor won */
+        out_rank[p] = out_rank[u] + 1;
+        queue[tail++] = p;
+      }
+    }
+  }
+  ds_context_free(context, pred_at);
+  ds_context_free(context, pred);
+  ds_context_free(context, left);
+  ds_context_free(context, queue);
+  return DS_OK;
+}

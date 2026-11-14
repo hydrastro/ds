@@ -1515,6 +1515,7 @@ the term covers is provided.
 | tree sort | algorithm | implemented | `algo/sort_heap` | BST-insertion tree sort; see treesort (1) and (2) |
 | transducer | concept | implemented | `lib/automaton`, `lib/pushdown`, `lib/turing_machine` | Mealy/Moore, finite state, pushdown and Turing transducers |
 | tree transducer | structure | implemented | `lib/tree_automaton` | bottom-up tree transducers |
+| reachability game | algorithm | implemented | `algo/game` | attractor of the target nodes (retrograde analysis, AND-OR graph evaluation) in O(n + m): winning region, exact ranks and a winning move per node |
 | Roaring bitmap | structure | implemented | `lib/roaring` | array, bitmap and run containers (runs edited and combined natively); rank, select, set algebra |
 | robust geometric predicates | algorithm | implemented | `algo/robust_predicates`, `algo/geometry` | filtered exact orient2d/orient3d/incircle/insphere over expansion arithmetic, per-predicate input ranges; algo/geometry orientation uses orient2d |
 | floating-point expansion arithmetic | algorithm | implemented | `algo/robust_predicates` | error-free sum/product, expansion sum/scale/product/compress |
