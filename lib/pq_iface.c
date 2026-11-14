@@ -1,6 +1,7 @@
 #include "pq_iface.h"
 #include "binomial_heap.h"
 #include "checked.h"
+#include "fibonacci_heap.h"
 #include "hollow_heap.h"
 #include "meldable_heap.h"
 #include "pairing_heap.h"
@@ -1030,6 +1031,60 @@ static void pqr_meld(void *pq, void *other) {
   ds_rp_heap_meld((ds_rp_heap_t *)pq, (ds_rp_heap_t *)other);
 }
 
+/* ---- Fibonacci heap: lib/fibonacci_heap's item heap behind the ops table
+ * ---- */
+
+static ds_status_t pqf_init(void *pq, size_t item_size,
+                            ds_pq_compare_fn compare, void *user,
+                            ds_context_t *context) {
+  return ds_fib_heap_init((ds_fib_heap_t *)pq, item_size, compare, user,
+                          context);
+}
+
+static void pqf_destroy(void *pq) { ds_fib_heap_destroy((ds_fib_heap_t *)pq); }
+
+static ds_status_t pqf_push(void *pq, const void *item,
+                            ds_pq_handle_t *out_handle) {
+  ds_fib_item_t *x = NULL;
+  ds_status_t st = ds_fib_heap_push((ds_fib_heap_t *)pq, item, &x);
+  if (st == DS_OK && out_handle != NULL) {
+    *out_handle = (ds_pq_handle_t)(void *)x;
+  }
+  return st;
+}
+
+static const void *pqf_top(const void *pq) {
+  return ds_fib_heap_top((const ds_fib_heap_t *)pq);
+}
+
+static ds_status_t pqf_pop(void *pq, void *out_item) {
+  return ds_fib_heap_pop((ds_fib_heap_t *)pq, out_item);
+}
+
+static ds_status_t pqf_update(void *pq, ds_pq_handle_t handle,
+                              const void *item) {
+  return ds_fib_heap_update((ds_fib_heap_t *)pq,
+                            (ds_fib_item_t *)(void *)handle, item);
+}
+
+static ds_status_t pqf_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+  return ds_fib_heap_remove((ds_fib_heap_t *)pq,
+                            (ds_fib_item_t *)(void *)handle, out_item);
+}
+
+static const void *pqf_item(const void *pq, ds_pq_handle_t handle) {
+  return ds_fib_heap_item((const ds_fib_heap_t *)pq,
+                          (const ds_fib_item_t *)(void *)handle);
+}
+
+static size_t pqf_size(const void *pq) {
+  return ds_fib_heap_size((const ds_fib_heap_t *)pq);
+}
+
+static void pqf_meld(void *pq, void *other) {
+  ds_fib_heap_meld((ds_fib_heap_t *)pq, (ds_fib_heap_t *)other);
+}
+
 /* ---- strict Fibonacci heap: lib/strict_fibonacci_heap behind the ops table
  * ---- */
 
@@ -1319,6 +1374,23 @@ static const ds_pq_ops_t pq_rank_pairing2_ops = {"rank-pairing type 2",
                                                  NULL,
                                                  PQ_COSTS_RANK_PAIRING};
 
+static const ds_pq_ops_t pq_fibonacci_ops = {"fibonacci",
+                                             DS_PQ_AMORTIZED | PQ_ML |
+                                                 DS_PQ_FAST_DECREASE,
+                                             sizeof(ds_fib_heap_t),
+                                             pqf_init,
+                                             pqf_destroy,
+                                             pqf_push,
+                                             pqf_top,
+                                             pqf_pop,
+                                             pqf_update,
+                                             pqf_remove,
+                                             pqf_item,
+                                             pqf_size,
+                                             pqf_meld,
+                                             NULL,
+                                             PQ_COSTS_HOLLOW};
+
 static const ds_pq_ops_t pq_strict_fibonacci_ops = {"strict-fibonacci",
                                                     PQ_WL | PQ_ML |
                                                         DS_PQ_FAST_DECREASE,
@@ -1342,6 +1414,7 @@ const ds_pq_ops_t *ds_pq_rank_pairing_ops(void) { return &pq_rank_pairing_ops; }
 const ds_pq_ops_t *ds_pq_rank_pairing2_ops(void) {
   return &pq_rank_pairing2_ops;
 }
+const ds_pq_ops_t *ds_pq_fibonacci_ops(void) { return &pq_fibonacci_ops; }
 const ds_pq_ops_t *ds_pq_strict_fibonacci_ops(void) {
   return &pq_strict_fibonacci_ops;
 }

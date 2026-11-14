@@ -77,6 +77,10 @@
  *     and lowers ranks above it (O(1) amortized, no cascading cuts);
  *     increase and remove go through the minimum's relinking. Nodes never
  *     move, so item pointers stay valid
+ *   ds_pq_fibonacci_ops()   1   n/log    n/1      n/log    n/log    1
+ *     Fibonacci heap (lib/fibonacci_heap's item heap): cascading cuts,
+ *     consolidation by degree; nodes never move, so item pointers stay
+ *     valid
  *   ds_pq_strict_fibonacci_ops()  1   log      1        log      log      1
  *     strict Fibonacci heap (lib/strict_fibonacci_heap): every bound worst
  *     case (DS_PQ_WORST_LOG with O(1) push, decrease and meld); items live
@@ -187,6 +191,7 @@ const ds_pq_ops_t *ds_pq_pairing_ops(void);
 const ds_pq_ops_t *ds_pq_hollow_ops(void);
 const ds_pq_ops_t *ds_pq_rank_pairing_ops(void);
 const ds_pq_ops_t *ds_pq_rank_pairing2_ops(void);
+const ds_pq_ops_t *ds_pq_fibonacci_ops(void);
 const ds_pq_ops_t *ds_pq_strict_fibonacci_ops(void);
 
 /* ops NULL selects ds_pq_binary_ops() */
