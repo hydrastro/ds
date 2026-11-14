@@ -5,11 +5,11 @@
 int main() {
   assert(ds_status_name(DS_OK) != nullptr);
 
-  ds_str_t *s = str_create();
+  ds_str_t *s = ds_str_create();
   assert(s != nullptr);
-  assert(str_append_cstr(s, "abc") == 0);
+  assert(ds_str_append_cstr(s, "abc") == 0);
   assert(std::strcmp(FUNC_str_cstr(s), "abc") == 0);
-  str_destroy(s);
+  ds_str_destroy(s);
 
   ds_context_t context;
   ds_context_init(&context);
