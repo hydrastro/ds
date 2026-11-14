@@ -31,10 +31,10 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 757 |
+| implemented | 762 |
 | restricted | 1 |
 | variant | 0 |
-| reference | 5 |
+| reference | 0 |
 | missing | 0 |
 | n/a | 543 |
 | total | 1306 |
@@ -773,7 +773,7 @@ No row is classified missing.
 | linked data signature | structure | restricted | lib/ld_signature | colour-refinement canonicalisation, not RDFC-1.0; shared-key MAC suite by default |
 | linked list | structure | implemented | lib/list, lib/dlist |  |
 | list | structure | implemented | lib/list |  |
-| list contraction | algorithm | reference | algo/parallel_sim | sequential simulation of the PRAM algorithm |
+| list contraction | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
 | little-o notation | concept | n/a |  |  |
 | Lm distance | algorithm | implemented | algo/geometry |  |
 | load factor | structure | implemented | lib/hash_table, lib/rh_map |  |
@@ -1010,7 +1010,7 @@ No row is classified missing.
 | planar straight-line graph | concept | implemented | algo/planarity | a straight-line grid drawing of any planar graph by the shift method |
 | PLOP-hashing | structure | implemented | lib/plop_hash |  |
 | point access method | structure | implemented | lib/quadtree |  |
-| pointer jumping | algorithm | reference | algo/parallel_sim | sequential simulation of the PRAM algorithm |
+| pointer jumping | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
 | pointer machine | concept | n/a |  |  |
 | poissonization | concept | n/a |  |  |
 | polychotomy | concept | n/a |  |  |
@@ -1123,7 +1123,7 @@ No row is classified missing.
 | recursion tree | concept | n/a |  |  |
 | recursive | concept | n/a |  |  |
 | recursive data structure | concept | n/a |  |  |
-| recursive doubling | algorithm | reference | algo/parallel_sim | sequential simulation of the PRAM algorithm |
+| recursive doubling | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
 | recursive language | concept | n/a |  |  |
 | recursively enumerable language | concept | n/a |  |  |
 | recursively solvable | concept | n/a |  |  |
@@ -1209,7 +1209,7 @@ No row is classified missing.
 | Shell sort | algorithm | implemented | algo/sort |  |
 | Shift-Or | algorithm | implemented | algo/string_search |  |
 | Shor's algorithm | concept | n/a |  |  |
-| shortcutting | algorithm | reference | algo/parallel_sim | sequential simulation of the PRAM algorithm |
+| shortcutting | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
 | shortest common supersequence | algorithm | implemented | algo/string_approx |  |
 | shortest common superstring | algorithm | implemented | algo/string_approx |  |
 | shortest path | algorithm | implemented | algo/graph_path |  |
@@ -1377,7 +1377,7 @@ No row is classified missing.
 | treap | structure | implemented | lib/treap |  |
 | tree | structure | implemented | lib/bst |  |
 | tree automaton | structure | implemented | lib/tree_automaton |  |
-| tree contraction | algorithm | reference | algo/parallel_sim | sequential simulation of the PRAM algorithm |
+| tree contraction | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
 | tree editing problem | problem | implemented | algo/tree_edit |  |
 | treesort (1) | algorithm | implemented | algo/sort_heap | tree sort |
 | treesort (2) | algorithm | implemented | algo/sort_heap | heapsort variants, tournament sort |
@@ -1544,6 +1544,7 @@ No row is classified missing.
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |
 | persistent vector | structure | implemented | `lib/persistent_vector` | bit-partitioned trie with tail and transients |
 | finger tree | structure | implemented | `lib/finger_tree` | 2-3 finger tree with a caller-defined monoid |
+| executor | concept | implemented | `lib/executor`, `algo/parallel_sim` | a parallel step as independent tasks run by any executor (caller threads, a pool, OpenMP; sequential by default); drives the PRAM techniques |
 | ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap, fusion tree); Y-fast buckets |
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
 | RRR compressed bit vector | structure | implemented | `lib/rank_select` | fixed 15-bit class/offset blocks: nH0 + n/3.75 bits plus a rank and pointer per 32 blocks |

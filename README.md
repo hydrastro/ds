@@ -37,6 +37,7 @@ Core mutable containers:
 - `lib/elias_fano`: Elias-Fano compressed monotone sequences (access, next_geq, prev_leq via sampled select)
 - `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
 - `lib/euler_tour_tree`: Euler-tour trees (link, cut, connectivity, component and subtree aggregates with lazy actions) over a treap, edges in a pluggable map
+- `lib/executor`: executors for parallel steps (independent tasks run by the caller's threads, a pool or OpenMP; sequentially by default), with chunking helpers
 - `lib/finger_tree`: persistent 2-3 finger trees with a user monoid (deque ends, concat, split/lookup by monotone predicate)
 - `lib/fm_index`: FM-index (count, locate, extract, backward steps) over a pluggable rank backend: sampled occurrence table or wavelet matrix
 - `lib/fusion_tree`: fusion tree (Fredman–Willard: a B-tree of K-key nodes over machine words, each searched by parallel sketch comparison inside one word; floor, ceiling, predecessor, successor, rank, select, bulk loading), also a `lib/ordered_iface` backend
@@ -226,7 +227,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - Fourier transforms: DFT, FFT (radix-2, Bluestein), FFT convolution, number-theoretic transform
 - matrices: naive, blocked and Strassen multiplication; packed (strictly) lower/upper triangular matrices; Cholesky and LU (partial pivoting) factorizations, solves, determinants, inverses; symmetric eigenvalues and eigenvectors by Jacobi rotations
 - hidden Markov models: scaled forward-backward, posteriors, Viterbi, Baum-Welch
-- PRAM simulations: pointer jumping, recursive doubling, shortcutting, list contraction, tree contraction
+- PRAM techniques, each round run on any `lib/executor`: pointer jumping, recursive doubling, shortcutting, list contraction, tree contraction
 - lowest common ancestors: binary lifting, Euler tour + sparse table, Tarjan's offline LCA
 - graph connectivity: reverse graphs, single-destination shortest paths, separation pairs, triconnectivity
 - NP-hard graph problems: cliques, independent sets, vertex cover, (edge) colouring, chromatic number/index, Hamiltonian paths, path cover, feedback vertex set, (sub)graph isomorphism, bisection
