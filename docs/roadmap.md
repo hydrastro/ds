@@ -230,6 +230,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/strict_fibonacci_heap: strict Fibonacci heap, worst-case bounds, pq_iface backend
 - lib/fusion_tree: fusion trees over machine words, sketch-based node search
 - lib/decremental_msf: deletions-only minimum spanning forest (HDT)
+- lib/dynamic_msf: fully dynamic minimum spanning forest (HDT reduction)
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
