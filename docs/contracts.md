@@ -103,6 +103,12 @@ says what remains:
 | `lib/strict_fibonacci_heap` | push takes its node, cell and at most two rank records before changing anything; update, remove and meld never allocate (an increase re-inserts the item's own node, and a meld recycles the absorbed heap's rank records) |
 | `lib/fusion_tree` | an insert takes every node its splits need before changing anything; remove and the queries never allocate; a bulk load builds the new tree before releasing the old one |
 | `lib/decremental_msf` | a deletion that runs out of memory while promoting or recording a replacement leaves an explicit broken state; `ds_dmsf_rebuild` starts over from the remaining edges |
+| `lib/dynamic_msf` | an insertion that cannot get its edge record changes nothing; an update that runs out of memory while rebuilding a deletions-only structure (or recording replacements) leaves an explicit broken state, in which updates return `DS_ERR_STATE` until `ds_dyn_msf_rebuild` builds everything again from the live edges |
+| `lib/fibonacci_heap` (item heap) | push takes its node before changing anything; pop, update, remove and meld never allocate (consolidation links through a degree table inside the heap) |
+| `lib/ordered_iface` fusion-tree backend | split and join build both new trees before releasing the old ones, so a failure leaves both sides as they were |
+| `algo/alternating_tm` | all or nothing: an error frees everything the exploration took and leaves `*out` unchanged |
+| `algo/sdp` | a solve takes its memory before iterating; after an error status the solution holds nothing, after any other status it must be destroyed; problems only grow by `ds_sdp_add`, which changes nothing when it cannot |
+| `algo/matrix` factorizations | they work in place: a failed Cholesky or LU leaves the factorization partly done; determinants and inverses factor a copy, taken before anything else |
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 
 ## Cursors and handles
@@ -123,7 +129,10 @@ says what remains:
 | RRB vector element pointers and iterators | the version is released | versions share nodes; nothing is edited in place |
 | rank-pairing heap item pointers | the item leaves | nodes never move, even on increase |
 | strict Fibonacci heap handles and item pointers | the item leaves | items live in cells that never move; a decrease below the minimum swaps cells between nodes, not items between cells |
-| fusion-tree value pointers (`ds_fusion_get`) | the next insert or remove | values move with their keys inside and between nodes |
+| fusion-tree value pointers (`ds_fusion_get`; for sets, the stored key) | the next insert or remove | values move with their keys inside and between nodes |
+| Fibonacci item-heap handles and item pointers | the item leaves | nodes never move, even on increase |
+| dynamic-MSF edge ids | the edge is deleted | ids are reused by later insertions |
+| SDP solution arrays (`x`, `y`, `z`) | `ds_sdp_solution_destroy` | they belong to the solution, not to the problem |
 | chromatic-tree element pointers (get, select, floor, ceiling) | the element is removed | leaves never move; rebalancing rotates internal nodes only |
 | top-tree vertex values (`ds_top_value`) | the tree is destroyed | vertex nodes are allocated once |
 | planar embeddings and their graph views | `ds_planar_embedding_destroy` | a view also needs its `ds_gview_csr_t` alive |
@@ -183,6 +192,21 @@ says what remains:
 - **Decremental MSF.** O(m log m + n log n) to build, O(log^2 n) amortized
   per deletion (expected, through the Euler-tour treaps); a deletion
   reports its replacement edge.
+- **Fully dynamic MSF.** O(log^4 n) amortized per insertion or deletion
+  (expected, through the deletions-only structures' treaps); the heaviest
+  forest edge on a path and connectivity cost O(log n) amortized (splay
+  steps of the link-cut tree).
+- **Alternating machines.** Time and memory linear in the configurations
+  explored and their transitions, times the length of an encoding (the
+  windows of the tapes); each configuration is stored once, so a machine
+  in space s explores at most its 2^O(s) configurations.
+- **Semidefinite programs.** Each interior-point iteration builds the
+  Schur matrix in O(m s nnz) for sparse constraint matrices (O(m^2 s^2 +
+  m s^3) when dense), factors it in O(m^3) and spends O(s^3) per dense
+  block of order s on products, factorizations and the Jacobi eigenvalue
+  sweeps of the step lengths; typical problems take 10 to 30 iterations.
+  A Jacobi sweep costs O(n^3), and few sweeps are needed once the matrix
+  is nearly diagonal.
 - **Text indexes.** SA-IS builds a suffix array in O(n). The r-index counts
   in O(m log r) and locates each occurrence in O(log r), in 6r + 1 words
   for r BWT runs; building it needs the full suffix array for a while.
