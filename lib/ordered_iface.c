@@ -1,4 +1,5 @@
 #include "ordered_iface.h"
+#include "ab_tree.h"
 #include "checked.h"
 #include "fusion_tree.h"
 #include <string.h>
@@ -843,6 +844,201 @@ static const ds_ordered_ops_t ordered_fusion_ops = {"fusion tree",
 const ds_ordered_ops_t *ds_ordered_fusion_ops(void) {
   return &ordered_fusion_ops;
 }
+
+/* ---- (a,b)-tree: lib/ab_tree with (a, b) = (4, 8), items holding the
+ * key and then the value; split and join are its O(log n) ones, which move
+ * nodes ---- */
+
+#define OAB_A 4
+#define OAB_B 8
+
+typedef struct oab {
+  ds_ab_tree_t t;
+  size_t value_size;
+  unsigned char *item; /* scratch: one item */
+} oab_t;
+
+static int oab_compare(const void *a, const void *b, void *user) {
+  unsigned long x;
+  unsigned long y;
+  (void)user;
+  memcpy(&x, a, sizeof(x));
+  memcpy(&y, b, sizeof(y));
+  return (x > y) - (x < y);
+}
+
+static ds_status_t oab_init(void *s, size_t value_size, ds_context_t *ctx) {
+  oab_t *o = (oab_t *)s;
+  ds_status_t st;
+  if (value_size > (size_t)-1 - sizeof(unsigned long)) {
+    return DS_ERR_OVERFLOW;
+  }
+  o->value_size = value_size;
+  o->item = (unsigned char *)ds_context_alloc(ctx, sizeof(unsigned long) +
+                                                       value_size);
+  if (o->item == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  st = ds_ab_init(&o->t, OAB_A, OAB_B, sizeof(unsigned long) + value_size,
+                  oab_compare, NULL, ctx);
+  if (st != DS_OK) {
+    ds_context_free(ctx, o->item);
+    o->item = NULL;
+  }
+  return st;
+}
+
+static void oab_destroy(void *s) {
+  oab_t *o = (oab_t *)s;
+  ds_context_t *ctx = o->t.context;
+  ds_ab_destroy(&o->t);
+  ds_context_free(ctx, o->item);
+  o->item = NULL;
+}
+
+static ds_status_t oab_insert(void *s, unsigned long key, const void *value) {
+  oab_t *o = (oab_t *)s;
+  memcpy(o->item, &key, sizeof(key));
+  if (o->value_size > 0) {
+    if (value != NULL) {
+      memcpy(o->item + sizeof(key), value, o->value_size);
+    } else {
+      memset(o->item + sizeof(key), 0, o->value_size);
+    }
+  }
+  return ds_ab_put(&o->t, o->item);
+}
+
+static ds_status_t oab_remove(void *s, unsigned long key, void *out_value) {
+  oab_t *o = (oab_t *)s;
+  ds_status_t st = ds_ab_remove(&o->t, &key, o->item);
+  if (st == DS_OK && out_value != NULL && o->value_size > 0) {
+    memcpy(out_value, o->item + sizeof(key), o->value_size);
+  }
+  return st;
+}
+
+/* the value of an item, or its key when there are no values */
+static void *oab_value(const oab_t *o, unsigned char *item) {
+  if (item == NULL) {
+    return NULL;
+  }
+  return o->value_size > 0 ? item + sizeof(unsigned long) : item;
+}
+
+static void *oab_find(const void *s, unsigned long key) {
+  const oab_t *o = (const oab_t *)s;
+  return oab_value(o, (unsigned char *)ds_ab_find(&o->t, &key));
+}
+
+static ds_status_t oab_key(const void *item, unsigned long *out) {
+  if (item == NULL) {
+    return DS_NOT_FOUND;
+  }
+  if (out != NULL) {
+    memcpy(out, item, sizeof(*out));
+  }
+  return DS_OK;
+}
+
+static ds_status_t oab_floor(const void *s, unsigned long x,
+                             unsigned long *out) {
+  return oab_key(ds_ab_floor(&((const oab_t *)s)->t, &x), out);
+}
+
+static ds_status_t oab_ceiling(const void *s, unsigned long x,
+                               unsigned long *out) {
+  return oab_key(ds_ab_ceiling(&((const oab_t *)s)->t, &x), out);
+}
+
+static size_t oab_size(const void *s) {
+  return ds_ab_size(&((const oab_t *)s)->t);
+}
+
+static ds_status_t oab_select(const void *s, size_t k, unsigned long *out) {
+  return oab_key(ds_ab_select(&((const oab_t *)s)->t, k), out);
+}
+
+/* split and join move nodes: the value layout and the memory must agree */
+static bool oab_compatible(const void *s, const void *other) {
+  const oab_t *a = (const oab_t *)s;
+  const oab_t *b = (const oab_t *)other;
+  return a->value_size == b->value_size &&
+         ds_context_compatible(a->t.context, b->t.context);
+}
+
+static ds_status_t oab_split(void *s, unsigned long key, void *upper) {
+  oab_t *a = (oab_t *)s;
+  oab_t *u = (oab_t *)upper;
+  if (ds_ab_size(&u->t) != 0 || !oab_compatible(a, u)) {
+    return DS_ERR_INVALID;
+  }
+  return ds_ab_split(&a->t, &key, &u->t);
+}
+
+static ds_status_t oab_join(void *s, void *upper) {
+  oab_t *a = (oab_t *)s;
+  oab_t *u = (oab_t *)upper;
+  if (!oab_compatible(a, u)) {
+    return DS_ERR_INVALID;
+  }
+  return ds_ab_join(&a->t, &u->t);
+}
+
+/* by rank: O(log n) per step */
+static bool oab_next(const void *s, size_t *cursor, unsigned long *key,
+                     void **value) {
+  const oab_t *o = (const oab_t *)s;
+  unsigned char *item = (unsigned char *)ds_ab_select(&o->t, *cursor);
+  if (item == NULL) {
+    return false;
+  }
+  (void)oab_key(item, key);
+  if (value != NULL) {
+    *value = oab_value(o, item);
+  }
+  (*cursor)++;
+  return true;
+}
+
+typedef struct oab_walk {
+  const oab_t *o;
+  ds_ordered_visit_fn visit;
+  void *user;
+  ds_status_t status;
+} oab_walk_t;
+
+static int oab_walk_visit(void *item, void *user) {
+  oab_walk_t *w = (oab_walk_t *)user;
+  unsigned long key;
+  memcpy(&key, item, sizeof(key));
+  w->status = w->visit(key, oab_value(w->o, (unsigned char *)item), w->user);
+  return w->status != DS_OK;
+}
+
+static ds_status_t oab_for_each(const void *s, ds_ordered_visit_fn visit,
+                                void *user) {
+  oab_walk_t w;
+  w.o = (const oab_t *)s;
+  w.visit = visit;
+  w.user = user;
+  w.status = DS_OK;
+  (void)ds_ab_foreach(&w.o->t, oab_walk_visit, &w);
+  return w.status;
+}
+
+static const ds_ordered_ops_t ordered_ab_ops = {
+    "(a,b)-tree",  DS_ORDERED_LOG_UPDATE | DS_ORDERED_SPLIT_LOG,
+    sizeof(oab_t), oab_init,
+    oab_destroy,   oab_insert,
+    oab_remove,    oab_find,
+    oab_floor,     oab_ceiling,
+    oab_size,      oab_select,
+    oab_split,     oab_join,
+    oab_next,      oab_compatible,
+    oab_for_each};
+
+const ds_ordered_ops_t *ds_ordered_ab_ops(void) { return &ordered_ab_ops; }
 
 /* ---- wrapper ---- */
 

@@ -16,13 +16,16 @@
  *   DS_ORDERED_CONTIGUOUS  keys in one sorted array: O(n) updates by
  *                          memmove, cache-friendly scans
  *   DS_ORDERED_SPLIT_FAST  split and join in O(log n) without allocating
+ *   DS_ORDERED_SPLIT_LOG   split and join in O(log n), allocating up to
+ *                          O(log n) nodes first (failing with no change)
  *
  * Backends: ds_ordered_array_ops() (sorted arrays),
- * ds_ordered_treap_ops() (treap with subtree sizes) and
- * ds_ordered_fusion_ops() (fusion tree). split and join check
- * compatibility themselves (DS_ERR_INVALID otherwise), also when called
- * through the ops table directly; the array backend copies and accepts any
- * contexts, the treap backend moves nodes and requires the same context.
+ * ds_ordered_treap_ops() (treap with subtree sizes),
+ * ds_ordered_fusion_ops() (fusion tree) and ds_ordered_ab_ops() ((a,b)-tree).
+ * split and join check compatibility themselves (DS_ERR_INVALID
+ * otherwise), also when called through the ops table directly; the array
+ * and fusion backends copy and accept any contexts, the treap and
+ * (a,b)-tree backends move nodes and require compatible contexts.
  * Memory comes from the context.
  */
 
@@ -38,6 +41,7 @@ extern "C" {
 #define DS_ORDERED_LOG_UPDATE 0x1u
 #define DS_ORDERED_CONTIGUOUS 0x2u
 #define DS_ORDERED_SPLIT_FAST 0x4u
+#define DS_ORDERED_SPLIT_LOG 0x8u
 
 /* visitor for ds_ordered_for_each: anything but DS_OK stops the walk and
  * is returned; the container must not change during the walk */
@@ -89,6 +93,10 @@ const ds_ordered_ops_t *ds_ordered_treap_ops(void);
  * sketches, B-tree updates; split and join rebuild in O(n) and copy, so
  * any contexts are compatible */
 const ds_ordered_ops_t *ds_ordered_fusion_ops(void);
+/* lib/ab_tree with (a, b) = (4, 8): O(log n) updates, select and rank,
+ * split and join (DS_ORDERED_SPLIT_LOG); the cursor steps by rank in
+ * O(log n), for_each walks the leaves in O(n) */
+const ds_ordered_ops_t *ds_ordered_ab_ops(void);
 
 /* ops NULL selects ds_ordered_treap_ops() */
 ds_status_t ds_ordered_init(ds_ordered_t *s, const ds_ordered_ops_t *ops,

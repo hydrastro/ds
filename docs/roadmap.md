@@ -243,6 +243,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/sha2: SHA-2 family with HMAC, digest capability; SHA-256 moved from lib/ld_signature
 - lib/rdf_canon: RDF datasets, N-Quads, RDFC-1.0 canonicalization
 - lib/ld_signature: RDFC-1.0 canonicalization, Data Integrity hash data, signing any hash data
+- lib/ordered_iface: (a,b)-tree backend (O(log n) split and join, DS_ORDERED_SPLIT_LOG)
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
