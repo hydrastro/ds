@@ -1545,6 +1545,7 @@ No row is classified missing.
 | persistent vector | structure | implemented | `lib/persistent_vector` | bit-partitioned trie with tail and transients |
 | finger tree | structure | implemented | `lib/finger_tree` | 2-3 finger tree with a caller-defined monoid |
 | executor | concept | implemented | `lib/executor`, `algo/parallel_sim` | a parallel step as independent tasks run by any executor (caller threads, a pool, OpenMP; sequential by default); drives the PRAM techniques |
+| SHA-2 | algorithm | implemented | `lib/sha2` | SHA-256, SHA-384, SHA-512 and HMAC in strict C89 (64-bit words as pairs of 32-bit halves); a digest capability for algorithms that take a hash |
 | ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap, fusion tree); Y-fast buckets |
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
 | RRR compressed bit vector | structure | implemented | `lib/rank_select` | fixed 15-bit class/offset blocks: nH0 + n/3.75 bits plus a rank and pointer per 32 blocks |

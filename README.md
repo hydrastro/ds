@@ -50,7 +50,7 @@ Core mutable containers:
 - `lib/k2_tree`: k^2-trees (compact adjacency matrices)
 - `lib/kdb_tree`: k-d-B-trees, adaptive k-d trees, extended k-d trees, skd-trees
 - `lib/lazy_segment_tree`: generic lazy segment trees over monoid actions (range query/apply, max_right/min_left)
-- `lib/ld_signature`: linked data signatures, SHA-256, HMAC-SHA256
+- `lib/ld_signature`: linked data signatures (SHA-256 and HMAC-SHA256 now in `lib/sha2`)
 - `lib/link_cut_tree`: link-cut trees (link, cut, reroot, LCA, monoid path aggregates and lazy path actions)
 - `lib/louds`: LOUDS succinct trees (2n + 1 bits over any rank/select backend, select-based navigation, byte-labelled tries)
 - `lib/lsm_tree`: log-structured merge tree (memtable, level 0, leveled runs, tombstones, merging iterators, choice of table filter) built from `lib/sstable`
@@ -78,6 +78,7 @@ Core mutable containers:
 - `lib/rtree`: R-trees (Guttman, R*) and bulk R+-trees
 - `lib/scapegoat_tree`: scapegoat trees with pluggable α
 - `lib/self_org_list`: self-organizing sequential search (move-to-front, transpose, frequency count, move-ahead-k, custom) and move-to-root / simple-exchange trees
+- `lib/sha2`: SHA-256, SHA-384, SHA-512 and their HMACs in strict C89 (64-bit words as pairs of 32-bit halves), and a digest capability (`ds_digest_ops_t`)
 - `lib/signature_file`: superimposed codes and signature files
 - `lib/sorted_list`: sorted arrays (binary search, bounds, merge), ordered linked lists and unsorted lists
 - `lib/sparse_matrix`: orthogonal-list sparse matrices (sum, product, transpose, CSR), ragged matrices, huge sparse arrays

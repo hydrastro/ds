@@ -240,6 +240,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/sort_misc: Bentley-McIlroy qsort (ninther, split-end three-way partitioning), ds_qsort
 - lib/ab_tree: (a,b)-trees for any admissible (a, b): finger search, rank/select, join, split
 - lib/executor: executors for parallel steps; algo/parallel_sim rounds run on them
+- lib/sha2: SHA-2 family with HMAC, digest capability; SHA-256 moved from lib/ld_signature
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

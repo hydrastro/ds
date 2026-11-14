@@ -29,11 +29,12 @@
  * default suite is a shared-key MAC (HMAC-SHA256), i.e. an integrity
  * check between parties sharing the key, not a public-key signature.
  *
- * SHA-256 and HMAC-SHA256 are exposed for reuse. Memory comes from the
- * ds_context_t.
+ * SHA-256 and HMAC-SHA256 live in lib/sha2, which this header includes.
+ * Memory comes from the ds_context_t.
  */
 
 #include "context.h"
+#include "sha2.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -41,23 +42,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define DS_SHA256_SIZE 32
-
-typedef struct ds_sha256 {
-  unsigned long h[8];
-  unsigned char buf[64];
-  size_t buf_len;
-  unsigned long bytes_lo; /* message length, 32-bit halves */
-  unsigned long bytes_hi;
-} ds_sha256_t;
-
-void ds_sha256_init(ds_sha256_t *s);
-void ds_sha256_update(ds_sha256_t *s, const void *data, size_t len);
-void ds_sha256_final(ds_sha256_t *s, unsigned char *out);
-void ds_sha256(const void *data, size_t len, unsigned char *out);
-void ds_hmac_sha256(const void *key, size_t key_len, const void *data,
-                    size_t len, unsigned char *out);
 
 /* Canonical form of the statements (each an N-Quads line without the
  * newline): the lines, relabelled, sorted, unique, each ending in '\n'.
