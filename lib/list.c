@@ -29,6 +29,7 @@ void ds_list_append(ds_list_t *list, ds_list_node_t *node) {
 void ds_list_prepend(ds_list_t *list, ds_list_node_t *node) {
   node->next = list->head;
   list->head = node;
+  list->nil->next = node; /* the sentinel always leads to the head */
   if (list->tail == list->nil) {
     list->tail = node;
   }
@@ -52,16 +53,18 @@ ds_list_node_t *ds_list_search(ds_list_t *list, ds_list_node_t *node,
 void ds_list_insert_before(ds_list_t *list, ds_list_node_t *node,
                            ds_list_node_t *next) {
   ds_list_node_t *prev;
-  prev = list->head;
+  /* from the sentinel, whose next is the head, so that inserting before
+   * the head (or into an empty list) finds its predecessor too */
+  prev = list->nil;
   while (prev->next != next) {
     prev = prev->next;
   }
   node->next = next;
   prev->next = node;
-  if (next == list->head) {
+  if (prev == list->nil) {
     list->head = node;
   }
-  if (list->tail == list->nil) {
+  if (next == list->nil) {
     list->tail = node;
   }
   list->size += 1;
@@ -77,7 +80,7 @@ void ds_list_insert_after(ds_list_t *list, ds_list_node_t *node,
   }
 
   if (prev == list->nil) {
-    list->head = node;
+    list->head = node; /* prev->next above was the sentinel's: the head */
   }
   list->size += 1;
 }
@@ -88,7 +91,7 @@ void ds_list_delete_node(ds_list_t *list, ds_list_node_t *node) {
   while (prev->next != node) {
     prev = prev->next;
   }
-  prev->next = node->next;
+  prev->next = node->next; /* from the sentinel: it leads to the head */
   if (node == list->head) {
     list->head = node->next;
   }
@@ -100,6 +103,7 @@ void ds_list_delete_node(ds_list_t *list, ds_list_node_t *node) {
 
 void ds_list_delete(ds_list_t *list) {
   list->head = list->tail = list->nil;
+  list->nil->next = list->nil;
   list->size = 0;
 }
 
@@ -135,11 +139,27 @@ void ds_list_walk_forward(ds_list_t *list, ds_list_node_t *node,
   }
 }
 
+/* without recursion (it went as deep as the list was long): the nodes
+ * from `node` on are reversed in place, visited, and put back */
 void ds_list_walk_backwards(ds_list_t *list, ds_list_node_t *node,
                             void (*callback)(ds_list_node_t *)) {
-  if (node != list->nil) {
-    ds_list_walk_backwards(list, node->next, callback);
-    callback(CAST(node, void));
+  ds_list_node_t *rev = list->nil;
+  ds_list_node_t *cur = node;
+  ds_list_node_t *next;
+  while (cur != list->nil) {
+    next = cur->next;
+    cur->next = rev;
+    rev = cur;
+    cur = next;
+  }
+  cur = rev;
+  rev = list->nil;
+  while (cur != list->nil) {
+    next = cur->next;
+    cur->next = rev; /* restored before the callback sees the node */
+    rev = cur;
+    callback(CAST(cur, void));
+    cur = next;
   }
 }
 
