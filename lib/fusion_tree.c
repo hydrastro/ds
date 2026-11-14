@@ -158,6 +158,11 @@ static unsigned char *fz_value(const ds_fusion_tree_t *t, ds_fusion_node_t *x,
   return (unsigned char *)(void *)x + t->value_at + i * t->value_size;
 }
 
+/* what callers see of entry i: its value, or for a set its stored key */
+static void *fz_slot(const ds_fusion_tree_t *t, ds_fusion_node_t *x, size_t i) {
+  return t->value_size == 0 ? (void *)&x->key[i] : (void *)fz_value(t, x, i);
+}
+
 static ds_fusion_node_t *fz_new(ds_fusion_tree_t *t) {
   ds_fusion_node_t *x = (ds_fusion_node_t *)ds_context_alloc(
       t->context, t->value_at + (FZ_K + 1) * t->value_size);
@@ -701,10 +706,7 @@ bool ds_fusion_contains(const ds_fusion_tree_t *t, unsigned long key) {
 void *ds_fusion_get(const ds_fusion_tree_t *t, unsigned long key) {
   size_t at = 0;
   ds_fusion_node_t *x = fz_find(t, key, &at);
-  if (x == NULL || t->value_size == 0) {
-    return NULL;
-  }
-  return fz_value(t, x, at);
+  return x == NULL ? NULL : fz_slot(t, x, at);
 }
 
 /* the largest key <= q (below: < q) */
@@ -914,8 +916,7 @@ int ds_fusion_foreach(const ds_fusion_tree_t *t, ds_fusion_visit_fn visit,
     if (fz_leaf(x)) {
       size_t i;
       for (i = 0; i < x->count; i++) {
-        int rc = visit(x->key[i], t->value_size == 0 ? NULL : fz_value(t, x, i),
-                       user);
+        int rc = visit(x->key[i], fz_slot(t, x, i), user);
         if (rc != 0) {
           return rc;
         }
@@ -940,8 +941,7 @@ int ds_fusion_foreach(const ds_fusion_tree_t *t, ds_fusion_visit_fn visit,
       size_t k = s->index / 2;
       int rc;
       s->index++;
-      rc =
-          visit(x->key[k], t->value_size == 0 ? NULL : fz_value(t, x, k), user);
+      rc = visit(x->key[k], fz_slot(t, x, k), user);
       if (rc != 0) {
         return rc;
       }

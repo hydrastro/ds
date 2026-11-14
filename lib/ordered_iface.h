@@ -17,8 +17,9 @@
  *                          memmove, cache-friendly scans
  *   DS_ORDERED_SPLIT_FAST  split and join in O(log n) without allocating
  *
- * Backends: ds_ordered_array_ops() (sorted arrays) and
- * ds_ordered_treap_ops() (treap with subtree sizes). split and join check
+ * Backends: ds_ordered_array_ops() (sorted arrays),
+ * ds_ordered_treap_ops() (treap with subtree sizes) and
+ * ds_ordered_fusion_ops() (fusion tree). split and join check
  * compatibility themselves (DS_ERR_INVALID otherwise), also when called
  * through the ops table directly; the array backend copies and accepts any
  * contexts, the treap backend moves nodes and requires the same context.
@@ -84,6 +85,10 @@ typedef struct ds_ordered {
 
 const ds_ordered_ops_t *ds_ordered_array_ops(void);
 const ds_ordered_ops_t *ds_ordered_treap_ops(void);
+/* lib/fusion_tree: O(log n / log K) node searches by word-parallel
+ * sketches, B-tree updates; split and join rebuild in O(n) and copy, so
+ * any contexts are compatible */
+const ds_ordered_ops_t *ds_ordered_fusion_ops(void);
 
 /* ops NULL selects ds_ordered_treap_ops() */
 ds_status_t ds_ordered_init(ds_ordered_t *s, const ds_ordered_ops_t *ops,

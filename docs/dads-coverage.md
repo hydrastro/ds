@@ -1541,7 +1541,7 @@ the term covers is provided.
 | Euler tour tree | structure | implemented | `lib/euler_tour_tree` | dynamic forest with component and subtree aggregates |
 | persistent vector | structure | implemented | `lib/persistent_vector` | bit-partitioned trie with tail and transients |
 | finger tree | structure | implemented | `lib/finger_tree` | 2-3 finger tree with a caller-defined monoid |
-| ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap); Y-fast buckets |
+| ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap, fusion tree); Y-fast buckets |
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
 | RRR compressed bit vector | structure | implemented | `lib/rank_select` | fixed 15-bit class/offset blocks: nH0 + n/3.75 bits plus a rank and pointer per 32 blocks |
 | buffer pool (pager) | structure | implemented | `lib/pager` | page-store capability, LRU with pinning and write-back |

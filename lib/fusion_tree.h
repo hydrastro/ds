@@ -92,8 +92,8 @@ ds_status_t ds_fusion_put(ds_fusion_tree_t *t, unsigned long key,
 ds_status_t ds_fusion_remove(ds_fusion_tree_t *t, unsigned long key,
                              void *out_value);
 bool ds_fusion_contains(const ds_fusion_tree_t *t, unsigned long key);
-/* the stored value (valid until the next insert or remove), NULL if absent
- * or for a set */
+/* the stored value, or for a set the stored key (valid until the next
+ * insert or remove); NULL if absent */
 void *ds_fusion_get(const ds_fusion_tree_t *t, unsigned long key);
 
 /* DS_OK or DS_NOT_FOUND; out_value optional (copied) */
@@ -123,8 +123,8 @@ size_t ds_fusion_size(const ds_fusion_tree_t *t);
 /* levels of nodes (0 when empty) */
 size_t ds_fusion_height(const ds_fusion_tree_t *t);
 
-/* in increasing key order; a non-zero return stops the walk and is
- * returned */
+/* in increasing key order, with each value (for a set, the stored key);
+ * a non-zero return stops the walk and is returned */
 typedef int (*ds_fusion_visit_fn)(unsigned long key, void *value, void *user);
 int ds_fusion_foreach(const ds_fusion_tree_t *t, ds_fusion_visit_fn visit,
                       void *user);

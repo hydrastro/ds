@@ -1,5 +1,6 @@
 #include "ordered_iface.h"
 #include "checked.h"
+#include "fusion_tree.h"
 #include <string.h>
 
 /* ---- sorted arrays ---- */
@@ -588,6 +589,213 @@ static ds_status_t ot_for_each(const void *s, ds_ordered_visit_fn visit,
   return DS_OK;
 }
 
+/* ---- fusion tree: lib/fusion_tree behind the ops table; split and join
+ * rebuild in O(n) ---- */
+
+static ds_status_t of_init(void *s, size_t value_size, ds_context_t *ctx) {
+  return ds_fusion_init((ds_fusion_tree_t *)s, value_size, ctx);
+}
+
+static void of_destroy(void *s) { ds_fusion_destroy((ds_fusion_tree_t *)s); }
+
+static ds_status_t of_insert(void *s, unsigned long key, const void *value) {
+  ds_fusion_tree_t *t = (ds_fusion_tree_t *)s;
+  ds_status_t st = ds_fusion_insert(t, key, value);
+  if (st == DS_EXISTS && t->value_size > 0) { /* the value is replaced */
+    void *p = ds_fusion_get(t, key);
+    if (value != NULL) {
+      memcpy(p, value, t->value_size);
+    } else {
+      memset(p, 0, t->value_size);
+    }
+  }
+  return st;
+}
+
+static ds_status_t of_remove(void *s, unsigned long key, void *out_value) {
+  return ds_fusion_remove((ds_fusion_tree_t *)s, key, out_value);
+}
+
+static void *of_find(const void *s, unsigned long key) {
+  return ds_fusion_get((const ds_fusion_tree_t *)s, key);
+}
+
+static ds_status_t of_floor(const void *s, unsigned long x,
+                            unsigned long *out) {
+  return ds_fusion_floor((const ds_fusion_tree_t *)s, x, out, NULL);
+}
+
+static ds_status_t of_ceiling(const void *s, unsigned long x,
+                              unsigned long *out) {
+  return ds_fusion_ceiling((const ds_fusion_tree_t *)s, x, out, NULL);
+}
+
+static size_t of_size(const void *s) {
+  return ds_fusion_size((const ds_fusion_tree_t *)s);
+}
+
+static ds_status_t of_select(const void *s, size_t k, unsigned long *out) {
+  return ds_fusion_select((const ds_fusion_tree_t *)s, k, out, NULL) == DS_OK
+             ? DS_OK
+             : DS_NOT_FOUND;
+}
+
+/* fusion trees are rebuilt, not moved: only the value layout must agree */
+static bool of_compatible(const void *s, const void *other) {
+  return ((const ds_fusion_tree_t *)s)->value_size ==
+         ((const ds_fusion_tree_t *)other)->value_size;
+}
+
+typedef struct of_dump {
+  unsigned long *keys;
+  unsigned char *values;
+  size_t value_size;
+  size_t n;
+} of_dump_t;
+
+static int of_dump_visit(unsigned long key, void *value, void *user) {
+  of_dump_t *d = (of_dump_t *)user;
+  d->keys[d->n] = key;
+  if (d->value_size > 0) {
+    memcpy(d->values + d->n * d->value_size, value, d->value_size);
+  }
+  d->n++;
+  return 0;
+}
+
+/* every entry of a and then b, in order, into arrays */
+static ds_status_t of_dump2(const ds_fusion_tree_t *a,
+                            const ds_fusion_tree_t *b, of_dump_t *d) {
+  size_t n = ds_fusion_size(a) + (b != NULL ? ds_fusion_size(b) : 0);
+  d->value_size = a->value_size;
+  d->n = 0;
+  d->keys = (unsigned long *)ds_context_alloc(a->context,
+                                              (n + 1) * sizeof(unsigned long));
+  d->values =
+      (unsigned char *)ds_context_alloc(a->context, n * a->value_size + 1);
+  if (d->keys == NULL || d->values == NULL) {
+    ds_context_free(a->context, d->keys);
+    ds_context_free(a->context, d->values);
+    return DS_ERR_ALLOC;
+  }
+  (void)ds_fusion_foreach(a, of_dump_visit, d);
+  if (b != NULL) {
+    (void)ds_fusion_foreach(b, of_dump_visit, d);
+  }
+  return DS_OK;
+}
+
+static ds_status_t of_split(void *s, unsigned long key, void *upper) {
+  ds_fusion_tree_t *a = (ds_fusion_tree_t *)s;
+  ds_fusion_tree_t *u = (ds_fusion_tree_t *)upper;
+  ds_fusion_tree_t lo;
+  ds_fusion_tree_t hi;
+  of_dump_t d;
+  size_t cut;
+  ds_status_t st;
+  if (ds_fusion_size(u) != 0 || !of_compatible(a, u)) {
+    return DS_ERR_INVALID;
+  }
+  st = of_dump2(a, NULL, &d);
+  if (st != DS_OK) {
+    return st;
+  }
+  cut = ds_fusion_rank(a, key);
+  (void)ds_fusion_init(&lo, a->value_size, a->context);
+  (void)ds_fusion_init(&hi, u->value_size, u->context);
+  st = ds_fusion_build(&lo, d.keys, d.values, cut);
+  if (st == DS_OK) {
+    st = ds_fusion_build(&hi, d.keys + cut, d.values + cut * d.value_size,
+                         d.n - cut);
+  }
+  if (st == DS_OK) { /* both built: nothing can fail from here */
+    ds_fusion_destroy(a);
+    ds_fusion_destroy(u);
+    *a = lo;
+    *u = hi;
+  } else {
+    ds_fusion_destroy(&lo);
+    ds_fusion_destroy(&hi);
+  }
+  ds_context_free(a->context, d.keys);
+  ds_context_free(a->context, d.values);
+  return st;
+}
+
+static ds_status_t of_join(void *s, void *upper) {
+  ds_fusion_tree_t *a = (ds_fusion_tree_t *)s;
+  ds_fusion_tree_t *u = (ds_fusion_tree_t *)upper;
+  ds_fusion_tree_t all;
+  unsigned long amax = 0;
+  unsigned long umin = 0;
+  of_dump_t d;
+  ds_status_t st;
+  if (!of_compatible(a, u)) {
+    return DS_ERR_INVALID;
+  }
+  if (ds_fusion_size(u) == 0) {
+    return DS_OK;
+  }
+  if (ds_fusion_max(a, &amax, NULL) == DS_OK &&
+      (ds_fusion_min(u, &umin, NULL) != DS_OK || umin <= amax)) {
+    return DS_ERR_INVALID; /* upper's keys must all be greater */
+  }
+  st = of_dump2(a, u, &d);
+  if (st != DS_OK) {
+    return st;
+  }
+  (void)ds_fusion_init(&all, a->value_size, a->context);
+  st = ds_fusion_build(&all, d.keys, d.values, d.n);
+  if (st == DS_OK) {
+    ds_fusion_destroy(a);
+    ds_fusion_clear(u);
+    *a = all;
+  }
+  ds_context_free(a->context, d.keys);
+  ds_context_free(a->context, d.values);
+  return st;
+}
+
+static bool of_next(const void *s, size_t *cursor, unsigned long *key,
+                    void **value) {
+  const ds_fusion_tree_t *t = (const ds_fusion_tree_t *)s;
+  unsigned long k = 0;
+  if (ds_fusion_select(t, *cursor, &k, NULL) != DS_OK) {
+    return false;
+  }
+  if (key != NULL) {
+    *key = k;
+  }
+  if (value != NULL) {
+    *value = ds_fusion_get(t, k);
+  }
+  (*cursor)++;
+  return true;
+}
+
+typedef struct of_walk {
+  ds_ordered_visit_fn visit;
+  void *user;
+  ds_status_t status;
+} of_walk_t;
+
+static int of_walk_visit(unsigned long key, void *value, void *user) {
+  of_walk_t *w = (of_walk_t *)user;
+  w->status = w->visit(key, value, w->user);
+  return w->status != DS_OK;
+}
+
+static ds_status_t of_for_each(const void *s, ds_ordered_visit_fn visit,
+                               void *user) {
+  const ds_fusion_tree_t *t = (const ds_fusion_tree_t *)s;
+  of_walk_t w;
+  w.visit = visit;
+  w.user = user;
+  w.status = DS_OK;
+  (void)ds_fusion_foreach(t, of_walk_visit, &w);
+  return w.status;
+}
+
 static const ds_ordered_ops_t ordered_array_ops = {
     "sorted array", DS_ORDERED_CONTIGUOUS,
     sizeof(oa_t),   oa_init,
@@ -614,6 +822,26 @@ const ds_ordered_ops_t *ds_ordered_array_ops(void) {
 }
 const ds_ordered_ops_t *ds_ordered_treap_ops(void) {
   return &ordered_treap_ops;
+}
+static const ds_ordered_ops_t ordered_fusion_ops = {"fusion tree",
+                                                    DS_ORDERED_LOG_UPDATE,
+                                                    sizeof(ds_fusion_tree_t),
+                                                    of_init,
+                                                    of_destroy,
+                                                    of_insert,
+                                                    of_remove,
+                                                    of_find,
+                                                    of_floor,
+                                                    of_ceiling,
+                                                    of_size,
+                                                    of_select,
+                                                    of_split,
+                                                    of_join,
+                                                    of_next,
+                                                    of_compatible,
+                                                    of_for_each};
+const ds_ordered_ops_t *ds_ordered_fusion_ops(void) {
+  return &ordered_fusion_ops;
 }
 
 /* ---- wrapper ---- */
