@@ -23,9 +23,12 @@
  * context. Backends: Robin Hood hashing (lib/rh_map), the Swiss table
  * (lib/swiss_map), bucketized cuckoo hashing with a stash (lib/cuckoo_map:
  * worst-case O(1) lookups), linear hashing (lib/linear_hash_map:
- * incremental growth one bucket at a time) and extendible hashing
- * (lib/extendible_hash: directory doubling); any other map can be adapted by
- * filling in a ds_map_ops_t.
+ * incremental growth one bucket at a time), extendible hashing
+ * (lib/extendible_hash: directory doubling), coalesced hashing with a
+ * cellar (lib/coalesced_map: chains through the table, no tombstones) and
+ * open addressing with double hashing and Robin Hood placement
+ * (lib/open_map); any other map can be adapted by filling in a
+ * ds_map_ops_t.
  *
  * Contract every backend keeps:
  *
@@ -43,10 +46,11 @@
  *               reports DS_ERR_OVERFLOW) instead of silently stopping
  *   values      get returns a pointer to the stored bytes, valid until the
  *               next modification unless DS_MAP_STABLE_VALUES. Alignment:
- *               Robin Hood and Swiss tables keep values in an array with
- *               stride value_size, so a value is aligned to the largest
- *               power of two dividing value_size; cuckoo, linear and
- *               extendible hashing round records to DS_MAX_ALIGN. Copy
+ *               Robin Hood, Swiss, coalesced and open-addressing tables
+ *               keep values in an array with stride value_size, so a value
+ *               is aligned to the largest power of two dividing
+ *               value_size; cuckoo, linear and extendible hashing round
+ *               records to DS_MAX_ALIGN. Copy
  *               with memcpy, or choose value sizes that are multiples of
  *               the alignment a stored type needs
  *   resources   every backend grows by realloc: ds_map_init returns
@@ -100,6 +104,8 @@ const ds_map_ops_t *ds_map_swiss_ops(void);
 const ds_map_ops_t *ds_map_cuckoo_ops(void);
 const ds_map_ops_t *ds_map_linear_hash_ops(void);
 const ds_map_ops_t *ds_map_extendible_ops(void);
+const ds_map_ops_t *ds_map_coalesced_ops(void);
+const ds_map_ops_t *ds_map_open_ops(void);
 
 /* ops NULL selects ds_map_rh_ops() */
 ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops, size_t key_size,

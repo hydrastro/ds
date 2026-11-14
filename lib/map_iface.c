@@ -1,7 +1,9 @@
 #include "map_iface.h"
+#include "coalesced_map.h"
 #include "cuckoo_map.h"
 #include "extendible_hash.h"
 #include "linear_hash_map.h"
+#include "open_map.h"
 #include "rh_map.h"
 #include "swiss_map.h"
 #include <limits.h>
@@ -350,7 +352,114 @@ static const ds_map_ops_t mi_eh_ops = {"extendible hashing",
                                        mi_eh_size,
                                        mi_eh_next};
 
+/* ---- coalesced hashing backend: chains through slots, a cellar of 14%
+ * (Vitter's optimum), no tombstones ---- */
+
+static ds_status_t mi_co_init(void *map, size_t key_size, size_t value_size,
+                              ds_map_hash_fn hash, ds_map_equal_fn equal,
+                              void *user, ds_context_t *context) {
+  ds_coalesced_map_config_t c;
+  ds_coalesced_map_config_init(&c);
+  c.key_size = key_size;
+  c.value_size = value_size;
+  c.hash = hash;
+  c.equal = equal;
+  c.user = user;
+  c.context = context;
+  return ds_coalesced_map_init((ds_coalesced_map_t *)map, &c, 0);
+}
+
+static void mi_co_destroy(void *map) {
+  ds_coalesced_map_destroy((ds_coalesced_map_t *)map);
+}
+
+static ds_status_t mi_co_put(void *map, const void *key, const void *value) {
+  ds_coalesced_map_t *m = (ds_coalesced_map_t *)map;
+  bool inserted = false;
+  void *slot = ds_coalesced_map_emplace(m, key, &inserted);
+  return mi_put_slot(slot, inserted, value, m->config.value_size);
+}
+
+static void *mi_co_get(const void *map, const void *key) {
+  return ds_coalesced_map_get((const ds_coalesced_map_t *)map, key);
+}
+
+static ds_status_t mi_co_remove(void *map, const void *key, void *out) {
+  return ds_coalesced_map_remove((ds_coalesced_map_t *)map, key, out);
+}
+
+static size_t mi_co_size(const void *map) {
+  return ds_coalesced_map_size((const ds_coalesced_map_t *)map);
+}
+
+static bool mi_co_next(const void *map, size_t *cursor, const void **key,
+                       void **value) {
+  return ds_coalesced_map_next((const ds_coalesced_map_t *)map, cursor, key,
+                               value);
+}
+
+static const ds_map_ops_t mi_co_ops = {
+    "coalesced hashing", DS_MAP_EXPECTED_O1, sizeof(ds_coalesced_map_t),
+    mi_co_init,          mi_co_destroy,      mi_co_put,
+    mi_co_get,           mi_co_remove,       mi_co_size,
+    mi_co_next};
+
+/* ---- open addressing backend: double hashing with Robin Hood
+ * placement ---- */
+
+static ds_status_t mi_oa_init(void *map, size_t key_size, size_t value_size,
+                              ds_map_hash_fn hash, ds_map_equal_fn equal,
+                              void *user, ds_context_t *context) {
+  ds_open_map_config_t c;
+  ds_open_map_config_init(&c);
+  c.key_size = key_size;
+  c.value_size = value_size;
+  c.hash = hash;
+  c.equal = equal;
+  c.user = user;
+  c.probe = ds_open_map_double_probe();
+  c.discipline = DS_OPEN_MAP_ROBIN_HOOD;
+  c.context = context;
+  return ds_open_map_init((ds_open_map_t *)map, &c, 0);
+}
+
+static void mi_oa_destroy(void *map) {
+  ds_open_map_destroy((ds_open_map_t *)map);
+}
+
+static ds_status_t mi_oa_put(void *map, const void *key, const void *value) {
+  ds_open_map_t *m = (ds_open_map_t *)map;
+  bool inserted = false;
+  void *slot = ds_open_map_emplace(m, key, &inserted);
+  return mi_put_slot(slot, inserted, value, m->config.value_size);
+}
+
+static void *mi_oa_get(const void *map, const void *key) {
+  return ds_open_map_get((const ds_open_map_t *)map, key);
+}
+
+static ds_status_t mi_oa_remove(void *map, const void *key, void *out) {
+  return ds_open_map_remove((ds_open_map_t *)map, key, out);
+}
+
+static size_t mi_oa_size(const void *map) {
+  return ds_open_map_size((const ds_open_map_t *)map);
+}
+
+static bool mi_oa_next(const void *map, size_t *cursor, const void **key,
+                       void **value) {
+  return ds_open_map_next((const ds_open_map_t *)map, cursor, key, value);
+}
+
+static const ds_map_ops_t mi_oa_ops = {
+    "open addressing", DS_MAP_EXPECTED_O1, sizeof(ds_open_map_t),
+    mi_oa_init,        mi_oa_destroy,      mi_oa_put,
+    mi_oa_get,         mi_oa_remove,       mi_oa_size,
+    mi_oa_next};
+
 const ds_map_ops_t *ds_map_rh_ops(void) { return &mi_rh_ops; }
+const ds_map_ops_t *ds_map_coalesced_ops(void) { return &mi_co_ops; }
+const ds_map_ops_t *ds_map_open_ops(void) { return &mi_oa_ops; }
 const ds_map_ops_t *ds_map_cuckoo_ops(void) { return &mi_ck_ops; }
 const ds_map_ops_t *ds_map_linear_hash_ops(void) { return &mi_lh_ops; }
 const ds_map_ops_t *ds_map_extendible_ops(void) { return &mi_eh_ops; }

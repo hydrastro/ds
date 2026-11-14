@@ -54,7 +54,7 @@ Core mutable containers:
 - `lib/link_cut_tree`: link-cut trees (link, cut, reroot, LCA, monoid path aggregates and lazy path actions)
 - `lib/louds`: LOUDS succinct trees (2n + 1 bits over any rank/select backend, select-based navigation, byte-labelled tries)
 - `lib/lsm_tree`: log-structured merge tree (memtable, level 0, leveled runs, tombstones, merging iterators, choice of table filter) built from `lib/sstable`
-- `lib/map_iface`: the associative-map capability (ops table with traits; Robin Hood and Swiss table backends) for composing structures
+- `lib/map_iface`: the associative-map capability (ops table with traits; Robin Hood, Swiss table, cuckoo, linear hashing, extendible hashing, coalesced hashing and open addressing backends) for composing structures
 - `lib/multiset`: hash multisets (bags) with sum, union, intersection, difference and inclusion
 - `lib/mway_btree`: B-trees of any order m (2-3 and 2-3-4 tree presets)
 - `lib/ordered_iface`: ordered-map capability (floor/ceiling, select, split, join) with sorted-array, treap, fusion-tree and (a,b)-tree backends

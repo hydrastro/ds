@@ -244,6 +244,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/rdf_canon: RDF datasets, N-Quads, RDFC-1.0 canonicalization
 - lib/ld_signature: RDFC-1.0 canonicalization, Data Integrity hash data, signing any hash data
 - lib/ordered_iface: (a,b)-tree backend (O(log n) split and join, DS_ORDERED_SPLIT_LOG)
+- lib/map_iface: coalesced hashing and open addressing backends
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
