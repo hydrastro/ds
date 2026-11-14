@@ -31,6 +31,10 @@
  *                             (explicit stack); reports Sigma and S among
  *                             machines that halt within the step limit
  *
+ * States can also be universal (DS_TM_UNIVERSAL), for alternating machines:
+ * algo/alternating_tm decides their acceptance. ds_tm_transitions lists
+ * the transitions that apply to a state and a read tuple.
+ *
  * Memory comes from the ds_context_t given at init.
  */
 
@@ -51,7 +55,11 @@ typedef enum ds_tm_state_kind {
   DS_TM_NORMAL,
   DS_TM_ACCEPTING,
   DS_TM_REJECTING,
-  DS_TM_HALTING
+  DS_TM_HALTING,
+  /* a normal state whose configurations accept only if every successor
+   * accepts (algo/alternating_tm); ds_tm_step and ds_tm_run treat it as
+   * normal and ds_tm_accepts as existential, like a normal state */
+  DS_TM_UNIVERSAL
 } ds_tm_state_kind_t;
 
 typedef enum ds_tm_outcome {
@@ -112,6 +120,12 @@ ds_status_t ds_tm_add(ds_tm_t *tm, size_t from, const unsigned char *read,
 ds_status_t ds_tm_add1(ds_tm_t *tm, size_t from, unsigned char read, size_t to,
                        unsigned char write, ds_tm_move_t move);
 bool ds_tm_is_deterministic(ds_tm_t *tm);
+/* the transitions from `state` reading the tuple `read` (one symbol per
+ * tape): their number, the first at index *out_first; transition i goes
+ * to state tm->to[i], writing tm->write[i * tapes ..] and moving by
+ * tm->move[i * tapes ..], in the order they were added */
+size_t ds_tm_transitions(const ds_tm_t *tm, size_t state,
+                         const unsigned char *read, size_t *out_first);
 /* parse the compact notation; the machine gets n + 1 states, the last
  * one halting, blank 0, start 0, one tape */
 ds_status_t ds_tm_parse(ds_tm_t *tm, const char *text, ds_context_t *context);

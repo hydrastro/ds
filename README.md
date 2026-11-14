@@ -86,7 +86,7 @@ Core mutable containers:
 - `lib/topology_tree`: Frederickson topology trees (maximal restricted partitions with same-level neighbour links: O(log n) worst-case link and cut; path and component aggregates)
 - `lib/tree_automaton`: bottom-up (NFTA/DFTA: run, determinize, intersection, union, complement, emptiness with witness) and top-down tree automata
 - `lib/tst`: ternary search trees with prefix, partial-match and near-neighbour searches
-- `lib/turing_machine`: deterministic/nondeterministic multi-tape Turing machines, transducers, compact notation parser, busy-beaver champions and search
+- `lib/turing_machine`: deterministic/nondeterministic multi-tape Turing machines (universal states for `algo/alternating_tm`), transducers, compact notation parser, busy-beaver champions and search
 - `lib/two_choice_map`: d-choice (2-choice) and d-left hash maps
 - `lib/ub_tree`: universal B-trees (Z-order, BIGMIN) and unlimited branching trees
 - `lib/wavelet_matrix`: wavelet matrix (access, rank, select, quantile, range counting, next/prev value) with levels on any rank/select backend
@@ -248,6 +248,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `delaunay`: Delaunay triangulation on exact predicates (Bowyer-Watson, ghost triangles, Hilbert order), and constrained Delaunay triangulation by segment insertion (Sloan flips; segments through points split, crossings refused)
 - `algo/voronoi`: Voronoi diagrams as the Delaunay dual (vertices, segment/ray/line edges, CCW cells with rays, box-clipped cells; repeated and collinear sites)
 - `algo/planarity`: planarity (left-right test with combinatorial embeddings and faces, Kuratowski K5/K3,3 certificates, outerplanarity, maximal planar subgraphs, straight-line grid drawings by the shift method)
+- `algo/alternating_tm`: alternating Turing machines (existential and universal states over `lib/turing_machine`; configurations explored once each through a `lib/map_iface` map of canonical encodings, acceptance by the reachability game of `algo/game`; exact answers under space and configuration bounds)
 
 Newer high-level modules:
 

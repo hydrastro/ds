@@ -57,6 +57,9 @@ ds_status_t ds_tm_set_kind(ds_tm_t *tm, size_t state, ds_tm_state_kind_t kind) {
   if (state >= tm->states) {
     return DS_ERR_RANGE;
   }
+  if ((unsigned)kind > (unsigned)DS_TM_UNIVERSAL) {
+    return DS_ERR_INVALID;
+  }
   tm->kind[state] = (unsigned char)kind;
   return DS_OK;
 }
@@ -160,6 +163,32 @@ ds_status_t ds_tm_add1(ds_tm_t *tm, size_t from, unsigned char read, size_t to,
     return DS_ERR_STATE;
   }
   return ds_tm_add(tm, from, &read, to, &write, &move);
+}
+
+size_t ds_tm_transitions(const ds_tm_t *tm, size_t state,
+                         const unsigned char *read, size_t *out_first) {
+  size_t key;
+  size_t at;
+  size_t end;
+  size_t i;
+  if (tm == NULL || read == NULL) {
+    return 0;
+  }
+  for (i = 0; i < tm->tapes; i++) {
+    if (read[i] >= tm->symbols) {
+      return 0;
+    }
+  }
+  key = tm_key(tm, read);
+  at = tm_lower(tm, state, key);
+  for (end = at;
+       end < tm->count && tm->from[end] == state && tm->key[end] == key;
+       end++) {
+  }
+  if (out_first != NULL) {
+    *out_first = at;
+  }
+  return end - at;
 }
 
 bool ds_tm_is_deterministic(ds_tm_t *tm) {
@@ -466,6 +495,7 @@ static bool tm_halted(const ds_tm_t *tm, ds_tm_config_t *cfg) {
     cfg->outcome = DS_TM_HALT;
     return true;
   case DS_TM_NORMAL:
+  case DS_TM_UNIVERSAL:
     break;
   }
   return false;

@@ -31,11 +31,11 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 753 |
+| implemented | 754 |
 | restricted | 2 |
 | variant | 1 |
 | reference | 5 |
-| missing | 2 |
+| missing | 1 |
 | n/a | 543 |
 | total | 1306 |
 
@@ -57,7 +57,6 @@ the term covers is provided.
 
 | entry | note |
 |---|---|
-| alternating Turing machine | a simulator is implementable; out of the current scope |
 | semidefinite programming | a solver is implementable; out of the current scope |
 
 ## Index A-Z
@@ -115,7 +114,7 @@ the term covers is provided.
 | alphabet | concept | n/a |  |  |
 | Alpha Skip Search algorithm | algorithm | implemented | algo/string_search |  |
 | alternating path | algorithm | implemented | algo/matching |  |
-| alternating Turing machine | concept | missing |  | a simulator is implementable; out of the current scope |
+| alternating Turing machine | concept | implemented | algo/alternating_tm | existential and universal states of lib/turing_machine; acceptance as a reachability game over the canonical configurations reached, exact under space and configuration bounds |
 | alternation | concept | n/a |  |  |
 | American flag sort | algorithm | implemented | algo/sort_dist |  |
 | amortized cost | concept | n/a |  |  |

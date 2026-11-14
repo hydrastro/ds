@@ -295,7 +295,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/robust_predicates.c \
   $(ALGO_DIR)/delaunay.c \
   $(ALGO_DIR)/voronoi.c \
-  $(ALGO_DIR)/planarity.c
+  $(ALGO_DIR)/planarity.c \
+  $(ALGO_DIR)/alternating_tm.c
 
 LIB_SRC += $(ALGO_SRC)
 
