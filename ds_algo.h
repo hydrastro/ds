@@ -52,6 +52,7 @@
 #include "algo/robust_predicates.h"
 #include "algo/scan.h"
 #include "algo/schorr_waite.h"
+#include "algo/sdp.h"
 #include "algo/search.h"
 #include "algo/select.h"
 #include "algo/sequence.h"

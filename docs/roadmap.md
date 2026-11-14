@@ -236,6 +236,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - algo/game: reachability games on graphs (attractors, ranks, strategies)
 - algo/alternating_tm: alternating Turing machines (bounded exploration, attractor)
 - algo/matrix: Cholesky, LU, determinants, inverses, Jacobi eigenvalues
+- algo/sdp: semidefinite programming (HKM interior point), theta, max-cut
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -249,6 +249,7 @@ Algorithms (`algo/`, umbrella header `ds_algo.h`, built into the same library):
 - `algo/voronoi`: Voronoi diagrams as the Delaunay dual (vertices, segment/ray/line edges, CCW cells with rays, box-clipped cells; repeated and collinear sites)
 - `algo/planarity`: planarity (left-right test with combinatorial embeddings and faces, Kuratowski K5/K3,3 certificates, outerplanarity, maximal planar subgraphs, straight-line grid drawings by the shift method)
 - `algo/alternating_tm`: alternating Turing machines (existential and universal states over `lib/turing_machine`; configurations explored once each through a `lib/map_iface` map of canonical encodings, acceptance by the reachability game of `algo/game`; exact answers under space and configuration bounds)
+- `algo/sdp`: semidefinite programming (block-diagonal SDPs with dense and diagonal blocks, so LPs too; infeasible primal-dual interior point with the HKM direction and Mehrotra predictor-corrector over `algo/matrix`; dependent constraints removed, Farkas certificates of infeasibility and unboundedness; SDPA reader; Lovász theta and Goemans–Williamson max-cut)
 
 Newer high-level modules:
 

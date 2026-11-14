@@ -296,7 +296,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/delaunay.c \
   $(ALGO_DIR)/voronoi.c \
   $(ALGO_DIR)/planarity.c \
-  $(ALGO_DIR)/alternating_tm.c
+  $(ALGO_DIR)/alternating_tm.c \
+  $(ALGO_DIR)/sdp.c
 
 LIB_SRC += $(ALGO_SRC)
 

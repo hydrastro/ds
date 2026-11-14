@@ -31,11 +31,11 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 754 |
+| implemented | 755 |
 | restricted | 2 |
 | variant | 1 |
 | reference | 5 |
-| missing | 1 |
+| missing | 0 |
 | n/a | 543 |
 | total | 1306 |
 
@@ -55,9 +55,7 @@ the term covers is provided.
 
 ## Missing
 
-| entry | note |
-|---|---|
-| semidefinite programming | a solver is implementable; out of the current scope |
+No row is classified missing.
 
 ## Index A-Z
 
@@ -1195,7 +1193,7 @@ the term covers is provided.
 | self-loop | concept | n/a |  |  |
 | self-organizing list | structure | implemented | lib/self_org_list |  |
 | self-organizing sequential search | structure | implemented | lib/self_org_list |  |
-| semidefinite programming | concept | missing |  | a solver is implementable; out of the current scope |
+| semidefinite programming | concept | implemented | algo/sdp | block-diagonal SDPs with dense and diagonal blocks; infeasible primal-dual interior point, HKM direction, Mehrotra predictor-corrector; certificates of infeasibility; SDPA format |
 | separate chaining | structure | implemented | lib/hash_table |  |
 | separation theorem | concept | n/a |  |  |
 | sequential search | algorithm | implemented | algo/search |  |
@@ -1511,6 +1509,8 @@ the term covers is provided.
 | Cholesky decomposition | algorithm | implemented | `algo/matrix` | A = L L^T in place from the lower triangle; the positive-definiteness test; solves |
 | LU decomposition | algorithm | implemented | `algo/matrix` | Gaussian elimination with partial pivoting: P A = L U, solves, determinants, inverses |
 | Jacobi eigenvalue algorithm | algorithm | implemented | `algo/matrix` | cyclic Jacobi rotations for symmetric matrices: ascending eigenvalues, orthonormal eigenvectors, relative drop test |
+| Lovasz theta function | algorithm | implemented | `algo/sdp` | by its semidefinite program; between the independence number and the clique cover number |
+| Goemans-Williamson max-cut | algorithm | implemented | `algo/sdp` | the SDP relaxation and random-hyperplane rounding of its Gram vectors (0.878 approximation in expectation for nonnegative weights) |
 | spectral test | algorithm | implemented | `algo/lattice`, `algo/random` | 2 <= t <= 8 dimensions, m < 2^26 (algo/lattice); 2-D in algo/random |
 | stable marriage problem | problem | implemented | `algo/matching` | Gale-Shapley (the DADS entry is "marriage problem") |
 | ternary search | algorithm | implemented | `algo/search` | extremum search on unimodal functions/arrays |
