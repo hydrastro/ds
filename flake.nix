@@ -28,6 +28,13 @@
 
             meta = with pkgs.lib; {
               description = "Data structure library";
+              license = {
+                shortName = "dw";
+                fullName = "Do Whatever License";
+                url = "https://github.com/hydrastro/dw";
+                free = true;
+                redistributable = true;
+              };
               platforms = platforms.unix;
             };
           };

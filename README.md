@@ -494,3 +494,11 @@ make valgrind    # when Valgrind is installed
 ```
 
 Also format C changes with `clang-format`.
+
+## License
+
+`ds` is released under the Do Whatever License ([`LICENSE`](LICENSE)):
+anyone may do whatever with it, for any purpose, without restriction or
+condition. Contributions follow the Do Whatever Code of Conduct
+([`CODE_OF_CONDUCT`](CODE_OF_CONDUCT)). Both come from
+[hydrastro/dw](https://github.com/hydrastro/dw).
