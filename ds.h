@@ -129,6 +129,7 @@
 #include "lib/rank_select.h"
 #include "lib/rbst.h"
 #include "lib/rbt.h"
+#include "lib/rdf_canon.h"
 #include "lib/replacement.h"
 #include "lib/rh_map.h"
 #include "lib/ring_list.h"

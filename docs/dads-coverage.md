@@ -1546,6 +1546,7 @@ No row is classified missing.
 | finger tree | structure | implemented | `lib/finger_tree` | 2-3 finger tree with a caller-defined monoid |
 | executor | concept | implemented | `lib/executor`, `algo/parallel_sim` | a parallel step as independent tasks run by any executor (caller threads, a pool, OpenMP; sequential by default); drives the PRAM techniques |
 | SHA-2 | algorithm | implemented | `lib/sha2` | SHA-256, SHA-384, SHA-512 and HMAC in strict C89 (64-bit words as pairs of 32-bit halves); a digest capability for algorithms that take a hash |
+| RDF dataset canonicalization (RDFC-1.0) | algorithm | implemented | `lib/rdf_canon` | W3C RDFC-1.0 (formerly URDNA2015): first-degree hashes, Hash N-Degree Quads on an explicit stack with one shared issuer stack, any digest; N-Quads parsing and canonical serialization; poison-dataset limits; passes the W3C test suite |
 | ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap, fusion tree); Y-fast buckets |
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |
 | RRR compressed bit vector | structure | implemented | `lib/rank_select` | fixed 15-bit class/offset blocks: nH0 + n/3.75 bits plus a rank and pointer per 32 blocks |

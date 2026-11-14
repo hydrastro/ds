@@ -230,7 +230,8 @@ LIB_SRC := \
   $(LIB_DIR)/dynamic_msf.c \
   $(LIB_DIR)/ab_tree.c \
   $(LIB_DIR)/executor.c \
-  $(LIB_DIR)/sha2.c
+  $(LIB_DIR)/sha2.c \
+  $(LIB_DIR)/rdf_canon.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -311,6 +312,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/rdf_canon.c $(LIB_DIR)/rdf_canon.h \
   $(LIB_DIR)/sha2.c $(LIB_DIR)/sha2.h \
   $(LIB_DIR)/executor.c $(LIB_DIR)/executor.h \
   $(LIB_DIR)/ab_tree.c $(LIB_DIR)/ab_tree.h \

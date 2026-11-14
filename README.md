@@ -72,6 +72,7 @@ Core mutable containers:
 - `lib/rank_pairing_heap`: rank-pairing heap (type-1 and type-2 rank rules, one-pass linking, decrease without cascading cuts), also two `lib/pq_iface` backends
 - `lib/rank_select`: rank/select capability over static bit vectors with plain, RRR (nH0-compressed) and Elias-Fano backends
 - `lib/rbst`: randomized binary search trees (Martinez-Roura) with select/rank, split and join
+- `lib/rdf_canon`: RDF datasets, N-Quads parsing and canonical serialization, and RDF Dataset Canonicalization (RDFC-1.0) with any digest and limits against poison datasets
 - `lib/replacement`: cache-replacement policy capability (LRU, FIFO, CLOCK, SIEVE) by frame index with pin awareness
 - `lib/roaring`: Roaring compressed bitmaps of 32-bit integers (array, bitmap and run containers, runs edited and combined natively; rank, select, set algebra)
 - `lib/rrb_vector`: RRB vectors (relaxed radix balanced persistent vectors: O(log n) concat, slice, split, insert and remove; size tables only where relaxed; element ownership policies)
