@@ -2,6 +2,7 @@
 #define DS_RING_LIST_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -21,6 +22,7 @@ typedef struct ring_list {
   void (*deallocator)(void *);
 } ds_ring_list_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_ring_list_t *ds_ring_list_create(void);
 ds_ring_list_t *ds_ring_list_create_alloc(void *(*allocator)(size_t),
                                           void (*deallocator)(void *));
@@ -42,9 +44,21 @@ void ds_ring_list_walk_forward(ds_ring_list_t *list, ds_ring_list_node_t *node,
                                void (*callback)(ds_ring_list_node_t *));
 void ds_ring_list_destroy(ds_ring_list_t *list,
                           void (*destroy)(ds_ring_list_node_t *));
+/* Legacy clone: NULL when the copy cannot be allocated, or when clone_node
+ * returns NULL; the clones it made before are then not released (clone_ex
+ * releases them). */
 ds_ring_list_t *
 ds_ring_list_clone(ds_ring_list_t *list,
                    ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back the clones
+ * made so far through destroy_clone and returns DS_ERR_CALLBACK;
+ * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
+ * are required. On any error *out is NULL and the source is unchanged. */
+ds_status_t
+ds_ring_list_clone_ex(const ds_ring_list_t *list,
+                      ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *),
+                      void (*destroy_clone)(ds_ring_list_node_t *),
+                      ds_ring_list_t **out);
 
 #ifdef __cplusplus
 }

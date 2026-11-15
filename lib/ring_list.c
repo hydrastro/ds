@@ -7,10 +7,21 @@ ds_ring_list_t *ds_ring_list_create(void) {
 
 ds_ring_list_t *ds_ring_list_create_alloc(void *(*allocator)(size_t),
                                           void (*deallocator)(void *)) {
-  ds_ring_list_t *list = (ds_ring_list_t *)allocator(sizeof(ds_ring_list_t));
+  ds_ring_list_t *list;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  list = (ds_ring_list_t *)allocator(sizeof(ds_ring_list_t));
+  if (list == NULL) {
+    return NULL;
+  }
   list->allocator = allocator;
   list->deallocator = deallocator;
   list->nil = (ds_ring_list_node_t *)allocator(sizeof(ds_ring_list_node_t));
+  if (list->nil == NULL) {
+    deallocator(list);
+    return NULL;
+  }
   list->nil->next = list->nil;
   list->tail = list->nil;
   list->size = 0;
@@ -174,19 +185,65 @@ void ds_ring_list_destroy(ds_ring_list_t *list,
   list->deallocator(list);
 }
 
+/* clones of the source's nodes, in order, added to copy; false when
+ * clone_node returns NULL (the clones made so far are in copy) */
+static bool ring_list_clone_nodes(
+    const ds_ring_list_t *list, ds_ring_list_t *copy,
+    ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *)) {
+  ds_ring_list_node_t *current;
+  size_t i;
+  if (list->tail == list->nil) {
+    return true;
+  }
+  current = list->tail->next;
+  for (i = 0; i < list->size; i++) {
+    ds_ring_list_node_t *node = clone_node(current);
+    if (node == NULL) {
+      return false;
+    }
+    ds_ring_list_push_back(copy, node);
+    current = current->next;
+  }
+  return true;
+}
+
 ds_ring_list_t *
 ds_ring_list_clone(ds_ring_list_t *list,
                    ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *)) {
-  ds_ring_list_t *new_list;
-  ds_ring_list_node_t *current;
-  size_t i;
-  new_list = ds_ring_list_create_alloc(list->allocator, list->deallocator);
-  if (list->tail != list->nil) {
-    current = list->tail->next;
-    for (i = 0; i < list->size; i++) {
-      ds_ring_list_push_back(new_list, clone_node(current));
-      current = current->next;
-    }
+  ds_ring_list_t *copy;
+  if (list == NULL || clone_node == NULL) {
+    return NULL;
   }
-  return new_list;
+  copy = ds_ring_list_create_alloc(list->allocator, list->deallocator);
+  if (copy != NULL && !ring_list_clone_nodes(list, copy, clone_node)) {
+    /* the clones made so far are not released */
+    ds_ring_list_destroy(copy, NULL);
+    copy = NULL;
+  }
+  return copy;
+}
+
+ds_status_t
+ds_ring_list_clone_ex(const ds_ring_list_t *list,
+                      ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *),
+                      void (*destroy_clone)(ds_ring_list_node_t *),
+                      ds_ring_list_t **out) {
+  ds_ring_list_t *copy;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (list == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  copy = ds_ring_list_create_alloc(list->allocator, list->deallocator);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!ring_list_clone_nodes(list, copy, clone_node)) {
+    ds_ring_list_destroy(copy, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  *out = copy;
+  return DS_OK;
 }
