@@ -9,13 +9,23 @@ ds_pairing_heap_t *ds_pairing_heap_create(
 ds_pairing_heap_t *ds_pairing_heap_create_alloc(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  ds_pairing_heap_t *heap =
-      (ds_pairing_heap_t *)allocator(sizeof(ds_pairing_heap_t));
+  ds_pairing_heap_t *heap;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  heap = (ds_pairing_heap_t *)allocator(sizeof(ds_pairing_heap_t));
+  if (heap == NULL) {
+    return NULL;
+  }
   heap->allocator = allocator;
   heap->deallocator = deallocator;
   heap->compare = compare;
   heap->nil =
       (ds_pairing_heap_node_t *)allocator(sizeof(ds_pairing_heap_node_t));
+  if (heap->nil == NULL) {
+    deallocator(heap);
+    return NULL;
+  }
   heap->nil->child = NULL;
   heap->nil->sibling = NULL;
   heap->nil->prev = NULL;

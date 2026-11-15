@@ -24,6 +24,7 @@ typedef struct pairing_heap {
   void (*deallocator)(void *);
 } ds_pairing_heap_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_pairing_heap_t *ds_pairing_heap_create(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *));
 ds_pairing_heap_t *ds_pairing_heap_create_alloc(
