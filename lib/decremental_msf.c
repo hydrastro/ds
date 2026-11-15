@@ -77,12 +77,10 @@ static bool dm_equal(const void *x, const void *y, void *user) {
   return memcmp(x, y, sizeof(dm_key_t)) == 0;
 }
 
-static dm_key_t dm_list_key(size_t x, unsigned level, unsigned kind) {
-  dm_key_t k;
-  memset(&k, 0, sizeof(k));
-  k.a = x;
-  k.b = 2 * (size_t)level + kind;
-  return k;
+static void dm_list_key(dm_key_t *k, size_t x, unsigned level, unsigned kind) {
+  memset(k, 0, sizeof(*k));
+  k->a = x;
+  k->b = 2 * (size_t)level + kind;
 }
 
 static unsigned dm_side(const ds_dmsf_t *g, size_t e, size_t x) {
@@ -94,9 +92,10 @@ static unsigned dm_side(const ds_dmsf_t *g, size_t e, size_t x) {
 
 static ds_status_t dm_ensure_head(ds_dmsf_t *g, size_t x, unsigned level,
                                   unsigned kind) {
-  dm_key_t k = dm_list_key(x, level, kind);
+  dm_key_t k;
   size_t none = DM_NONE;
   ds_status_t st;
+  dm_list_key(&k, x, level, kind);
   if (ds_map_get(&g->heads, &k) != NULL) {
     return DS_OK;
   }
@@ -115,9 +114,11 @@ static ds_status_t dm_ensure_both(ds_dmsf_t *g, size_t e, unsigned level,
 
 static size_t dm_head(const ds_dmsf_t *g, size_t x, unsigned level,
                       unsigned kind) {
-  dm_key_t k = dm_list_key(x, level, kind);
-  const void *p = ds_map_get(&g->heads, &k);
+  dm_key_t k;
+  const void *p;
   size_t h = DM_NONE;
+  dm_list_key(&k, x, level, kind);
+  p = ds_map_get(&g->heads, &k);
   if (p != NULL) {
     memcpy(&h, p, sizeof(h));
   }
@@ -126,8 +127,10 @@ static size_t dm_head(const ds_dmsf_t *g, size_t x, unsigned level,
 
 static void dm_set_head(ds_dmsf_t *g, size_t x, unsigned level, unsigned kind,
                         size_t e) {
-  dm_key_t k = dm_list_key(x, level, kind);
-  void *p = ds_map_get(&g->heads, &k);
+  dm_key_t k;
+  void *p;
+  dm_list_key(&k, x, level, kind);
+  p = ds_map_get(&g->heads, &k);
   if (p != NULL) {
     memcpy(p, &e, sizeof(e));
   }
