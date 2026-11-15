@@ -35,6 +35,7 @@ typedef struct rope {
   void (*deallocator)(void *);
 } ds_rope_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_rope_t *ds_rope_create(void);
 ds_rope_t *ds_rope_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *));

@@ -49,7 +49,14 @@ ds_rope_t *ds_rope_create(void) { return ds_rope_create_alloc(malloc, free); }
 
 ds_rope_t *ds_rope_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *)) {
-  ds_rope_t *rope = (ds_rope_t *)allocator(sizeof(ds_rope_t));
+  ds_rope_t *rope;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  rope = (ds_rope_t *)allocator(sizeof(ds_rope_t));
+  if (rope == NULL) {
+    return NULL;
+  }
   rope->root = NULL;
   rope->allocator = allocator;
   rope->deallocator = deallocator;
