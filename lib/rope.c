@@ -14,6 +14,8 @@ static ds_rope_node_t *rope_new_leaf(ds_rope_t *rope, const char *str,
   node->is_leaf = true;
   node->weight = length;
   node->length = length;
+  node->depth = 1;
+  node->leaves = 1;
   node->data = (char *)rope->allocator(length + 1);
   for (i = 0; i < length; i++) {
     node->data[i] = str[i];
@@ -33,6 +35,13 @@ static ds_rope_node_t *rope_new_internal(ds_rope_t *rope, ds_rope_node_t *left,
   node->weight = left != NULL ? left->length : 0;
   node->length =
       (left != NULL ? left->length : 0) + (right != NULL ? right->length : 0);
+  {
+    size_t l = left != NULL ? left->depth : 1;
+    size_t r = right != NULL ? right->depth : 1;
+    node->depth = 1 + (l > r ? l : r);
+  }
+  node->leaves =
+      (left != NULL ? left->leaves : 0) + (right != NULL ? right->leaves : 0);
   return node;
 }
 
@@ -116,15 +125,10 @@ static void rope_collect_leaves(ds_rope_node_t *node, ds_rope_node_t **leaves,
   rope_collect_leaves(node->right, leaves, count);
 }
 
-/* count leaves in a subtree */
+/* leaves in a subtree, kept in the nodes: checking whether to rebalance
+ * after an edit costs O(1), not a walk of the whole rope */
 static size_t rope_count_leaves(ds_rope_node_t *node) {
-  if (node == NULL) {
-    return 0;
-  }
-  if (node->is_leaf) {
-    return 1;
-  }
-  return rope_count_leaves(node->left) + rope_count_leaves(node->right);
+  return node == NULL ? 0 : node->leaves;
 }
 
 /* build a balanced internal tree over an array of leaves [lo, hi) */
@@ -166,16 +170,9 @@ void ds_rope_rebalance(ds_rope_t *rope) {
   }
 }
 
-/* depth of a subtree */
+/* depth of a subtree, kept in the nodes */
 static size_t rope_depth(ds_rope_node_t *node) {
-  size_t l;
-  size_t r;
-  if (node == NULL || node->is_leaf) {
-    return 1;
-  }
-  l = rope_depth(node->left);
-  r = rope_depth(node->right);
-  return 1 + (l > r ? l : r);
+  return node == NULL ? 1 : node->depth;
 }
 
 /* concatenate two subtrees, no locking */

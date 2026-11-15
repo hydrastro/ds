@@ -24,6 +24,8 @@ typedef struct rope_node {
   char *data;    /* leaf buffer (NULL for internal nodes) */
   size_t weight; /* length of left subtree (internal) or leaf length (leaf) */
   size_t length; /* total length of this subtree */
+  size_t depth;  /* levels in this subtree, 1 for a leaf */
+  size_t leaves; /* leaves in this subtree */
   bool is_leaf;
 } ds_rope_node_t;
 
