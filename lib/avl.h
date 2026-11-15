@@ -2,6 +2,7 @@
 #define DS_AVL_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -23,6 +24,7 @@ typedef struct avl {
   void (*deallocator)(void *);
 } ds_avl_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_avl_t *ds_avl_create(void);
 ds_avl_t *ds_avl_create_alloc(void *(*alloc)(size_t), void (*free)(void *));
 ds_avl_node_t *ds_avl_search(ds_avl_t *tree, ds_avl_node_t *data,
@@ -67,8 +69,19 @@ bool ds_avl_is_empty(ds_avl_t *tree);
 ds_avl_node_t *
 ds_avl_clone_recursive(ds_avl_t *tree, ds_avl_t *new_tree, ds_avl_node_t *node,
                        ds_avl_node_t *(*clone_node)(ds_avl_node_t *));
+/* Legacy clone: NULL when the copy cannot be allocated, or when clone_node
+ * returns NULL; the clones it made before are then not released (clone_ex
+ * releases them). */
 ds_avl_t *ds_avl_clone(ds_avl_t *tree,
                        ds_avl_node_t *(*clone_node)(ds_avl_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back the clones
+ * made so far through destroy_clone and returns DS_ERR_CALLBACK;
+ * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
+ * are required. On any error *out is NULL and the source is unchanged. */
+ds_status_t ds_avl_clone_ex(const ds_avl_t *tree,
+                            ds_avl_node_t *(*clone_node)(ds_avl_node_t *),
+                            void (*destroy_clone)(ds_avl_node_t *),
+                            ds_avl_t **out);
 
 #ifdef __cplusplus
 }

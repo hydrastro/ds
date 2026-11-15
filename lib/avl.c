@@ -6,10 +6,21 @@ ds_avl_t *ds_avl_create(void) { return ds_avl_create_alloc(malloc, free); }
 
 ds_avl_t *ds_avl_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {
-  ds_avl_t *tree = (ds_avl_t *)allocator(sizeof(ds_avl_t));
+  ds_avl_t *tree;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  tree = (ds_avl_t *)allocator(sizeof(ds_avl_t));
+  if (tree == NULL) {
+    return NULL;
+  }
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->nil = (ds_avl_node_t *)allocator(sizeof(ds_avl_node_t));
+  if (tree->nil == NULL) {
+    deallocator(tree);
+    return NULL;
+  }
   tree->nil->height = 0;
   tree->nil->left = tree->nil;
   tree->nil->right = tree->nil;
@@ -108,7 +119,9 @@ void ds_avl_destroy_recursive(ds_avl_t *tree, ds_avl_node_t *node,
     ds_avl_destroy_recursive(tree, node->left, destroy);
     ds_avl_destroy_recursive(tree, node->right, destroy);
     tree->size -= 1;
-    destroy(node);
+    if (destroy != NULL) { /* NULL owns nothing, as in the other trees */
+      destroy(node);
+    }
   }
 }
 
@@ -297,37 +310,94 @@ void ds_avl_delete_tree(ds_avl_t *tree) {
   tree->size = 0;
 }
 
+/* a copy of the subtree at node, heights included, whose root has
+ * new_tree->nil as its parent; *out gets that root (new_tree->nil for an
+ * empty subtree). Each clone is linked in before the next is made, so
+ * when clone_node returns NULL (false) *out is still a tree holding every
+ * clone made. The recursion is as deep as the tree: O(log n). */
+static bool avl_clone_subtree(const ds_avl_t *tree, ds_avl_t *new_tree,
+                              ds_avl_node_t *node,
+                              ds_avl_node_t *(*clone_node)(ds_avl_node_t *),
+                              ds_avl_node_t **out) {
+  ds_avl_node_t *copy;
+  bool ok;
+  *out = new_tree->nil;
+  if (node == tree->nil) {
+    return true;
+  }
+  copy = clone_node(node);
+  if (copy == NULL) {
+    return false;
+  }
+  copy->height = node->height;
+  copy->left = new_tree->nil;
+  copy->right = new_tree->nil;
+  copy->parent = new_tree->nil;
+  *out = copy;
+  ok = avl_clone_subtree(tree, new_tree, node->left, clone_node, &copy->left);
+  if (copy->left != new_tree->nil) {
+    copy->left->parent = copy;
+  }
+  if (ok) {
+    ok = avl_clone_subtree(tree, new_tree, node->right, clone_node,
+                           &copy->right);
+    if (copy->right != new_tree->nil) {
+      copy->right->parent = copy;
+    }
+  }
+  return ok;
+}
+
 ds_avl_node_t *
 ds_avl_clone_recursive(ds_avl_t *tree, ds_avl_t *new_tree, ds_avl_node_t *node,
                        ds_avl_node_t *(*clone_node)(ds_avl_node_t *)) {
-  ds_avl_node_t *new_node;
-  if (node == tree->nil) {
-    return new_tree->nil;
-  }
-
-  new_node = clone_node(node);
-  new_node->left =
-      ds_avl_clone_recursive(tree, new_tree, node->left, clone_node);
-  new_node->right =
-      ds_avl_clone_recursive(tree, new_tree, node->right, clone_node);
-  new_node->height = node->height;
-  if (new_node->left != new_tree->nil) {
-    new_node->left->parent = new_node;
-  }
-  if (new_node->right != new_tree->nil) {
-    new_node->right->parent = new_node;
-  }
-
-  return new_node;
+  ds_avl_node_t *copy;
+  (void)avl_clone_subtree(tree, new_tree, node, clone_node, &copy);
+  return copy;
 }
 
 ds_avl_t *ds_avl_clone(ds_avl_t *tree,
                        ds_avl_node_t *(*clone_node)(ds_avl_node_t *)) {
   ds_avl_t *new_tree;
+  if (tree == NULL || clone_node == NULL) {
+    return NULL;
+  }
   new_tree = ds_avl_create_alloc(tree->allocator, tree->deallocator);
-  new_tree->root =
-      ds_avl_clone_recursive(tree, new_tree, tree->root, clone_node);
+  if (new_tree == NULL) {
+    return NULL;
+  }
+  if (!avl_clone_subtree(tree, new_tree, tree->root, clone_node,
+                         &new_tree->root)) {
+    ds_avl_destroy_tree(new_tree, NULL); /* the clones are not released */
+    return NULL;
+  }
   new_tree->size = tree->size;
 
   return new_tree;
+}
+
+ds_status_t ds_avl_clone_ex(const ds_avl_t *tree,
+                            ds_avl_node_t *(*clone_node)(ds_avl_node_t *),
+                            void (*destroy_clone)(ds_avl_node_t *),
+                            ds_avl_t **out) {
+  ds_avl_t *new_tree;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  new_tree = ds_avl_create_alloc(tree->allocator, tree->deallocator);
+  if (new_tree == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!avl_clone_subtree(tree, new_tree, tree->root, clone_node,
+                         &new_tree->root)) {
+    ds_avl_destroy_tree(new_tree, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  new_tree->size = tree->size;
+  *out = new_tree;
+  return DS_OK;
 }
