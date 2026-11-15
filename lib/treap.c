@@ -10,12 +10,23 @@ ds_treap_t *
 ds_treap_create_alloc(int (*compare)(ds_treap_node_t *, ds_treap_node_t *),
                       unsigned long seed, void *(*allocator)(size_t),
                       void (*deallocator)(void *)) {
-  ds_treap_t *treap = (ds_treap_t *)allocator(sizeof(ds_treap_t));
+  ds_treap_t *treap;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  treap = (ds_treap_t *)allocator(sizeof(ds_treap_t));
+  if (treap == NULL) {
+    return NULL;
+  }
   treap->allocator = allocator;
   treap->deallocator = deallocator;
   treap->compare = compare;
   treap->seed = seed != 0UL ? seed : 0x9E3779B9UL;
   treap->nil = (ds_treap_node_t *)allocator(sizeof(ds_treap_node_t));
+  if (treap->nil == NULL) {
+    deallocator(treap);
+    return NULL;
+  }
   treap->nil->left = treap->nil;
   treap->nil->right = treap->nil;
   treap->nil->parent = treap->nil;
@@ -235,23 +246,65 @@ void ds_treap_destroy(ds_treap_t *treap, void (*destroy)(ds_treap_node_t *)) {
   treap->deallocator(treap);
 }
 
-static void
-treap_clone_recursive(ds_treap_t *treap, ds_treap_t *new_treap,
+/* clones in key order, inserted into new_treap; false when clone_node
+ * returns NULL (the clones made so far are in new_treap). The recursion
+ * follows the source's height, O(log n) in expectation. */
+static bool
+treap_clone_recursive(const ds_treap_t *treap, ds_treap_t *new_treap,
                       ds_treap_node_t *node,
                       ds_treap_node_t *(*clone_node)(ds_treap_node_t *)) {
+  ds_treap_node_t *copy;
   if (node == treap->nil) {
-    return;
+    return true;
   }
-  treap_clone_recursive(treap, new_treap, node->left, clone_node);
-  ds_treap_insert(new_treap, clone_node(node));
-  treap_clone_recursive(treap, new_treap, node->right, clone_node);
+  if (!treap_clone_recursive(treap, new_treap, node->left, clone_node)) {
+    return false;
+  }
+  copy = clone_node(node);
+  if (copy == NULL) {
+    return false;
+  }
+  ds_treap_insert(new_treap, copy);
+  return treap_clone_recursive(treap, new_treap, node->right, clone_node);
 }
 
 ds_treap_t *ds_treap_clone(ds_treap_t *treap,
                            ds_treap_node_t *(*clone_node)(ds_treap_node_t *)) {
   ds_treap_t *new_treap;
+  if (treap == NULL || clone_node == NULL) {
+    return NULL;
+  }
   new_treap = ds_treap_create_alloc(treap->compare, treap->seed,
                                     treap->allocator, treap->deallocator);
-  treap_clone_recursive(treap, new_treap, treap->root, clone_node);
+  if (new_treap != NULL &&
+      !treap_clone_recursive(treap, new_treap, treap->root, clone_node)) {
+    ds_treap_destroy(new_treap, NULL); /* the clones are not released */
+    new_treap = NULL;
+  }
   return new_treap;
+}
+
+ds_status_t ds_treap_clone_ex(const ds_treap_t *treap,
+                              ds_treap_node_t *(*clone_node)(ds_treap_node_t *),
+                              void (*destroy_clone)(ds_treap_node_t *),
+                              ds_treap_t **out) {
+  ds_treap_t *new_treap;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (treap == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  new_treap = ds_treap_create_alloc(treap->compare, treap->seed,
+                                    treap->allocator, treap->deallocator);
+  if (new_treap == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!treap_clone_recursive(treap, new_treap, treap->root, clone_node)) {
+    ds_treap_destroy(new_treap, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  *out = new_treap;
+  return DS_OK;
 }
