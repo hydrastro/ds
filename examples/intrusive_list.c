@@ -22,6 +22,11 @@ int main(void) {
   task_t c;
   list_node_t *it;
 
+  if (list == NULL) {
+    fputs("Could not allocate the list.\n", stderr);
+    return 1;
+  }
+
   a.name = "compile";
   a.priority = 2;
   b.name = "test";

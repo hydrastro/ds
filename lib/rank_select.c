@@ -266,7 +266,7 @@ static unsigned long rrr_read(const unsigned long *bits, size_t pos,
     return 0;
   }
   v = bits[w] >> off;
-  if (off + width > RS_W) {
+  if (off != 0 && off + width > RS_W) {
     v |= bits[w + 1] << (RS_W - off);
   }
   return v & ((1UL << width) - 1UL);
@@ -280,7 +280,7 @@ static void rrr_write(unsigned long *bits, size_t pos, unsigned width,
     return;
   }
   bits[w] |= v << off;
-  if (off + width > RS_W) {
+  if (off != 0 && off + width > RS_W) {
     bits[w + 1] |= v >> (RS_W - off);
   }
 }
@@ -553,8 +553,7 @@ static bool rse_access(const void *state, size_t i) {
 
 static size_t rse_bytes(const void *state) {
   const rse_t *e = (const rse_t *)state;
-  return sizeof(*e) + ds_elias_fano_bits(&e->ef) / CHAR_BIT +
-         ds_elias_fano_index_bytes(&e->ef);
+  return sizeof(*e) + ds_elias_fano_storage_bytes(&e->ef);
 }
 
 static const ds_rs_ops_t rs_plain_ops = {"plain",     rsp_build,   rsp_rank1,

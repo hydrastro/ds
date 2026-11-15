@@ -126,7 +126,25 @@ void ds_binomial_heap_push(ds_binomial_heap_t *heap,
   if (heap->min == NULL || bh_cmp(heap, node, heap->min) < 0) {
     heap->min = node;
   }
-  heap->head = bh_union(heap, heap->head, node);
+  /* Binary increment: only visit the roots consumed by the carry. A
+   * general union would scan all remaining ranks on every insertion. */
+  while (heap->head != NULL && heap->head->order == node->order) {
+    ds_binomial_heap_node_t *root = heap->head;
+    heap->head = root->sibling;
+    if (bh_cmp(heap, node, root) <= 0) {
+      bh_link(root, node);
+    } else {
+      bh_link(node, root);
+      node = root;
+    }
+  }
+  node->parent = NULL;
+  node->prev = NULL;
+  node->sibling = heap->head;
+  if (heap->head != NULL) {
+    heap->head->prev = node;
+  }
+  heap->head = node;
   heap->size++;
   bh_fix_min(heap);
 }

@@ -11,6 +11,7 @@
 #define PB_MAGIC_V1 "DSBPT1\0\0"
 #define PB_MAGIC "DSBPT2\0\0"
 #define PB_MAGIC_V3 "DSBPT3\0\0"
+#define PB_MAGIC_INIT "DSBPI1\0\0"
 
 static void pb_put64(unsigned char *p, unsigned long v) {
   int i;
@@ -136,6 +137,31 @@ ds_status_t ds_pbtree_sync(ds_pbtree_t *tree) {
   return DS_OK;
 }
 
+/* Finish an explicitly marked, empty format operation. No entries are
+ * reachable until sync replaces the initialization marker. A failed open
+ * can retry this step, even if allocating the root already grew the pager. */
+static ds_status_t pb_finish_format(ds_pbtree_t *tree) {
+  unsigned long pages = ds_pager_page_count(tree->pager);
+  unsigned long leaf = 1;
+  void *data;
+  ds_status_t st;
+  if (pages < 1 || pages > 2) {
+    return DS_ERR_INVALID;
+  }
+  st = pages == 1 ? ds_pager_new(tree->pager, &leaf, &data)
+                  : ds_pager_get(tree->pager, leaf, &data);
+  if (st != DS_OK) {
+    return st;
+  }
+  memset(data, 0, tree->pager->store->page_size);
+  ((unsigned char *)data)[0] = PB_LEAF;
+  pb_done(tree, leaf, true);
+  tree->root = leaf;
+  tree->first_leaf = leaf;
+  tree->height = 1;
+  return ds_pbtree_sync(tree);
+}
+
 ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
                            size_t value_size) {
   size_t ps;
@@ -149,7 +175,7 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
   if (ps < 64 || DS_ABOVE_U32(ps)) {
     return DS_ERR_INVALID;
   }
-  if (value_size > ps) {
+  if (value_size > ps - PB_HDR) {
     return DS_ERR_INVALID; /* also keeps 8 + value_size from wrapping */
   }
   tree->pager = pager;
@@ -160,27 +186,31 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
     return DS_ERR_INVALID;
   }
   if (ds_pager_page_count(pager) == 0) {
-    unsigned long meta, leaf;
+    unsigned long meta;
     void *d;
     st = ds_pager_new(pager, &meta, &d);
     if (st != DS_OK) {
       return st;
     }
-    (void)ds_pager_unpin(pager, meta);
-    st = ds_pager_new(pager, &leaf, &d);
-    if (st != DS_OK) {
-      return st;
-    }
-    ((unsigned char *)d)[0] = PB_LEAF;
-    (void)ds_pager_unpin(pager, leaf);
-    tree->root = leaf;
-    tree->first_leaf = leaf;
-    tree->height = 1;
-    return ds_pbtree_sync(tree);
+    m = (unsigned char *)d;
+    memcpy(m, PB_MAGIC_INIT, 8);
+    pb_put64(m + 8, (unsigned long)value_size);
+    pb_put64(m + 56, (unsigned long)ps);
+    pb_done(tree, meta, true);
+    return pb_finish_format(tree);
   }
   st = pb_get(tree, 0, &m);
   if (st != DS_OK) {
     return st;
+  }
+  if (memcmp(m, PB_MAGIC_INIT, 8) == 0) {
+    unsigned long vs;
+    unsigned long psz;
+    bool valid = pb_get64_fits(m + 8, &vs) &&
+                 pb_get64_fits(m + 56, &psz) &&
+                 vs == (unsigned long)value_size && psz == (unsigned long)ps;
+    pb_done(tree, 0, false);
+    return valid ? pb_finish_format(tree) : DS_ERR_INVALID;
   }
   {
     bool v3 = memcmp(m, PB_MAGIC_V3, 8) == 0;
@@ -770,12 +800,11 @@ unsigned long ds_pbtree_size(const ds_pbtree_t *tree) {
 /* settle on a valid entry at or after (leaf, index) */
 static ds_status_t pb_iter_settle(ds_pbtree_iter_t *it) {
   ds_pbtree_t *t = it->tree;
-  unsigned long hops = 0;
   while (it->leaf != 0) {
     unsigned char *b;
     unsigned long next;
     ds_status_t st;
-    if (++hops > ds_pager_page_count(t->pager)) {
+    if (it->leaves_left == 0) {
       it->leaf = 0;
       return DS_ERR_INVALID; /* the leaf chain loops */
     }
@@ -785,13 +814,21 @@ static ds_status_t pb_iter_settle(ds_pbtree_iter_t *it) {
       return st;
     }
     if (it->index < pb_count(b)) {
-      it->key = pb_get64(pb_lent(t, b, it->index));
+      unsigned long key = pb_get64(pb_lent(t, b, it->index));
+      if (it->has_key && key <= it->key) {
+        pb_done(t, it->leaf, false);
+        it->leaf = 0;
+        return DS_ERR_INVALID;
+      }
+      it->key = key;
+      it->has_key = true;
       memcpy(it->value, pb_lent(t, b, it->index) + 8, t->value_size);
       pb_done(t, it->leaf, false);
       return DS_OK;
     }
     next = pb_get64(b + 8);
     pb_done(t, it->leaf, false);
+    it->leaves_left--;
     it->leaf = next;
     it->index = 0;
   }
@@ -807,6 +844,7 @@ ds_status_t ds_pbtree_iter_init(ds_pbtree_iter_t *it, ds_pbtree_t *tree,
   }
   memset(it, 0, sizeof(*it));
   it->tree = tree;
+  it->leaves_left = ds_pager_page_count(tree->pager);
   it->value = (unsigned char *)ds_context_alloc(
       tree->pager->context, tree->value_size == 0 ? 1 : tree->value_size);
   if (it->value == NULL) {
@@ -816,6 +854,11 @@ ds_status_t ds_pbtree_iter_init(ds_pbtree_iter_t *it, ds_pbtree_t *tree,
   if (st == DS_OK) {
     st = pb_fetch(tree, it->leaf, PB_LEAF, &b);
   }
+  if (st == DS_OK) {
+    it->index = pb_leaf_lower(tree, b, from);
+    pb_done(tree, it->leaf, false);
+    st = pb_iter_settle(it);
+  }
   if (st != DS_OK) {
     /* nothing to destroy after a failed init */
     ds_context_free(tree->pager->context, it->value);
@@ -823,9 +866,7 @@ ds_status_t ds_pbtree_iter_init(ds_pbtree_iter_t *it, ds_pbtree_t *tree,
     it->leaf = 0;
     return st;
   }
-  it->index = pb_leaf_lower(tree, b, from);
-  pb_done(tree, it->leaf, false);
-  return pb_iter_settle(it);
+  return DS_OK;
 }
 
 bool ds_pbtree_iter_valid(const ds_pbtree_iter_t *it) {

@@ -87,7 +87,10 @@ extern "C" {
 /* Key order. compare returns <0, 0, >0 like memcmp; it must be a strict
  * weak order consistent across runs, since tables persist it. id names
  * the order in the footer (0 is reserved for the bytewise order); tables
- * and readers must agree on it. Copied into builders and tables. */
+ * and readers must agree on it. Copied into builders and tables.
+ * Filters in the current formats hash raw bytes. Builders omit them and
+ * readers bypass them for custom comparators, including in older images,
+ * since equal keys need not have identical bytes. */
 typedef int (*ds_sstable_cmp_fn)(const unsigned char *a, size_t a_len,
                                  const unsigned char *b, size_t b_len,
                                  void *user);

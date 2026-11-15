@@ -81,7 +81,7 @@ typedef struct ds_dmsf {
 } ds_dmsf_t;
 
 /* m edges (u[i], v[i]) of weight w[i] on n vertices; edge i keeps index
- * i. Self-loops are allowed (never in F), NaN weights are not
+ * i. Self-loops are allowed (never in F), nonfinite weights are not
  * (DS_ERR_INVALID). */
 ds_status_t ds_dmsf_init(ds_dmsf_t *g, size_t n, const size_t *u,
                          const size_t *v, const double *w, size_t m,
@@ -100,7 +100,10 @@ bool ds_dmsf_in_forest(const ds_dmsf_t *g, size_t e);
 unsigned ds_dmsf_level(const ds_dmsf_t *g, size_t e);
 size_t ds_dmsf_edges(const ds_dmsf_t *g);
 size_t ds_dmsf_forest_edges(const ds_dmsf_t *g);
-/* the forest's weight (a running sum: rounding may accumulate) */
+/* The forest's weight: a running double sum. Rounding may accumulate and
+ * finite inputs can still overflow the sum; keep intermediate totals in
+ * range when using this query. Forest membership uses edge comparisons
+ * and does not depend on the sum. */
 double ds_dmsf_weight(const ds_dmsf_t *g);
 
 bool ds_dmsf_broken(const ds_dmsf_t *g);

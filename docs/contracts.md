@@ -23,8 +23,8 @@ and destroy callbacks, user data and a representation id.
 - **Transfer services.** `ds_schema_transfer` names the service for moving
   elements between two containers:
   - *move*: the schemas are equal, so nodes or bytes move as they are and ownership travels with them.
-  - *copy*: layout and id agree but the callbacks differ, so each element is cloned with the destination's copy and released with the source's destroy.
-  - *none*: a conversion is the caller's job.
+  - *copy*: layout and id agree but the callbacks differ, so each element is cloned with the destination's copy and released with the source's destroy. An owned source requires a destination copy callback.
+  - *none*: either schema is invalid, the layouts differ, or copying would discard ownership without cloning. A conversion is the caller's job.
 
   Structural O(log n) joining and O(n) conversion are different services, and the API keeps them apart.
 - **Containers copy the schema at initialization.**
@@ -301,8 +301,10 @@ operations already make.
   verifies by tracing its paths.
 - **Exact, numerically qualified, heuristic.**
   - Robust predicates give exact signs within stated input ranges.
-  - Weighted matching is exact in integer mode and within a stated tolerance
-    otherwise.
+  - Weighted matching is exact while integer-mode duals stay in range.
+    Its `_ex` entry points report the mode and can require exactness instead
+    of silently falling back. Floating mode uses a comparison tolerance,
+    not a certified objective-error bound.
   - Markov hitting times are numerical.
   - The TSP heuristics are approximations with stated bounds where they
     exist.

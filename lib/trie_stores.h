@@ -17,8 +17,12 @@
  *   - apply(trie, store, f, args) must visit the whole subtree in
  *     post-order: for each child, first apply() to child->children, then
  *     f(trie, child, args). Trie destruction relies on this. Give each call
- *     its own va_list copy, and tolerate f removing entries (iterate over a
- *     snapshot).
+ *     its own va_list copy, and tolerate f removing entries, even when
+ *     scratch allocation fails. Detach a removed child before freeing it;
+ *     do not destroy the store or a pending ancestor during a traversal.
+ *     Newly inserted entries need not be visited. The Robin Hood store
+ *     falls back to O(children^2) scans on scratch allocation failure;
+ *     the vector store adjusts live cursors and needs no snapshot.
  *   - remove/destroy_entry only detach a child; the trie frees nodes.
  *   - clone must call ds_trie_clone_node() for each child.
  */

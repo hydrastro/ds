@@ -1,4 +1,5 @@
 #include "dynamic_msf.h"
+#include <float.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -781,8 +782,8 @@ ds_status_t ds_dyn_msf_insert(ds_dyn_msf_t *g, size_t u, size_t v, double w,
   if (u >= g->n || v >= g->n) {
     return DS_ERR_RANGE;
   }
-  if (!(w >= w)) {
-    return DS_ERR_INVALID; /* NaN */
+  if (!(w >= -DBL_MAX && w <= DBL_MAX)) {
+    return DS_ERR_INVALID; /* NaN or infinity poisons a removable sum */
   }
   if (g->broken) {
     return DS_ERR_STATE;
@@ -823,7 +824,8 @@ ds_status_t ds_dyn_msf_insert(ds_dyn_msf_t *g, size_t u, size_t v, double w,
       g->edge[f].tree = 0;
       dy_link_edge(g, id);
       g->edge[id].tree = 1;
-      g->weight += w - g->edge[f].weight;
+      g->weight -= g->edge[f].weight;
+      g->weight += w;
       d = f;
     } else {
       d = id;

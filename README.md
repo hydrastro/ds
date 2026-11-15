@@ -280,6 +280,8 @@ nix build
 
 ### With Make
 
+GNU Make 4.3 or newer is required (the Unicode generator has grouped outputs).
+
 ```sh
 make
 make test

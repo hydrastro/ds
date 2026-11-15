@@ -64,6 +64,13 @@
  *             once. The result is the state after some prefix of the
  *             updates, including every update before the last completed
  *             ds_lsm_sync or flush
+ * Read failures from the page store abort recovery; only invalid on-disk
+ * images trigger fallback to an older slot or truncate the recovered log.
+ * Overlapping page runs and cyclic log chains are rejected. Log page
+ * versions seal before their 32-bit field wraps; exhausting a sequence
+ * or page-index field returns DS_ERR_OVERFLOW instead of wrapping.
+ * After a failed log sync, a retry completes the store sync before another
+ * log version may reuse the location of the last successfully synced image.
  * Durability is only as good as the store's sync (lib/pager's
  * DS_PAGE_STORE_DURABLE_SYNC trait: the stdio file store's sync is fflush,
  * which survives a crash of the process, not of the machine). An empty
@@ -109,7 +116,7 @@ typedef struct ds_lsm_config {
   ds_lsm_memtable_t memtable;
   const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
   ds_context_t *context;
-  /* persistence (see above): a page store of at least 128-byte pages, and
+  /* persistence (see above): a page store with 128 .. 2^32-1-byte pages, and
    * how many updates trigger a sync of the log (0: only ds_lsm_sync and
    * flushes) */
   ds_page_store_t *store;
@@ -146,6 +153,7 @@ typedef struct ds_lsm {
   ds_lsm_table_t levels[DS_LSM_MAX_LEVELS]; /* levels[0] is level 1 */
   unsigned long flushes;
   unsigned long compactions;
+  bool sync_failed; /* retry the store sync before overwriting a log image */
   /* persistence: the published manifest's sequence, the pages in use, and
    * the log (records not yet written, the page being filled) */
   unsigned long seq;
@@ -190,16 +198,23 @@ void ds_lsm_config_init(ds_lsm_config_t *config);
  * without images */
 ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config);
 void ds_lsm_destroy(ds_lsm_t *lsm);
+/* Persistence errors from an automatic flush or sync are returned. The
+ * update may already be visible in memory: an error is not a rollback.
+ * Retry sync/flush unless broken is set; an ambiguous manifest publication
+ * marks the tree broken and requires destroy/reopen before more writes.
+ * No crash durability beyond the page store's sync trait is promised. */
 ds_status_t ds_lsm_put(ds_lsm_t *lsm, const void *key, size_t key_len,
                        const void *value, size_t value_len);
 ds_status_t ds_lsm_delete(ds_lsm_t *lsm, const void *key, size_t key_len);
 ds_status_t ds_lsm_get(ds_lsm_t *lsm, const void *key, size_t key_len,
                        const unsigned char **out_value, size_t *out_len);
 /* move the memtable into level 0 (and compact as needed); with a store,
- * also publishes the new tables (see above) */
+ * also publishes the new tables (see above). Retrying after an unpublished
+ * flush also works when its memtable has already moved into level 0. */
 ds_status_t ds_lsm_flush(ds_lsm_t *lsm);
 /* with a store: write the log records not yet written and sync, so every
- * update so far survives a crash; DS_OK without a store */
+ * update so far is covered by the store's sync guarantee; DS_OK without a
+ * store. A broken tree returns DS_ERR_STATE, including for an empty flush. */
 ds_status_t ds_lsm_sync(ds_lsm_t *lsm);
 /* merge everything into one table at the deepest level */
 ds_status_t ds_lsm_compact_all(ds_lsm_t *lsm);

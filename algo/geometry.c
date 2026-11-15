@@ -1,5 +1,7 @@
 #include "geometry.h"
 #include "robust_predicates.h"
+#include "../lib/checked.h"
+#include <float.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -234,6 +236,49 @@ static double geo_d2(ds_point2_t a, ds_point2_t b) {
   return dx * dx + dy * dy;
 }
 
+/* Distances along one ray from an extreme point. Coordinate comparisons
+ * preserve the order even when subtraction or squaring would round two
+ * different distances to the same double. */
+static int geo_ray_cmp(ds_point2_t o, ds_point2_t a, ds_point2_t b) {
+  if (a.x > o.x) {
+    return geo_cmp_double(a.x, b.x);
+  }
+  if (a.x < o.x) {
+    return geo_cmp_double(b.x, a.x);
+  }
+  return a.y > o.y ? geo_cmp_double(a.y, b.y) : geo_cmp_double(b.y, a.y);
+}
+
+/* Compare signed heights above a->b: det(b-a, p-q). An orientation
+ * predicate's approximate magnitude cannot be used for this comparison.
+ * The conservative filter covers four rounded differences, two products
+ * and their subtraction; ambiguous cases use exact expansions. */
+static int geo_height_cmp(ds_point2_t a, ds_point2_t b,
+                           ds_point2_t p, ds_point2_t q) {
+  double left = (b.x - a.x) * (p.y - q.y);
+  double right = (b.y - a.y) * (p.x - q.x);
+  double det = left - right;
+  double bound = 8.0 * DBL_EPSILON * (fabs(left) + fabs(right));
+  double dx[2], dy[2], px[2], py[2];
+  double l[8], r[8], sum[16], scratch[12];
+  size_t nl, nr, ns;
+  if (det > bound) {
+    return 1;
+  }
+  if (det < -bound) {
+    return -1;
+  }
+  ds_two_diff(b.x, a.x, &dx[1], &dx[0]);
+  ds_two_diff(b.y, a.y, &dy[1], &dy[0]);
+  ds_two_diff(p.x, q.x, &px[1], &px[0]);
+  ds_two_diff(p.y, q.y, &py[1], &py[0]);
+  nl = ds_expansion_product(dx, 2, py, 2, l, scratch);
+  nr = ds_expansion_product(dy, 2, px, 2, r, scratch);
+  ds_expansion_negate(r, nr, r);
+  ns = ds_expansion_sum(l, nl, r, nr, sum);
+  return ds_expansion_sign(sum, ns);
+}
+
 static int geo_icmp_angle(const ds_point2_t *pts, size_t a, size_t b,
                           const void *extra) {
   ds_point2_t o = pts[*(const size_t *)extra];
@@ -244,9 +289,7 @@ static int geo_icmp_angle(const ds_point2_t *pts, size_t a, size_t b,
   if (c < 0) {
     return 1;
   }
-  return geo_d2(o, pts[a]) < geo_d2(o, pts[b])
-             ? -1
-             : (geo_d2(o, pts[a]) > geo_d2(o, pts[b]));
+  return geo_ray_cmp(o, pts[a], pts[b]);
 }
 
 static size_t geo_andrew(const ds_point2_t *p, const size_t *u, size_t n,
@@ -305,8 +348,8 @@ static size_t geo_jarvis(const ds_point2_t *p, const size_t *u, size_t n,
         continue;
       }
       o = ds_geo_orient(p[u[cur]], p[u[next]], p[u[i]]);
-      if (o < 0 || (!(o > 0) && geo_d2(p[u[cur]], p[u[i]]) >
-                                    geo_d2(p[u[cur]], p[u[next]]))) {
+      if (o < 0 || (!(o > 0) &&
+                    geo_ray_cmp(p[u[cur]], p[u[i]], p[u[next]]) > 0)) {
         next = i;
       }
     }
@@ -329,8 +372,6 @@ static size_t geo_quickhull(const ds_point2_t *p, size_t *u, size_t n,
   size_t k;
   size_t na;
   size_t nb;
-  double best;
-  double d;
   size_t *base;
   memset(next, 0xFF, sizeof(size_t) * n);
   /* buffer layout: the lower set, then the upper set */
@@ -370,11 +411,10 @@ static size_t geo_quickhull(const ds_point2_t *p, size_t *u, size_t n,
     }
     base = buf + start;
     far = base[0];
-    best = -1;
-    for (i = 0; i < count; i++) {
-      d = -ds_geo_orient(p[u[a]], p[u[b]], p[u[base[i]]]);
-      if (d > best) {
-        best = d;
+    for (i = 1; i < count; i++) {
+      int c = geo_height_cmp(p[u[a]], p[u[b]], p[u[base[i]]], p[u[far]]);
+      if (c < 0 || (c == 0 &&
+                     geo_icmp_xy(p, u[base[i]], u[far], NULL) > 0)) {
         far = base[i];
       }
     }
@@ -429,6 +469,7 @@ ds_status_t ds_geo_convex_hull(const ds_point2_t *points, size_t n,
   size_t h = 0;
   size_t pivot = 0;
   size_t start;
+  size_t ubytes, tbytes, w1bytes, w2bytes;
   ds_status_t status = DS_OK;
   if ((points == NULL && n > 0) || out_hull == NULL || out_count == NULL) {
     return DS_ERR_NULL;
@@ -440,10 +481,16 @@ ds_status_t ds_geo_convex_hull(const ds_point2_t *points, size_t n,
     *out_count = 0;
     return DS_OK;
   }
-  u = (size_t *)ds_context_alloc(context, n * sizeof(size_t));
-  tmp = (size_t *)ds_context_alloc(context, 2 * n * sizeof(size_t) + 16);
-  w1 = (size_t *)ds_context_alloc(context, 8 * n * sizeof(size_t) + 64);
-  w2 = (size_t *)ds_context_alloc(context, n * sizeof(size_t) + 8);
+  if (!ds_size_mul(n, sizeof(size_t), &ubytes) ||
+      !ds_size_mul(ubytes, 2, &tbytes) || !ds_size_add(tbytes, 16, &tbytes) ||
+      !ds_size_mul(ubytes, 8, &w1bytes) || !ds_size_add(w1bytes, 64, &w1bytes) ||
+      !ds_size_add(ubytes, 8, &w2bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
+  u = (size_t *)ds_context_alloc(context, ubytes);
+  tmp = (size_t *)ds_context_alloc(context, tbytes);
+  w1 = (size_t *)ds_context_alloc(context, w1bytes);
+  w2 = (size_t *)ds_context_alloc(context, w2bytes);
   if (u == NULL || tmp == NULL || w1 == NULL || w2 == NULL) {
     status = DS_ERR_ALLOC;
     goto out;

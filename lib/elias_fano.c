@@ -352,6 +352,21 @@ size_t ds_elias_fano_index_bytes(const ds_elias_fano_t *ef) {
   return ef == NULL ? 0 : ef_sel_bytes(&ef->sel1) + ef_sel_bytes(&ef->sel0);
 }
 
+size_t ds_elias_fano_storage_bytes(const ds_elias_fano_t *ef) {
+  size_t bytes;
+  if (ef == NULL) {
+    return 0;
+  }
+  bytes = ds_elias_fano_index_bytes(ef);
+  if (ef->low != NULL) {
+    bytes += (ef->n * ef->low_bits / EF_W + 2) * sizeof(unsigned long);
+  }
+  if (ef->high != NULL) {
+    bytes += (ef->high_bits / EF_W + 2) * sizeof(unsigned long);
+  }
+  return bytes;
+}
+
 unsigned long ds_elias_fano_get(const ds_elias_fano_t *ef, size_t i) {
   size_t pos;
   if (ef == NULL || i >= ef->n) {

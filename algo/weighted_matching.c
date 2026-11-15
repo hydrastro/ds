@@ -1,4 +1,7 @@
 #include "weighted_matching.h"
+#include "../lib/checked.h"
+#include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <string.h>
 
@@ -40,6 +43,29 @@ typedef struct wm {
   ds_status_t st;
 } wm_t;
 
+typedef struct wm_sizes {
+  size_t endpoints, offsets, block, pointers, duals, queue;
+  size_t edge_weights, vertex_weights;
+} wm_sizes_t;
+
+/* Validate byte counts as well as the signed indices used by the solver.
+ * In particular, 27*n longs can overflow size_t on a 32-bit host long
+ * before 2*n overflows a long. Check before inspecting input arrays. */
+static bool wm_sizes(size_t n, size_t m, wm_sizes_t *z) {
+  size_t nc, mc, qc;
+  return n <= 0x3fffffffUL && m <= 0x3fffffffUL &&
+         ds_size_add(n, 1, &nc) && ds_size_add(m, 1, &mc) &&
+         ds_size_add(n, 16, &qc) &&
+         ds_size_mul(m, 2 * sizeof(long), &z->endpoints) &&
+         ds_size_mul(nc, sizeof(long), &z->offsets) &&
+         ds_size_mul(n, 27 * sizeof(long), &z->block) &&
+         ds_size_mul(n, 2 * sizeof(long *), &z->pointers) &&
+         ds_size_mul(n, 2 * sizeof(double), &z->duals) &&
+         ds_size_mul(qc, sizeof(long), &z->queue) &&
+         ds_size_mul(mc, sizeof(double), &z->edge_weights) &&
+         ds_size_mul(nc, sizeof(double), &z->vertex_weights);
+}
+
 static double wm_slack(const wm_t *s, long k) {
   return s->dual[s->eu[k]] + s->dual[s->ev[k]] - 2.0 * s->w[k];
 }
@@ -66,10 +92,20 @@ static long wm_leaves(wm_t *s, long b) {
 }
 
 static void wm_push_queue(wm_t *s, long v) {
+  if (s->st != DS_OK) {
+    return;
+  }
   if (s->nq == s->qcap) {
-    long nc = s->qcap * 2;
-    long *q =
-        (long *)ds_context_realloc(s->ctx, s->queue, (size_t)nc * sizeof(long));
+    long nc;
+    size_t bytes;
+    long *q;
+    if (s->qcap > LONG_MAX / 2 ||
+        !ds_size_mul((size_t)s->qcap, 2 * sizeof(long), &bytes)) {
+      s->st = DS_ERR_OVERFLOW;
+      return;
+    }
+    nc = s->qcap * 2;
+    q = (long *)ds_context_realloc(s->ctx, s->queue, bytes);
     if (q == NULL) {
       s->st = DS_ERR_ALLOC;
       return;
@@ -515,8 +551,9 @@ static void wm_augment_matching(wm_t *s, long k) {
  * are then below 2^53 for weights up to DS_WMATCH_EXACT_MAX. */
 static bool wm_duals_too_big(const wm_t *s) {
   long i;
+  double limit = s->eps <= 0.0 ? 2251799813685248.0 : DBL_MAX / 4.0;
   for (i = 0; i < 2 * s->n; i++) {
-    if (fabs(s->dual[i]) > 2251799813685248.0) {
+    if (!(fabs(s->dual[i]) <= limit)) {
       return true;
     }
   }
@@ -666,8 +703,8 @@ static ds_status_t wm_run(wm_t *s, bool maxcard) {
           }
         }
       }
-      if (s->eps <= 0.0 && wm_duals_too_big(s)) {
-        s->st = DS_ERR_OVERFLOW; /* integer mode left its exact range */
+      if (wm_duals_too_big(s)) {
+        s->st = DS_ERR_OVERFLOW; /* exact range or safe floating range */
         break;
       }
       if (deltatype == 1) {
@@ -701,11 +738,17 @@ static ds_status_t wm_run(wm_t *s, bool maxcard) {
 
 static void wm_free(wm_t *s) {
   long i;
-  if (s->childs != NULL) {
+  if (s->childs != NULL || s->endps != NULL || s->bbest != NULL) {
     for (i = 0; i < 2 * s->n; i++) {
-      ds_context_free(s->ctx, s->childs[i]);
-      ds_context_free(s->ctx, s->endps[i]);
-      ds_context_free(s->ctx, s->bbest[i]);
+      if (s->childs != NULL) {
+        ds_context_free(s->ctx, s->childs[i]);
+      }
+      if (s->endps != NULL) {
+        ds_context_free(s->ctx, s->endps[i]);
+      }
+      if (s->bbest != NULL) {
+        ds_context_free(s->ctx, s->bbest[i]);
+      }
     }
   }
   ds_context_free(s->ctx, s->endpoint);
@@ -724,8 +767,10 @@ static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
                             const double *w, size_t m, bool max_cardinality,
                             size_t *out_mate, double *out_weight,
                             ds_context_t *context, bool allow_integer,
-                            bool *out_left_integer) {
+                            bool require_integer, bool *out_left_integer,
+                            ds_wmatch_mode_t *mode) {
   wm_t s;
+  wm_sizes_t bytes;
   long i;
   long k;
   double maxw = 0.0;
@@ -736,7 +781,7 @@ static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
   if (out_mate == NULL || (m > 0 && (u == NULL || v == NULL || w == NULL))) {
     return DS_ERR_NULL;
   }
-  if (n > 0x3fffffffUL || m > 0x3fffffffUL) {
+  if (!wm_sizes(n, m, &bytes)) {
     return DS_ERR_OVERFLOW;
   }
   for (k = 0; k < (long)m; k++) {
@@ -746,6 +791,9 @@ static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
     if (u[k] == v[k] || !(fabs(w[k]) < HUGE_VAL)) {
       return DS_ERR_INVALID;
     }
+    if (fabs(w[k]) > DBL_MAX / 4.0) {
+      return require_integer ? DS_ERR_UNSUPPORTED : DS_ERR_OVERFLOW;
+    }
     if (w[k] > maxw) {
       maxw = w[k];
     }
@@ -753,6 +801,10 @@ static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
       integral = false;
     }
   }
+  if (require_integer && !integral) {
+    return DS_ERR_UNSUPPORTED;
+  }
+  *mode = integral ? DS_WMATCH_MODE_INTEGER : DS_WMATCH_MODE_FLOATING;
   for (i = 0; i < (long)n; i++) {
     out_mate[i] = DS_WMATCH_NONE;
   }
@@ -775,19 +827,19 @@ static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
    * [0, 2 maxw], slacks of S-S edges are even, so halving them is exact):
    * all comparisons are exact and need no tolerance. */
   s.eps = integral ? 0.0 : 1e-10 * (1.0 + maxw);
-  s.endpoint = (long *)ds_context_alloc(context, 2 * m * sizeof(long));
-  s.nb_off = (long *)ds_context_calloc(context, n + 1, sizeof(long));
-  s.nb = (long *)ds_context_alloc(context, 2 * m * sizeof(long));
+  s.endpoint = (long *)ds_context_alloc(context, bytes.endpoints);
+  s.nb_off = (long *)ds_context_calloc(context, 1, bytes.offsets);
+  s.nb = (long *)ds_context_alloc(context, bytes.endpoints);
   /* one block: five n-sized arrays, nine 2n-sized ones and the 4n work
    * list (27 n longs) */
-  s.mate = (long *)ds_context_alloc(context, 27 * n * sizeof(long));
-  s.childs = (long **)ds_context_calloc(context, 2 * n, sizeof(long *));
-  s.endps = (long **)ds_context_calloc(context, 2 * n, sizeof(long *));
-  s.bbest = (long **)ds_context_calloc(context, 2 * n, sizeof(long *));
-  s.dual = (double *)ds_context_alloc(context, 2 * n * sizeof(double));
+  s.mate = (long *)ds_context_alloc(context, bytes.block);
+  s.childs = (long **)ds_context_calloc(context, 1, bytes.pointers);
+  s.endps = (long **)ds_context_calloc(context, 1, bytes.pointers);
+  s.bbest = (long **)ds_context_calloc(context, 1, bytes.pointers);
+  s.dual = (double *)ds_context_alloc(context, bytes.duals);
   s.allow = (unsigned char *)ds_context_alloc(context, m);
   s.qcap = (long)n + 16;
-  s.queue = (long *)ds_context_alloc(context, (size_t)s.qcap * sizeof(long));
+  s.queue = (long *)ds_context_alloc(context, bytes.queue);
   if (s.endpoint == NULL || s.nb_off == NULL || s.nb == NULL ||
       s.mate == NULL || s.childs == NULL || s.endps == NULL ||
       s.bbest == NULL || s.dual == NULL || s.allow == NULL || s.queue == NULL) {
@@ -886,54 +938,74 @@ static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
   return st;
 }
 
-ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
-                                   const double *w, size_t m,
-                                   bool max_cardinality, size_t *out_mate,
-                                   double *out_weight, ds_context_t *context) {
+void ds_wmatch_options_init(ds_wmatch_options_t *options) {
+  if (options != NULL) {
+    options->require_exact = false;
+  }
+}
+
+ds_status_t ds_matching_max_weight_ex(
+    size_t n, const size_t *u, const size_t *v, const double *w, size_t m,
+    bool max_cardinality, size_t *out_mate, double *out_weight,
+    const ds_wmatch_options_t *options, ds_wmatch_mode_t *out_mode,
+    ds_context_t *context) {
   bool left = false;
+  bool exact = options != NULL && options->require_exact;
+  ds_wmatch_mode_t mode;
   ds_status_t st = wm_solve(n, u, v, w, m, max_cardinality, out_mate,
-                            out_weight, context, true, &left);
-  if (left) {
+                            out_weight, context, true, exact, &left, &mode);
+  if (left && !exact) {
     /* integral weights whose duals outgrew the exact range: solve again
      * with the floating tolerance */
     st = wm_solve(n, u, v, w, m, max_cardinality, out_mate, out_weight, context,
-                  false, &left);
+                  false, false, &left, &mode);
+  }
+  if (st == DS_OK && out_mode != NULL) {
+    *out_mode = mode;
   }
   return st;
 }
 
-ds_status_t ds_matching_min_weight_perfect(size_t n, const size_t *u,
-                                           const size_t *v, const double *w,
-                                           size_t m, size_t *out_mate,
-                                           double *out_weight,
-                                           ds_context_t *context) {
+ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
+                                   const double *w, size_t m,
+                                   bool max_cardinality, size_t *out_mate,
+                                   double *out_weight, ds_context_t *context) {
+  return ds_matching_max_weight_ex(n, u, v, w, m, max_cardinality, out_mate,
+                                    out_weight, NULL, NULL, context);
+}
+
+ds_status_t ds_matching_min_weight_perfect_ex(
+    size_t n, const size_t *u, const size_t *v, const double *w, size_t m,
+    size_t *out_mate, double *out_weight, const ds_wmatch_options_t *options,
+    ds_wmatch_mode_t *out_mode, ds_context_t *context) {
   double *t;
-  double big = 0.0;
   double total = 0.0;
+  wm_sizes_t bytes;
+  ds_wmatch_mode_t mode;
   size_t k;
   size_t i;
   ds_status_t st;
   if (out_mate == NULL || (m > 0 && (u == NULL || v == NULL || w == NULL))) {
     return DS_ERR_NULL;
   }
+  if (!wm_sizes(n, m, &bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
   if (n % 2 != 0) {
     return DS_ERR_STATE;
   }
-  for (k = 0; k < m; k++) {
-    if (fabs(w[k]) > big) {
-      big = fabs(w[k]);
-    }
-  }
-  t = (double *)ds_context_alloc(context, (m + 1) * sizeof(double));
+  t = (double *)ds_context_alloc(context, bytes.edge_weights);
   if (t == NULL) {
     return DS_ERR_ALLOC;
   }
-  /* maximise (C - w) among maximum matchings: C > every w keeps all
-   * transformed weights positive */
+  /* Maximum cardinality is requested explicitly, so no positive offset
+   * is needed. Negation preserves every finite binary64 weight exactly;
+   * 2*max(abs(w))+1-w could overflow or erase small differences. */
   for (k = 0; k < m; k++) {
-    t[k] = 2.0 * big + 1.0 - w[k];
+    t[k] = -w[k];
   }
-  st = ds_matching_max_weight(n, u, v, t, m, true, out_mate, NULL, context);
+  st = ds_matching_max_weight_ex(n, u, v, t, m, true, out_mate, NULL,
+                                  options, &mode, context);
   ds_context_free(context, t);
   if (st != DS_OK) {
     return st;
@@ -943,9 +1015,15 @@ ds_status_t ds_matching_min_weight_perfect(size_t n, const size_t *u,
       return DS_ERR_STATE;
     }
   }
+  if (out_weight == NULL) {
+    if (out_mode != NULL) {
+      *out_mode = mode;
+    }
+    return DS_OK;
+  }
   /* weight of the matching in the original weights (the cheapest of
    * parallel edges between a matched pair), in one pass over the edges */
-  t = (double *)ds_context_alloc(context, (n + 1) * sizeof(double));
+  t = (double *)ds_context_alloc(context, bytes.vertex_weights);
   if (t == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -968,5 +1046,17 @@ ds_status_t ds_matching_min_weight_perfect(size_t n, const size_t *u,
   if (out_weight != NULL) {
     *out_weight = total;
   }
+  if (out_mode != NULL) {
+    *out_mode = mode;
+  }
   return DS_OK;
+}
+
+ds_status_t ds_matching_min_weight_perfect(size_t n, const size_t *u,
+                                           const size_t *v, const double *w,
+                                           size_t m, size_t *out_mate,
+                                           double *out_weight,
+                                           ds_context_t *context) {
+  return ds_matching_min_weight_perfect_ex(n, u, v, w, m, out_mate,
+                                            out_weight, NULL, NULL, context);
 }

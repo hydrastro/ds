@@ -74,7 +74,7 @@ typedef struct ds_ordered_ops {
   bool (*next)(const void *s, size_t *cursor, unsigned long *key, void **value);
   /* whether split/join may move entries between the two instances: the
    * value layout must agree, and backends that move nodes (rather than
-   * copy) also need the same context to free them */
+   * copy) also need compatible contexts (ds_context_compatible) to free them */
   bool (*compatible)(const void *s, const void *other);
   /* in-order walk in O(n) total; NULL makes ds_ordered_for_each step the
    * cursor instead */

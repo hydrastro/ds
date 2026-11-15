@@ -254,21 +254,40 @@ static size_t lsm_page_size(const ds_lsm_t *l) {
  * that references it (l->seq + 1 for pages not yet published) */
 static ds_status_t lsm_ext_insert(ds_lsm_t *l, unsigned long start,
                                   unsigned long pages, unsigned long seq) {
-  size_t i = l->extent_count;
+  size_t i = 0;
+  size_t need;
+  if (start < 2 || pages == 0 || start > (unsigned long)-1 - pages) {
+    return DS_ERR_INVALID;
+  }
+  while (i < l->extent_count && l->extents[i].start < start) {
+    i++;
+  }
+  if ((i > 0 && l->extents[i - 1].start + l->extents[i - 1].pages > start) ||
+      (i < l->extent_count && start + pages > l->extents[i].start)) {
+    return DS_ERR_INVALID; /* overlapping runs or a cyclic log chain */
+  }
+  if (!ds_size_add(l->extent_count, 1, &need)) {
+    return DS_ERR_OVERFLOW;
+  }
   if (l->extent_count == l->extent_capacity) {
-    size_t nc = l->extent_capacity < 16 ? 32 : 2 * l->extent_capacity;
-    void *p = ds_context_realloc(l->config.context, l->extents,
-                                 nc * sizeof(ds_lsm_extent_t));
+    size_t nc = l->extent_capacity < 16 ? 32 : l->extent_capacity;
+    size_t bytes;
+    void *p;
+    if (nc < need) {
+      nc = nc > (size_t)-1 / 2 ? need : 2 * nc;
+    }
+    if (!ds_size_mul(nc, sizeof(ds_lsm_extent_t), &bytes)) {
+      return DS_ERR_OVERFLOW;
+    }
+    p = ds_context_realloc(l->config.context, l->extents, bytes);
     if (p == NULL) {
       return DS_ERR_ALLOC;
     }
     l->extents = (ds_lsm_extent_t *)p;
     l->extent_capacity = nc;
   }
-  while (i > 0 && l->extents[i - 1].start > start) {
-    l->extents[i] = l->extents[i - 1];
-    i--;
-  }
+  memmove(l->extents + i + 1, l->extents + i,
+          (l->extent_count - i) * sizeof(ds_lsm_extent_t));
   l->extents[i].start = start;
   l->extents[i].pages = pages;
   l->extents[i].seq = seq;
@@ -281,6 +300,9 @@ static ds_status_t lsm_ext_alloc(ds_lsm_t *l, unsigned long pages,
                                  unsigned long *start) {
   unsigned long at = 2;
   size_t i;
+  if (l->seq == (unsigned long)-1) {
+    return DS_ERR_OVERFLOW;
+  }
   for (i = 0; i < l->extent_count; i++) {
     if (l->extents[i].start >= at && l->extents[i].start - at >= pages) {
       break;
@@ -319,7 +341,7 @@ static void lsm_ext_sweep(ds_lsm_t *l) {
   size_t k = 0;
   unsigned long end = 2;
   for (i = 0; i < l->extent_count; i++) {
-    if (l->extents[i].seq + 1 >= l->seq) {
+    if (l->seq == 0 || l->extents[i].seq >= l->seq - 1) {
       l->extents[k++] = l->extents[i];
       if (l->extents[i].start + l->extents[i].pages > end) {
         end = l->extents[i].start + l->extents[i].pages;
@@ -372,6 +394,10 @@ static ds_status_t lsm_read_run(ds_lsm_t *l, unsigned long start, size_t len,
   unsigned char *buf;
   size_t bytes;
   ds_status_t st = DS_OK;
+  unsigned long count = ds_page_store_count(l->config.store);
+  if (start < 2 || start > count || pages > count - start) {
+    return DS_ERR_INVALID;
+  }
   if (!ds_size_mul((size_t)pages, ps, &bytes)) {
     return DS_ERR_OVERFLOW;
   }
@@ -481,6 +507,15 @@ static ds_status_t lsm_log_write_page(ds_lsm_t *l, int sealed) {
   size_t ps = lsm_page_size(l);
   unsigned long crc;
   ds_status_t st;
+  /* Version and index fields occupy 32 bits even on an LP64 writer.
+   * Seal before a version wraps, preserving monotone recovery ordering. */
+  if (l->log_version == LSM_M32) {
+    sealed = 1;
+  }
+  if (l->log_version > LSM_M32 || l->log_index > LSM_M32 ||
+      (sealed && l->log_index == LSM_M32)) {
+    return DS_ERR_OVERFLOW;
+  }
   if (l->log_next == 0) {
     /* the pair after this one is chosen before the page is first written,
      * so every version names the same successor */
@@ -566,8 +601,21 @@ ds_status_t ds_lsm_sync(ds_lsm_t *lsm) {
   if (lsm == NULL || lsm->l0 == NULL) {
     return DS_ERR_NULL;
   }
+  if (lsm->broken) {
+    return DS_ERR_STATE;
+  }
   if (lsm->config.store == NULL) {
     return DS_OK;
+  }
+  if (lsm->sync_failed) {
+    /* A failed sync may leave the newest log image accepted but not yet
+     * durable. Commit it before another version reuses the alternate
+     * location, which can still hold the last successfully synced image. */
+    st = ds_page_store_sync(lsm->config.store);
+    if (st != DS_OK) {
+      return st;
+    }
+    lsm->sync_failed = false;
   }
   st = lsm_log_flush_pending(lsm);
   if (st == DS_OK) {
@@ -575,6 +623,8 @@ ds_status_t ds_lsm_sync(ds_lsm_t *lsm) {
   }
   if (st == DS_OK) {
     lsm->unsynced = 0;
+  } else {
+    lsm->sync_failed = true;
   }
   return st;
 }
@@ -630,7 +680,7 @@ static ds_status_t lsm_publish(ds_lsm_t *l) {
   size_t i;
   unsigned long head = 0;
   unsigned long mstart = 0;
-  unsigned long seq = l->seq + 1;
+  unsigned long seq;
   ds_status_t st;
   if (l->config.store == NULL) {
     return DS_OK;
@@ -638,6 +688,10 @@ static ds_status_t lsm_publish(ds_lsm_t *l) {
   if (l->broken) {
     return DS_ERR_STATE;
   }
+  if (l->seq == (unsigned long)-1) {
+    return DS_ERR_OVERFLOW;
+  }
+  seq = l->seq + 1;
   st = lsm_ext_alloc(l, 2, &head);
   if (st == DS_OK) {
     st = lsm_encode_manifest(l, seq, head, &man, &len);
@@ -702,6 +756,7 @@ static ds_status_t lsm_publish(ds_lsm_t *l) {
   l->log_used = 0;
   l->pending_len = 0;
   l->unsynced = 0;
+  l->sync_failed = false;
   lsm_ext_sweep(l);
   return DS_OK;
 }
@@ -715,18 +770,23 @@ typedef struct lsm_slot {
   unsigned long crc;
 } lsm_slot_t;
 
-static int lsm_read_slot(ds_lsm_t *l, unsigned long page, unsigned char *buf,
-                         lsm_slot_t *s) {
-  if (ds_page_store_read(l->config.store, page, buf) != DS_OK ||
-      memcmp(buf, lsm_slot_magic, 8) != 0 ||
+static ds_status_t lsm_read_slot(ds_lsm_t *l, unsigned long page,
+                                 unsigned char *buf, lsm_slot_t *s, int *ok) {
+  ds_status_t st = ds_page_store_read(l->config.store, page, buf);
+  *ok = 0;
+  if (st != DS_OK) {
+    return st;
+  }
+  if (memcmp(buf, lsm_slot_magic, 8) != 0 ||
       lsm_get4(buf + 36) != ds_sstable_crc32c(0, buf, 36) ||
       !lsm_get8(buf + 8, &s->seq) || !lsm_get8(buf + 16, &s->start) ||
       !lsm_get8(buf + 24, &s->len) || (s->seq & 1UL) != page || s->start < 2 ||
-      s->len < 72) {
-    return 0;
+      s->seq == 0 || s->len < 72) {
+    return DS_OK;
   }
   s->crc = lsm_get4(buf + 32);
-  return 1;
+  *ok = 1;
+  return DS_OK;
 }
 
 /* loads the tables of a manifest; *log_head gets the log */
@@ -753,13 +813,16 @@ static ds_status_t lsm_load(ds_lsm_t *l, const lsm_slot_t *slot,
       v != l->cmp.id || !lsm_get8(man + 32, &v) || v != slot->seq ||
       !lsm_get8(man + 40, log_head) || !lsm_get8(man + 48, &l->flushes) ||
       !lsm_get8(man + 56, &l->compactions) || !lsm_get8(man + 64, &n) ||
-      n > 63 + DS_LSM_MAX_LEVELS || 72 + 32 * n != slot->len) {
+      n > 64 + DS_LSM_MAX_LEVELS || 72 + 32 * n != slot->len) {
     goto done;
   }
   for (i = 0; i < n; i++) {
     if (lsm_get8(man + 72 + 32 * i, &v) && v == 0) {
       l0++;
     }
+  }
+  if (l0 > 64) {
+    goto done; /* the merge fan-in allows at most 64 level-zero tables */
   }
   if (l0 > l->config.l0_tables) {
     void *p = ds_context_realloc(l->config.context, l->l0,
@@ -876,9 +939,11 @@ static ds_status_t lsm_replay(ds_lsm_t *l, unsigned long head) {
       unsigned long ver;
       unsigned long u;
       unsigned long nx;
-      if (ds_page_store_read(l->config.store, pair + (unsigned long)k, pg[k]) !=
-              DS_OK ||
-          memcmp(pg[k], lsm_log_magic, 8) != 0 || !lsm_get8(pg[k] + 8, &id) ||
+      st = ds_page_store_read(l->config.store, pair + (unsigned long)k, pg[k]);
+      if (st != DS_OK) {
+        break;
+      }
+      if (memcmp(pg[k], lsm_log_magic, 8) != 0 || !lsm_get8(pg[k] + 8, &id) ||
           id != l->seq || lsm_get4(pg[k] + 16) != (index & LSM_M32)) {
         continue;
       }
@@ -896,23 +961,34 @@ static ds_status_t lsm_replay(ds_lsm_t *l, unsigned long head) {
         best_version = ver;
       }
     }
-    if (best == NULL) {
+    if (st != DS_OK || best == NULL) {
       break;
     }
     used = lsm_get4(best + 32);
-    if (len + (size_t)used > cap) {
-      size_t nc = cap < 4096 ? 8192 : 2 * cap;
-      void *p;
-      while (nc < len + (size_t)used) {
-        nc *= 2;
-      }
-      p = ds_context_realloc(l->config.context, data, nc);
-      if (p == NULL) {
-        st = DS_ERR_ALLOC;
+    {
+      size_t need;
+      if (!ds_size_add(len, (size_t)used, &need)) {
+        st = DS_ERR_OVERFLOW;
         break;
       }
-      data = (unsigned char *)p;
-      cap = nc;
+      if (need > cap) {
+        size_t nc = cap < 4096 ? 8192 : cap;
+        void *p;
+        while (nc < need) {
+          if (nc > (size_t)-1 / 2) {
+            nc = need;
+            break;
+          }
+          nc *= 2;
+        }
+        p = ds_context_realloc(l->config.context, data, nc);
+        if (p == NULL) {
+          st = DS_ERR_ALLOC;
+          break;
+        }
+        data = (unsigned char *)p;
+        cap = nc;
+      }
     }
     memcpy(data + len, best + LSM_LOG_HEADER, (size_t)used);
     len += (size_t)used;
@@ -921,6 +997,10 @@ static ds_status_t lsm_replay(ds_lsm_t *l, unsigned long head) {
       break;
     }
     pair = next;
+    if (index == LSM_M32) {
+      st = DS_ERR_INVALID;
+      break;
+    }
     index++;
     st = lsm_ext_insert(l, pair, 2, l->seq);
   }
@@ -950,6 +1030,7 @@ static ds_status_t lsm_recover(ds_lsm_t *l) {
   int ok[2];
   int order[2];
   int k;
+  size_t extent_i;
   unsigned long head = 0;
   unsigned char *buf;
   ds_status_t st = DS_ERR_INVALID;
@@ -960,9 +1041,15 @@ static ds_status_t lsm_recover(ds_lsm_t *l) {
   if (buf == NULL) {
     return DS_ERR_ALLOC;
   }
-  ok[0] = lsm_read_slot(l, 0, buf, &slots[0]);
-  ok[1] = lsm_read_slot(l, 1, buf, &slots[1]);
+  st = lsm_read_slot(l, 0, buf, &slots[0], &ok[0]);
+  if (st == DS_OK) {
+    st = lsm_read_slot(l, 1, buf, &slots[1], &ok[1]);
+  }
   ds_context_free(l->config.context, buf);
+  if (st != DS_OK) {
+    return st;
+  }
+  st = DS_ERR_INVALID;
   /* newest first */
   order[0] = ok[1] && (!ok[0] || slots[1].seq > slots[0].seq) ? 1 : 0;
   order[1] = 1 - order[0];
@@ -986,7 +1073,7 @@ static ds_status_t lsm_recover(ds_lsm_t *l) {
     }
     l->l0_count = 0;
     l->extent_count = 0;
-    if (st == DS_ERR_ALLOC) {
+    if (st != DS_ERR_INVALID) {
       return st;
     }
   }
@@ -1001,9 +1088,9 @@ static ds_status_t lsm_recover(ds_lsm_t *l) {
   if (st != DS_OK) {
     return st;
   }
-  for (k = 1; k < (int)l->extent_count; k++) {
-    if (l->extents[k - 1].start + l->extents[k - 1].pages >
-        l->extents[k].start) {
+  for (extent_i = 1; extent_i < l->extent_count; extent_i++) {
+    if (l->extents[extent_i - 1].start + l->extents[extent_i - 1].pages >
+        l->extents[extent_i].start) {
       return DS_ERR_INVALID; /* the log runs into a table */
     }
   }
@@ -1102,7 +1189,8 @@ ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config) {
   }
   if (lsm->config.store != NULL) {
     ds_status_t st = DS_ERR_INVALID;
-    if (lsm->config.store->ops != NULL && lsm->config.store->page_size >= 128) {
+    if (lsm->config.store->ops != NULL && lsm->config.store->page_size >= 128 &&
+        !DS_ABOVE_U32(lsm->config.store->page_size)) {
       lsm->log_page = (unsigned char *)ds_context_calloc(
           config->context, 1, lsm->config.store->page_size);
       st = lsm->log_page == NULL ? DS_ERR_ALLOC : lsm_recover(lsm);
@@ -1249,11 +1337,13 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   if (lsm == NULL || lsm->l0 == NULL) {
     return DS_ERR_NULL;
   }
-  if (lsm->mem_count == 0) {
-    return DS_OK;
-  }
   if (lsm->broken) {
     return DS_ERR_STATE;
+  }
+  if (lsm->mem_count == 0) {
+    /* A previous flush may have built tables but failed to publish them. */
+    return lsm->config.store != NULL && lsm->unsynced != 0
+               ? lsm_publish(lsm) : DS_OK;
   }
   if (lsm->l0_count > lsm->config.l0_tables) {
     /* an earlier compaction failed: retry it before adding a table */
@@ -1442,12 +1532,19 @@ static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
   if (l->replaying) {
     return DS_OK;
   }
-  l->unsynced++;
+  if (l->unsynced != (size_t)-1) {
+    l->unsynced++;
+  }
   if (l->mem_bytes >= l->config.memtable_bytes) {
-    /* a failed flush leaves the entry in the memtable (and the log); the
-     * next modification retries */
-    (void)ds_lsm_flush(l);
-  } else if (logged && l->config.sync_every != 0 &&
+    /* An in-memory update can survive a failed automatic compaction.
+     * Persistent updates must report failed publication, including an
+     * ambiguous slot write that marks the tree broken. */
+    st = ds_lsm_flush(l);
+    if (logged && st != DS_OK) {
+      return st;
+    }
+  }
+  if (logged && l->config.sync_every != 0 &&
              l->unsynced >= l->config.sync_every) {
     return ds_lsm_sync(l);
   }

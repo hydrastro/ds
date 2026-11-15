@@ -727,10 +727,20 @@ ds_status_t ds_gview_dijkstra_with(const ds_gview_t *g, size_t source,
   }
   out_dist[source] = 0.0;
   st = gv_offer(&r, source, 0.0);
-  while (st == DS_OK && ds_pq_pop(&r.pq, &it) == DS_OK) {
-    size_t u = it.vertex;
-    size_t d = g->degree(g->graph, u);
+  while (st == DS_OK) {
+    size_t u;
+    size_t d;
     size_t i;
+    st = ds_pq_pop(&r.pq, &it);
+    if (st == DS_EMPTY) {
+      st = DS_OK;
+      break;
+    }
+    if (st != DS_OK) {
+      break;
+    }
+    u = it.vertex;
+    d = g->degree(g->graph, u);
     r.ws->state[u] = GV_DONE;
     for (i = 0; i < d && st == DS_OK; i++) {
       size_t to;
@@ -787,9 +797,17 @@ ds_status_t ds_gview_prim_with(const ds_gview_t *g, size_t *out_parent,
     }
     r.ws->key[s] = 0.0;
     st = gv_offer(&r, s, 0.0);
-    while (st == DS_OK && ds_pq_pop(&r.pq, &it) == DS_OK) {
+    while (st == DS_OK) {
       size_t d;
       size_t i;
+      st = ds_pq_pop(&r.pq, &it);
+      if (st == DS_EMPTY) {
+        st = DS_OK;
+        break;
+      }
+      if (st != DS_OK) {
+        break;
+      }
       v = it.vertex;
       r.ws->state[v] = GV_DONE;
       total += it.key;
@@ -843,14 +861,23 @@ ds_status_t ds_gview_astar_with(const ds_gview_t *g, size_t source,
     }
   }
   out_dist[source] = 0.0;
-  hs = heuristic == NULL ? 0.0 : heuristic(source, user);
+  hs = heuristic == NULL || source == target ? 0.0 : heuristic(source, user);
   if (hs < HUGE_VAL) {
     st = gv_offer(&r, source, hs);
   }
-  while (st == DS_OK && ds_pq_pop(&r.pq, &it) == DS_OK) {
-    size_t u = it.vertex;
+  while (st == DS_OK) {
+    size_t u;
     size_t d;
     size_t i;
+    st = ds_pq_pop(&r.pq, &it);
+    if (st == DS_EMPTY) {
+      st = DS_OK;
+      break;
+    }
+    if (st != DS_OK) {
+      break;
+    }
+    u = it.vertex;
     r.ws->state[u] = GV_DONE;
     if (u == target) {
       found = true; /* admissible: the first pop of the target is final */
@@ -874,7 +901,7 @@ ds_status_t ds_gview_astar_with(const ds_gview_t *g, size_t source,
       if (!(cand < out_dist[to])) {
         continue;
       }
-      h = heuristic == NULL ? 0.0 : heuristic(to, user);
+      h = heuristic == NULL || to == target ? 0.0 : heuristic(to, user);
       out_dist[to] = cand;
       if (out_parent != NULL) {
         out_parent[to] = u;

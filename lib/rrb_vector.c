@@ -269,7 +269,7 @@ ds_status_t ds_rrb_init(ds_rrb_t *vec, const ds_rrb_config_t *config) {
 }
 
 void ds_rrb_copy(const ds_rrb_t *vec, ds_rrb_t *out) {
-  if (vec == NULL || out == NULL) {
+  if (vec == NULL || out == NULL || vec == out) {
     return;
   }
   if (vec->root != NULL) {
@@ -426,6 +426,9 @@ ds_status_t ds_rrb_push_back(const ds_rrb_t *vec, const void *elem,
   ds_status_t st;
   if (vec == NULL || elem == NULL || out == NULL || vec->config == NULL) {
     return DS_ERR_NULL;
+  }
+  if (vec->size == (size_t)-1) {
+    return DS_ERR_OVERFLOW;
   }
   c = vec->config;
   height = vec->height;

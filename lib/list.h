@@ -2,6 +2,7 @@
 #define DS_LIST_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -26,6 +27,7 @@ typedef struct linked_list {
 typedef ds_list_node_t list_node_t;
 typedef ds_list_t list_t;
 
+/* NULL on allocation failure (or a missing allocator/deallocator). */
 ds_list_t *ds_list_create(void);
 ds_list_t *ds_list_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *));
@@ -45,11 +47,22 @@ void ds_list_destroy_node(ds_list_t *list, ds_list_node_t *node,
 void ds_list_destroy(ds_list_t *list, void (*destroy)(ds_list_node_t *));
 void ds_list_walk_forward(ds_list_t *list, ds_list_node_t *node,
                           void (*callback)(ds_list_node_t *));
+/* Temporarily reverses links: callback must not inspect/traverse/mutate
+ * the list or free its nodes. Links are restored when the walk returns. */
 void ds_list_walk_backwards(ds_list_t *list, ds_list_node_t *node,
                             void (*callback)(ds_list_node_t *));
 bool ds_list_is_empty(ds_list_t *list);
+/* Legacy clone: clone_node must return a new node on every call (cannot
+ * fail); NULL is returned if allocating the list or sentinel fails.
+ * Use clone_ex for fallible cloning and caller-defined rollback. */
 ds_list_t *ds_list_clone(ds_list_t *list,
                          ds_list_node_t *(*clone_node)(ds_list_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back completed
+ * clones through destroy_clone and returns DS_ERR_CALLBACK. All callbacks
+ * are required. On any error *out is NULL and the source is unchanged. */
+ds_status_t ds_list_clone_ex(
+    const ds_list_t *list, ds_list_node_t *(*clone_node)(ds_list_node_t *),
+    void (*destroy_clone)(ds_list_node_t *), ds_list_t **out);
 
 #ifdef __cplusplus
 }

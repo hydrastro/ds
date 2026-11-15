@@ -1,5 +1,6 @@
 #include "pager.h"
 #include "checked.h"
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -138,6 +139,7 @@ static ds_status_t file_seek(pg_file_t *p, unsigned long page) {
   if (page > (unsigned long)LONG_MAX / (unsigned long)p->page_size) {
     return DS_ERR_RANGE;
   }
+  clearerr(p->f); /* permit a retry after an earlier short read or write */
   return fseek(p->f, (long)(page * (unsigned long)p->page_size), SEEK_SET) == 0
              ? DS_OK
              : PG_ERR_IO;
@@ -244,10 +246,15 @@ ds_status_t ds_page_store_file(ds_page_store_t *store, const char *path,
     return DS_ERR_ALLOC;
   }
   p->f = truncate ? NULL : fopen(path, "r+b");
-  if (p->f == NULL) {
+  if (p->f == NULL && (truncate || errno == ENOENT)) {
     p->f = fopen(path, "w+b");
   }
-  if (p->f == NULL || fseek(p->f, 0L, SEEK_END) != 0 ||
+  /* A successful write must relinquish the pager's only dirty copy safely.
+   * Buffered stdio may accept bytes and then discard them on a failed flush.
+   * Set the mode before any I/O, so write errors reach pg_write_back before
+   * it clears the frame's dirty flag or evicts it. */
+  if (p->f == NULL || setvbuf(p->f, NULL, _IONBF, 0) != 0 ||
+      fseek(p->f, 0L, SEEK_END) != 0 ||
       (size = ftell(p->f)) < 0) {
     if (p->f != NULL) {
       (void)fclose(p->f);

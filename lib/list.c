@@ -5,10 +5,21 @@ ds_list_t *ds_list_create(void) { return ds_list_create_alloc(malloc, free); }
 
 ds_list_t *ds_list_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *)) {
-  ds_list_t *list = (ds_list_t *)allocator(sizeof(ds_list_t));
+  ds_list_t *list;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  list = (ds_list_t *)allocator(sizeof(ds_list_t));
+  if (list == NULL) {
+    return NULL;
+  }
   list->allocator = allocator;
   list->deallocator = deallocator;
   list->nil = (ds_list_node_t *)allocator(sizeof(ds_list_node_t));
+  if (list->nil == NULL) {
+    deallocator(list);
+    return NULL;
+  }
   list->head = list->nil;
   list->tail = list->nil;
   list->nil->next = list->nil;
@@ -173,7 +184,13 @@ ds_list_t *ds_list_clone(ds_list_t *list,
                          ds_list_node_t *(*clone_node)(ds_list_node_t *)) {
   ds_list_t *new_list;
   ds_list_node_t *current;
+  if (list == NULL || clone_node == NULL) {
+    return NULL;
+  }
   new_list = ds_list_create_alloc(list->allocator, list->deallocator);
+  if (new_list == NULL) {
+    return NULL;
+  }
   current = list->head;
   while (current != list->nil) {
     ds_list_node_t *cloned_node = clone_node(current);
@@ -182,4 +199,32 @@ ds_list_t *ds_list_clone(ds_list_t *list,
   }
 
   return new_list;
+}
+
+ds_status_t ds_list_clone_ex(
+    const ds_list_t *list, ds_list_node_t *(*clone_node)(ds_list_node_t *),
+    void (*destroy_clone)(ds_list_node_t *), ds_list_t **out) {
+  ds_list_t *copy;
+  ds_list_node_t *current;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (list == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  copy = ds_list_create_alloc(list->allocator, list->deallocator);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  for (current = list->head; current != list->nil; current = current->next) {
+    ds_list_node_t *node = clone_node(current);
+    if (node == NULL) {
+      ds_list_destroy(copy, destroy_clone);
+      return DS_ERR_CALLBACK;
+    }
+    ds_list_append(copy, node);
+  }
+  *out = copy;
+  return DS_OK;
 }

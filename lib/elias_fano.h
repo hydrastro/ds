@@ -92,6 +92,9 @@ ds_status_t ds_elias_fano_prev_leq(const ds_elias_fano_t *ef, unsigned long x,
 size_t ds_elias_fano_bits(const ds_elias_fano_t *ef);
 /* bytes of the two select directories */
 size_t ds_elias_fano_index_bytes(const ds_elias_fano_t *ef);
+/* Allocated backing arrays, including word padding, spare words and both
+ * directories; excludes sizeof(*ef) and allocator bookkeeping. */
+size_t ds_elias_fano_storage_bytes(const ds_elias_fano_t *ef);
 
 #ifdef __cplusplus
 }

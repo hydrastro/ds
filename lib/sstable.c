@@ -305,6 +305,12 @@ ds_status_t ds_sstable_builder_init_opts(ds_sstable_builder_t *b,
   b->filter_ops = options->filter;
   b->filter_fp_bits = options->filter_fp_bits;
   b->cmp = options->comparator == NULL ? sst_bytewise : *options->comparator;
+  /* The on-disk filters hash bytes, not comparator equivalence classes.
+   * A custom order may equate different spellings of the same key. */
+  if (b->cmp.id != 0) {
+    b->bits_per_key = 0;
+    b->filter_ops = NULL;
+  }
   b->context = context;
   return DS_OK;
 }
@@ -825,7 +831,8 @@ ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
                                ds_context_t *context) {
   const unsigned char *img;
   ds_status_t st = ds_sstable_open_cmp(t, data, len, cmp);
-  if (st != DS_OK || t->filter_kind != DS_SSTABLE_FILTER_AMQ) {
+  if (st != DS_OK || t->filter_kind != DS_SSTABLE_FILTER_AMQ ||
+      t->cmp.id != 0) {
     return st;
   }
   img = t->data + t->filter_off;
@@ -852,7 +859,7 @@ void ds_sstable_close(ds_sstable_t *t) {
 }
 
 bool ds_sstable_has_filter(const ds_sstable_t *t) {
-  if (t == NULL || t->data == NULL) {
+  if (t == NULL || t->data == NULL || t->cmp.id != 0) {
     return false;
   }
   return t->filter_kind == DS_SSTABLE_FILTER_BLOOM ||
@@ -885,7 +892,7 @@ bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
   unsigned long h;
   unsigned long delta;
   size_t j;
-  if (t == NULL || t->data == NULL) {
+  if (t == NULL || t->data == NULL || t->cmp.id != 0) {
     return true;
   }
   if (t->filter_kind == DS_SSTABLE_FILTER_AMQ) {

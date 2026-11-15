@@ -72,12 +72,14 @@ bool ds_schema_equal(const ds_schema_t *a, const ds_schema_t *b) {
 
 ds_schema_service_t ds_schema_transfer(const ds_schema_t *from,
                                        const ds_schema_t *to) {
+  if (ds_schema_validate(from) != DS_OK || ds_schema_validate(to) != DS_OK) {
+    return DS_SCHEMA_NONE;
+  }
   if (ds_schema_equal(from, to)) {
     return DS_SCHEMA_MOVE;
   }
   if (ds_schema_same_layout(from, to) &&
-      ds_schema_policy(from) != DS_SCHEMA_INVALID &&
-      ds_schema_policy(to) != DS_SCHEMA_INVALID) {
+      (from->destroy == NULL || to->copy != NULL)) {
     return DS_SCHEMA_COPY;
   }
   return DS_SCHEMA_NONE;

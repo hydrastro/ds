@@ -1,4 +1,5 @@
 #include "decremental_msf.h"
+#include <float.h>
 #include <string.h>
 
 #define DM_NONE DS_DMSF_NONE
@@ -473,8 +474,8 @@ ds_status_t ds_dmsf_init(ds_dmsf_t *g, size_t n, const size_t *u,
     if (u[i] >= n || v[i] >= n) {
       return DS_ERR_RANGE;
     }
-    if (!(w[i] >= w[i])) {
-      return DS_ERR_INVALID; /* NaN */
+    if (!(w[i] >= -DBL_MAX && w[i] <= DBL_MAX)) {
+      return DS_ERR_INVALID; /* NaN or infinity */
     }
   }
   if (m > (size_t)-1 / sizeof(ds_dmsf_edge_t) / 2 ||

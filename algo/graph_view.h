@@ -133,7 +133,9 @@ typedef double (*ds_gview_heuristic_fn)(size_t vertex, void *user);
 
 /* A* from source to target with an admissible heuristic (never above the
  * true remaining distance; NULL: zero, which is Dijkstra stopped at the
- * target). Consistent heuristics settle each vertex once; inconsistent
+ * target). The target's heuristic is always taken as zero, even when
+ * the callback would return a negative admissible estimate there.
+ * Consistent heuristics settle each vertex once; inconsistent
  * admissible ones reopen vertices and stay exact. out_dist holds the best
  * known distance of every vertex reached (HUGE_VAL elsewhere) and is exact
  * for the target. DS_OK when the target was reached, DS_NOT_FOUND when it

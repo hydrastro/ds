@@ -122,7 +122,7 @@ typedef struct ds_dyn_msf {
 
 ds_status_t ds_dyn_msf_init(ds_dyn_msf_t *g, size_t n, ds_context_t *context);
 void ds_dyn_msf_destroy(ds_dyn_msf_t *g);
-/* add edge (u, v) of weight w (u == v allowed, never in F; NaN is
+/* add edge (u, v) of weight w (u == v allowed, never in F; a nonfinite w is
  * DS_ERR_INVALID); its id to *out_id */
 ds_status_t ds_dyn_msf_insert(ds_dyn_msf_t *g, size_t u, size_t v, double w,
                               size_t *out_id);
@@ -138,7 +138,10 @@ ds_status_t ds_dyn_msf_path_max(ds_dyn_msf_t *g, size_t u, size_t v,
                                 size_t *out_id);
 size_t ds_dyn_msf_edges(const ds_dyn_msf_t *g);
 size_t ds_dyn_msf_forest_edges(const ds_dyn_msf_t *g);
-/* the forest's weight (a running sum: rounding may accumulate) */
+/* The forest's weight: a running double sum. Rounding may accumulate and
+ * finite inputs can still overflow the sum; keep intermediate totals in
+ * range when using this query. Forest membership uses edge comparisons
+ * and does not depend on the sum. */
 double ds_dyn_msf_weight(const ds_dyn_msf_t *g);
 
 bool ds_dyn_msf_broken(const ds_dyn_msf_t *g);

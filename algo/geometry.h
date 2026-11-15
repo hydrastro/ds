@@ -6,9 +6,11 @@
  *
  * Orientation (ds_geo_orient) is the adaptive exact predicate of
  * robust_predicates.h: its sign is exact for coordinates in that header's
- * orient2d range, and its magnitude is approximate. Every decision built
- * on it is therefore exact: segment intersection, point in polygon,
- * hull membership, kernel side tests. Constructions are not: intersection
+ * orient2d range, and its magnitude is approximate. Segment intersection,
+ * point in polygon, and hull membership use exact signs. Hull distance
+ * ties use coordinate order, and Quickhull compares signed heights with
+ * an adaptive exact predicate, rather than approximate magnitudes.
+ * Constructions are not exact: intersection
  * points, clipped vertices, areas, distances and calipers round as plain
  * double arithmetic does. Other geometric modules (geo_opt) still use
  * plain floating point.

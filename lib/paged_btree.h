@@ -90,9 +90,13 @@ typedef struct ds_pbtree_iter {
   size_t index;
   unsigned long key;
   unsigned char *value; /* copy of the current value */
+  unsigned long leaves_left; /* traversal budget across calls to next */
+  bool has_key;
 } ds_pbtree_iter_t;
 
-/* formats an empty store or opens an existing tree (value_size must match) */
+/* formats an empty store or opens an existing tree (value_size must match).
+ * A failed initial format leaves an explicit initialization marker; open
+ * can retry on the same pager. This does not provide crash recovery. */
 ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
                            size_t value_size);
 /* writes the metadata page (call before flushing the pager) */
@@ -111,7 +115,10 @@ ds_status_t ds_pbtree_get(ds_pbtree_t *tree, unsigned long key, void *out);
 ds_status_t ds_pbtree_remove(ds_pbtree_t *tree, unsigned long key);
 unsigned long ds_pbtree_size(const ds_pbtree_t *tree);
 
-/* first entry with key >= from; the iterator copies values (context) */
+/* first entry with key >= from; the iterator copies values (context).
+ * Changing the tree invalidates its iterators. Failed initialization owns
+ * no allocation. A corrupt leaf cycle or non-increasing key returns
+ * DS_ERR_INVALID and exhausts the iterator. */
 ds_status_t ds_pbtree_iter_init(ds_pbtree_iter_t *it, ds_pbtree_t *tree,
                                 unsigned long from);
 bool ds_pbtree_iter_valid(const ds_pbtree_iter_t *it);

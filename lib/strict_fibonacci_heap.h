@@ -72,6 +72,7 @@ typedef struct ds_sf_heap {
   ds_sf_node_t *root;
   ds_sf_node_t *queue; /* front of Q */
   size_t size;
+  size_t ceil_lg; /* ceil(log2(size)), maintained without a rank scan */
   size_t item_size;
   ds_sf_compare_fn compare;
   void *user;

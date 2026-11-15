@@ -5,6 +5,10 @@ VALGRIND ?= valgrind
 CLANG_FORMAT ?= clang-format
 CPPCHECK ?= cppcheck
 
+ifeq ($(filter grouped-target,$(.FEATURES)),)
+$(error GNU Make 4.3 or newer is required for grouped generated outputs)
+endif
+
 CFLAGS = -std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors \
          -Waggregate-return -Wbad-function-cast -Wcast-align -Wcast-qual \
          -Wdeclaration-after-statement -Wfloat-equal -Wlogical-op \
@@ -562,19 +566,12 @@ unicode-data: $(UCD_FILES)
 $(GEN_BIN): $(GEN_SRC) | $(BUILD_DIR)
 	$(CC) -std=c89 -Wall -Wextra -O2 $(INCLUDES) -o $@ $<
 
-# The generator writes the .c and .h together. One stamp target runs it
-# once (a plain two-target rule may run it twice in parallel builds); the
-# outputs depend on the stamp and regenerate if either goes missing.
+# The generator owns all three outputs. Grouped targets serialize a
+# regeneration even when both source/header disappear but the stamp remains.
 GEN_STAMP := $(BUILD_DIR)/unicode_tables.stamp
 TEST_GEN_STAMP := $(TEST_BUILD_DIR)/unicode_tables.stamp
 
-$(GEN_SRC_C) $(GEN_SRC_H): $(GEN_STAMP)
-	@[ -f $@ ] || { rm -f $(GEN_STAMP); $(MAKE) $(GEN_STAMP); }
-
-$(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H): $(TEST_GEN_STAMP)
-	@[ -f $@ ] || { rm -f $(TEST_GEN_STAMP); $(MAKE) $(TEST_GEN_STAMP); }
-
-$(GEN_STAMP): $(GEN_BIN) $(UCD_FILES) | $(BUILD_DIR)
+$(GEN_SRC_C) $(GEN_SRC_H) $(GEN_STAMP) &: $(GEN_BIN) $(UCD_FILES) | $(BUILD_DIR)
 	$(GEN_BIN) \
 	  --unicode-data $(DATA_DIR)/UnicodeData.txt \
 	  --case-folding $(DATA_DIR)/CaseFolding.txt \
@@ -583,9 +580,9 @@ $(GEN_STAMP): $(GEN_BIN) $(UCD_FILES) | $(BUILD_DIR)
 	  --emoji-data   $(DATA_DIR)/emoji-data.txt \
 	  --out-c        $(GEN_SRC_C) \
 	  --out-h        $(GEN_SRC_H)
-	@touch $@
+	@touch $(GEN_STAMP)
 
-$(TEST_GEN_STAMP): $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD_DIR)
+$(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H) $(TEST_GEN_STAMP) &: $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD_DIR)
 	$(GEN_BIN) \
 	  --unicode-data $(TEST_UCD_DIR)/UnicodeData.txt \
 	  --case-folding $(TEST_UCD_DIR)/CaseFolding.txt \
@@ -594,7 +591,7 @@ $(TEST_GEN_STAMP): $(GEN_BIN) $(TEST_UCD_FILES) | $(TEST_BUILD_DIR)
 	  --emoji-data   $(TEST_UCD_DIR)/emoji-data.txt \
 	  --out-c        $(TEST_GEN_SRC_C) \
 	  --out-h        $(TEST_GEN_SRC_H)
-	@touch $@
+	@touch $(TEST_GEN_STAMP)
 
 %.o: %.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<

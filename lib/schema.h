@@ -35,8 +35,11 @@
  *            ds_context_compatible)
  *   copy     equal layout and id but different callbacks: each element is
  *            cloned with the destination's copy and released with the
- *            source's destroy
- *   none     different layouts: a conversion is the caller's job
+ *            source's destroy. An owned source requires a destination
+ *            copy callback; copying its bytes and destroying it would
+ *            leave a dangling destination.
+ *   none     invalid schemas, different layouts, or an owned source with
+ *            no destination copy callback: a conversion is the caller's job
  *
  * Containers copy the schema at initialization; changing it afterwards
  * does not affect them. ds_pvec_config_from_schema and

@@ -1,5 +1,6 @@
 #include "strict_fibonacci_heap.h"
 #include "checked.h"
+#include <limits.h>
 #include <string.h>
 
 /*
@@ -223,8 +224,8 @@ static size_t sf_ceil_lg(size_t n) {
 static size_t sf_bound(size_t n) { return 2 * sf_ceil_lg(n) + 6; }
 
 /* rank records for n items: ranks up to min(R, n - 1), and a spare */
-static size_t sf_ranks_needed(size_t n) {
-  size_t r = sf_bound(n);
+static size_t sf_ranks_for(size_t n, size_t ceil_lg) {
+  size_t r = 2 * ceil_lg + 6;
   if (n == 0) {
     return 0;
   }
@@ -232,6 +233,15 @@ static size_t sf_ranks_needed(size_t n) {
     r = n - 1;
   }
   return r + 2;
+}
+
+static size_t sf_ranks_needed(size_t n) {
+  return sf_ranks_for(n, sf_ceil_lg(n));
+}
+
+/* Incrementing a size changes ceil(log2(size)) only at a power of two. */
+static size_t sf_next_lg(const ds_sf_heap_t *h) {
+  return h->ceil_lg + (h->size != 0 && (h->size & (h->size - 1)) == 0);
 }
 
 static size_t sf_ranks(const ds_sf_heap_t *h) {
@@ -251,8 +261,8 @@ static void sf_rank_clear(ds_sf_rank_t *k) {
 }
 
 /* lengthen the rank list for n items, from the garbage first */
-static ds_status_t sf_grow(ds_sf_heap_t *h, size_t n) {
-  size_t need = sf_ranks_needed(n);
+static ds_status_t sf_grow(ds_sf_heap_t *h, size_t n, size_t ceil_lg) {
+  size_t need = sf_ranks_for(n, ceil_lg);
   while (sf_ranks(h) < need) {
     ds_sf_rank_t *k = h->garbage;
     if (k != NULL) {
@@ -632,6 +642,7 @@ static void sf_clear(ds_sf_heap_t *h) {
   h->root = NULL;
   h->queue = NULL;
   h->size = 0;
+  h->ceil_lg = 0;
   h->record = NULL;
   h->boundary = NULL;
   h->active_roots = 0;
@@ -650,6 +661,7 @@ static void sf_take(ds_sf_heap_t *dst, const ds_sf_heap_t *src) {
   dst->root = src->root;
   dst->queue = src->queue;
   dst->size = src->size;
+  dst->ceil_lg = src->ceil_lg;
   dst->record = src->record;
   dst->boundary = src->boundary;
   dst->active_roots = src->active_roots;
@@ -725,6 +737,7 @@ static void sf_insert(ds_sf_heap_t *h, ds_sf_node_t *n) {
   n->loss = 0;
   n->degree = 0;
   n->fix = SF_UNFILED;
+  h->ceil_lg = sf_next_lg(h);
   h->size++;
   if (h->root == NULL) {
     h->root = n;
@@ -751,6 +764,9 @@ ds_status_t ds_sf_heap_push(ds_sf_heap_t *h, const void *item,
   if (h == NULL || item == NULL) {
     return DS_ERR_NULL;
   }
+  if (h->size == (size_t)-1) {
+    return DS_ERR_OVERFLOW;
+  }
   if (h->record == NULL) {
     h->record =
         (ds_sf_record_t *)ds_context_alloc(h->context, sizeof(ds_sf_record_t));
@@ -761,7 +777,7 @@ ds_status_t ds_sf_heap_push(ds_sf_heap_t *h, const void *item,
     h->record->owned = 1;
     h->record->refs = 0;
   }
-  if (sf_grow(h, h->size + 1) != DS_OK) {
+  if (sf_grow(h, h->size + 1, sf_next_lg(h)) != DS_OK) {
     return DS_ERR_ALLOC;
   }
   n = (ds_sf_node_t *)ds_context_alloc(h->context, sizeof(ds_sf_node_t));
@@ -807,6 +823,11 @@ static ds_sf_node_t *sf_take_root(ds_sf_heap_t *h) {
   size_t k;
   int i;
   h->size--;
+  if (h->size == 0) {
+    h->ceil_lg = 0;
+  } else if ((h->size & (h->size - 1)) == 0) {
+    h->ceil_lg--;
+  }
   if (z->child == NULL) {
     h->root = NULL;
     h->boundary = NULL;
@@ -1002,6 +1023,11 @@ void ds_sf_heap_meld(ds_sf_heap_t *h, ds_sf_heap_t *other) {
   }
   sf_take(h, big);
   h->size = a.size + b.size;
+  /* The sum is at most twice the larger size: at most one new bit. */
+  if (h->ceil_lg < sizeof(size_t) * CHAR_BIT &&
+      h->size > ((size_t)1 << h->ceil_lg)) {
+    h->ceil_lg++;
+  }
   sf_discard(h, small->rank0, small->top);
   sf_discard(h, small->garbage, small->garbage_tail);
   if (sf_less(h, small->root, big->root)) {
@@ -1017,7 +1043,7 @@ void ds_sf_heap_meld(ds_sf_heap_t *h, ds_sf_heap_t *other) {
   v->qnext = v;
   h->queue = sf_q_concat(sf_q_concat(small->queue, v), big->queue);
   sf_root_add(h, v);
-  (void)sf_grow(h, h->size); /* from the garbage: never allocates */
+  (void)sf_grow(h, h->size, h->ceil_lg); /* from garbage: never allocates */
   sf_reduce(h, 1, 1);
   sf_collect(h, 2);
 }
@@ -1232,7 +1258,7 @@ bool ds_sf_heap_check(const ds_sf_heap_t *h) {
   size_t r;
   const ds_sf_node_t *c;
   const ds_sf_node_t *want = NULL;
-  if (h == NULL) {
+  if (h == NULL || h->ceil_lg != sf_ceil_lg(h->size)) {
     return false;
   }
   if (h->root == NULL) {

@@ -54,7 +54,11 @@ typedef struct ds_page_store_ops {
   unsigned traits;
   /* pages at or past count read as zeros */
   ds_status_t (*read)(void *impl, unsigned long page, void *buf);
-  /* writing past the end grows the store (gaps read as zeros) */
+  /* writing past the end grows the store (gaps read as zeros). DS_OK means
+   * the backend retains the bytes independently of buf, including across
+   * a failed sync and its retry: the pager may now evict its dirty copy.
+   * This is not a durability promise. The stdio store uses unbuffered I/O
+   * so delayed stdio flush failures cannot discard an accepted write. */
   ds_status_t (*write)(void *impl, unsigned long page, const void *buf);
   ds_status_t (*sync)(void *impl);
   unsigned long (*count)(const void *impl);

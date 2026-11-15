@@ -17,10 +17,12 @@
  *                            vertices (weighted blossom algorithm, see
  *                            weighted_matching.h), an Euler tour,
  *                            shortcuts. For a metric matrix the 3/2
- *                            bound holds for every n with integral
- *                            distances (the matching is then exact);
- *                            with fractional distances it holds up to
- *                            the matching's floating tolerance
+ *                            bound assumes an exact minimum matching.
+ *                            Integral distances must fit the matching's
+ *                            exact range and its duals must stay in range;
+ *                            integer inputs alone do not guarantee this.
+ *                            Floating-mode fallback has no certified 3/2
+ *                            bound from this implementation
  *   DS_TSP_CHRISTOFIDES_TWO_OPT  Christofides followed by 2-opt
  * ds_tsp_euclidean builds the matrix from points in the plane first.
  * ds_tsp_bottleneck minimises the longest edge of the tour (exact: the
