@@ -160,7 +160,7 @@ Core mutable containers:
 - Pairing heap
 - Radix heap (monotone priority queue over unsigned long keys)
 - Radix trie (path-compressed)
-- Robin Hood hash map (by-value keys/values, backward-shift deletion, fixed-buffer mode)
+- Robin Hood hash map (by-value keys/values, backward-shift deletion, fixed-buffer mode, iteration that stays exact through insertions, removals and growth)
 - Rope (chunked string with O(log n) splice)
 - Segment tree (lazy propagation: range add/assign, range sum/min/max)
 - Shadow heap (binary heap with an unordered insertion table, shadow merge insert, shadow merge, pluggable threshold)
@@ -181,7 +181,7 @@ Core mutable containers:
 - Timer wheel (hierarchical, intrusive timers, O(1) start/cancel, no allocation)
 - Treap
 - Trie
-- Trie child stores: Robin Hood map and sorted vector (pluggable via ds_trie_store_ops_t)
+- Trie child stores: Robin Hood map and sorted vector (pluggable via ds_trie_store_ops_t; with a store's next operation the trie walks, copies and destroys itself without recursion)
 - Union-find with rollback (snapshot/undo of unions)
 - van Emde Boas tree (O(log log U) ordered integer set and priority queue, lazy clusters)
 - Vector (by value; growable or fixed caller buffer, heapsort, binary search)
