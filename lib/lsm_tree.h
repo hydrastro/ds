@@ -77,8 +77,11 @@
  * Durability is only as good as the store's sync (lib/pager's
  * DS_PAGE_STORE_DURABLE_SYNC trait: the stdio file store's sync is fflush,
  * which survives a crash of the process, not of the machine). An empty
- * store starts a new tree; a store with pages but no valid slot is
- * DS_ERR_INVALID. Tables are read back into memory when the tree opens:
+ * store starts a new tree: an initialization marker goes to slot 0's page
+ * first, so a store where that start was cut short (the marker, even
+ * torn, and no valid slot: nothing committed) starts over, while a store
+ * with neither is not a tree's and is DS_ERR_INVALID, never overwritten.
+ * Tables are read back into memory when the tree opens:
  * the store gives durability, not out-of-core lookups. Updates since the
  * last sync are lost at ds_lsm_destroy unless synced first.
  *

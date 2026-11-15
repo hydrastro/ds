@@ -1030,6 +1030,58 @@ done:
   return st;
 }
 
+/* A new tree first writes an initialization marker in slot 0's page
+ * (the first publication takes slot 1) and syncs it. A store with no
+ * valid slot that carries the marker is a start that never completed: it
+ * committed nothing and starts over. A store without either is not this
+ * tree's, and is refused rather than overwritten. */
+static const char lsm_init_magic[8] = {'D', 'S', 'L', 'S', 'M', 'I', 'N', '1'};
+
+static void lsm_init_encode(unsigned char *page, size_t ps) {
+  memset(page, 0, ps);
+  memcpy(page, lsm_init_magic, 8);
+  lsm_put4(page + 8, (unsigned long)ps);
+  lsm_put4(page + 12, ds_sstable_crc32c(0, page, 12));
+}
+
+static bool lsm_init_marked(const unsigned char *page, size_t ps) {
+  return memcmp(page, lsm_init_magic, 8) == 0 &&
+         lsm_get4(page + 8) == (unsigned long)ps &&
+         lsm_get4(page + 12) == ds_sstable_crc32c(0, page, 12);
+}
+
+/* page 0 of a one-page store: a prefix of the marker page, zeros after
+ * it, as the marker's own write leaves it if a crash tears it (or loses
+ * it after the page was allocated) */
+static bool lsm_init_torn(const unsigned char *page, size_t ps) {
+  unsigned char m[16];
+  size_t i = 0;
+  memcpy(m, lsm_init_magic, 8);
+  lsm_put4(m + 8, (unsigned long)ps);
+  lsm_put4(m + 12, ds_sstable_crc32c(0, m, 12));
+  while (i < 16 && page[i] == m[i]) {
+    i++;
+  }
+  for (; i < ps; i++) {
+    if (page[i] != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/* marks the store, then publishes the empty tree */
+static ds_status_t lsm_start(ds_lsm_t *l, unsigned char *page) {
+  size_t ps = lsm_page_size(l);
+  ds_status_t st;
+  lsm_init_encode(page, ps);
+  st = ds_page_store_write(l->config.store, 0, page);
+  if (st == DS_OK) {
+    st = ds_page_store_sync(l->config.store);
+  }
+  return st == DS_OK ? lsm_publish(l) : st;
+}
+
 /* opens the tree a store holds, or starts one in an empty store */
 static ds_status_t lsm_recover(ds_lsm_t *l) {
   lsm_slot_t slots[2];
@@ -1040,16 +1092,29 @@ static ds_status_t lsm_recover(ds_lsm_t *l) {
   unsigned long head = 0;
   unsigned char *buf;
   ds_status_t st = DS_ERR_INVALID;
-  if (ds_page_store_count(l->config.store) == 0) {
-    return lsm_publish(l);
-  }
+  bool marked = false;
   buf = (unsigned char *)ds_context_alloc(l->config.context, lsm_page_size(l));
   if (buf == NULL) {
     return DS_ERR_ALLOC;
   }
+  if (ds_page_store_count(l->config.store) == 0) {
+    st = lsm_start(l, buf);
+    ds_context_free(l->config.context, buf);
+    return st;
+  }
   st = lsm_read_slot(l, 0, buf, &slots[0], &ok[0]);
   if (st == DS_OK) {
+    marked = !ok[0] && (ds_page_store_count(l->config.store) == 1
+                            ? lsm_init_torn(buf, lsm_page_size(l))
+                            : lsm_init_marked(buf, lsm_page_size(l)));
     st = lsm_read_slot(l, 1, buf, &slots[1], &ok[1]);
+  }
+  if (st == DS_OK && !ok[0] && !ok[1] && marked) {
+    /* Once a slot has been published one of the two stays valid: this
+     * start never completed and committed nothing. */
+    st = lsm_start(l, buf);
+    ds_context_free(l->config.context, buf);
+    return st;
   }
   ds_context_free(l->config.context, buf);
   if (st != DS_OK) {
