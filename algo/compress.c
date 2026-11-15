@@ -752,7 +752,7 @@ ds_status_t ds_bstw_decompress(const unsigned char *in, size_t n,
   ds_bit_reader_init(&r, in + 4, n - 4);
   for (i = 0; i < count; i++) {
     st = bstw_gamma_get(&r, &p);
-    if (st != DS_OK || p > size + 1) {
+    if (st != DS_OK || p == 0 || p > size + 1) { /* gamma codes are >= 1 */
       return DS_ERR_INVALID;
     }
     if (p == size + 1) {
