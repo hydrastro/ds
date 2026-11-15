@@ -35,6 +35,7 @@ struct ds_sf_rank {
 
 struct ds_sf_cell {
   ds_sf_node_t *node;
+  size_t stamp; /* the heap's insertion count when pushed */
 };
 
 struct ds_sf_node {
@@ -67,12 +68,17 @@ static const unsigned char *sf_citem(const ds_sf_cell_t *c) {
   return (const unsigned char *)(const void *)c + sf_item_at();
 }
 
-/* the strict order: items, then cell addresses as bytes */
+/* the strict order: items, then insertion stamps, so equal items leave
+ * in insertion order whatever the allocator did; cell addresses (as bytes)
+ * settle what stamps cannot, after melds or a wrapped count */
 static bool sf_less(const ds_sf_heap_t *h, const ds_sf_node_t *a,
                     const ds_sf_node_t *b) {
   int c = h->compare(sf_citem(a->cell), sf_citem(b->cell), h->user);
   if (c != 0) {
     return c < 0;
+  }
+  if (a->cell->stamp != b->cell->stamp) {
+    return a->cell->stamp < b->cell->stamp;
   }
   return memcmp(&a->cell, &b->cell, sizeof(a->cell)) < 0;
 }
@@ -654,6 +660,7 @@ static void sf_clear(ds_sf_heap_t *h) {
   h->loss2 = NULL;
   h->garbage = NULL;
   h->garbage_tail = NULL;
+  h->stamps = 0;
 }
 
 /* the structure of src (not its settings) */
@@ -673,6 +680,7 @@ static void sf_take(ds_sf_heap_t *dst, const ds_sf_heap_t *src) {
   dst->loss2 = src->loss2;
   dst->garbage = src->garbage;
   dst->garbage_tail = src->garbage_tail;
+  dst->stamps = src->stamps;
 }
 
 ds_status_t ds_sf_heap_init(ds_sf_heap_t *h, size_t item_size,
@@ -791,6 +799,7 @@ ds_status_t ds_sf_heap_push(ds_sf_heap_t *h, const void *item,
   }
   memcpy(sf_item(c), item, h->item_size);
   c->node = n;
+  c->stamp = h->stamps++;
   n->cell = c;
   sf_insert(h, n);
   sf_collect(h, 2);
@@ -1006,6 +1015,7 @@ void ds_sf_heap_meld(ds_sf_heap_t *h, ds_sf_heap_t *other) {
   sf_clear(other);
   if (a.root == NULL) { /* h takes other's structure */
     sf_take(h, &b);
+    h->stamps = a.stamps > b.stamps ? a.stamps : b.stamps;
     sf_discard(h, a.rank0, a.top);
     sf_discard(h, a.garbage, a.garbage_tail);
     if (a.record != NULL) { /* no nodes: no references */
@@ -1023,6 +1033,7 @@ void ds_sf_heap_meld(ds_sf_heap_t *h, ds_sf_heap_t *other) {
   }
   sf_take(h, big);
   h->size = a.size + b.size;
+  h->stamps = a.stamps > b.stamps ? a.stamps : b.stamps;
   /* The sum is at most twice the larger size: at most one new bit. */
   if (h->ceil_lg < sizeof(size_t) * CHAR_BIT &&
       h->size > ((size_t)1 << h->ceil_lg)) {

@@ -37,8 +37,11 @@
  * seen. Decreasing a key below the root's swaps the two items between
  * their nodes; items therefore live in cells of their own, and a handle is
  * the cell, valid (and the item at one address) until the item leaves the
- * heap. Equal items are ordered by their cells' addresses, so the order is
- * strict and no link can close a cycle.
+ * heap. Equal items are ordered by insertion (a stamp in each cell), so
+ * they leave first in, first out and runs repeat exactly; the cells'
+ * addresses settle the rest (items from two melded heaps with the same
+ * stamp, or stamps after the count wraps), so the order is strict and no
+ * link can close a cycle.
  *
  * Ranks are records in a list per heap, each holding its active roots and
  * its nodes of loss one; the ranks holding two of either sit in two lists,
@@ -90,6 +93,7 @@ typedef struct ds_sf_heap {
   ds_sf_node_t *loss2;   /* nodes of loss two or more */
   ds_sf_rank_t *garbage; /* rank records left by melds */
   ds_sf_rank_t *garbage_tail;
+  size_t stamps; /* pushes so far: equal items leave in insertion order */
 } ds_sf_heap_t;
 
 ds_status_t ds_sf_heap_init(ds_sf_heap_t *h, size_t item_size,
