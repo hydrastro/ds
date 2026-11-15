@@ -253,6 +253,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/ed25519: Ed25519 signatures (RFC 8032) and X25519 key agreement (RFC 7748) in strict C89 without 64-bit integers
 - lib/ld_signature: the Ed25519 suite of eddsa-rdfc-2022, base58-btc multibase, Ed25519 Multikeys
 - lib/pq_iface: weak-heap backend
+- the legacy containers: constructors that report failed allocations, `clone_ex` with rollback, `insert_ex` (heap, skip list), `build_ex` (bit vector)
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
