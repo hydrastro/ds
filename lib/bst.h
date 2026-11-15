@@ -2,6 +2,7 @@
 #define DS_BST_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -23,6 +24,7 @@ typedef struct bst {
   void (*deallocator)(void *);
 } ds_bst_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_bst_t *ds_bst_create(void);
 ds_bst_t *ds_bst_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *));
@@ -61,8 +63,19 @@ ds_bst_node_t *ds_bst_predecessor(ds_bst_t *tree, ds_bst_node_t *node_x);
 ds_bst_node_t *
 ds_bst_clone_recursive(ds_bst_t *tree, ds_bst_t *new_tree, ds_bst_node_t *node,
                        ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
+/* Legacy clone: NULL when the copy cannot be allocated, or when clone_node
+ * returns NULL; the clones it made before are then not released (clone_ex
+ * releases them). */
 ds_bst_t *ds_bst_clone(ds_bst_t *tree,
                        ds_bst_node_t *(*clone_node)(ds_bst_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back the clones
+ * made so far through destroy_clone and returns DS_ERR_CALLBACK;
+ * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
+ * are required. On any error *out is NULL and the source is unchanged. */
+ds_status_t ds_bst_clone_ex(const ds_bst_t *tree,
+                            ds_bst_node_t *(*clone_node)(ds_bst_node_t *),
+                            void (*destroy_clone)(ds_bst_node_t *),
+                            ds_bst_t **out);
 
 #ifdef __cplusplus
 }

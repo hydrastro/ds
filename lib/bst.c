@@ -5,10 +5,21 @@ ds_bst_t *ds_bst_create(void) { return ds_bst_create_alloc(malloc, free); }
 
 ds_bst_t *ds_bst_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {
-  ds_bst_t *tree = (ds_bst_t *)allocator(sizeof(ds_bst_t));
+  ds_bst_t *tree;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  tree = (ds_bst_t *)allocator(sizeof(ds_bst_t));
+  if (tree == NULL) {
+    return NULL;
+  }
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->nil = (ds_bst_node_t *)allocator(sizeof(ds_bst_node_t));
+  if (tree->nil == NULL) {
+    deallocator(tree);
+    return NULL;
+  }
   tree->nil->left = tree->nil;
   tree->nil->right = tree->nil;
   tree->nil->parent = tree->nil;
@@ -283,26 +294,38 @@ ds_bst_node_t *ds_bst_predecessor(ds_bst_t *tree, ds_bst_node_t *node_x) {
 }
 
 /* a copy of the subtree at node, built in pre-order along the parent
- * links of both trees; the copy's root has new_tree->nil as its parent */
-ds_bst_node_t *
-ds_bst_clone_recursive(ds_bst_t *tree, ds_bst_t *new_tree, ds_bst_node_t *node,
-                       ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
+ * links of both trees; the copy's root has new_tree->nil as its parent.
+ * *out gets the copy's root (new_tree->nil for an empty subtree). Every
+ * clone is linked in before the next is made, so when clone_node returns
+ * NULL (false) *out is still a valid tree holding every clone made. */
+static bool bst_clone_subtree(const ds_bst_t *tree, ds_bst_t *new_tree,
+                              ds_bst_node_t *node,
+                              ds_bst_node_t *(*clone_node)(ds_bst_node_t *),
+                              ds_bst_node_t **out) {
   ds_bst_node_t *x = node;
   ds_bst_node_t *copy;
   ds_bst_node_t *cx;
   int from = BST_FROM_ABOVE;
+  *out = new_tree->nil;
   if (node == tree->nil) {
-    return new_tree->nil;
+    return true;
   }
   copy = clone_node(node);
+  if (copy == NULL) {
+    return false;
+  }
   copy->left = new_tree->nil;
   copy->right = new_tree->nil;
   copy->parent = new_tree->nil;
+  *out = copy;
   cx = copy;
   for (;;) {
     ds_bst_node_t *c;
     if (from == BST_FROM_ABOVE && x->left != tree->nil) {
       c = clone_node(x->left);
+      if (c == NULL) {
+        return false;
+      }
       c->left = new_tree->nil;
       c->right = new_tree->nil;
       c->parent = cx;
@@ -313,6 +336,9 @@ ds_bst_clone_recursive(ds_bst_t *tree, ds_bst_t *new_tree, ds_bst_node_t *node,
     }
     if (from != BST_FROM_RIGHT && x->right != tree->nil) {
       c = clone_node(x->right);
+      if (c == NULL) {
+        return false;
+      }
       c->left = new_tree->nil;
       c->right = new_tree->nil;
       c->parent = cx;
@@ -323,7 +349,7 @@ ds_bst_clone_recursive(ds_bst_t *tree, ds_bst_t *new_tree, ds_bst_node_t *node,
       continue;
     }
     if (x == node) {
-      return copy;
+      return true;
     }
     from = x == x->parent->left ? BST_FROM_LEFT : BST_FROM_RIGHT;
     x = x->parent;
@@ -331,13 +357,56 @@ ds_bst_clone_recursive(ds_bst_t *tree, ds_bst_t *new_tree, ds_bst_node_t *node,
   }
 }
 
+ds_bst_node_t *
+ds_bst_clone_recursive(ds_bst_t *tree, ds_bst_t *new_tree, ds_bst_node_t *node,
+                       ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
+  ds_bst_node_t *copy;
+  (void)bst_clone_subtree(tree, new_tree, node, clone_node, &copy);
+  return copy;
+}
+
 ds_bst_t *ds_bst_clone(ds_bst_t *tree,
                        ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
   ds_bst_t *new_tree;
+  if (tree == NULL || clone_node == NULL) {
+    return NULL;
+  }
   new_tree = ds_bst_create_alloc(tree->allocator, tree->deallocator);
-  new_tree->root =
-      ds_bst_clone_recursive(tree, new_tree, tree->root, clone_node);
+  if (new_tree == NULL) {
+    return NULL;
+  }
+  if (!bst_clone_subtree(tree, new_tree, tree->root, clone_node,
+                         &new_tree->root)) {
+    ds_bst_destroy_tree(new_tree, NULL); /* the clones are not released */
+    return NULL;
+  }
   new_tree->size = tree->size;
 
   return new_tree;
+}
+
+ds_status_t ds_bst_clone_ex(const ds_bst_t *tree,
+                            ds_bst_node_t *(*clone_node)(ds_bst_node_t *),
+                            void (*destroy_clone)(ds_bst_node_t *),
+                            ds_bst_t **out) {
+  ds_bst_t *new_tree;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  new_tree = ds_bst_create_alloc(tree->allocator, tree->deallocator);
+  if (new_tree == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!bst_clone_subtree(tree, new_tree, tree->root, clone_node,
+                         &new_tree->root)) {
+    ds_bst_destroy_tree(new_tree, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  new_tree->size = tree->size;
+  *out = new_tree;
+  return DS_OK;
 }
