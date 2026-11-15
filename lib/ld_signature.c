@@ -1,4 +1,5 @@
 #include "ld_signature.h"
+#include "ed25519.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -249,4 +250,195 @@ ds_status_t ds_lds_verify(const char *const *quads, size_t n,
     return st;
   }
   return ds_lds_verify_data(tbs, sizeof(tbs), suite, sig, sig_len);
+}
+
+/* ---- Ed25519 suite, multibase, Multikey */
+
+static ds_status_t ld_ed25519_sign(const unsigned char *tbs, size_t len,
+                                   unsigned char *sig, size_t *sig_len,
+                                   void *user) {
+  const ds_lds_ed25519_key_t *key = (const ds_lds_ed25519_key_t *)user;
+  ds_status_t st;
+  if (key == NULL || key->public_key == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (key->seed == NULL) {
+    return DS_ERR_UNSUPPORTED;
+  }
+  if (*sig_len < DS_ED25519_SIGNATURE_SIZE) {
+    *sig_len = DS_ED25519_SIGNATURE_SIZE;
+    return DS_ERR_RANGE;
+  }
+  st = ds_ed25519_sign(key->seed, key->public_key, tbs, len, sig);
+  if (st == DS_OK) {
+    *sig_len = DS_ED25519_SIGNATURE_SIZE;
+  }
+  return st;
+}
+
+static bool ld_ed25519_verify(const unsigned char *tbs, size_t len,
+                              const unsigned char *sig, size_t sig_len,
+                              void *user) {
+  const ds_lds_ed25519_key_t *key = (const ds_lds_ed25519_key_t *)user;
+  return key != NULL && key->public_key != NULL &&
+         sig_len == DS_ED25519_SIGNATURE_SIZE &&
+         ds_ed25519_verify(key->public_key, tbs, len, sig) == DS_OK;
+}
+
+void ds_lds_ed25519_suite(ds_lds_suite_t *suite, ds_lds_ed25519_key_t *key) {
+  if (suite == NULL) {
+    return;
+  }
+  memset(suite, 0, sizeof(*suite));
+  suite->sign = ld_ed25519_sign;
+  suite->verify = ld_ed25519_verify;
+  suite->user = key;
+}
+
+static const char ld_b58[] =
+    "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+ds_status_t ds_lds_multibase_encode(const unsigned char *data, size_t len,
+                                    char *out, size_t *out_len) {
+  size_t zeros = 0;
+  size_t room;
+  size_t digits = 0; /* base58 digits so far, least significant first */
+  size_t i;
+  size_t j;
+  if (out == NULL || out_len == NULL || (data == NULL && len > 0)) {
+    return DS_ERR_NULL;
+  }
+  if (len > ((size_t)-1 - 3) / 138) {
+    return DS_ERR_OVERFLOW;
+  }
+  while (zeros < len && data[zeros] == 0) {
+    zeros++;
+  }
+  /* digits of the rest: at most len * log(256) / log(58) + 1 */
+  room = 1 + zeros + (len - zeros) * 138 / 100 + 1;
+  if (*out_len < room) {
+    *out_len = room;
+    return DS_ERR_RANGE;
+  }
+  /* the digits accumulate at the end of out, least significant last */
+  for (i = zeros; i < len; i++) {
+    unsigned long carry = data[i];
+    for (j = 0; j < digits; j++) {
+      unsigned char *d = (unsigned char *)out + *out_len - 1 - j;
+      carry += (unsigned long)*d << 8;
+      *d = (unsigned char)(carry % 58);
+      carry /= 58;
+    }
+    while (carry > 0) {
+      out[*out_len - 1 - digits] = (char)(unsigned char)(carry % 58);
+      digits++;
+      carry /= 58;
+    }
+  }
+  out[0] = 'z';
+  for (i = 0; i < zeros; i++) {
+    out[1 + i] = '1';
+  }
+  for (i = 0; i < digits; i++) {
+    unsigned char d = (unsigned char)out[*out_len - digits + i];
+    out[1 + zeros + i] = ld_b58[d];
+  }
+  *out_len = 1 + zeros + digits;
+  out[*out_len] = '\0';
+  return DS_OK;
+}
+
+ds_status_t ds_lds_multibase_decode(const char *text, size_t len,
+                                    unsigned char *out, size_t *out_len) {
+  size_t zeros = 0;
+  size_t bytes = 0; /* bytes so far, least significant at the end */
+  size_t room;
+  size_t i;
+  size_t j;
+  if (text == NULL || out_len == NULL || (out == NULL && *out_len > 0)) {
+    return DS_ERR_NULL;
+  }
+  if (len == 0 || text[0] != 'z') {
+    return DS_ERR_INVALID;
+  }
+  while (1 + zeros < len && text[1 + zeros] == '1') {
+    zeros++;
+  }
+  /* bytes of the rest: at most digits * log(58) / log(256) + 1 */
+  room = zeros + (len - 1 - zeros) * 733 / 1000 + 1;
+  for (i = 1 + zeros; i < len; i++) {
+    const char *p = text[i] != '\0' ? strchr(ld_b58, text[i]) : NULL;
+    unsigned long carry;
+    if (p == NULL) {
+      return DS_ERR_INVALID;
+    }
+    carry = (unsigned long)(p - ld_b58);
+    if (*out_len < room) {
+      continue; /* still validate, then report the room */
+    }
+    for (j = 0; j < bytes; j++) {
+      unsigned char *b = out + *out_len - 1 - j;
+      carry += (unsigned long)*b * 58UL;
+      *b = (unsigned char)(carry & 0xFFUL);
+      carry >>= 8;
+    }
+    while (carry > 0) {
+      out[*out_len - 1 - bytes] = (unsigned char)(carry & 0xFFUL);
+      bytes++;
+      carry >>= 8;
+    }
+  }
+  if (*out_len < room) {
+    *out_len = room;
+    return DS_ERR_RANGE;
+  }
+  memmove(out + zeros, out + *out_len - bytes, bytes);
+  memset(out, 0, zeros);
+  *out_len = zeros + bytes;
+  return DS_OK;
+}
+
+ds_status_t ds_lds_ed25519_multikey(const unsigned char *public_key,
+                                    char *out) {
+  unsigned char buf[2 + DS_ED25519_PUBLIC_SIZE];
+  char text[2 + (2 + DS_ED25519_PUBLIC_SIZE) * 138 / 100 + 2];
+  size_t n = sizeof(text) - 1;
+  ds_status_t st;
+  if (public_key == NULL || out == NULL) {
+    return DS_ERR_NULL;
+  }
+  buf[0] = 0xed; /* the multicodec for Ed25519 public keys, as a varint */
+  buf[1] = 0x01;
+  memcpy(buf + 2, public_key, DS_ED25519_PUBLIC_SIZE);
+  st = ds_lds_multibase_encode(buf, sizeof(buf), text, &n);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (n != DS_LDS_ED25519_MULTIKEY_LEN) {
+    return DS_ERR_STATE; /* cannot happen: the prefix fixes the length */
+  }
+  memcpy(out, text, n + 1);
+  return DS_OK;
+}
+
+ds_status_t ds_lds_ed25519_from_multikey(const char *text, size_t len,
+                                         unsigned char *public_key) {
+  unsigned char buf[64];
+  size_t n = sizeof(buf);
+  ds_status_t st;
+  if (text == NULL || public_key == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (len != DS_LDS_ED25519_MULTIKEY_LEN) {
+    return DS_ERR_INVALID;
+  }
+  st = ds_lds_multibase_decode(text, len, buf, &n);
+  if (st != DS_OK) {
+    return st == DS_ERR_RANGE ? DS_ERR_INVALID : st;
+  }
+  if (n != 2 + DS_ED25519_PUBLIC_SIZE || buf[0] != 0xed || buf[1] != 0x01) {
+    return DS_ERR_INVALID;
+  }
+  memcpy(public_key, buf + 2, DS_ED25519_PUBLIC_SIZE);
+  return DS_OK;
 }
