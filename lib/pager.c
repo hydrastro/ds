@@ -254,8 +254,7 @@ ds_status_t ds_page_store_file(ds_page_store_t *store, const char *path,
    * Set the mode before any I/O, so write errors reach pg_write_back before
    * it clears the frame's dirty flag or evicts it. */
   if (p->f == NULL || setvbuf(p->f, NULL, _IONBF, 0) != 0 ||
-      fseek(p->f, 0L, SEEK_END) != 0 ||
-      (size = ftell(p->f)) < 0) {
+      fseek(p->f, 0L, SEEK_END) != 0 || (size = ftell(p->f)) < 0) {
     if (p->f != NULL) {
       (void)fclose(p->f);
     }

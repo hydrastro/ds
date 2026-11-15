@@ -74,11 +74,13 @@ void ds_wmatch_options_init(ds_wmatch_options_t *options);
  * DS_ERR_OVERFLOW if duals leave its exact range; never retries in floating
  * mode. out_mode is optional and is written only on DS_OK. On failure,
  * output arrays may have been initialized; no matching is promised. */
-ds_status_t ds_matching_max_weight_ex(
-    size_t n, const size_t *u, const size_t *v, const double *w, size_t m,
-    bool max_cardinality, size_t *out_mate, double *out_weight,
-    const ds_wmatch_options_t *options, ds_wmatch_mode_t *out_mode,
-    ds_context_t *context);
+ds_status_t ds_matching_max_weight_ex(size_t n, const size_t *u,
+                                      const size_t *v, const double *w,
+                                      size_t m, bool max_cardinality,
+                                      size_t *out_mate, double *out_weight,
+                                      const ds_wmatch_options_t *options,
+                                      ds_wmatch_mode_t *out_mode,
+                                      ds_context_t *context);
 ds_status_t ds_matching_min_weight_perfect_ex(
     size_t n, const size_t *u, const size_t *v, const double *w, size_t m,
     size_t *out_mate, double *out_weight, const ds_wmatch_options_t *options,

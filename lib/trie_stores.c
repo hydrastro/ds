@@ -134,8 +134,8 @@ static void ts_rh_apply(ds_trie_t *trie, void *store, trie_visit_t f,
   if (map == NULL) {
     return;
   }
-  if (ds_vec_init(&snapshot, sizeof(size_t),
-                  ts_scratch_context(trie)) == DS_OK) {
+  if (ds_vec_init(&snapshot, sizeof(size_t), ts_scratch_context(trie)) ==
+      DS_OK) {
     have = 1;
     while (ds_rh_map_next(map, &cursor, &key, NULL)) {
       if (ds_vec_push(&snapshot, key) != DS_OK) {

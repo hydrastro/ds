@@ -89,7 +89,7 @@ typedef struct ds_pbtree_iter {
   unsigned long leaf; /* 0 when exhausted */
   size_t index;
   unsigned long key;
-  unsigned char *value; /* copy of the current value */
+  unsigned char *value;      /* copy of the current value */
   unsigned long leaves_left; /* traversal budget across calls to next */
   bool has_key;
 } ds_pbtree_iter_t;

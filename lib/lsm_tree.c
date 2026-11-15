@@ -1342,8 +1342,8 @@ ds_status_t ds_lsm_flush(ds_lsm_t *lsm) {
   }
   if (lsm->mem_count == 0) {
     /* A previous flush may have built tables but failed to publish them. */
-    return lsm->config.store != NULL && lsm->unsynced != 0
-               ? lsm_publish(lsm) : DS_OK;
+    return lsm->config.store != NULL && lsm->unsynced != 0 ? lsm_publish(lsm)
+                                                           : DS_OK;
   }
   if (lsm->l0_count > lsm->config.l0_tables) {
     /* an earlier compaction failed: retry it before adding a table */
@@ -1545,7 +1545,7 @@ static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
     }
   }
   if (logged && l->config.sync_every != 0 &&
-             l->unsynced >= l->config.sync_every) {
+      l->unsynced >= l->config.sync_every) {
     return ds_lsm_sync(l);
   }
   return DS_OK;

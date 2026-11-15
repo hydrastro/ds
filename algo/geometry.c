@@ -1,6 +1,6 @@
 #include "geometry.h"
-#include "robust_predicates.h"
 #include "../lib/checked.h"
+#include "robust_predicates.h"
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
@@ -253,8 +253,8 @@ static int geo_ray_cmp(ds_point2_t o, ds_point2_t a, ds_point2_t b) {
  * predicate's approximate magnitude cannot be used for this comparison.
  * The conservative filter covers four rounded differences, two products
  * and their subtraction; ambiguous cases use exact expansions. */
-static int geo_height_cmp(ds_point2_t a, ds_point2_t b,
-                           ds_point2_t p, ds_point2_t q) {
+static int geo_height_cmp(ds_point2_t a, ds_point2_t b, ds_point2_t p,
+                          ds_point2_t q) {
   double left = (b.x - a.x) * (p.y - q.y);
   double right = (b.y - a.y) * (p.x - q.x);
   double det = left - right;
@@ -348,8 +348,8 @@ static size_t geo_jarvis(const ds_point2_t *p, const size_t *u, size_t n,
         continue;
       }
       o = ds_geo_orient(p[u[cur]], p[u[next]], p[u[i]]);
-      if (o < 0 || (!(o > 0) &&
-                    geo_ray_cmp(p[u[cur]], p[u[i]], p[u[next]]) > 0)) {
+      if (o < 0 ||
+          (!(o > 0) && geo_ray_cmp(p[u[cur]], p[u[i]], p[u[next]]) > 0)) {
         next = i;
       }
     }
@@ -413,8 +413,7 @@ static size_t geo_quickhull(const ds_point2_t *p, size_t *u, size_t n,
     far = base[0];
     for (i = 1; i < count; i++) {
       int c = geo_height_cmp(p[u[a]], p[u[b]], p[u[base[i]]], p[u[far]]);
-      if (c < 0 || (c == 0 &&
-                     geo_icmp_xy(p, u[base[i]], u[far], NULL) > 0)) {
+      if (c < 0 || (c == 0 && geo_icmp_xy(p, u[base[i]], u[far], NULL) > 0)) {
         far = base[i];
       }
     }
@@ -483,7 +482,8 @@ ds_status_t ds_geo_convex_hull(const ds_point2_t *points, size_t n,
   }
   if (!ds_size_mul(n, sizeof(size_t), &ubytes) ||
       !ds_size_mul(ubytes, 2, &tbytes) || !ds_size_add(tbytes, 16, &tbytes) ||
-      !ds_size_mul(ubytes, 8, &w1bytes) || !ds_size_add(w1bytes, 64, &w1bytes) ||
+      !ds_size_mul(ubytes, 8, &w1bytes) ||
+      !ds_size_add(w1bytes, 64, &w1bytes) ||
       !ds_size_add(ubytes, 8, &w2bytes)) {
     return DS_ERR_OVERFLOW;
   }

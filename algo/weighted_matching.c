@@ -53,9 +53,8 @@ typedef struct wm_sizes {
  * before 2*n overflows a long. Check before inspecting input arrays. */
 static bool wm_sizes(size_t n, size_t m, wm_sizes_t *z) {
   size_t nc, mc, qc;
-  return n <= 0x3fffffffUL && m <= 0x3fffffffUL &&
-         ds_size_add(n, 1, &nc) && ds_size_add(m, 1, &mc) &&
-         ds_size_add(n, 16, &qc) &&
+  return n <= 0x3fffffffUL && m <= 0x3fffffffUL && ds_size_add(n, 1, &nc) &&
+         ds_size_add(m, 1, &mc) && ds_size_add(n, 16, &qc) &&
          ds_size_mul(m, 2 * sizeof(long), &z->endpoints) &&
          ds_size_mul(nc, sizeof(long), &z->offsets) &&
          ds_size_mul(n, 27 * sizeof(long), &z->block) &&
@@ -944,11 +943,13 @@ void ds_wmatch_options_init(ds_wmatch_options_t *options) {
   }
 }
 
-ds_status_t ds_matching_max_weight_ex(
-    size_t n, const size_t *u, const size_t *v, const double *w, size_t m,
-    bool max_cardinality, size_t *out_mate, double *out_weight,
-    const ds_wmatch_options_t *options, ds_wmatch_mode_t *out_mode,
-    ds_context_t *context) {
+ds_status_t ds_matching_max_weight_ex(size_t n, const size_t *u,
+                                      const size_t *v, const double *w,
+                                      size_t m, bool max_cardinality,
+                                      size_t *out_mate, double *out_weight,
+                                      const ds_wmatch_options_t *options,
+                                      ds_wmatch_mode_t *out_mode,
+                                      ds_context_t *context) {
   bool left = false;
   bool exact = options != NULL && options->require_exact;
   ds_wmatch_mode_t mode;
@@ -971,7 +972,7 @@ ds_status_t ds_matching_max_weight(size_t n, const size_t *u, const size_t *v,
                                    bool max_cardinality, size_t *out_mate,
                                    double *out_weight, ds_context_t *context) {
   return ds_matching_max_weight_ex(n, u, v, w, m, max_cardinality, out_mate,
-                                    out_weight, NULL, NULL, context);
+                                   out_weight, NULL, NULL, context);
 }
 
 ds_status_t ds_matching_min_weight_perfect_ex(
@@ -1004,8 +1005,8 @@ ds_status_t ds_matching_min_weight_perfect_ex(
   for (k = 0; k < m; k++) {
     t[k] = -w[k];
   }
-  st = ds_matching_max_weight_ex(n, u, v, t, m, true, out_mate, NULL,
-                                  options, &mode, context);
+  st = ds_matching_max_weight_ex(n, u, v, t, m, true, out_mate, NULL, options,
+                                 &mode, context);
   ds_context_free(context, t);
   if (st != DS_OK) {
     return st;
@@ -1057,6 +1058,6 @@ ds_status_t ds_matching_min_weight_perfect(size_t n, const size_t *u,
                                            size_t m, size_t *out_mate,
                                            double *out_weight,
                                            ds_context_t *context) {
-  return ds_matching_min_weight_perfect_ex(n, u, v, w, m, out_mate,
-                                            out_weight, NULL, NULL, context);
+  return ds_matching_min_weight_perfect_ex(n, u, v, w, m, out_mate, out_weight,
+                                           NULL, NULL, context);
 }

@@ -206,8 +206,7 @@ ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
   if (memcmp(m, PB_MAGIC_INIT, 8) == 0) {
     unsigned long vs;
     unsigned long psz;
-    bool valid = pb_get64_fits(m + 8, &vs) &&
-                 pb_get64_fits(m + 56, &psz) &&
+    bool valid = pb_get64_fits(m + 8, &vs) && pb_get64_fits(m + 56, &psz) &&
                  vs == (unsigned long)value_size && psz == (unsigned long)ps;
     pb_done(tree, 0, false);
     return valid ? pb_finish_format(tree) : DS_ERR_INVALID;
