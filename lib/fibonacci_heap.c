@@ -11,14 +11,24 @@ ds_fibonacci_heap_t *ds_fibonacci_heap_create(
 ds_fibonacci_heap_t *ds_fibonacci_heap_create_alloc(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  ds_fibonacci_heap_t *heap =
-      (ds_fibonacci_heap_t *)allocator(sizeof(ds_fibonacci_heap_t));
+  ds_fibonacci_heap_t *heap;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  heap = (ds_fibonacci_heap_t *)allocator(sizeof(ds_fibonacci_heap_t));
+  if (heap == NULL) {
+    return NULL;
+  }
   heap->compare = compare;
   heap->allocator = allocator;
   heap->deallocator = deallocator;
   heap->size = 0;
   heap->nil =
       (ds_fibonacci_heap_node_t *)allocator(sizeof(ds_fibonacci_heap_node_t));
+  if (heap->nil == NULL) {
+    deallocator(heap);
+    return NULL;
+  }
   heap->nil->parent = heap->nil;
   heap->nil->child = heap->nil;
   heap->nil->left = heap->nil;
