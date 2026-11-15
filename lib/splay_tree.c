@@ -9,11 +9,22 @@ ds_splay_tree_t *ds_splay_tree_create(int (*compare)(ds_splay_tree_node_t *,
 ds_splay_tree_t *ds_splay_tree_create_alloc(
     int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  ds_splay_tree_t *tree = (ds_splay_tree_t *)allocator(sizeof(ds_splay_tree_t));
+  ds_splay_tree_t *tree;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  tree = (ds_splay_tree_t *)allocator(sizeof(ds_splay_tree_t));
+  if (tree == NULL) {
+    return NULL;
+  }
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->compare = compare;
   tree->nil = (ds_splay_tree_node_t *)allocator(sizeof(ds_splay_tree_node_t));
+  if (tree->nil == NULL) {
+    deallocator(tree);
+    return NULL;
+  }
   tree->nil->left = tree->nil;
   tree->nil->right = tree->nil;
   tree->nil->parent = tree->nil;
@@ -315,15 +326,16 @@ void ds_splay_tree_destroy(ds_splay_tree_t *tree,
 }
 
 /* clones in key order: each insertion into the new tree is a splay at an
- * end, O(1) amortized */
-static void splay_tree_clone_all(
-    ds_splay_tree_t *tree, ds_splay_tree_t *new_tree,
+ * end, O(1) amortized. false when clone_node returns NULL; the clones
+ * made so far are in new_tree. */
+static bool splay_tree_clone_all(
+    const ds_splay_tree_t *tree, ds_splay_tree_t *new_tree,
     ds_splay_tree_node_t *node,
     ds_splay_tree_node_t *(*clone_node)(ds_splay_tree_node_t *)) {
   ds_splay_tree_node_t *x = node;
   int from = SPLAY_FROM_ABOVE;
   if (node == tree->nil) {
-    return;
+    return true;
   }
   for (;;) {
     ds_splay_tree_node_t *p;
@@ -332,7 +344,11 @@ static void splay_tree_clone_all(
       continue;
     }
     if (from != SPLAY_FROM_RIGHT) {
-      ds_splay_tree_insert(new_tree, clone_node(x));
+      ds_splay_tree_node_t *copy = clone_node(x);
+      if (copy == NULL) {
+        return false;
+      }
+      ds_splay_tree_insert(new_tree, copy);
       if (x->right != tree->nil) {
         x = x->right;
         from = SPLAY_FROM_ABOVE;
@@ -341,7 +357,7 @@ static void splay_tree_clone_all(
     }
     from = splay_leave(x, node, &p);
     if (from == SPLAY_FROM_ABOVE) {
-      return;
+      return true;
     }
     x = p;
   }
@@ -351,8 +367,40 @@ ds_splay_tree_t *ds_splay_tree_clone(
     ds_splay_tree_t *tree,
     ds_splay_tree_node_t *(*clone_node)(ds_splay_tree_node_t *)) {
   ds_splay_tree_t *new_tree;
+  if (tree == NULL || clone_node == NULL) {
+    return NULL;
+  }
   new_tree = ds_splay_tree_create_alloc(tree->compare, tree->allocator,
                                         tree->deallocator);
-  splay_tree_clone_all(tree, new_tree, tree->root, clone_node);
+  if (new_tree != NULL &&
+      !splay_tree_clone_all(tree, new_tree, tree->root, clone_node)) {
+    ds_splay_tree_destroy(new_tree, NULL); /* the clones are not released */
+    new_tree = NULL;
+  }
   return new_tree;
+}
+
+ds_status_t ds_splay_tree_clone_ex(
+    const ds_splay_tree_t *tree,
+    ds_splay_tree_node_t *(*clone_node)(ds_splay_tree_node_t *),
+    void (*destroy_clone)(ds_splay_tree_node_t *), ds_splay_tree_t **out) {
+  ds_splay_tree_t *new_tree;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  new_tree = ds_splay_tree_create_alloc(tree->compare, tree->allocator,
+                                        tree->deallocator);
+  if (new_tree == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!splay_tree_clone_all(tree, new_tree, tree->root, clone_node)) {
+    ds_splay_tree_destroy(new_tree, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  *out = new_tree;
+  return DS_OK;
 }
