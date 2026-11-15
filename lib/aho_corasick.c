@@ -186,18 +186,25 @@ size_t ds_aho_corasick_pattern_count(ds_aho_corasick_t *ac) {
   return result;
 }
 
-static void aho_corasick_destroy_recursive(ds_aho_corasick_t *ac,
-                                           ds_aho_corasick_node_t *node) {
-  int c;
-  for (c = 0; c < 256; c++) {
-    if (node->children[c] != NULL) {
-      aho_corasick_destroy_recursive(ac, node->children[c]);
-    }
-  }
-  ac->deallocator(node);
-}
-
+/* Destruction needs no memory and no recursion (the trie is as deep as
+ * the longest pattern): nodes waiting to be freed form a list linked
+ * through their failure links, which nothing reads any more. */
 void ds_aho_corasick_destroy(ds_aho_corasick_t *ac) {
-  aho_corasick_destroy_recursive(ac, ac->root);
+  ds_aho_corasick_node_t *list = ac->root;
+  if (list != NULL) {
+    list->fail = NULL;
+  }
+  while (list != NULL) {
+    ds_aho_corasick_node_t *node = list;
+    int c;
+    list = node->fail;
+    for (c = 0; c < 256; c++) {
+      if (node->children[c] != NULL) {
+        node->children[c]->fail = list;
+        list = node->children[c];
+      }
+    }
+    ac->deallocator(node);
+  }
   ac->deallocator(ac);
 }
