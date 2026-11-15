@@ -529,7 +529,7 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp check-headers sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
+.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp check-headers check-noinline sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
 all: $(LIB_STATIC) $(LIB_SHARED)
 
 # Install only into ds's own include directory and uninstall only the
@@ -658,6 +658,17 @@ check-headers: all
 	    -c $(HDR_CHECK_DIR)/tu.c -o $(HDR_CHECK_DIR)/tu.o || { echo "header $$h"; fail=1; }; \
 	done; \
 	test $$fail = 0 && echo "every installed header compiles alone with -I<prefix>/include/ds"
+
+# -Waggregate-return reports only functions that survive inlining: at -O2 a
+# static helper that returns a struct can vanish into its callers. This
+# compiles every source once more without optimisation, under the same
+# warnings, so such helpers are caught too.
+check-noinline: all
+	@fail=0; for src in $(LIB_SRC); do \
+	  $(CC) $(filter-out -O2,$(CFLAGS)) -O0 $(INCLUDES) -c $$src \
+	    -o $(BUILD_DIR)/noinline.o || { echo "source $$src"; fail=1; }; \
+	done; rm -f $(BUILD_DIR)/noinline.o; \
+	test $$fail = 0 && echo "every source compiles under the strict warnings without inlining"
 
 # Line-coverage report. Builds an instrumented copy of the library, links and
 # runs every test against it, then aggregates with gcovr.
