@@ -21,10 +21,20 @@
  *                                 logical for this session only (file
  *                                 store: C89 cannot shrink a file, so the
  *                                 pages reappear when the file is reopened)
+ *   DS_PAGE_STORE_ATOMIC_SYNC     the writes and truncations between two
+ *                                 syncs take effect together: after a
+ *                                 crash the store reopens as of a completed
+ *                                 sync, never partway through one
+ *                                 (lib/wal_store; durable as well only with
+ *                                 DS_PAGE_STORE_DURABLE_SYNC)
  *
  * Any other medium (mmap, a network block device, an encrypted or
  * checksumming layer stacked on another store) fits by filling in a
- * ds_page_store_ops_t.
+ * ds_page_store_ops_t. Stacked stores in the library: lib/wal_store
+ * (write-ahead logging: atomic commits and crash recovery over any data
+ * and log store), lib/fault_store (injected failures and simulated
+ * crashes, for testing) and lib/posix_store (POSIX files with fsync and
+ * real truncation).
  *
  * The pager caches up to `frames` pages of any store, with pin counts and
  * dirty tracking; free frames are used first, then the replacement policy
@@ -48,6 +58,7 @@ extern "C" {
 
 #define DS_PAGE_STORE_DURABLE_SYNC 0x1u
 #define DS_PAGE_STORE_TRUNCATE_PERSISTS 0x2u
+#define DS_PAGE_STORE_ATOMIC_SYNC 0x4u
 
 typedef struct ds_page_store_ops {
   const char *name;

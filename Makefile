@@ -237,7 +237,8 @@ LIB_SRC := \
   $(LIB_DIR)/sha2.c \
   $(LIB_DIR)/rdf_canon.c \
   $(LIB_DIR)/fault_store.c \
-  $(LIB_DIR)/posix_store.c
+  $(LIB_DIR)/posix_store.c \
+  $(LIB_DIR)/wal_store.c
 
 # Algorithms live in algo/ and are built into the same library.
 ALGO_SRC := \
@@ -318,6 +319,7 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/wal_store.c $(LIB_DIR)/wal_store.h \
   $(LIB_DIR)/posix_store.c $(LIB_DIR)/posix_store.h \
   $(LIB_DIR)/fault_store.c $(LIB_DIR)/fault_store.h \
   $(LIB_DIR)/rdf_canon.c $(LIB_DIR)/rdf_canon.h \

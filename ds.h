@@ -178,6 +178,7 @@
 #include "lib/ub_tree.h"
 #include "lib/veb_tree.h"
 #include "lib/vec.h"
+#include "lib/wal_store.h"
 #include "lib/wavelet_matrix.h"
 #include "lib/wavelet_tree.h"
 #include "lib/wb_tree.h"
