@@ -443,52 +443,102 @@ static bool history_time_before_fork(ds_history_branch_t *branch,
   return branch->parent != NULL && time < branch->fork_time;
 }
 
+/* where a materialization at time on branch starts: the branch itself,
+ * or the ancestor whose own operations hold that time */
+static ds_history_branch_t *history_owner(ds_history_branch_t *branch,
+                                          unsigned long time) {
+  while (history_time_before_fork(branch, time)) {
+    branch = branch->parent;
+  }
+  return branch;
+}
+
+/* The state at time on branch: a checkpoint (or a fresh state at the root)
+ * and every operation after it, through the chain of ancestors. The chain
+ * is collected first, from branch upwards until a checkpoint or the root,
+ * then replayed downwards, so a deep chain of forks costs an array, not
+ * call frames. */
 static void *history_materialize(ds_history_branch_t *branch,
                                  unsigned long time, size_t *replayed_count) {
-  ds_history_t *history;
-  struct ds_history_checkpoint_node *checkpoint;
-  void *state;
-  unsigned long lower_time;
-  bool lower_is_checkpoint;
-  int rc;
-
-  history = branch->history;
-
-  if (history_time_before_fork(branch, time)) {
-    return history_materialize(branch->parent, time, replayed_count);
-  }
-
-  checkpoint = history_find_checkpoint(branch, time);
-  if (checkpoint != NULL && history->ops.clone_state != NULL) {
-    state = history->ops.clone_state(checkpoint->state, history->clone_data);
-    if (state == NULL) {
-      return NULL;
+  ds_history_t *history = branch->history;
+  ds_history_branch_t **chain = NULL;
+  unsigned long *times = NULL;
+  size_t depth = 0;
+  size_t cap = 0;
+  struct ds_history_checkpoint_node *checkpoint = NULL;
+  void *state = NULL;
+  int rc = 0;
+  branch = history_owner(branch, time);
+  for (;;) {
+    if (depth == cap) {
+      size_t new_cap = cap == 0 ? 8 : cap * 2;
+      ds_history_branch_t **c;
+      unsigned long *t;
+      size_t i;
+      if (cap > (size_t)-1 / 2 / sizeof(*chain)) {
+        break;
+      }
+      c = (ds_history_branch_t **)history->allocator(new_cap * sizeof(*c));
+      t = (unsigned long *)history->allocator(new_cap * sizeof(*t));
+      if (c == NULL || t == NULL) {
+        if (c != NULL) {
+          history->deallocator(c);
+        }
+        if (t != NULL) {
+          history->deallocator(t);
+        }
+        break;
+      }
+      for (i = 0; i < depth; i++) {
+        c[i] = chain[i];
+        t[i] = times[i];
+      }
+      if (chain != NULL) {
+        history->deallocator(chain);
+        history->deallocator(times);
+      }
+      chain = c;
+      times = t;
+      cap = new_cap;
     }
-    lower_time = checkpoint->time;
-    lower_is_checkpoint = true;
-  } else {
-    if (branch->parent != NULL) {
-      state = history_materialize(branch->parent, branch->fork_time,
-                                  replayed_count);
+    chain[depth] = branch;
+    times[depth] = time;
+    depth++;
+    checkpoint = history_find_checkpoint(branch, time);
+    if ((checkpoint != NULL && history->ops.clone_state != NULL) ||
+        branch->parent == NULL) {
+      break;
+    }
+    time = branch->fork_time;
+    branch = history_owner(branch->parent, time);
+  }
+  if (depth > 0 && chain[depth - 1] == branch) {
+    if (checkpoint != NULL && history->ops.clone_state != NULL) {
+      state = history->ops.clone_state(checkpoint->state, history->clone_data);
     } else {
+      checkpoint = NULL;
       state = history->ops.create_state(history->config);
     }
-    if (state == NULL) {
-      return NULL;
-    }
-    lower_time = branch->fork_time;
-    lower_is_checkpoint = false;
   }
-
-  rc = history_replay_branch_ops(branch, state, lower_time, lower_is_checkpoint,
-                                 time, replayed_count);
-  if (rc != 0) {
-    if (history->ops.destroy_state != NULL) {
-      history->ops.destroy_state(state);
+  while (state != NULL && depth > 0) {
+    ds_history_branch_t *b = chain[depth - 1];
+    bool from_checkpoint = checkpoint != NULL;
+    depth--;
+    rc = history_replay_branch_ops(
+        b, state, from_checkpoint ? checkpoint->time : b->fork_time,
+        from_checkpoint, times[depth], replayed_count);
+    checkpoint = NULL; /* only the deepest link starts from one */
+    if (rc != 0) {
+      if (history->ops.destroy_state != NULL) {
+        history->ops.destroy_state(state);
+      }
+      state = NULL;
     }
-    return NULL;
   }
-
+  if (chain != NULL) {
+    history->deallocator(chain);
+    history->deallocator(times);
+  }
   return state;
 }
 
@@ -1335,16 +1385,43 @@ history_write_branch_ops(ds_history_branch_t *branch,
   return true;
 }
 
-static bool history_serialize_branch_recursive(
-    ds_history_branch_t *branch, ds_history_write_func_t write,
-    ds_history_payload_write_func_t write_payload, void *io_user,
-    void *payload_user) {
-  ds_history_t *history;
+/* The branch after b in pre-order of the branch tree, children in the
+ * order of the branch list: its first child, else the next sibling of b
+ * or of its nearest ancestor that has one; NULL after the last. Found by
+ * scanning the list, so walking the tree needs no stack however deep the
+ * forks go (O(branches) a step, as finding the children always cost). */
+static ds_history_branch_t *history_preorder_next(ds_history_t *history,
+                                                  ds_history_branch_t *b) {
   struct ds_history_branch_node *node;
+  for (node = history->branches; node != NULL; node = node->next) {
+    if (node->branch->parent == b) {
+      return node->branch;
+    }
+  }
+  while (b->parent != NULL) {
+    node = history->branches;
+    while (node != NULL && node->branch != b) {
+      node = node->next;
+    }
+    for (node = node == NULL ? NULL : node->next; node != NULL;
+         node = node->next) {
+      if (node->branch->parent == b->parent) {
+        return node->branch;
+      }
+    }
+    b = b->parent;
+  }
+  return NULL;
+}
+
+static bool
+history_serialize_branch(ds_history_branch_t *branch,
+                         ds_history_write_func_t write,
+                         ds_history_payload_write_func_t write_payload,
+                         void *io_user, void *payload_user) {
   unsigned long parent_id;
   size_t name_len;
 
-  history = branch->history;
   parent_id = branch->parent == NULL ? 0UL : branch->parent->id;
   name_len = branch->name == NULL ? 0U : strlen(branch->name);
 
@@ -1357,20 +1434,21 @@ static bool history_serialize_branch_recursive(
   if (name_len != 0U && !write(branch->name, name_len, io_user)) {
     return false;
   }
-  if (!history_write_branch_ops(branch, write, write_payload, io_user,
-                                payload_user)) {
-    return false;
-  }
+  return history_write_branch_ops(branch, write, write_payload, io_user,
+                                  payload_user);
+}
 
-  node = history->branches;
-  while (node != NULL) {
-    if (node->branch->parent == branch) {
-      if (!history_serialize_branch_recursive(
-              node->branch, write, write_payload, io_user, payload_user)) {
-        return false;
-      }
+static bool
+history_serialize_branches(ds_history_t *history, ds_history_write_func_t write,
+                           ds_history_payload_write_func_t write_payload,
+                           void *io_user, void *payload_user) {
+  ds_history_branch_t *b;
+  for (b = history->main_branch; b != NULL;
+       b = history_preorder_next(history, b)) {
+    if (!history_serialize_branch(b, write, write_payload, io_user,
+                                  payload_user)) {
+      return false;
     }
-    node = node->next;
   }
   return true;
 }
@@ -1448,8 +1526,8 @@ bool ds_history_serialize(ds_history_t *history, ds_history_write_func_t write,
              io_user) &&
        write(&history->checkpoint_interval,
              sizeof(history->checkpoint_interval), io_user) &&
-       history_serialize_branch_recursive(history->main_branch, write,
-                                          write_payload, io_user, payload_user);
+       history_serialize_branches(history, write, write_payload, io_user,
+                                  payload_user);
   return ok;
 }
 
@@ -1594,16 +1672,14 @@ history_write_branch_ops_portable(ds_history_branch_t *branch,
   return true;
 }
 
-static bool history_serialize_branch_recursive_portable(
-    ds_history_branch_t *branch, ds_history_write_func_t write,
-    ds_history_payload_write_func_t write_payload, void *io_user,
-    void *payload_user) {
-  ds_history_t *history;
-  struct ds_history_branch_node *node;
+static bool
+history_serialize_branch_portable(ds_history_branch_t *branch,
+                                  ds_history_write_func_t write,
+                                  ds_history_payload_write_func_t write_payload,
+                                  void *io_user, void *payload_user) {
   unsigned long parent_id;
   size_t name_len;
 
-  history = branch->history;
   parent_id = branch->parent == NULL ? 0UL : branch->parent->id;
   name_len = branch->name == NULL ? 0U : strlen(branch->name);
 
@@ -1616,20 +1692,21 @@ static bool history_serialize_branch_recursive_portable(
   if (name_len != 0U && !write(branch->name, name_len, io_user)) {
     return false;
   }
-  if (!history_write_branch_ops_portable(branch, write, write_payload, io_user,
-                                         payload_user)) {
-    return false;
-  }
+  return history_write_branch_ops_portable(branch, write, write_payload,
+                                           io_user, payload_user);
+}
 
-  node = history->branches;
-  while (node != NULL) {
-    if (node->branch->parent == branch) {
-      if (!history_serialize_branch_recursive_portable(
-              node->branch, write, write_payload, io_user, payload_user)) {
-        return false;
-      }
+static bool history_serialize_branches_portable(
+    ds_history_t *history, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
+  ds_history_branch_t *b;
+  for (b = history->main_branch; b != NULL;
+       b = history_preorder_next(history, b)) {
+    if (!history_serialize_branch_portable(b, write, write_payload, io_user,
+                                           payload_user)) {
+      return false;
     }
-    node = node->next;
   }
   return true;
 }
@@ -1804,8 +1881,8 @@ bool ds_history_serialize_portable(
        ds_history_write_ulong(write, io_user, history->next_operation_id) &&
        ds_history_write_ulong(write, io_user, history->next_branch_id) &&
        ds_history_write_size(write, io_user, history->checkpoint_interval) &&
-       history_serialize_branch_recursive_portable(
-           history->main_branch, write, write_payload, io_user, payload_user);
+       history_serialize_branches_portable(history, write, write_payload,
+                                           io_user, payload_user);
   return ok;
 }
 
