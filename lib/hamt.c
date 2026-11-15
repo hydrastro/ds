@@ -3,7 +3,6 @@
 #include <string.h>
 
 #define DS_HAMT_BITS 5
-#define DS_HAMT_FANOUT 32
 #define DS_HAMT_MASK 31U
 #define DS_HAMT_MAX_LEVEL 6 /* 6 * 5 = 30 bits of a 32-bit hash */
 
@@ -61,6 +60,9 @@ ds_hamt_t *ds_hamt_create(void) { return ds_hamt_create_alloc(malloc, free); }
 static ds_hamt_node_t *hamt_new_branch(ds_hamt_t *hamt) {
   ds_hamt_node_t *node =
       (ds_hamt_node_t *)hamt->allocator(sizeof(ds_hamt_node_t));
+  if (node == NULL) {
+    return NULL;
+  }
   node->is_leaf = false;
   node->bitmap = 0UL;
   node->children = NULL;
@@ -97,11 +99,22 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
 
 ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *)) {
-  ds_hamt_t *hamt = (ds_hamt_t *)allocator(sizeof(ds_hamt_t));
+  ds_hamt_t *hamt;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  hamt = (ds_hamt_t *)allocator(sizeof(ds_hamt_t));
+  if (hamt == NULL) {
+    return NULL;
+  }
   hamt->allocator = allocator;
   hamt->deallocator = deallocator;
   hamt->size = 0;
   hamt->root = hamt_new_branch(hamt);
+  if (hamt->root == NULL) {
+    deallocator(hamt);
+    return NULL;
+  }
   return hamt;
 }
 

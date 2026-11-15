@@ -28,6 +28,7 @@ typedef struct hamt {
   void (*deallocator)(void *);
 } ds_hamt_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_hamt_t *ds_hamt_create(void);
 ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *));
