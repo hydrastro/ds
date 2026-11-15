@@ -885,7 +885,7 @@ ds_status_t ds_chromatic_index(const unsigned char *adj, size_t n,
   size_t pos;
   size_t i;
   size_t c;
-  size_t used;
+  size_t used = 0;
   size_t sq;
   bool ok;
   ds_status_t st;
