@@ -38,6 +38,7 @@ typedef struct wavelet_tree {
 
 #define DS_WAVELET_NPOS ((size_t) - 1)
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_wavelet_tree_t *ds_wavelet_tree_create(const size_t *sequence, size_t length,
                                           size_t sigma);
 ds_wavelet_tree_t *ds_wavelet_tree_create_alloc(const size_t *sequence,

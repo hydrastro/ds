@@ -1,6 +1,11 @@
 #include "wavelet_tree.h"
 #include <stdlib.h>
 
+static void wavelet_destroy_node(ds_wavelet_tree_t *wt,
+                                 ds_wavelet_node_t *node);
+
+/* the subtree over symbols lo..hi of seq; NULL when memory runs out, with
+ * everything it took released. The recursion is log2(sigma) deep. */
 static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
                                         size_t length, size_t lo, size_t hi) {
   ds_wavelet_node_t *node;
@@ -13,6 +18,9 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
   size_t li;
   size_t ri;
   node = (ds_wavelet_node_t *)wt->allocator(sizeof(ds_wavelet_node_t));
+  if (node == NULL) {
+    return NULL;
+  }
   node->left = NULL;
   node->right = NULL;
   node->lo = lo;
@@ -24,6 +32,10 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
   }
   mid = lo + (hi - lo) / 2;
   node->bv = ds_bitvector_create_alloc(length, wt->allocator, wt->deallocator);
+  if (node->bv == NULL) {
+    wavelet_destroy_node(wt, node);
+    return NULL;
+  }
   for (i = 0; i < length; i++) {
     if (seq[i] > mid) {
       ds_bitvector_set(node->bv, i, true);
@@ -32,13 +44,24 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
       left_len += 1;
     }
   }
-  ds_bitvector_build(node->bv);
   /* partition into child subsequences (stable order preserved) */
   left_seq =
       left_len > 0 ? (size_t *)wt->allocator(left_len * sizeof(size_t)) : NULL;
   right_seq = right_len > 0
                   ? (size_t *)wt->allocator(right_len * sizeof(size_t))
                   : NULL;
+  if (ds_bitvector_build_ex(node->bv) != DS_OK ||
+      (left_len > 0 && left_seq == NULL) ||
+      (right_len > 0 && right_seq == NULL)) {
+    if (left_seq != NULL) {
+      wt->deallocator(left_seq);
+    }
+    if (right_seq != NULL) {
+      wt->deallocator(right_seq);
+    }
+    wavelet_destroy_node(wt, node);
+    return NULL;
+  }
   li = 0;
   ri = 0;
   for (i = 0; i < length; i++) {
@@ -50,17 +73,19 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
       li += 1;
     }
   }
-  if (left_len > 0) {
-    node->left = wavelet_build(wt, left_seq, left_len, lo, mid);
+  node->left = wavelet_build(wt, left_seq, left_len, lo, mid);
+  if (left_seq != NULL) {
     wt->deallocator(left_seq);
-  } else {
-    node->left = wavelet_build(wt, NULL, 0, lo, mid);
   }
-  if (right_len > 0) {
+  if (node->left != NULL) {
     node->right = wavelet_build(wt, right_seq, right_len, mid + 1, hi);
+  }
+  if (right_seq != NULL) {
     wt->deallocator(right_seq);
-  } else {
-    node->right = wavelet_build(wt, NULL, 0, mid + 1, hi);
+  }
+  if (node->left == NULL || node->right == NULL) {
+    wavelet_destroy_node(wt, node);
+    return NULL;
   }
   return node;
 }
@@ -74,21 +99,37 @@ ds_wavelet_tree_t *ds_wavelet_tree_create_alloc(const size_t *sequence,
                                                 size_t length, size_t sigma,
                                                 void *(*allocator)(size_t),
                                                 void (*deallocator)(void *)) {
-  ds_wavelet_tree_t *wt =
-      (ds_wavelet_tree_t *)allocator(sizeof(ds_wavelet_tree_t));
+  ds_wavelet_tree_t *wt;
   size_t *work;
   size_t i;
+  if (allocator == NULL || deallocator == NULL ||
+      (length > 0 && sequence == NULL) ||
+      length > (size_t)-1 / sizeof(size_t)) {
+    return NULL;
+  }
+  wt = (ds_wavelet_tree_t *)allocator(sizeof(ds_wavelet_tree_t));
+  if (wt == NULL) {
+    return NULL;
+  }
   wt->allocator = allocator;
   wt->deallocator = deallocator;
   wt->length = length;
   wt->sigma = sigma < 1 ? 1 : sigma;
   work = length > 0 ? (size_t *)allocator(length * sizeof(size_t)) : NULL;
+  if (length > 0 && work == NULL) {
+    deallocator(wt);
+    return NULL;
+  }
   for (i = 0; i < length; i++) {
     work[i] = sequence[i];
   }
   wt->root = wavelet_build(wt, work, length, 0, wt->sigma - 1);
   if (work != NULL) {
     deallocator(work);
+  }
+  if (wt->root == NULL) {
+    deallocator(wt);
+    return NULL;
   }
   return wt;
 }
