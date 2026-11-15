@@ -991,7 +991,7 @@ ds_status_t ds_ptrie_visit_range(ds_ptrie_version_t *version,
   }
 
   capacity = 16U;
-  buffer = (unsigned char *)malloc(capacity);
+  buffer = (unsigned char *)calloc(capacity, 1);
   if (buffer == NULL) {
     return DS_ERR_ALLOC;
   }
