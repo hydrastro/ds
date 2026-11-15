@@ -1461,7 +1461,7 @@ No row is classified missing.
 |---|---|---|---|---|
 | walk | concept | n/a |  |  |
 | WCET | alias | n/a |  | alias of worst-case execution time |
-| weak-heap | structure | implemented | lib/weak_heap |  |
+| weak-heap | structure | implemented | lib/weak_heap, lib/pq_iface | also an addressable queue backend (handles, update, remove) |
 | weak-heap sort | structure | implemented | lib/weak_heap |  |
 | weight-balanced tree | structure | implemented | lib/wb_tree |  |
 | weighted, directed graph | concept | n/a |  |  |
@@ -1522,7 +1522,7 @@ No row is classified missing.
 | robust geometric predicates | algorithm | implemented | `algo/robust_predicates`, `algo/geometry` | filtered exact orient2d/orient3d/incircle/insphere over expansion arithmetic, per-predicate input ranges; algo/geometry orientation uses orient2d |
 | floating-point expansion arithmetic | algorithm | implemented | `algo/robust_predicates` | error-free sum/product, expansion sum/scale/product/compress |
 | CHAMP (persistent hash trie) | structure | implemented | `lib/persistent_hamt` | canonical deletes, structural sharing, in-place edits of unshared versions |
-| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, packed, binomial, leftist, weight-biased, skew, randomized, pairing, hollow, rank-pairing, strict Fibonacci and Fibonacci backends; per-operation cost classes |
+| addressable priority queue | concept | implemented | `lib/pq_iface` | capability with binary, 4-ary, packed, weak, binomial, leftist, weight-biased, skew, randomized, pairing, hollow, rank-pairing, strict Fibonacci and Fibonacci backends; per-operation cost classes |
 | zero-suppressed decision diagram | structure | implemented | `lib/zdd` | hash-consed families of sets: union, intersection, differences, subset0/1, change, join, meet, nonsup, nonsub, minimal, maximal; counting, membership, enumeration; iterative |
 | LOUDS succinct tree | structure | implemented | `lib/louds` | level-order unary degree sequence over any rank/select backend: 2n + 1 bits; navigation by select; byte-labelled static tries |
 | balanced-parentheses succinct tree | structure | implemented | `lib/bp_tree` | range min-max tree over the parentheses (excess searches, range minima and their counts) on any rank/select backend; preorder navigation including degree, k-th child, LCA, level ancestor, height and postorder |

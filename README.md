@@ -69,7 +69,7 @@ Core mutable containers:
 - `lib/persistent_vector`: persistent bit-partitioned vector (configurable branching, tail buffer, in-place edits of unshared versions, deep-copy element callbacks)
 - `lib/plop_hash`: PLOP-hashing, directory-free order-preserving multidimensional linear hashing (midpoint or median splits, box queries)
 - `lib/posix_store`: POSIX file page store (pread/pwrite, fsync with a one-time directory sync for created files, ftruncate): durable sync and persistent truncation
-- `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld, per-operation cost classes) over binary, 4-ary, packed binary, binomial, leftist, weight-biased, skew, randomized, pairing, hollow, rank-pairing (type 1 and 2), strict Fibonacci and Fibonacci heaps
+- `lib/pq_iface`: addressable priority-queue capability (stable handles, update/remove, meld, per-operation cost classes) over binary, 4-ary, packed binary, weak, binomial, leftist, weight-biased, skew, randomized, pairing, hollow, rank-pairing (type 1 and 2), strict Fibonacci and Fibonacci heaps
 - `lib/pushdown`: pushdown automata (exact nondeterministic membership via [pXq] summaries, DPDA check and simulation, pushdown transducers)
 - `lib/quadtree`: region trees (PR quadtree, octree, bintree), point quadtrees, linear (Morton) quadtrees
 - `lib/quotient_filter`: quotient filter (packed remainders, deletion, ordered fingerprint enumeration)

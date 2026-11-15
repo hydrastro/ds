@@ -83,15 +83,70 @@ typedef struct pqk_chunk {
   pqk_cell_t cells[PQK_CHUNK];
 } pqk_chunk_t;
 
+/* handle cells, shared by the packed and weak heaps */
+typedef struct pq_cells {
+  pqk_chunk_t *chunks;
+  pqk_cell_t *free;
+  size_t spare; /* cells on the free list */
+} pq_cells_t;
+
+static ds_status_t pq_cells_add_chunk(pq_cells_t *p, ds_context_t *context) {
+  pqk_chunk_t *c =
+      (pqk_chunk_t *)ds_context_alloc(context, sizeof(pqk_chunk_t));
+  size_t i;
+  if (c == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  c->next = p->chunks;
+  p->chunks = c;
+  for (i = PQK_CHUNK; i-- > 0;) {
+    c->cells[i].next = p->free;
+    p->free = &c->cells[i];
+  }
+  p->spare += PQK_CHUNK;
+  return DS_OK;
+}
+
+static ds_status_t pq_cells_reserve(pq_cells_t *p, ds_context_t *context,
+                                    size_t count) {
+  ds_status_t st = DS_OK;
+  while (st == DS_OK && p->spare < count) {
+    st = pq_cells_add_chunk(p, context);
+  }
+  return st;
+}
+
+/* a cell, after pq_cells_reserve(p, context, 1) succeeded */
+static pqk_cell_t *pq_cells_take(pq_cells_t *p) {
+  pqk_cell_t *cell = p->free;
+  p->free = cell->next;
+  p->spare--;
+  return cell;
+}
+
+static void pq_cells_give(pq_cells_t *p, pqk_cell_t *cell) {
+  cell->next = p->free;
+  p->free = cell;
+  p->spare++;
+}
+
+static void pq_cells_destroy(pq_cells_t *p, ds_context_t *context) {
+  while (p->chunks != NULL) {
+    pqk_chunk_t *next = p->chunks->next;
+    ds_context_free(context, p->chunks);
+    p->chunks = next;
+  }
+  p->free = NULL;
+  p->spare = 0;
+}
+
 typedef struct pqk {
   pq_base_t b;            /* offset: the item offset inside a slot */
   unsigned char *slots;   /* capacity slots of b.node_size bytes */
   unsigned char *scratch; /* one slot, for sifting */
   size_t n;
   size_t capacity;
-  pqk_chunk_t *chunks;
-  pqk_cell_t *free_cells;
-  size_t spare_cells; /* cells on the free list */
+  pq_cells_t cells;
 } pqk_t;
 
 static unsigned char *pqk_slot(const pqk_t *h, size_t i) {
@@ -146,31 +201,16 @@ static void pqk_fix(pqk_t *h, size_t i) {
   pqk_place(h, i, x);
 }
 
-static ds_status_t pqk_add_chunk(pqk_t *h) {
-  pqk_chunk_t *c =
-      (pqk_chunk_t *)ds_context_alloc(h->b.context, sizeof(pqk_chunk_t));
-  size_t i;
-  if (c == NULL) {
-    return DS_ERR_ALLOC;
-  }
-  c->next = h->chunks;
-  h->chunks = c;
-  for (i = PQK_CHUNK; i-- > 0;) {
-    c->cells[i].next = h->free_cells;
-    h->free_cells = &c->cells[i];
-  }
-  h->spare_cells += PQK_CHUNK;
-  return DS_OK;
-}
-
-static ds_status_t pqk_grow(pqk_t *h, size_t need) {
+/* room for need slots of size bytes: *slots grows by doubling */
+static ds_status_t pq_slots_grow(ds_context_t *context, unsigned char **slots,
+                                 size_t *capacity, size_t size, size_t need) {
   size_t cap;
   size_t bytes;
   unsigned char *a;
-  if (need <= h->capacity) {
+  if (need <= *capacity) {
     return DS_OK;
   }
-  cap = h->capacity < 8 ? 8 : h->capacity;
+  cap = *capacity < 8 ? 8 : *capacity;
   while (cap < need) {
     if (cap > ((size_t)-1) / 2) {
       cap = need;
@@ -178,16 +218,21 @@ static ds_status_t pqk_grow(pqk_t *h, size_t need) {
     }
     cap *= 2;
   }
-  if (!ds_size_mul(cap, h->b.node_size, &bytes)) {
+  if (!ds_size_mul(cap, size, &bytes)) {
     return DS_ERR_OVERFLOW;
   }
-  a = (unsigned char *)ds_context_realloc(h->b.context, h->slots, bytes);
+  a = (unsigned char *)ds_context_realloc(context, *slots, bytes);
   if (a == NULL) {
     return DS_ERR_ALLOC;
   }
-  h->slots = a;
-  h->capacity = cap;
+  *slots = a;
+  *capacity = cap;
   return DS_OK;
+}
+
+static ds_status_t pqk_grow(pqk_t *h, size_t need) {
+  return pq_slots_grow(h->b.context, &h->slots, &h->capacity, h->b.node_size,
+                       need);
 }
 
 static ds_status_t pqk_init(void *pq, size_t item_size,
@@ -211,18 +256,12 @@ static ds_status_t pqk_init(void *pq, size_t item_size,
 
 static void pqk_destroy(void *pq) {
   pqk_t *h = (pqk_t *)pq;
-  while (h->chunks != NULL) {
-    pqk_chunk_t *next = h->chunks->next;
-    ds_context_free(h->b.context, h->chunks);
-    h->chunks = next;
-  }
+  pq_cells_destroy(&h->cells, h->b.context);
   ds_context_free(h->b.context, h->slots);
   ds_context_free(h->b.context, h->scratch);
   h->slots = NULL;
   h->scratch = NULL;
   h->n = h->capacity = 0;
-  h->free_cells = NULL;
-  h->spare_cells = 0;
 }
 
 static ds_status_t pqk_push(void *pq, const void *item,
@@ -231,15 +270,13 @@ static ds_status_t pqk_push(void *pq, const void *item,
   pqk_cell_t *cell;
   unsigned char *slot;
   ds_status_t st = pqk_grow(h, h->n + 1);
-  if (st == DS_OK && h->free_cells == NULL) {
-    st = pqk_add_chunk(h);
+  if (st == DS_OK) {
+    st = pq_cells_reserve(&h->cells, h->b.context, 1);
   }
   if (st != DS_OK) {
     return st;
   }
-  cell = h->free_cells;
-  h->free_cells = cell->next;
-  h->spare_cells--;
+  cell = pq_cells_take(&h->cells);
   slot = pqk_slot(h, h->n);
   memcpy(slot, &cell, sizeof(cell));
   memcpy(slot + h->b.offset, item, h->b.item_size);
@@ -259,8 +296,8 @@ static ds_status_t pqk_reserve(void *pq, size_t count) {
     return DS_ERR_OVERFLOW;
   }
   st = pqk_grow(h, need);
-  while (st == DS_OK && h->spare_cells < count) {
-    st = pqk_add_chunk(h);
+  if (st == DS_OK) {
+    st = pq_cells_reserve(&h->cells, h->b.context, count);
   }
   return st;
 }
@@ -275,9 +312,7 @@ static ds_status_t pqk_remove_at(pqk_t *h, size_t i, void *out_item) {
   if (out_item != NULL) {
     memcpy(out_item, pqk_slot(h, i) + h->b.offset, h->b.item_size);
   }
-  cell->next = h->free_cells;
-  h->free_cells = cell;
-  h->spare_cells++;
+  pq_cells_give(&h->cells, cell);
   h->n--;
   if (i < h->n) {
     pqk_place(h, i, pqk_slot(h, h->n));
@@ -315,6 +350,270 @@ static const void *pqk_item(const void *pq, ds_pq_handle_t handle) {
 }
 
 static size_t pqk_size(const void *pq) { return ((const pqk_t *)pq)->n; }
+
+/* ---- addressable weak heap ----
+ *
+ * Slots as in the packed heap (a handle cell, then the item) and one
+ * reverse bit per slot: a node i > 0 has children 2i + r(i) (left) and
+ * 2i + 1 - r(i) (right), the root only the right child 1, and each item is
+ * no greater than those in its right subtree. A join swaps two slots,
+ * fixing both cells, and flips a bit. Decreasing an item climbs by joins
+ * to its distinguished ancestors; removing one first carries it to the
+ * root as if it were the smallest (every join swaps), then takes the root
+ * out as pop does; increasing does both and puts the item back in as a
+ * push, in its own cell. */
+
+typedef struct pqw {
+  pq_base_t b;
+  unsigned char *slots;   /* capacity slots of b.node_size bytes */
+  unsigned char *scratch; /* two slots: a swap, and an item on hold */
+  unsigned char *bits;    /* reverse bits, capacity of them */
+  size_t n;
+  size_t capacity;
+  size_t bit_capacity; /* bits room, in slots */
+  pq_cells_t cells;
+} pqw_t;
+
+static unsigned char *pqw_slot(const pqw_t *h, size_t i) {
+  return h->slots + i * h->b.node_size;
+}
+
+static unsigned pqw_bit(const pqw_t *h, size_t i) {
+  return (unsigned)(h->bits[i >> 3] >> (i & 7)) & 1u;
+}
+
+static void pqw_flip(pqw_t *h, size_t i) {
+  h->bits[i >> 3] = (unsigned char)(h->bits[i >> 3] ^ (1u << (i & 7)));
+}
+
+static void pqw_clear(pqw_t *h, size_t i) {
+  h->bits[i >> 3] = (unsigned char)(h->bits[i >> 3] & ~(1u << (i & 7)));
+}
+
+static void pqw_put(pqw_t *h, size_t i, const unsigned char *slot) {
+  memcpy(pqw_slot(h, i), slot, h->b.node_size);
+  pqk_cell_of(slot)->pos = i;
+}
+
+static void pqw_swap(pqw_t *h, size_t i, size_t j) {
+  memcpy(h->scratch, pqw_slot(h, i), h->b.node_size);
+  pqw_put(h, i, pqw_slot(h, j));
+  pqw_put(h, j, h->scratch);
+}
+
+static bool pqw_less(const pqw_t *h, size_t i, size_t j) {
+  return h->b.compare(pqw_slot(h, i) + h->b.offset,
+                      pqw_slot(h, j) + h->b.offset, h->b.user) < 0;
+}
+
+/* climb while j is a left child; the parent then has j in its right
+ * subtree */
+static size_t pqw_dancestor(const pqw_t *h, size_t j) {
+  while ((j & 1u) == pqw_bit(h, j >> 1)) {
+    j >>= 1;
+  }
+  return j >> 1;
+}
+
+static void pqw_climb(pqw_t *h, size_t j) {
+  while (j != 0) {
+    size_t i = pqw_dancestor(h, j);
+    if (!pqw_less(h, j, i)) {
+      return;
+    }
+    pqw_swap(h, i, j);
+    pqw_flip(h, j);
+    j = i;
+  }
+}
+
+/* as pqw_climb for an item smaller than every other */
+static void pqw_to_root(pqw_t *h, size_t j) {
+  while (j != 0) {
+    size_t i = pqw_dancestor(h, j);
+    pqw_swap(h, i, j);
+    pqw_flip(h, j);
+    j = i;
+  }
+}
+
+/* the root was replaced: join it with the leftmost path below 1 */
+static void pqw_sift_down(pqw_t *h) {
+  size_t x = 1;
+  if (h->n < 2) {
+    return;
+  }
+  while (2 * x + pqw_bit(h, x) < h->n) {
+    x = 2 * x + pqw_bit(h, x);
+  }
+  for (; x > 0; x >>= 1) {
+    if (pqw_less(h, x, 0)) {
+      pqw_swap(h, 0, x);
+      pqw_flip(h, x);
+    }
+  }
+}
+
+/* drop the root's slot (its cell stays with the caller) */
+static void pqw_drop_root(pqw_t *h) {
+  h->n--;
+  if (h->n > 0) {
+    pqw_put(h, 0, pqw_slot(h, h->n));
+    pqw_sift_down(h);
+  }
+}
+
+/* a slot appended at n, as a push does */
+static void pqw_append(pqw_t *h, const unsigned char *slot) {
+  size_t i = h->n++;
+  pqw_put(h, i, slot);
+  pqw_clear(h, i);
+  if (i > 0 && (i & 1u) == 0) {
+    pqw_clear(h, i >> 1); /* a new only child goes left */
+  }
+  pqw_climb(h, i);
+}
+
+static ds_status_t pqw_grow(pqw_t *h, size_t need) {
+  ds_status_t st = pq_slots_grow(h->b.context, &h->slots, &h->capacity,
+                                 h->b.node_size, need);
+  if (st == DS_OK && need > h->bit_capacity) {
+    size_t cap = h->capacity; /* bits follow the slots */
+    unsigned char *a =
+        (unsigned char *)ds_context_realloc(h->b.context, h->bits, cap / 8 + 1);
+    if (a == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    h->bits = a;
+    h->bit_capacity = cap;
+  }
+  return st;
+}
+
+static ds_status_t pqw_init(void *pq, size_t item_size,
+                            ds_pq_compare_fn compare, void *user,
+                            ds_context_t *context) {
+  pqw_t *h = (pqw_t *)pq;
+  size_t two;
+  ds_status_t st;
+  memset(h, 0, sizeof(*h));
+  st = pq_base_init(&h->b, sizeof(pqk_cell_t *), item_size, compare, user,
+                    context);
+  if (st != DS_OK) {
+    return st;
+  }
+  if (!ds_size_align(h->b.node_size, DS_MAX_ALIGN, &h->b.node_size) ||
+      !ds_size_mul(h->b.node_size, 2, &two)) {
+    return DS_ERR_OVERFLOW;
+  }
+  h->scratch = (unsigned char *)ds_context_alloc(context, two);
+  return h->scratch == NULL ? DS_ERR_ALLOC : DS_OK;
+}
+
+static void pqw_destroy(void *pq) {
+  pqw_t *h = (pqw_t *)pq;
+  pq_cells_destroy(&h->cells, h->b.context);
+  ds_context_free(h->b.context, h->slots);
+  ds_context_free(h->b.context, h->bits);
+  ds_context_free(h->b.context, h->scratch);
+  h->slots = NULL;
+  h->bits = NULL;
+  h->scratch = NULL;
+  h->n = h->capacity = h->bit_capacity = 0;
+}
+
+static ds_status_t pqw_push(void *pq, const void *item,
+                            ds_pq_handle_t *out_handle) {
+  pqw_t *h = (pqw_t *)pq;
+  unsigned char *slot = h->scratch + h->b.node_size;
+  pqk_cell_t *cell;
+  ds_status_t st = pqw_grow(h, h->n + 1);
+  if (st == DS_OK) {
+    st = pq_cells_reserve(&h->cells, h->b.context, 1);
+  }
+  if (st != DS_OK) {
+    return st;
+  }
+  cell = pq_cells_take(&h->cells);
+  memcpy(slot, &cell, sizeof(cell));
+  memcpy(slot + h->b.offset, item, h->b.item_size);
+  pqw_append(h, slot);
+  if (out_handle != NULL) {
+    *out_handle = (ds_pq_handle_t)(void *)cell;
+  }
+  return DS_OK;
+}
+
+static ds_status_t pqw_reserve(void *pq, size_t count) {
+  pqw_t *h = (pqw_t *)pq;
+  size_t need;
+  ds_status_t st;
+  if (!ds_size_add(h->n, count, &need)) {
+    return DS_ERR_OVERFLOW;
+  }
+  st = pqw_grow(h, need);
+  if (st == DS_OK) {
+    st = pq_cells_reserve(&h->cells, h->b.context, count);
+  }
+  return st;
+}
+
+static const void *pqw_top(const void *pq) {
+  const pqw_t *h = (const pqw_t *)pq;
+  return h->n == 0 ? NULL : pqw_slot(h, 0) + h->b.offset;
+}
+
+static ds_status_t pqw_pop(void *pq, void *out_item) {
+  pqw_t *h = (pqw_t *)pq;
+  if (h->n == 0) {
+    return DS_EMPTY;
+  }
+  if (out_item != NULL) {
+    memcpy(out_item, pqw_slot(h, 0) + h->b.offset, h->b.item_size);
+  }
+  pq_cells_give(&h->cells, pqk_cell_of(pqw_slot(h, 0)));
+  pqw_drop_root(h);
+  return DS_OK;
+}
+
+static ds_status_t pqw_update(void *pq, ds_pq_handle_t handle,
+                              const void *item) {
+  pqw_t *h = (pqw_t *)pq;
+  pqk_cell_t *cell = (pqk_cell_t *)(void *)handle;
+  unsigned char *slot = pqw_slot(h, cell->pos);
+  int c = h->b.compare(item, slot + h->b.offset, h->b.user);
+  memmove(slot + h->b.offset, item, h->b.item_size);
+  if (c < 0) {
+    pqw_climb(h, cell->pos);
+  } else if (c > 0) {
+    unsigned char *held = h->scratch + h->b.node_size;
+    pqw_to_root(h, cell->pos);
+    memcpy(held, pqw_slot(h, 0), h->b.node_size);
+    pqw_drop_root(h);
+    pqw_append(h, held);
+  }
+  return DS_OK;
+}
+
+static ds_status_t pqw_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+  pqw_t *h = (pqw_t *)pq;
+  pqk_cell_t *cell = (pqk_cell_t *)(void *)handle;
+  if (out_item != NULL) {
+    memcpy(out_item, pqw_slot(h, cell->pos) + h->b.offset, h->b.item_size);
+  }
+  pqw_to_root(h, cell->pos);
+  pq_cells_give(&h->cells, cell);
+  pqw_drop_root(h);
+  return DS_OK;
+}
+
+static const void *pqw_item(const void *pq, ds_pq_handle_t handle) {
+  const pqw_t *h = (const pqw_t *)pq;
+  return pqw_slot(h, ((const pqk_cell_t *)(const void *)handle)->pos) +
+         h->b.offset;
+}
+
+static size_t pqw_size(const void *pq) { return ((const pqw_t *)pq)->n; }
 
 /* ---- implicit d-ary heap ---- */
 
@@ -1250,6 +1549,15 @@ static const ds_pq_ops_t pq_packed_ops = {"packed binary heap",
                                           NULL,
                                           pqk_reserve,
                                           PQ_COSTS_ARRAY};
+static const ds_pq_ops_t pq_weak_ops = {
+    "weak heap",   PQ_WL | DS_PQ_IMPLICIT | DS_PQ_MOVING_ITEMS,
+    sizeof(pqw_t), pqw_init,
+    pqw_destroy,   pqw_push,
+    pqw_top,       pqw_pop,
+    pqw_update,    pqw_remove,
+    pqw_item,      pqw_size,
+    NULL,          pqw_reserve,
+    PQ_COSTS_ARRAY};
 static const ds_pq_ops_t pq_binomial_ops = {
     "binomial", PQ_ML,    sizeof(pqb_t), pqb_init,   pqb_destroy,
     pqb_push,   pqb_top,  pqb_pop,       pqb_update, pqb_remove,
@@ -1318,6 +1626,7 @@ const ds_pq_ops_t *ds_pq_binary_ops(void) { return &pq_binary_ops; }
 const ds_pq_ops_t *ds_pq_quaternary_ops(void) { return &pq_quaternary_ops; }
 
 const ds_pq_ops_t *ds_pq_packed_ops(void) { return &pq_packed_ops; }
+const ds_pq_ops_t *ds_pq_weak_ops(void) { return &pq_weak_ops; }
 const ds_pq_ops_t *ds_pq_binomial_ops(void) { return &pq_binomial_ops; }
 const ds_pq_ops_t *ds_pq_leftist_ops(void) { return &pq_leftist_ops; }
 const ds_pq_ops_t *ds_pq_weight_ops(void) { return &pq_weight_ops; }

@@ -50,6 +50,12 @@
  *     item), handles are cells in chunks of 256 that never move;
  *     DS_PQ_MOVING_ITEMS. The binary and 4-ary heaps above keep one node
  *     per item for stable item addresses.
+ *   ds_pq_weak_ops()       n/log    log      log      log      log      -
+ *     weak heap (Dutton; the order of lib/weak_heap): slots and cells as
+ *     in the packed heap, plus a reverse bit per slot; a push needs O(1)
+ *     comparisons on average and a pop at most ceil(log2 n). Decreasing
+ *     climbs by joins; increasing and removing carry the item to the root
+ *     first, then take it out; DS_PQ_MOVING_ITEMS
  *   ds_pq_binomial_ops()   log/1    log      log^2    log^2    log^2    log
  *     binomial heap (lib/binomial_heap): a structural parent swap repairs
  *     the parent links of two child lists, O(log n) each
@@ -182,6 +188,7 @@ typedef struct ds_pq {
 const ds_pq_ops_t *ds_pq_binary_ops(void);
 const ds_pq_ops_t *ds_pq_quaternary_ops(void);
 const ds_pq_ops_t *ds_pq_packed_ops(void);
+const ds_pq_ops_t *ds_pq_weak_ops(void);
 const ds_pq_ops_t *ds_pq_binomial_ops(void);
 const ds_pq_ops_t *ds_pq_leftist_ops(void);
 const ds_pq_ops_t *ds_pq_weight_ops(void);
