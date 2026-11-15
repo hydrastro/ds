@@ -52,6 +52,9 @@ ds_status_t ds_critbit_tree_remove(ds_critbit_tree_t *tree, const char *key,
                                    void **out_value);
 size_t ds_critbit_tree_size(const ds_critbit_tree_t *tree);
 
+/* keys in order: DS_OK, DS_STOP when visit returns false, DS_ERR_ALLOC
+ * when a walk deeper than 64 levels cannot grow its stack (the walk keeps
+ * its path on the heap, not in call frames) */
 ds_status_t ds_critbit_tree_visit(const ds_critbit_tree_t *tree,
                                   ds_critbit_visit_func_t visit, void *user);
 ds_status_t ds_critbit_tree_visit_prefix(const ds_critbit_tree_t *tree,

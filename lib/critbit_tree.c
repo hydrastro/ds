@@ -31,17 +31,27 @@ static ds_critbit_node_t *cb_best_leaf(ds_critbit_node_t *n, const char *key,
   return n;
 }
 
+/* frees a subtree without recursion or memory (a crit-bit tree is as
+ * deep as its longest chain of nested keys): nodes waiting to be freed
+ * form a list linked through their value pointers, which destruction
+ * does not read */
 static void cb_free_subtree(ds_critbit_tree_t *tree, ds_critbit_node_t *n) {
-  if (n == NULL) {
-    return;
+  ds_critbit_node_t *list = n;
+  if (n != NULL) {
+    n->value = NULL;
   }
-  if (n->leaf) {
-    ds_context_free(tree->context, n->key);
-  } else {
-    cb_free_subtree(tree, n->child[0]);
-    cb_free_subtree(tree, n->child[1]);
+  while (list != NULL) {
+    ds_critbit_node_t *x = list;
+    list = (ds_critbit_node_t *)x->value;
+    if (x->leaf) {
+      ds_context_free(tree->context, x->key);
+    } else {
+      x->child[0]->value = list;
+      x->child[1]->value = x->child[0];
+      list = x->child[1];
+    }
+    ds_context_free(tree->context, x);
   }
-  ds_context_free(tree->context, n);
 }
 
 static ds_critbit_node_t *cb_new_leaf(ds_critbit_tree_t *tree, const char *key,
@@ -245,12 +255,58 @@ size_t ds_critbit_tree_size(const ds_critbit_tree_t *tree) {
   return tree->size;
 }
 
-static bool cb_walk(const ds_critbit_node_t *n, ds_critbit_visit_func_t visit,
-                    void *user) {
-  if (n->leaf) {
-    return visit(n->key, n->value, user);
+/* the leaves under n in key order, on an explicit stack of pending right
+ * subtrees: a fixed array first, then the tree's context */
+#define CB_STACK 64
+
+static ds_status_t cb_walk(const ds_critbit_tree_t *tree,
+                           const ds_critbit_node_t *n,
+                           ds_critbit_visit_func_t visit, void *user) {
+  const ds_critbit_node_t *local[CB_STACK];
+  const ds_critbit_node_t **stack = local;
+  size_t cap = CB_STACK;
+  size_t top = 0;
+  ds_status_t st = DS_OK;
+  for (;;) {
+    while (!n->leaf) {
+      if (top == cap) {
+        const ds_critbit_node_t **grown;
+        if (cap > (size_t)-1 / 2 / sizeof(*stack)) {
+          st = DS_ERR_OVERFLOW;
+          break;
+        }
+        grown = (const ds_critbit_node_t **)ds_context_alloc(
+            tree->context, 2 * cap * sizeof(*stack));
+        if (grown == NULL) {
+          st = DS_ERR_ALLOC;
+          break;
+        }
+        memcpy((void *)grown, (const void *)stack, top * sizeof(*stack));
+        if (stack != local) {
+          ds_context_free(tree->context, (void *)stack);
+        }
+        stack = grown;
+        cap *= 2;
+      }
+      stack[top++] = n->child[1];
+      n = n->child[0];
+    }
+    if (st != DS_OK) {
+      break;
+    }
+    if (!visit(n->key, n->value, user)) {
+      st = DS_STOP;
+      break;
+    }
+    if (top == 0) {
+      break;
+    }
+    n = stack[--top];
   }
-  return cb_walk(n->child[0], visit, user) && cb_walk(n->child[1], visit, user);
+  if (stack != local) {
+    ds_context_free(tree->context, (void *)stack);
+  }
+  return st;
 }
 
 ds_status_t ds_critbit_tree_visit(const ds_critbit_tree_t *tree,
@@ -261,7 +317,7 @@ ds_status_t ds_critbit_tree_visit(const ds_critbit_tree_t *tree,
   if (tree->root == NULL) {
     return DS_OK;
   }
-  return cb_walk(tree->root, visit, user) ? DS_OK : DS_STOP;
+  return cb_walk(tree, tree->root, visit, user);
 }
 
 ds_status_t ds_critbit_tree_visit_prefix(const ds_critbit_tree_t *tree,
@@ -296,7 +352,7 @@ ds_status_t ds_critbit_tree_visit_prefix(const ds_critbit_tree_t *tree,
   if (strncmp(leaf->key, prefix, len) != 0) {
     return DS_OK; /* nothing has this prefix */
   }
-  return cb_walk(top, visit, user) ? DS_OK : DS_STOP;
+  return cb_walk(tree, top, visit, user);
 }
 
 const char *ds_critbit_tree_min(const ds_critbit_tree_t *tree) {
