@@ -267,7 +267,8 @@ ds_str_t *ds_str_clone(ds_str_t *s) {
   if (s->len)
     memcpy(n->buf, s->buf, s->len);
   n->len = s->len;
-  n->buf[n->len] = '\0';
+  if (n->buf) /* an empty string has no buffer yet, like a new one */
+    n->buf[n->len] = '\0';
   return n;
 }
 
