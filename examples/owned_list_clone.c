@@ -11,7 +11,8 @@ typedef struct named_item {
 } named_item_t;
 
 static named_item_t *item_of(ds_list_node_t *node) {
-  return (named_item_t *)((unsigned char *)node - offsetof(named_item_t, link));
+  return (named_item_t *)(void *)((unsigned char *)node -
+                                  offsetof(named_item_t, link));
 }
 
 static ds_list_node_t *clone_item(ds_list_node_t *node) {
