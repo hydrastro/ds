@@ -11,7 +11,14 @@ ds_circular_buffer_create_alloc(size_t capacity, bool overwrite,
                                 void (*deallocator)(void *)) {
   ds_circular_buffer_t *buffer;
   size_t slots = capacity > 0 ? capacity : 1;
+  if (allocator == NULL || deallocator == NULL ||
+      slots > (size_t)-1 / sizeof(ds_circular_buffer_node_t *)) {
+    return NULL;
+  }
   buffer = (ds_circular_buffer_t *)allocator(sizeof(ds_circular_buffer_t));
+  if (buffer == NULL) {
+    return NULL;
+  }
   buffer->allocator = allocator;
   buffer->deallocator = deallocator;
   buffer->capacity = slots;
@@ -21,9 +28,18 @@ ds_circular_buffer_create_alloc(size_t capacity, bool overwrite,
   buffer->size = 0;
   buffer->nil =
       (ds_circular_buffer_node_t *)allocator(sizeof(ds_circular_buffer_node_t));
+  if (buffer->nil == NULL) {
+    deallocator(buffer);
+    return NULL;
+  }
   buffer->nil->placeholder = buffer->nil;
   buffer->data = (ds_circular_buffer_node_t **)allocator(
       slots * sizeof(ds_circular_buffer_node_t *));
+  if (buffer->data == NULL) {
+    deallocator(buffer->nil);
+    deallocator(buffer);
+    return NULL;
+  }
   return buffer;
 }
 
@@ -129,18 +145,65 @@ void ds_circular_buffer_destroy(ds_circular_buffer_t *buffer,
   buffer->deallocator(buffer);
 }
 
+/* clones of the source's items, oldest first, pushed into copy (as
+ * large); false when clone_node returns NULL (the clones made so far are
+ * in copy) */
+static bool circular_buffer_clone_nodes(
+    const ds_circular_buffer_t *buffer, ds_circular_buffer_t *copy,
+    ds_circular_buffer_node_t *(*clone_node)(ds_circular_buffer_node_t *)) {
+  size_t i;
+  for (i = 0; i < buffer->size; i++) {
+    ds_circular_buffer_node_t *node =
+        clone_node(buffer->data[(buffer->head + i) % buffer->capacity]);
+    if (node == NULL) {
+      return false;
+    }
+    (void)ds_circular_buffer_push(copy, node);
+  }
+  return true;
+}
+
 ds_circular_buffer_t *ds_circular_buffer_clone(
     ds_circular_buffer_t *buffer,
     ds_circular_buffer_node_t *(*clone_node)(ds_circular_buffer_node_t *)) {
-  ds_circular_buffer_t *new_buffer;
-  size_t i;
-  new_buffer =
+  ds_circular_buffer_t *copy;
+  if (buffer == NULL || clone_node == NULL) {
+    return NULL;
+  }
+  copy =
       ds_circular_buffer_create_alloc(buffer->capacity, buffer->overwrite,
                                       buffer->allocator, buffer->deallocator);
-  for (i = 0; i < buffer->size; i++) {
-    ds_circular_buffer_node_t *cloned =
-        clone_node(buffer->data[(buffer->head + i) % buffer->capacity]);
-    ds_circular_buffer_push(new_buffer, cloned);
+  if (copy != NULL && !circular_buffer_clone_nodes(buffer, copy, clone_node)) {
+    /* the clones made so far are not released */
+    ds_circular_buffer_destroy(copy, NULL);
+    copy = NULL;
   }
-  return new_buffer;
+  return copy;
+}
+
+ds_status_t ds_circular_buffer_clone_ex(
+    const ds_circular_buffer_t *buffer,
+    ds_circular_buffer_node_t *(*clone_node)(ds_circular_buffer_node_t *),
+    void (*destroy_clone)(ds_circular_buffer_node_t *),
+    ds_circular_buffer_t **out) {
+  ds_circular_buffer_t *copy;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (buffer == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  copy =
+      ds_circular_buffer_create_alloc(buffer->capacity, buffer->overwrite,
+                                      buffer->allocator, buffer->deallocator);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!circular_buffer_clone_nodes(buffer, copy, clone_node)) {
+    ds_circular_buffer_destroy(copy, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  *out = copy;
+  return DS_OK;
 }

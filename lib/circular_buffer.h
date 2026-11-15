@@ -2,6 +2,7 @@
 #define DS_CIRCULAR_BUFFER_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -25,6 +26,8 @@ typedef struct circular_buffer {
   void (*deallocator)(void *);
 } ds_circular_buffer_t;
 
+/* NULL when memory runs out, for a capacity whose slot array cannot be
+ * sized, or without an allocator and a deallocator */
 ds_circular_buffer_t *ds_circular_buffer_create(size_t capacity);
 ds_circular_buffer_t *
 ds_circular_buffer_create_alloc(size_t capacity, bool overwrite,
@@ -47,9 +50,21 @@ void ds_circular_buffer_walk_forward(
 void ds_circular_buffer_clear(ds_circular_buffer_t *buffer);
 void ds_circular_buffer_destroy(ds_circular_buffer_t *buffer,
                                 void (*destroy)(ds_circular_buffer_node_t *));
+/* Legacy clone: NULL when the copy cannot be allocated, or when clone_node
+ * returns NULL; the clones it made before are then not released (clone_ex
+ * releases them). */
 ds_circular_buffer_t *ds_circular_buffer_clone(
     ds_circular_buffer_t *buffer,
     ds_circular_buffer_node_t *(*clone_node)(ds_circular_buffer_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back the clones
+ * made so far through destroy_clone and returns DS_ERR_CALLBACK;
+ * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
+ * are required. On any error *out is NULL and the source is unchanged. */
+ds_status_t ds_circular_buffer_clone_ex(
+    const ds_circular_buffer_t *buffer,
+    ds_circular_buffer_node_t *(*clone_node)(ds_circular_buffer_node_t *),
+    void (*destroy_clone)(ds_circular_buffer_node_t *),
+    ds_circular_buffer_t **out);
 
 #ifdef __cplusplus
 }
