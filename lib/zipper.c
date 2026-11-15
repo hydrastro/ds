@@ -405,6 +405,8 @@ ds_status_t ds_zipper_close(ds_zipper_store_t *s, ds_zipper_t z,
   st = ds_zipper_copy(s, z, &cur);
   while (st == DS_OK && cur.path != ZE) {
     ds_zipper_t up;
+    up.focus = ZE;
+    up.path = ZE;
     st = ds_zipper_up(s, cur, &up);
     ds_zipper_release(s, cur);
     if (st != DS_OK) {
