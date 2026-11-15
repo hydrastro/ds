@@ -149,6 +149,15 @@ says what remains:
 
 ## Costs
 
+- **Stack depth.** No call recursion grows faster than O(log n).
+  Balanced structures and divide-and-conquer algorithms recurse to their
+  logarithmic height (quicksorts recurse into the smaller side). Where
+  depth follows the data (unbalanced and splay trees, tries of long keys,
+  lists, graph searches, chains of history branches), walks, clones and
+  destruction use parent links, explicit stacks on the heap, or lists
+  threaded through the nodes being freed, so destruction never needs
+  memory. Two recursions are bounded by the caller instead: game-tree
+  search by its depth argument, and the CTL parser by a nesting limit.
 - **Priority queues.** Each operation states a worst-case and an amortized
   (or expected) cost class. Algorithms that take a queue inherit those costs:
   the graph-view `*_with` functions say what that means for Dijkstra, Prim
