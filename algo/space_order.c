@@ -154,7 +154,7 @@ ds_status_t ds_space_order_encode(ds_space_order_t order, unsigned long param,
   case DS_ORDER_DOUBLE_GRAY:
   case DS_ORDER_U: {
     unsigned bits = (unsigned)param;
-    if (param == 0 || 2 * param > SO_ULBITS) {
+    if (param == 0 || param > SO_ULBITS / 2) {
       return DS_ERR_INVALID;
     }
     if ((bits < SO_ULBITS && (ux >> bits) != 0) ||
@@ -279,7 +279,7 @@ ds_status_t ds_space_order_decode(ds_space_order_t order, unsigned long param,
   case DS_ORDER_DOUBLE_GRAY:
   case DS_ORDER_U: {
     unsigned bits = (unsigned)param;
-    if (param == 0 || 2 * param > SO_ULBITS) {
+    if (param == 0 || param > SO_ULBITS / 2) {
       return DS_ERR_INVALID;
     }
     if (2 * bits < SO_ULBITS && (position >> (2 * bits)) != 0) {
