@@ -194,6 +194,10 @@ ds_list_t *ds_list_clone(ds_list_t *list,
   current = list->head;
   while (current != list->nil) {
     ds_list_node_t *cloned_node = clone_node(current);
+    if (cloned_node == NULL) { /* the clones made so far are not released */
+      ds_list_destroy(new_list, NULL);
+      return NULL;
+    }
     ds_list_append(new_list, cloned_node);
     current = current->next;
   }

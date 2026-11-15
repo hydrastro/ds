@@ -52,9 +52,10 @@ void ds_list_walk_forward(ds_list_t *list, ds_list_node_t *node,
 void ds_list_walk_backwards(ds_list_t *list, ds_list_node_t *node,
                             void (*callback)(ds_list_node_t *));
 bool ds_list_is_empty(ds_list_t *list);
-/* Legacy clone: clone_node must return a new node on every call (cannot
- * fail); NULL is returned if allocating the list or sentinel fails.
- * Use clone_ex for fallible cloning and caller-defined rollback. */
+/* Legacy clone: NULL is returned if allocating the list or sentinel
+ * fails, or when clone_node returns NULL; the clones it made before are
+ * then not released. Use clone_ex for fallible cloning and caller-defined
+ * rollback. */
 ds_list_t *ds_list_clone(ds_list_t *list,
                          ds_list_node_t *(*clone_node)(ds_list_node_t *));
 /* Strong failure guarantee: NULL from clone_node rolls back completed
