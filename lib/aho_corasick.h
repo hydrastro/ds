@@ -32,6 +32,7 @@ typedef struct aho_corasick {
   void (*deallocator)(void *);
 } ds_aho_corasick_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_aho_corasick_t *ds_aho_corasick_create(void);
 ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
                                                 void (*deallocator)(void *));

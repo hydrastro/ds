@@ -5,6 +5,9 @@ static ds_aho_corasick_node_t *aho_corasick_new_node(ds_aho_corasick_t *ac) {
   ds_aho_corasick_node_t *node =
       (ds_aho_corasick_node_t *)ac->allocator(sizeof(ds_aho_corasick_node_t));
   int i;
+  if (node == NULL) {
+    return NULL;
+  }
   for (i = 0; i < 256; i++) {
     node->children[i] = NULL;
   }
@@ -22,14 +25,24 @@ ds_aho_corasick_t *ds_aho_corasick_create(void) {
 
 ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
                                                 void (*deallocator)(void *)) {
-  ds_aho_corasick_t *ac =
-      (ds_aho_corasick_t *)allocator(sizeof(ds_aho_corasick_t));
+  ds_aho_corasick_t *ac;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  ac = (ds_aho_corasick_t *)allocator(sizeof(ds_aho_corasick_t));
+  if (ac == NULL) {
+    return NULL;
+  }
   ac->allocator = allocator;
   ac->deallocator = deallocator;
   ac->num_patterns = 0;
   ac->num_nodes = 0;
   ac->compiled = false;
   ac->root = aho_corasick_new_node(ac);
+  if (ac->root == NULL) {
+    deallocator(ac);
+    return NULL;
+  }
   return ac;
 }
 
