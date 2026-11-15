@@ -59,6 +59,13 @@
  * order, so a crash between writes can leave the metadata naming pages
  * that were never written.
  *
+ * Crash recovery comes from the store: on a page store with
+ * DS_PAGE_STORE_ATOMIC_SYNC (lib/wal_store), ds_pbtree_sync followed by
+ * ds_pager_flush is an atomic commit, and after a crash the tree opens as
+ * of the last flush that completed (discard the pager, open the store,
+ * then a pager and the tree on it again). Pages the pager evicts between
+ * commits are part of the next commit.
+ *
  * Split buffers come from the pager's context.
  */
 
@@ -96,7 +103,8 @@ typedef struct ds_pbtree_iter {
 
 /* formats an empty store or opens an existing tree (value_size must match).
  * A failed initial format leaves an explicit initialization marker; open
- * can retry on the same pager. This does not provide crash recovery. */
+ * can retry on the same pager. Crash recovery needs an atomic store (see
+ * above). */
 ds_status_t ds_pbtree_open(ds_pbtree_t *tree, ds_pager_t *pager,
                            size_t value_size);
 /* writes the metadata page (call before flushing the pager) */
