@@ -115,6 +115,8 @@ says what remains:
 | `algo/parallel_sim` | every call takes its memory before the first round; on failure the outputs are untouched |
 | `lib/lsm_tree` with a page store | an update whose log record cannot be buffered changes nothing; a flush or merge whose tables cannot be written changes nothing in memory; a failed publish keeps every update in the log; a publish that fails after its slot write began leaves the tree broken (`DS_ERR_STATE` for updates) until it is reopened, which recovers it |
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
+| `lib/wal_store` | a failed write or truncation changes nothing; a failed sync leaves its transaction open and refuses writes (`DS_ERR_STATE`) until a retried sync commits it; a failed checkpoint leaves the log as it was, and a failed log restart is retried before the next write, truncation or sync; after a crash the store opens as of the last completed sync (or the one under way, if its commit record landed) |
+| `lib/fault_store` | an injected failure changes nothing; a base-store failure during sync keeps the operations not yet applied for the next sync |
 
 ## Cursors and handles
 
@@ -232,6 +234,12 @@ says what remains:
   once; a flush also writes the new tables and a manifest and syncs twice.
   Recovery reads every table into memory and replays the log, then flushes
   what it replayed.
+- **Write-ahead-logged store.** A write costs one log page (plus a header
+  page per (page size - 48) / 16 entries) and a sync one header write and
+  one log sync. Reads cost an index lookup and one page read; logged pages
+  are checked against their CRC. Recovery reads the whole log once. A
+  checkpoint copies each logged page home once, syncs the data store, then
+  writes and syncs one superblock.
 - **qsort.** Bentley and McIlroy's `ds_q_sort` / `ds_qsort` take O(n log n)
   comparisons on typical inputs and O(n) on inputs with few distinct keys,
   with O(log n) stack; like every library qsort an adversary can force
