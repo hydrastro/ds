@@ -136,6 +136,13 @@ struct hash_table {
  * Memory: a configured table with a context allocates everything (the
  * table, its buckets/entries and nodes) through that context; custom
  * bucket stores should allocate with ds_hash_table_alloc/free.
+ *
+ * Order: the nodes form a list in insertion order, the newest at
+ * last_node (list_prev steps to older ones); for_each and the iterator
+ * run newest first. Resizing, ds_hash_table_clone and
+ * ds_hash_table_clone_with keep that order, so a walk along the list that
+ * resumes from a key (ds_hash_table_lookup_node) survives growth. A resize
+ * that runs out of memory leaves the table as it was.
  */
 void *ds_hash_table_alloc(ds_hash_table_t *table, size_t size);
 void ds_hash_table_free(ds_hash_table_t *table, void *ptr);
@@ -195,6 +202,11 @@ void ds_hash_table_resize(ds_hash_table_t *table, size_t new_capacity,
 void *ds_hash_table_lookup(ds_hash_table_t *table, void *key,
                            size_t (*hash_func)(void *),
                            int (*compare)(void *, void *));
+/* The node that holds key, or NULL; valid until the next insertion or
+ * removal */
+ds_hash_node_t *ds_hash_table_lookup_node(ds_hash_table_t *table, void *key,
+                                          size_t (*hash_func)(void *),
+                                          int (*compare)(void *, void *));
 void hash_table_remove(ds_hash_table_t *table, void *key,
                        size_t (*hash_func)(void *),
                        int (*compare)(void *, void *),

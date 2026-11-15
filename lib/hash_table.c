@@ -71,12 +71,6 @@ static const size_t prime_capacities[] = {5UL,
 #endif
 };
 
-struct hash_resize_context {
-  ds_hash_table_t *new_table;
-  size_t (*hash_func)(void *);
-  int (*compare)(void *, void *);
-};
-
 static size_t hash_table_prime_capacity_at_least(size_t capacity) {
   size_t i;
   for (i = 0; i < sizeof(prime_capacities) / sizeof(prime_capacities[0]); i++) {
@@ -198,6 +192,15 @@ static void hash_table_unlink_node(ds_hash_table_t *table,
   }
   node->list_next = NULL;
   node->list_prev = NULL;
+}
+
+/* The oldest entry: the list runs from it to last_node. */
+static ds_hash_node_t *hash_table_first_node(const ds_hash_table_t *table) {
+  ds_hash_node_t *node = table->last_node;
+  while (node != NULL && node->list_prev != NULL) {
+    node = node->list_prev;
+  }
+  return node;
 }
 
 static void *hash_table_list_bucket_create(ds_hash_table_t *table) {
@@ -437,13 +440,6 @@ fail:
   return NULL;
 }
 
-static void hash_table_reinsert_node(ds_hash_node_t *node, void *args) {
-  struct hash_resize_context *context;
-  context = (struct hash_resize_context *)args;
-  hash_table_insert(context->new_table, node->key, node->value,
-                    context->hash_func, context->compare);
-}
-
 size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity) {
   const size_t c1 = 1;
   const size_t c2 = 1;
@@ -567,15 +563,17 @@ ds_hash_table_t *ds_hash_table_create_chain_alloc(
                                           NULL);
 }
 
+/* Rebuild at new_capacity, inserting the entries oldest first so that the
+ * list keeps its insertion order. When memory runs out the current table
+ * stays as it is, with every entry. */
 static void hash_table_resize_unlocked(ds_hash_table_t *table,
                                        size_t new_capacity,
                                        size_t (*hash_func)(void *),
                                        int (*compare)(void *, void *)) {
   ds_hash_table_t *new_table;
-  struct hash_resize_context context;
+  ds_hash_node_t *current;
   void *old_nil;
   void *old_tombstone;
-  size_t i;
   new_table = hash_table_create_alloc_internal(
       new_capacity, table->mode, table->probing_func, table->bucket_store,
       table->allocator, table->deallocator,
@@ -583,23 +581,14 @@ static void hash_table_resize_unlocked(ds_hash_table_t *table,
   if (new_table == NULL) {
     return; /* out of memory: keep the current table */
   }
-  context.new_table = new_table;
-  context.hash_func = hash_func;
-  context.compare = compare;
-
-  if (table->mode == HASH_CHAINING) {
-    for (i = 0; i < table->capacity; i++) {
-      table->bucket_store->apply(table, table->store.buckets[i],
-                                 hash_table_reinsert_node, &context);
-    }
-  } else if (hash_table_uses_probing(table->mode)) {
-    for (i = 0; i < table->capacity; i++) {
-      if (table->store.entries[i].key != table->nil &&
-          table->store.entries[i].key != table->tombstone) {
-        hash_table_insert(new_table, table->store.entries[i].key,
-                          table->store.entries[i].value, hash_func, compare);
-      }
-    }
+  for (current = hash_table_first_node(table); current != NULL;
+       current = current->list_next) {
+    hash_table_insert(new_table, current->key, current->value, hash_func,
+                      compare);
+  }
+  if (new_table->size != table->size) {
+    hash_table_destroy(new_table, NULL);
+    return; /* out of memory: keep the current table */
   }
 
   hash_table_destroy_store(table, NULL);
@@ -688,32 +677,34 @@ void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
   table->size++;
 }
 
+ds_hash_node_t *ds_hash_table_lookup_node(ds_hash_table_t *table, void *key,
+                                          size_t (*hash_func)(void *),
+                                          int (*compare)(void *, void *)) {
+  size_t base_index;
+  size_t index;
+  if (table == NULL || hash_func == NULL || table->capacity == 0) {
+    return NULL;
+  }
+  base_index = hash_func(key) % table->capacity;
+  if (table->mode == HASH_CHAINING) {
+    return table->bucket_store->search(table, table->store.buckets[base_index],
+                                       key, compare);
+  }
+  if (hash_table_uses_probing(table->mode)) {
+    index = ht_find_slot(table, base_index, key, compare, NULL);
+    if (index != HT_NONE) {
+      return &table->store.entries[index];
+    }
+  }
+  return NULL;
+}
+
 void *ds_hash_table_lookup(ds_hash_table_t *table, void *key,
                            size_t (*hash_func)(void *),
                            int (*compare)(void *, void *)) {
-  size_t base_index;
-  size_t index;
-  size_t iteration;
-  ds_hash_node_t *current;
-  base_index = hash_func(key) % table->capacity;
-  index = base_index;
-  iteration = 0;
-
-  if (table->mode == HASH_CHAINING) {
-    current = table->bucket_store->search(table, table->store.buckets[index],
-                                          key, compare);
-    if (current != NULL) {
-      return current->value;
-    }
-  } else if (hash_table_uses_probing(table->mode)) {
-    (void)iteration;
-    index = ht_find_slot(table, base_index, key, compare, NULL);
-    if (index != HT_NONE) {
-      return table->store.entries[index].value;
-    }
-  }
-
-  return table->nil;
+  ds_hash_node_t *node;
+  node = ds_hash_table_lookup_node(table, key, hash_func, compare);
+  return node != NULL ? node->value : table->nil;
 }
 
 void hash_table_remove(ds_hash_table_t *table, void *key,
@@ -798,6 +789,9 @@ ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
       table->capacity, table->mode, table->probing_func, table->bucket_store,
       table->allocator, table->deallocator,
       table->use_context ? table->context : NULL);
+  if (new_table == NULL) {
+    return NULL;
+  }
 
   if (table->mode == HASH_CHAINING) {
     for (i = 0; i < table->capacity; i++) {
@@ -807,6 +801,10 @@ ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
         value =
             clone_value != NULL ? clone_value(current->value) : current->value;
         new_node = hash_node_create(new_table, key, value);
+        if (new_node == NULL) {
+          hash_table_destroy(new_table, NULL);
+          return NULL;
+        }
         hash_table_link_node(new_table, new_node);
         new_table->bucket_store->insert(new_table, &new_table->store.buckets[i],
                                         new_node, NULL);
@@ -852,12 +850,15 @@ ds_hash_table_t *ds_hash_table_clone_with(ds_hash_table_t *table,
       table->capacity, table->mode, table->probing_func, table->bucket_store,
       table->allocator, table->deallocator,
       table->use_context ? table->context : NULL);
-  current = table->last_node;
-  while (current != NULL) {
+  if (new_table == NULL) {
+    return NULL;
+  }
+  /* oldest first, so the clone keeps the insertion order */
+  for (current = hash_table_first_node(table); current != NULL;
+       current = current->list_next) {
     key = clone_key != NULL ? clone_key(current->key) : current->key;
     value = clone_value != NULL ? clone_value(current->value) : current->value;
     hash_table_insert(new_table, key, value, hash_func, compare);
-    current = current->list_prev;
   }
   return new_table;
 }
@@ -964,9 +965,10 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
   new_table->config_destroy_value = table->config_destroy_value;
   new_table->config_user = table->config_user;
 
-  current = table->last_node;
+  /* oldest first, so the list keeps its insertion order */
+  current = hash_table_first_node(table);
   while (current != NULL) {
-    next = current->list_prev;
+    next = current->list_next;
     base_index =
         hash_table_config_hash(new_table, current->key) % new_table->capacity;
     index = base_index;
@@ -1282,7 +1284,7 @@ static ds_hash_table_t *hash_table_clone_impl(ds_hash_table_t *table,
     clone->context = table->context;
   }
 
-  current = table->last_node;
+  current = hash_table_first_node(table); /* keep the insertion order */
   while (current != NULL) {
     key = clone_keys ? table->config_clone_key(current->key, table->config_user)
                      : current->key;
@@ -1301,7 +1303,7 @@ static ds_hash_table_t *hash_table_clone_impl(ds_hash_table_t *table,
       ds_hash_table_destroy(clone);
       return NULL;
     }
-    current = current->list_prev;
+    current = current->list_next;
   }
   return clone;
 }
