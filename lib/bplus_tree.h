@@ -2,6 +2,7 @@
 #define DS_BPLUS_TREE_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -38,6 +39,8 @@ typedef struct bplus_tree {
   void (*deallocator)(void *);
 } ds_bplus_tree_t;
 
+/* NULL when memory runs out, for an order too large to size the nodes,
+ * or without an allocator and a deallocator */
 ds_bplus_tree_t *ds_bplus_tree_create(int order,
                                       int (*compare)(ds_bplus_tree_node_t *,
                                                      ds_bplus_tree_node_t *));
@@ -61,9 +64,22 @@ void ds_bplus_tree_range_walk(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *low,
                               void (*callback)(ds_bplus_tree_node_t *));
 void ds_bplus_tree_destroy(ds_bplus_tree_t *tree,
                            void (*destroy)(ds_bplus_tree_node_t *));
+/* Legacy clone: NULL when the copy cannot be allocated, or when clone_node
+ * returns NULL; the clones it made before are then not released (clone_ex
+ * releases them). */
 ds_bplus_tree_t *ds_bplus_tree_clone(
     ds_bplus_tree_t *tree,
     ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back the clones
+ * made so far through destroy_clone and returns DS_ERR_CALLBACK;
+ * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
+ * are required. On any error *out is NULL and the source is unchanged.
+ * The copy is built by insertion, whose node splits still assume memory,
+ * as ds_bplus_tree_insert does. */
+ds_status_t ds_bplus_tree_clone_ex(
+    const ds_bplus_tree_t *tree,
+    ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *),
+    void (*destroy_clone)(ds_bplus_tree_node_t *), ds_bplus_tree_t **out);
 
 #ifdef __cplusplus
 }
