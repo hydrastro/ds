@@ -61,7 +61,14 @@ ds_art_t *ds_art_create(void) { return ds_art_create_alloc(malloc, free); }
 
 ds_art_t *ds_art_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {
-  ds_art_t *art = (ds_art_t *)allocator(sizeof(ds_art_t));
+  ds_art_t *art;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  art = (ds_art_t *)allocator(sizeof(ds_art_t));
+  if (art == NULL) {
+    return NULL;
+  }
   art->root = NULL;
   art->size = 0;
   art->allocator = allocator;

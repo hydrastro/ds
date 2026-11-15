@@ -23,6 +23,7 @@ extern "C" {
 
 typedef struct art ds_art_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_art_t *ds_art_create(void);
 ds_art_t *ds_art_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *));
