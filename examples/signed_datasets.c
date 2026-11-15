@@ -4,10 +4,13 @@
  * gives both one canonical form, so a signature over the first verifies
  * over the second. The signature covers the hash data of the W3C Data
  * Integrity cryptosuites (the proof options' canonical hash, then the
- * document's); this example signs with the default shared-key suite, and
- * a public-key suite plugs into the same callbacks. Changing one value
- * breaks the signature, and a dataset built to make canonicalization
- * explode is refused instead of hanging.
+ * document's) and is made with Ed25519, as the eddsa-rdfc-2022 suite
+ * does: the key is the test key of the W3C EdDSA cryptosuites
+ * specification, read from its Multikey texts, and the specification's
+ * own hash data gives its published proofValue. Changing one value breaks
+ * the signature, and a dataset built to make canonicalization explode is
+ * refused instead of hanging. (Without callbacks the suite is HMAC-SHA256
+ * with a shared key.)
  */
 #include "ds.h"
 #include <stdio.h>
@@ -56,12 +59,29 @@ static void show_hex(const char *what, const unsigned char *p, size_t n) {
   printf("\n");
 }
 
+/* the key pair of the W3C test vectors (Data Integrity EdDSA
+ * Cryptosuites v1.0, eddsa-rdfc-2022) */
+static const char w3c_public[] =
+    "z6MkrJVnaZkeFzdQyMZu1cgjg7k1pZZ6pvBQ7XJPt4swbTQ2";
+static const char w3c_secret[] =
+    "z3u2en7t5LR2WtQH5PfFqMqwVHBeXouLzo6haApm8XHqvjxq";
+/* its hash data (proof options, then credential) and proofValue */
+static const char w3c_hash_data[] =
+    "bea7b7acfbad0126b135104024a5f1733e705108f42d59668b05c0c50004c6b0"
+    "517744132ae165a5349155bef0bb0cf2258fff99dfe1dbd914b938d775a36017";
+static const char w3c_proof_value[] =
+    "z2YwC8z3ap7yx1nZYCg4L3j3ApHsF8kgPdSb5xoS1VR7vPG3F561B52hYnQF9iseabecm3i"
+    "jx4K1FBTQsCZahKZme";
+
 int main(void) {
   ds_rdf_dataset_t a, b, p;
   ds_rdfc_result_t ca, cb;
   ds_lds_suite_t suite;
-  unsigned char data[2 * DS_DIGEST_MAX_SIZE], sig[DS_SHA256_SIZE];
-  size_t len, sig_len = sizeof(sig), i;
+  ds_lds_ed25519_key_t key;
+  unsigned char secret[64], public_key[DS_ED25519_PUBLIC_SIZE];
+  unsigned char data[2 * DS_DIGEST_MAX_SIZE], sig[DS_ED25519_SIGNATURE_SIZE];
+  char multikey[DS_LDS_ED25519_MULTIKEY_LEN + 1], proof_value[100];
+  size_t len, sig_len = sizeof(sig), mb_len = sizeof(secret), i;
   int ok = 1;
   if (!load(&a, doc_a) || !load(&b, doc_b) || !load(&p, proof)) {
     return 1;
@@ -79,16 +99,46 @@ int main(void) {
   for (i = 0; i < cb.label_count; i++) {
     printf("  _:%s is _:%s\n", cb.labels[i].input, cb.labels[i].canonical);
   }
+  /* the key: the secret Multikey is the multicodec 0x80 0x26 and the seed;
+   * the public key derived from the seed gives the public Multikey */
+  if (ds_lds_multibase_decode(w3c_secret, strlen(w3c_secret), secret,
+                              &mb_len) != DS_OK ||
+      mb_len != 34 || secret[0] != 0x80 || secret[1] != 0x26 ||
+      ds_ed25519_public_key(secret + 2, public_key) != DS_OK ||
+      ds_lds_ed25519_multikey(public_key, multikey) != DS_OK) {
+    return 1;
+  }
+  printf("verification method: did:key:%s#%s\n", multikey, multikey);
+  printf("the specification's public key: %s\n",
+         strcmp(multikey, w3c_public) == 0 ? "yes" : "NO");
+  ok &= strcmp(multikey, w3c_public) == 0;
+  key.seed = secret + 2;
+  key.public_key = public_key;
+  ds_lds_ed25519_suite(&suite, &key);
+  /* the specification's hash data signs to its proofValue */
+  for (i = 0; i < 64; i++) {
+    unsigned v;
+    sscanf(w3c_hash_data + 2 * i, "%2x", &v);
+    data[i] = (unsigned char)v;
+  }
+  mb_len = sizeof(proof_value) - 1;
+  if (ds_lds_sign_data(data, 64, &suite, sig, &sig_len) != DS_OK ||
+      ds_lds_multibase_encode(sig, sig_len, proof_value, &mb_len) != DS_OK) {
+    return 1;
+  }
+  printf("the specification's proofValue: %s\n",
+         strcmp(proof_value, w3c_proof_value) == 0 ? "yes" : "NO");
+  ok &= strcmp(proof_value, w3c_proof_value) == 0;
   /* sign the hash data of the first copy, verify with the second */
-  memset(&suite, 0, sizeof(suite));
-  suite.key = (const unsigned char *)"shared secret";
-  suite.key_len = 13;
+  sig_len = sizeof(sig);
+  mb_len = sizeof(proof_value) - 1;
   if (ds_lds_hash_data(&a, &p, NULL, NULL, data, &len) != DS_OK ||
-      ds_lds_sign_data(data, len, &suite, sig, &sig_len) != DS_OK) {
+      ds_lds_sign_data(data, len, &suite, sig, &sig_len) != DS_OK ||
+      ds_lds_multibase_encode(sig, sig_len, proof_value, &mb_len) != DS_OK) {
     return 1;
   }
   show_hex("hash data", data, len);
-  show_hex("signature", sig, sig_len);
+  printf("proofValue %s\n", proof_value);
   if (ds_lds_hash_data(&b, &p, NULL, NULL, data, &len) != DS_OK) {
     return 1;
   }
