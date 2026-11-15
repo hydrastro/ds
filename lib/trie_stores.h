@@ -10,21 +10,25 @@
  *                                   open addressing, no per-child nodes.
  *   ds_trie_sorted_vec_store_ops()  children in a sorted vector (vec.h) with
  *                                   binary search: the smallest memory per
- *                                   child, and apply() visits children in
+ *                                   child, and walks visit children in
  *                                   slice order, so traversals are sorted.
  *
+ * Both provide next (trie.h), so tries on them walk, copy and destroy
+ * themselves without recursion, and their apply and clone are
+ * ds_trie_walk and ds_trie_clone_store over it. The Robin Hood store's
+ * order is the map's stable order (ds_rh_map_after: by hash, kept through
+ * growth); the vector finds a child by address, at the place it answered
+ * last, so walking it costs O(1) a step.
+ *
  * Contract notes for anyone writing a store (as these do):
- *   - apply(trie, store, f, args) must visit the whole subtree in
- *     post-order: for each child, first apply() to child->children, then
- *     f(trie, child, args). Trie destruction relies on this. Give each call
- *     its own va_list copy, and tolerate f removing entries, even when
- *     scratch allocation fails. Detach a removed child before freeing it;
- *     do not destroy the store or a pending ancestor during a traversal.
- *     Newly inserted entries need not be visited. The Robin Hood store
- *     falls back to O(children^2) scans on scratch allocation failure;
- *     the vector store adjusts live cursors and needs no snapshot.
+ *   - provide next (trie.h); apply and clone can then be ds_trie_walk and
+ *     ds_trie_clone_store over it.
+ *   - without next, apply(trie, store, f, args) must visit the whole
+ *     subtree in post-order: for each child, first apply() to
+ *     child->children, then f(trie, child, args), each call with its own
+ *     va_list copy; and clone must call ds_trie_clone_node() for each
+ *     child. Both recurse as deep as the longest key.
  *   - remove/destroy_entry only detach a child; the trie frees nodes.
- *   - clone must call ds_trie_clone_node() for each child.
  */
 
 #include "trie.h"

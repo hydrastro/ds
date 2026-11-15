@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 typedef void (*trie_visit_t)(ds_trie_t *, ds_trie_node_t *, va_list *);
-typedef void (*trie_apply_t)(ds_trie_t *, void *, trie_visit_t, va_list *);
 
 static void *ts_alloc(ds_trie_t *trie, size_t size) {
   if (trie != NULL && (trie->use_context || trie->allocator != NULL)) {
@@ -14,22 +13,14 @@ static void *ts_alloc(ds_trie_t *trie, size_t size) {
   return malloc(size);
 }
 
-/* Post-order visit of one child: its subtree first, then the child. */
-static void ts_visit(ds_trie_t *trie, ds_trie_node_t *child, trie_visit_t f,
-                     va_list *args, trie_apply_t apply) {
-  va_list subtree;
-  va_list self;
-  if (args == NULL) {
-    apply(trie, child->children, f, NULL);
-    f(trie, child, NULL);
-    return;
+/* apply and clone come from the trie's generic walk and copy, which need
+ * no recursion: a store only provides next. */
+static void ts_apply(ds_trie_t *trie, void *store, trie_visit_t f,
+                     va_list *args, ds_trie_next_fn next) {
+  ds_trie_node_t *first = store != NULL ? next(store, NULL) : NULL;
+  if (first != NULL) {
+    ds_trie_walk(trie, first->parent, next, f, args);
   }
-  DS_VA_COPY(subtree, *args);
-  DS_VA_COPY(self, *args);
-  apply(trie, child->children, f, &subtree);
-  f(trie, child, &self);
-  va_end(subtree);
-  va_end(self);
 }
 
 /* ---- Robin Hood map store: slice -> child ---- */
@@ -42,15 +33,9 @@ typedef struct ts_owner {
   ds_context_t *context; /* when the trie allocates from its context */
 } ts_owner_t;
 
-static ts_owner_t ts_owner_of(const ds_trie_t *trie) {
-  ts_owner_t o;
-  o.deallocator = trie != NULL ? trie->deallocator : NULL;
-  o.context = trie != NULL && trie->use_context ? trie->context : NULL;
-  return o;
-}
-
-static ds_context_t *ts_scratch_context(const ds_trie_t *trie) {
-  return trie != NULL ? trie->context : NULL;
+static void ts_owner_init(ts_owner_t *o, const ds_trie_t *trie) {
+  o->deallocator = trie != NULL ? trie->deallocator : NULL;
+  o->context = trie != NULL && trie->use_context ? trie->context : NULL;
 }
 
 typedef struct ts_rh_store {
@@ -68,9 +53,6 @@ static void ts_free(ts_owner_t owner, void *block) {
   }
 }
 
-static void ts_rh_apply(ds_trie_t *trie, void *store, trie_visit_t f,
-                        va_list *args);
-
 static ds_trie_node_t *ts_rh_search(void *store, size_t slice) {
   ds_trie_node_t **child =
       (ds_trie_node_t **)ds_rh_map_get(&((ts_rh_store_t *)store)->map, &slice);
@@ -84,7 +66,7 @@ static void *ts_rh_create(ds_trie_t *trie, size_t size) {
   if (s == NULL) {
     return NULL;
   }
-  s->owner = ts_owner_of(trie);
+  ts_owner_init(&s->owner, trie);
   ds_rh_map_config_init(&config);
   config.key_size = sizeof(size_t);
   config.value_size = sizeof(ds_trie_node_t *);
@@ -119,107 +101,44 @@ static size_t ts_rh_size(void *store) {
   return ds_rh_map_size(&((ts_rh_store_t *)store)->map);
 }
 
-/* Snapshot keys, not pointers to nodes that a visitor may remove and free.
- * On allocation failure, find successive slice numbers by scanning the
- * table. That slower path needs no allocation and survives backshifting. */
+/* The map's stable order (ds_rh_map_after): by hash, unchanged by
+ * insertions, removals and growth. Keys are slices, so finding after's
+ * place looks at no other child. */
+static ds_trie_node_t *ts_rh_next(void *store, const ds_trie_node_t *after) {
+  void *value;
+  if (store == NULL ||
+      !ds_rh_map_after(&((ts_rh_store_t *)store)->map,
+                       after != NULL ? (const void *)&after->data_slice : NULL,
+                       NULL, &value)) {
+    return NULL;
+  }
+  return *(ds_trie_node_t **)value;
+}
+
 static void ts_rh_apply(ds_trie_t *trie, void *store, trie_visit_t f,
                         va_list *args) {
-  ds_rh_map_t *map = store == NULL ? NULL : &((ts_rh_store_t *)store)->map;
-  ds_vec_t snapshot;
-  size_t cursor = 0;
-  size_t i;
-  const void *key;
-  void *value;
-  int have = 0;
-  if (map == NULL) {
-    return;
-  }
-  if (ds_vec_init(&snapshot, sizeof(size_t), ts_scratch_context(trie)) ==
-      DS_OK) {
-    have = 1;
-    while (ds_rh_map_next(map, &cursor, &key, NULL)) {
-      if (ds_vec_push(&snapshot, key) != DS_OK) {
-        have = 0;
-        break;
-      }
-    }
-    if (!have) {
-      ds_vec_destroy(&snapshot);
-    }
-  }
-  if (have) {
-    for (i = 0; i < ds_vec_size(&snapshot); i++) {
-      ds_trie_node_t *child =
-          ts_rh_search(store, *(size_t *)ds_vec_at(&snapshot, i));
-      if (child != NULL) {
-        ts_visit(trie, child, f, args, ts_rh_apply);
-      }
-    }
-    ds_vec_destroy(&snapshot);
-    return;
-  }
-  {
-    size_t last = 0;
-    bool started = false;
-    for (;;) {
-      size_t least = 0;
-      ds_trie_node_t *child = NULL;
-      cursor = 0;
-      while (ds_rh_map_next(map, &cursor, &key, &value)) {
-        size_t slice = *(const size_t *)key;
-        if ((!started || slice > last) && (child == NULL || slice < least)) {
-          least = slice;
-          child = *(ds_trie_node_t **)value;
-        }
-      }
-      if (child == NULL) {
-        break;
-      }
-      last = least;
-      started = true;
-      ts_visit(trie, child, f, args, ts_rh_apply);
-    }
-  }
+  ts_apply(trie, store, f, args, ts_rh_next);
 }
 
 static void *ts_rh_clone(ds_trie_t *trie, void *store,
                          ds_trie_node_t *parent_node,
                          void *(*clone_data)(void *)) {
-  ds_rh_map_t *map = &((ts_rh_store_t *)store)->map;
-  void *copy = ts_rh_create(trie, ds_rh_map_size(map));
-  size_t cursor = 0;
-  void *value;
-  if (copy == NULL) {
-    return NULL;
-  }
-  while (ds_rh_map_next(map, &cursor, NULL, &value)) {
-    ts_rh_insert(copy, ds_trie_clone_node(trie, *(ds_trie_node_t **)value,
-                                          parent_node, clone_data));
-  }
-  return copy;
+  return ds_trie_clone_store(trie, store, parent_node, clone_data, ts_rh_next);
 }
 
 static const ds_trie_store_ops_t ts_rh_ops = {
     ts_rh_search,  ts_rh_create, ts_rh_insert, ts_rh_remove, ts_rh_remove,
-    ts_rh_destroy, ts_rh_size,   ts_rh_apply,  ts_rh_clone};
+    ts_rh_destroy, ts_rh_size,   ts_rh_apply,  ts_rh_clone,  ts_rh_next};
 
 const ds_trie_store_ops_t *ds_trie_rh_map_store_ops(void) { return &ts_rh_ops; }
 
 /* ---- sorted vector store: children ordered by slice ---- */
 
-typedef struct ts_vec_cursor {
-  size_t next;
-  struct ts_vec_cursor *previous;
-} ts_vec_cursor_t;
-
 typedef struct ts_vec_store {
   ds_vec_t children;
   ts_owner_t owner;
-  ts_vec_cursor_t *cursors;
+  size_t hint; /* where next() last answered; kept by insert and remove */
 } ts_vec_store_t;
-
-static void ts_vec_apply(ds_trie_t *trie, void *store, trie_visit_t f,
-                         va_list *args);
 
 static int ts_by_slice(const void *a, const void *b, void *user) {
   size_t x = (*(ds_trie_node_t *const *)a)->data_slice;
@@ -251,8 +170,8 @@ static void *ts_vec_create(ds_trie_t *trie, size_t size) {
   if (s == NULL) {
     return NULL;
   }
-  s->owner = ts_owner_of(trie);
-  s->cursors = NULL;
+  ts_owner_init(&s->owner, trie);
+  s->hint = 0;
   ds_vec_init(&s->children, sizeof(ds_trie_node_t *),
               trie != NULL ? trie->context : NULL);
   return s;
@@ -264,13 +183,9 @@ static void ts_vec_insert(void *store, ds_trie_node_t *node) {
   if (ts_vec_find(s, node->data_slice, &index) == DS_OK) {
     ds_vec_set(&s->children, index, &node);
   } else {
-    if (ds_vec_insert(&s->children, index, &node) == DS_OK) {
-      ts_vec_cursor_t *c;
-      for (c = s->cursors; c != NULL; c = c->previous) {
-        if (index < c->next) {
-          c->next++;
-        }
-      }
+    if (ds_vec_insert(&s->children, index, &node) == DS_OK &&
+        index <= s->hint) {
+      s->hint++;
     }
   }
 }
@@ -280,13 +195,8 @@ static void ts_vec_remove(void *store, ds_trie_node_t *node) {
   size_t index;
   if (ts_vec_find(s, node->data_slice, &index) == DS_OK) {
     ds_vec_erase(&s->children, index, NULL);
-    {
-      ts_vec_cursor_t *c;
-      for (c = s->cursors; c != NULL; c = c->previous) {
-        if (index < c->next) {
-          c->next--;
-        }
-      }
+    if (index < s->hint) {
+      s->hint--;
     }
   }
 }
@@ -304,49 +214,55 @@ static size_t ts_vec_size(void *store) {
   return ds_vec_size(&((ts_vec_store_t *)store)->children);
 }
 
-/* Live cursors are adjusted by insert/remove, including nested traversals.
- * No snapshot allocation is needed, even for a removing visitor. */
+static ds_trie_node_t *ts_vec_child(ts_vec_store_t *s, size_t i) {
+  return *(ds_trie_node_t **)ds_vec_at(&s->children, i);
+}
+
+/* Slice order. after is found by address, at the hint (where the last
+ * answer was, and where walks ask next) or by a scan: never by comparing
+ * slices, since destruction leaves freed children in the vector. */
+static ds_trie_node_t *ts_vec_next(void *store, const ds_trie_node_t *after) {
+  ts_vec_store_t *s = (ts_vec_store_t *)store;
+  size_t n;
+  size_t i = 0;
+  if (s == NULL) {
+    return NULL;
+  }
+  n = ds_vec_size(&s->children);
+  if (after != NULL) {
+    if (s->hint < n && ts_vec_child(s, s->hint) == after) {
+      i = s->hint + 1;
+    } else {
+      while (i < n && ts_vec_child(s, i) != after) {
+        i++;
+      }
+      if (i == n) {
+        return NULL;
+      }
+      i++;
+    }
+  }
+  if (i >= n) {
+    return NULL;
+  }
+  s->hint = i;
+  return ts_vec_child(s, i);
+}
+
 static void ts_vec_apply(ds_trie_t *trie, void *store, trie_visit_t f,
                          va_list *args) {
-  ts_vec_store_t *s = (ts_vec_store_t *)store;
-  ts_vec_cursor_t cursor;
-  if (s == NULL) {
-    return;
-  }
-  cursor.next = 0;
-  cursor.previous = s->cursors;
-  s->cursors = &cursor;
-  while (cursor.next < ds_vec_size(&s->children)) {
-    ds_trie_node_t *child =
-        *(ds_trie_node_t **)ds_vec_at(&s->children, cursor.next++);
-    ts_visit(trie, child, f, args, ts_vec_apply);
-  }
-  s->cursors = cursor.previous;
+  ts_apply(trie, store, f, args, ts_vec_next);
 }
 
 static void *ts_vec_clone(ds_trie_t *trie, void *store,
                           ds_trie_node_t *parent_node,
                           void *(*clone_data)(void *)) {
-  ts_vec_store_t *s = (ts_vec_store_t *)store;
-  ts_vec_store_t *copy = (ts_vec_store_t *)ts_vec_create(trie, 0);
-  ds_trie_node_t *child;
-  size_t i;
-  if (copy == NULL) {
-    return NULL;
-  }
-  ds_vec_reserve(&copy->children, ds_vec_size(&s->children));
-  for (i = 0; i < ds_vec_size(&s->children); i++) {
-    child =
-        ds_trie_clone_node(trie, *(ds_trie_node_t **)ds_vec_at(&s->children, i),
-                           parent_node, clone_data);
-    ds_vec_push(&copy->children, &child);
-  }
-  return copy;
+  return ds_trie_clone_store(trie, store, parent_node, clone_data, ts_vec_next);
 }
 
 static const ds_trie_store_ops_t ts_vec_ops = {
     ts_vec_search,  ts_vec_create, ts_vec_insert, ts_vec_remove, ts_vec_remove,
-    ts_vec_destroy, ts_vec_size,   ts_vec_apply,  ts_vec_clone};
+    ts_vec_destroy, ts_vec_size,   ts_vec_apply,  ts_vec_clone,  ts_vec_next};
 
 const ds_trie_store_ops_t *ds_trie_sorted_vec_store_ops(void) {
   return &ts_vec_ops;

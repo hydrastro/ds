@@ -19,6 +19,36 @@ typedef struct trie_node {
   void *terminal_data;
 } ds_trie_node_t;
 
+/*
+ * Child stores. Each node keeps its children in a store, keyed by slice:
+ * a hash table (below), a Robin Hood map or a sorted vector
+ * (trie_stores.h), or your own ds_trie_store_ops_t.
+ *
+ * next(store, after) gives the child that follows after in the store's
+ * order, the first child for after NULL, NULL past the last. It is
+ * optional (stores written before it leave it NULL), and with it the trie
+ * walks, copies and destroys itself without recursion; without it those
+ * go through the store's apply and clone, which recurse as deep as the
+ * longest key. The order must hold while the store changes: inserting or
+ * removing other children must not reorder the rest, so that a walk that
+ * resumes from after meets every remaining child exactly once.
+ * Destruction frees children without detaching them, asking for each
+ * one's successor while it is still alive: next must not look at children
+ * other than after.
+ *
+ * Walks (with next): ds_trie_apply and ds_trie_walk visit the nodes below
+ * a node in post-order, children before their parent. The callback may
+ * detach and free the node it is given, and nodes it was given before; it
+ * must not remove a node it has not been given yet (every ancestor of the
+ * current node is one). Nodes inserted during a walk may or may not be
+ * visited. ds_trie_preorder_next iterates without a callback, parents
+ * first. ds_trie_clone and ds_trie_clone_node copy all or nothing,
+ * calling clone_data only once the copy is complete (without next, a
+ * failed copy can leave clone_data's results behind).
+ */
+typedef struct trie_node *(*ds_trie_next_fn)(void *store,
+                                             const struct trie_node *after);
+
 typedef struct trie {
   ds_trie_node_t *root;
   size_t num_splits;
@@ -37,7 +67,8 @@ typedef struct trie {
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
   ds_context_t *context;
-  bool use_context; /* nodes and stores come from context */
+  bool use_context;           /* nodes and stores come from context */
+  ds_trie_next_fn store_next; /* NULL for stores without next */
 } ds_trie_t;
 
 typedef struct ds_trie_store_ops {
@@ -53,6 +84,7 @@ typedef struct ds_trie_store_ops {
                 va_list *args);
   void *(*clone)(struct trie *trie, void *store, ds_trie_node_t *parent_node,
                  void *(*clone_data)(void *));
+  ds_trie_next_fn next; /* optional, see above */
 } ds_trie_store_ops_t;
 
 typedef struct ds_trie_config {
@@ -106,6 +138,8 @@ void ds_trie_hash_table_store_apply(struct trie *trie, void *store,
 void *ds_trie_hash_table_store_clone(struct trie *trie, void *store,
                                      ds_trie_node_t *parent_node,
                                      void *(*clone_data)(void *));
+ds_trie_node_t *ds_trie_hash_table_store_next(void *store,
+                                              const ds_trie_node_t *after);
 ds_trie_t *ds_trie_create(
     size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
     void *(*store_create)(struct trie *, size_t),
@@ -153,6 +187,24 @@ ds_trie_node_t *ds_trie_clone_node(ds_trie_t *trie, ds_trie_node_t *node,
                                    ds_trie_node_t *parent_node,
                                    void *(*clone_data)(void *));
 ds_trie_t *ds_trie_clone(ds_trie_t *trie, void *(*clone_data)(void *));
+
+/* Pre-order iteration over the nodes below top (top excluded), parents
+ * before their children: node NULL gives the first, NULL ends it (and is
+ * all a trie whose stores lack next gives). To prune while iterating, get
+ * the next node before detaching the current one, which by then must have
+ * no children. Insertions may or may not come up. */
+ds_trie_node_t *ds_trie_preorder_next(ds_trie_t *trie, ds_trie_node_t *top,
+                                      ds_trie_node_t *node);
+/* For stores with next: a post-order walk below node (the contract above),
+ * and a copy of a store with every subtree under it, all or nothing, its
+ * children's parent set to parent_node. Stores can build apply and clone
+ * on these. */
+void ds_trie_walk(ds_trie_t *trie, ds_trie_node_t *node, ds_trie_next_fn next,
+                  void (*f)(ds_trie_t *, ds_trie_node_t *, va_list *),
+                  va_list *args);
+void *ds_trie_clone_store(ds_trie_t *trie, void *store,
+                          ds_trie_node_t *parent_node,
+                          void *(*clone_data)(void *), ds_trie_next_fn next);
 
 #ifdef __cplusplus
 }
