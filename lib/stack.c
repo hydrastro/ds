@@ -7,10 +7,21 @@ ds_stack_t *ds_stack_create(void) {
 
 ds_stack_t *ds_stack_create_alloc(void *(*allocator)(size_t),
                                   void (*deallocator)(void *)) {
-  ds_stack_t *stack = (ds_stack_t *)allocator(sizeof(ds_stack_t));
+  ds_stack_t *stack;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  stack = (ds_stack_t *)allocator(sizeof(ds_stack_t));
+  if (stack == NULL) {
+    return NULL;
+  }
   stack->allocator = allocator;
   stack->deallocator = deallocator;
   stack->nil = (ds_stack_node_t *)allocator(sizeof(ds_stack_node_t));
+  if (stack->nil == NULL) {
+    deallocator(stack);
+    return NULL;
+  }
   stack->nil->next = stack->nil;
   stack->top = stack->nil;
   stack->size = 0;
@@ -158,24 +169,65 @@ void ds_stack_walk_backwards(ds_stack_t *stack, ds_stack_node_t *current,
   }
 }
 
+/* clones of the source's nodes, top first, added below copy's; false
+ * when clone_node returns NULL (the clones made so far are in copy) */
+static bool
+stack_clone_nodes(const ds_stack_t *stack, ds_stack_t *copy,
+                  ds_stack_node_t *(*clone_node)(ds_stack_node_t *)) {
+  ds_stack_node_t *current;
+  ds_stack_node_t *last = copy->nil;
+  for (current = stack->top; current != stack->nil; current = current->next) {
+    ds_stack_node_t *node = clone_node(current);
+    if (node == NULL) {
+      return false;
+    }
+    node->next = copy->nil;
+    if (last == copy->nil) {
+      copy->top = node;
+    } else {
+      last->next = node;
+    }
+    last = node;
+    copy->size += 1;
+  }
+  return true;
+}
+
 ds_stack_t *ds_stack_clone(ds_stack_t *stack,
                            ds_stack_node_t *(*clone_node)(ds_stack_node_t *)) {
-  ds_stack_t *temp_stack;
-  ds_stack_t *new_stack;
-  ds_stack_node_t *current;
-  temp_stack = ds_stack_create_alloc(stack->allocator, stack->deallocator);
-  new_stack = ds_stack_create_alloc(stack->allocator, stack->deallocator);
-  current = stack->top;
-  while (current != stack->nil) {
-    ds_stack_node_t *cloned_node = clone_node(current);
-    ds_stack_push(temp_stack, cloned_node);
-    current = current->next;
+  ds_stack_t *copy;
+  if (stack == NULL || clone_node == NULL) {
+    return NULL;
   }
-  while (!ds_stack_is_empty(temp_stack)) {
-    ds_stack_node_t *node = ds_stack_pop(temp_stack);
-    ds_stack_push(new_stack, node);
+  copy = ds_stack_create_alloc(stack->allocator, stack->deallocator);
+  if (copy != NULL && !stack_clone_nodes(stack, copy, clone_node)) {
+    /* the clones made so far are not released */
+    ds_stack_destroy(copy, NULL);
+    copy = NULL;
   }
-  ds_stack_destroy(temp_stack, NULL);
+  return copy;
+}
 
-  return new_stack;
+ds_status_t ds_stack_clone_ex(const ds_stack_t *stack,
+                              ds_stack_node_t *(*clone_node)(ds_stack_node_t *),
+                              void (*destroy_clone)(ds_stack_node_t *),
+                              ds_stack_t **out) {
+  ds_stack_t *copy;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (stack == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  copy = ds_stack_create_alloc(stack->allocator, stack->deallocator);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!stack_clone_nodes(stack, copy, clone_node)) {
+    ds_stack_destroy(copy, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  *out = copy;
+  return DS_OK;
 }

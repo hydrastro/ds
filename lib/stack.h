@@ -2,6 +2,7 @@
 #define DS_STACK_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -21,6 +22,7 @@ typedef struct stack {
   void (*deallocator)(void *);
 } ds_stack_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_stack_t *ds_stack_create(void);
 ds_stack_t *ds_stack_create_alloc(void *(*allocator)(size_t),
                                   void (*deallocator)(void *));
@@ -45,8 +47,19 @@ void ds_stack_walk_forward(ds_stack_t *stack, ds_stack_node_t *node,
  * stack) and restored by the time it returns */
 void ds_stack_walk_backwards(ds_stack_t *stack, ds_stack_node_t *node,
                              void (*callback)(ds_stack_node_t *));
+/* Legacy clone: NULL when the copy cannot be allocated, or when clone_node
+ * returns NULL; the clones it made before are then not released (clone_ex
+ * releases them). */
 ds_stack_t *ds_stack_clone(ds_stack_t *stack,
                            ds_stack_node_t *(*clone_node)(ds_stack_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back the clones
+ * made so far through destroy_clone and returns DS_ERR_CALLBACK;
+ * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
+ * are required. On any error *out is NULL and the source is unchanged. */
+ds_status_t ds_stack_clone_ex(const ds_stack_t *stack,
+                              ds_stack_node_t *(*clone_node)(ds_stack_node_t *),
+                              void (*destroy_clone)(ds_stack_node_t *),
+                              ds_stack_t **out);
 
 #ifdef __cplusplus
 }
