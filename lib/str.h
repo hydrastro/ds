@@ -56,8 +56,11 @@ void ds_str_to_lower(ds_str_t *s);
 void ds_str_swap(ds_str_t *a, ds_str_t *b);
 int ds_str_clear_freebuf(ds_str_t *s);
 
-int ds_str_append_vfmt(ds_str_t *s, const char *fmt, va_list ap);
-int ds_str_append_fmt(ds_str_t *s, const char *fmt, ...);
+/* printf formats, checked against their arguments where the compiler can
+ * (DS_FORMAT_PRINTF) */
+int ds_str_append_vfmt(ds_str_t *s, const char *fmt, va_list ap)
+    DS_FORMAT_PRINTF(2, 0);
+int ds_str_append_fmt(ds_str_t *s, const char *fmt, ...) DS_FORMAT_PRINTF(2, 3);
 
 int ds_str_reserve_exact(ds_str_t *s, size_t cap);
 int ds_str_assign(ds_str_t *s, const void *data, size_t n);

@@ -37,6 +37,17 @@ extern "C" {
 #endif
 #endif
 
+/* printf format checking for a function's format argument fmt and its
+ * first variadic argument first (0 for a va_list), where the compiler
+ * offers it (GCC, clang); nothing elsewhere */
+#ifndef DS_FORMAT_PRINTF
+#if defined(__GNUC__)
+#define DS_FORMAT_PRINTF(fmt, first) __attribute__((format(printf, fmt, first)))
+#else
+#define DS_FORMAT_PRINTF(fmt, first)
+#endif
+#endif
+
 #ifdef __cplusplus
 }
 #endif
