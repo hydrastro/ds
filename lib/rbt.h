@@ -9,11 +9,20 @@
 extern "C" {
 #endif
 
+/* A node keeps its color in the low bit of its parent pointer, so nodes
+ * must be at least 2-aligned: a struct holding an unsigned long is. GCC
+ * and clang are told so explicitly; other compilers need nothing. */
+#if defined(__GNUC__)
+#define DS_RBT_ALIGNED __attribute__((aligned(sizeof(long))))
+#else
+#define DS_RBT_ALIGNED
+#endif
+
 typedef struct rbt_node {
   unsigned long parent_color;
   struct rbt_node *right;
   struct rbt_node *left;
-} __attribute__((aligned(sizeof(long)))) ds_rbt_node_t;
+} DS_RBT_ALIGNED ds_rbt_node_t;
 
 #define RBT_RED 0
 #define RBT_BLACK 1
@@ -50,7 +59,7 @@ typedef struct rbt {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
-} __attribute__((aligned(sizeof(long)))) ds_rbt_t;
+} DS_RBT_ALIGNED ds_rbt_t;
 
 void ds_rbt_set_parent(ds_rbt_node_t *node, ds_rbt_node_t *parent);
 void ds_rbt_set_parent_color(ds_rbt_node_t *node, ds_rbt_node_t *parent,
