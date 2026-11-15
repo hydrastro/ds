@@ -10,11 +10,22 @@ ds_fenwick_tree_t *ds_fenwick_tree_create_alloc(size_t size,
                                                 void (*deallocator)(void *)) {
   ds_fenwick_tree_t *tree;
   size_t i;
+  if (allocator == NULL || deallocator == NULL ||
+      size >= (size_t)-1 / sizeof(long)) {
+    return NULL;
+  }
   tree = (ds_fenwick_tree_t *)allocator(sizeof(ds_fenwick_tree_t));
+  if (tree == NULL) {
+    return NULL;
+  }
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->size = size;
   tree->data = (long *)allocator((size + 1) * sizeof(long));
+  if (tree->data == NULL) {
+    deallocator(tree);
+    return NULL;
+  }
   for (i = 0; i <= size; i++) {
     tree->data[i] = 0;
   }
@@ -101,8 +112,14 @@ void ds_fenwick_tree_clear(ds_fenwick_tree_t *tree) {
 ds_fenwick_tree_t *ds_fenwick_tree_clone(ds_fenwick_tree_t *tree) {
   ds_fenwick_tree_t *new_tree;
   size_t i;
+  if (tree == NULL) {
+    return NULL;
+  }
   new_tree = ds_fenwick_tree_create_alloc(tree->size, tree->allocator,
                                           tree->deallocator);
+  if (new_tree == NULL) {
+    return NULL;
+  }
   for (i = 0; i <= tree->size; i++) {
     new_tree->data[i] = tree->data[i];
   }

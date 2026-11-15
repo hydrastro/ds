@@ -16,6 +16,8 @@ typedef struct fenwick_tree {
   void (*deallocator)(void *);
 } ds_fenwick_tree_t;
 
+/* NULL when memory runs out, for a size too large, or without an
+ * allocator and a deallocator (create_alloc and clone too) */
 ds_fenwick_tree_t *ds_fenwick_tree_create(size_t size);
 ds_fenwick_tree_t *ds_fenwick_tree_create_alloc(size_t size,
                                                 void *(*allocator)(size_t),
