@@ -814,7 +814,7 @@ ds_status_t ds_dyn_msf_insert(ds_dyn_msf_t *g, size_t u, size_t v, double w,
     dy_link_edge(g, id);
     g->edge[id].tree = 1;
     g->tree_edges++;
-    g->weight += w;
+    ds_xsum_add(&g->weight, w);
   } else {
     size_t f;
     dy_expose(g, u, v);
@@ -824,8 +824,8 @@ ds_status_t ds_dyn_msf_insert(ds_dyn_msf_t *g, size_t u, size_t v, double w,
       g->edge[f].tree = 0;
       dy_link_edge(g, id);
       g->edge[id].tree = 1;
-      g->weight -= g->edge[f].weight;
-      g->weight += w;
+      (void)ds_xsum_remove(&g->weight, g->edge[f].weight);
+      ds_xsum_add(&g->weight, w);
       d = f;
     } else {
       d = id;
@@ -904,7 +904,7 @@ ds_status_t ds_dyn_msf_delete(ds_dyn_msf_t *g, size_t id) {
     dy_cut_edge(g, id);
     e->tree = 0;
     g->tree_edges--;
-    g->weight -= e->weight;
+    (void)ds_xsum_remove(&g->weight, e->weight);
   }
   e->live = 0;
   g->edges--;
@@ -921,11 +921,8 @@ ds_status_t ds_dyn_msf_delete(ds_dyn_msf_t *g, size_t id) {
       dy_link_edge(g, best);
       g->edge[best].tree = 1;
       g->tree_edges++;
-      g->weight += g->edge[best].weight;
+      ds_xsum_add(&g->weight, g->edge[best].weight);
     }
-  }
-  if (g->tree_edges == 0) {
-    g->weight = 0.0;
   }
   st = dy_update(g, r, nr);
   ds_context_free(g->context, r);
@@ -982,7 +979,7 @@ size_t ds_dyn_msf_forest_edges(const ds_dyn_msf_t *g) {
 }
 
 double ds_dyn_msf_weight(const ds_dyn_msf_t *g) {
-  return g == NULL ? 0.0 : g->weight;
+  return g == NULL ? 0.0 : ds_xsum_value(&g->weight);
 }
 
 bool ds_dyn_msf_broken(const ds_dyn_msf_t *g) { return g != NULL && g->broken; }
@@ -1077,7 +1074,7 @@ ds_status_t ds_dyn_msf_rebuild(ds_dyn_msf_t *g) {
       dy_node_reset(g, i);
     }
     g->tree_edges = 0;
-    g->weight = 0.0;
+    ds_xsum_init(&g->weight);
     for (i = 0; i < g->edge_slots; i++) {
       g->edge[i].tree = 0;
       if (!g->edge[i].live) {
@@ -1087,7 +1084,7 @@ ds_status_t ds_dyn_msf_rebuild(ds_dyn_msf_t *g) {
         dy_link_edge(g, i);
         g->edge[i].tree = 1;
         g->tree_edges++;
-        g->weight += g->edge[i].weight;
+        ds_xsum_add(&g->weight, g->edge[i].weight);
       } else {
         rest[nrest++] = i;
       }
@@ -1109,13 +1106,12 @@ bool ds_dyn_msf_check(ds_dyn_msf_t *g) {
   size_t *low_tree;
   size_t i, j;
   size_t trees = 0;
-  double total = 0.0;
-  double scale = 1.0;
-  double diff;
+  ds_xsum_t total;
   bool ok = true;
   if (g == NULL || g->broken) {
     return false;
   }
+  ds_xsum_init(&total);
   in_forest = (unsigned char *)ds_context_alloc(g->context, g->edge_slots + 1);
   home = (size_t *)ds_context_alloc(g->context,
                                     3 * (g->edge_slots + 1) * sizeof(size_t));
@@ -1131,7 +1127,6 @@ bool ds_dyn_msf_check(ds_dyn_msf_t *g) {
     home[i] = DY_NONE;
     homes[i] = 0;
     low_tree[i] = DY_NONE;
-    scale += e->weight < 0 ? -e->weight : e->weight;
     if (!e->live) {
       continue;
     }
@@ -1140,18 +1135,14 @@ bool ds_dyn_msf_check(ds_dyn_msf_t *g) {
     }
     if (e->tree) {
       trees++;
-      total += e->weight;
+      ds_xsum_add(&total, e->weight);
       if (!dy_connected(g, e->end[0], e->end[1])) {
         ok = false;
       }
     }
   }
-  diff = total - g->weight;
-  if (diff < 0) {
-    diff = -diff;
-  }
-  if (trees != g->tree_edges || diff > 1e-9 * scale) {
-    ok = false;
+  if (trees != g->tree_edges || ds_xsum_compare(&total, &g->weight) != 0) {
+    ok = false; /* the sum is exact */
   }
   for (j = 0; j < g->slots && ok; j++) { /* the reduction's invariant */
     ds_dyn_msf_slot_t *s = &g->slot[j];

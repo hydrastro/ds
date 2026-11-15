@@ -428,7 +428,7 @@ static ds_status_t dm_build(ds_dmsf_t *g) {
     st = dm_kruskal(g, in_forest);
   }
   g->tree_edges = 0;
-  g->weight = 0.0;
+  ds_xsum_init(&g->weight);
   for (e = 0; st == DS_OK && e < g->m; e++) {
     ds_dmsf_edge_t *d = &g->edge[e];
     size_t k;
@@ -446,7 +446,7 @@ static ds_status_t dm_build(ds_dmsf_t *g) {
     if (st == DS_OK && d->tree) {
       st = ds_ett_link(&g->forest[0], d->end[0], d->end[1]);
       g->tree_edges++;
-      g->weight += d->weight;
+      ds_xsum_add(&g->weight, d->weight);
     }
     if (st == DS_OK) {
       dm_attach(g, e);
@@ -662,7 +662,7 @@ ds_status_t ds_dmsf_delete(ds_dmsf_t *g, size_t e, size_t *out_replacement) {
   }
   d->tree = 0;
   g->tree_edges--;
-  g->weight -= d->weight;
+  (void)ds_xsum_remove(&g->weight, d->weight);
   for (i = level + 1; i-- > 0;) {
     ds_status_t st = dm_replace(g, i, a, b, &f);
     if (st != DS_OK) {
@@ -671,12 +671,9 @@ ds_status_t ds_dmsf_delete(ds_dmsf_t *g, size_t e, size_t *out_replacement) {
     }
     if (f != DM_NONE) {
       g->tree_edges++;
-      g->weight += g->edge[f].weight;
+      ds_xsum_add(&g->weight, g->edge[f].weight);
       break;
     }
-  }
-  if (g->tree_edges == 0) {
-    g->weight = 0.0; /* no drift left over */
   }
   if (out_replacement != NULL) {
     *out_replacement = f;
@@ -719,7 +716,7 @@ size_t ds_dmsf_forest_edges(const ds_dmsf_t *g) {
 }
 
 double ds_dmsf_weight(const ds_dmsf_t *g) {
-  return g == NULL ? 0.0 : g->weight;
+  return g == NULL ? 0.0 : ds_xsum_value(&g->weight);
 }
 
 bool ds_dmsf_broken(const ds_dmsf_t *g) { return g != NULL && g->broken; }
@@ -785,13 +782,12 @@ bool ds_dmsf_check(ds_dmsf_t *g) {
   size_t trees = 0;
   size_t ends = 0;
   size_t entries = 0;
-  double total = 0.0;
-  double scale = 1.0;
-  double diff;
+  ds_xsum_t total;
   bool ok = true;
   if (g == NULL || g->broken) {
     return false;
   }
+  ds_xsum_init(&total);
   in_forest = (unsigned char *)ds_context_alloc(g->context, g->m + 1);
   stack = (size_t *)ds_context_alloc(g->context, (g->m + 1) * sizeof(size_t));
   if (in_forest == NULL || stack == NULL || dm_kruskal(g, in_forest) != DS_OK) {
@@ -801,7 +797,6 @@ bool ds_dmsf_check(ds_dmsf_t *g) {
   }
   for (e = 0; e < g->m && ok; e++) {
     ds_dmsf_edge_t *d = &g->edge[e];
-    scale += d->weight < 0 ? -d->weight : d->weight;
     if (!d->live) {
       continue;
     }
@@ -820,19 +815,14 @@ bool ds_dmsf_check(ds_dmsf_t *g) {
         }
       }
       trees++;
-      total += d->weight;
+      ds_xsum_add(&total, d->weight);
     } else if (!ds_ett_connected(&g->forest[d->level], d->end[0], d->end[1])) {
       ok = false; /* invariant (i) */
     }
     ends += 2;
   }
-  diff = total - g->weight;
-  if (diff < 0) {
-    diff = -diff;
-  }
-  /* the running sum drifts by rounding: a loose bound */
-  if (trees != g->tree_edges || diff > 1e-9 * scale) {
-    ok = false;
+  if (trees != g->tree_edges || ds_xsum_compare(&total, &g->weight) != 0) {
+    ok = false; /* the sum is exact */
   }
   for (i = 0; i < g->levels && ok; i++) {
     for (x = 0; x < g->n && ok; x++) {

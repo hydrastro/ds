@@ -38,6 +38,7 @@
 
 #include "context.h"
 #include "euler_tour_tree.h"
+#include "exact_sum.h"
 #include "map_iface.h"
 #include "status.h"
 #include <stdbool.h>
@@ -74,7 +75,7 @@ typedef struct ds_dmsf {
   bool broken;
   size_t edges;      /* live */
   size_t tree_edges; /* in F */
-  double weight;     /* of F, kept as a running sum */
+  ds_xsum_t weight;  /* of F, an exact sum */
   unsigned long promotions;
   unsigned long replacements;
   ds_context_t *context;
@@ -100,10 +101,10 @@ bool ds_dmsf_in_forest(const ds_dmsf_t *g, size_t e);
 unsigned ds_dmsf_level(const ds_dmsf_t *g, size_t e);
 size_t ds_dmsf_edges(const ds_dmsf_t *g);
 size_t ds_dmsf_forest_edges(const ds_dmsf_t *g);
-/* The forest's weight: a running double sum. Rounding may accumulate and
- * finite inputs can still overflow the sum; keep intermediate totals in
- * range when using this query. Forest membership uses edge comparisons
- * and does not depend on the sum. */
+/* The forest's weight: an exact sum (lib/exact_sum) of its edges' weights,
+ * correctly rounded when read, so no rounding accumulates and no
+ * intermediate total overflows; HUGE_VAL when the true total lies beyond
+ * the double range. Forest membership uses edge comparisons only. */
 double ds_dmsf_weight(const ds_dmsf_t *g);
 
 bool ds_dmsf_broken(const ds_dmsf_t *g);

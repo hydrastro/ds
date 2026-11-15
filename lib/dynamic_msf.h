@@ -50,6 +50,7 @@
 
 #include "context.h"
 #include "decremental_msf.h"
+#include "exact_sum.h"
 #include "map_iface.h"
 #include "status.h"
 #include <stdbool.h>
@@ -102,7 +103,7 @@ typedef struct ds_dyn_msf {
   size_t free_edge;  /* free ids, linked through end[0] */
   size_t edges;
   size_t tree_edges;
-  double weight;           /* of F, a running sum */
+  ds_xsum_t weight;        /* of F, an exact sum */
   ds_dyn_msf_node_t *node; /* n + edge_capacity */
   size_t *tag;  /* node * slot_capacity + slot: the super id over a node */
   size_t *lazy; /* pending tag assignments, the same layout */
@@ -138,10 +139,10 @@ ds_status_t ds_dyn_msf_path_max(ds_dyn_msf_t *g, size_t u, size_t v,
                                 size_t *out_id);
 size_t ds_dyn_msf_edges(const ds_dyn_msf_t *g);
 size_t ds_dyn_msf_forest_edges(const ds_dyn_msf_t *g);
-/* The forest's weight: a running double sum. Rounding may accumulate and
- * finite inputs can still overflow the sum; keep intermediate totals in
- * range when using this query. Forest membership uses edge comparisons
- * and does not depend on the sum. */
+/* The forest's weight: an exact sum (lib/exact_sum) of its edges' weights,
+ * correctly rounded when read, so no rounding accumulates and no
+ * intermediate total overflows; HUGE_VAL when the true total lies beyond
+ * the double range. Forest membership uses edge comparisons only. */
 double ds_dyn_msf_weight(const ds_dyn_msf_t *g);
 
 bool ds_dyn_msf_broken(const ds_dyn_msf_t *g);
