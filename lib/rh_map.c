@@ -101,6 +101,8 @@ static void *rh_alloc(ds_context_t *context, size_t bytes) {
 
 static ds_status_t rh_rehash(ds_rh_map_t *map, size_t capacity) {
   ds_rh_map_t next = *map;
+  size_t start = 0;
+  size_t n;
   size_t i;
   if (map->fixed) {
     return DS_ERR_OVERFLOW;
@@ -127,7 +129,14 @@ static ds_status_t rh_rehash(ds_rh_map_t *map, size_t capacity) {
     ds_context_free(map->context, next.dist);
     return DS_ERR_ALLOC;
   }
-  for (i = 0; i < map->capacity; i++) {
+  /* Start after an empty slot, so that no run of entries is split by
+   * the end of the table: entries with equal hashes then keep their
+   * order, which stable iteration (ds_rh_map_after) relies on. */
+  while (start < map->capacity && map->dist[start] != 0) {
+    start++;
+  }
+  for (n = 0; n < map->capacity; n++) {
+    i = (start + n) & (map->capacity - 1);
     if (map->dist[i] != 0) {
       size_t j = rh_place(&next, rh_key(map, i), map->hashes[i]);
       if (map->value_size > 0) {
@@ -409,6 +418,112 @@ bool ds_rh_map_next(const ds_rh_map_t *map, size_t *cursor,
   }
   *cursor = map->capacity;
   return false;
+}
+
+/* The order of two hashes with their bits reversed: decided by the
+ * lowest bit in which they differ. */
+static int rh_reversed_order(unsigned long a, unsigned long b) {
+  unsigned long x = a ^ b;
+  if (x == 0) {
+    return 0;
+  }
+  x &= ~x + 1UL;
+  return (a & x) != 0 ? 1 : -1;
+}
+
+/* Where slot i stands against (hash, dist) in the stable order: by
+ * reversed hash, then (equal hashes share a home) by place in the run. */
+static int rh_stable_order(const ds_rh_map_t *map, size_t i, unsigned long hash,
+                           unsigned int dist) {
+  int c = rh_reversed_order(map->hashes[i], hash);
+  if (c != 0) {
+    return c;
+  }
+  return map->dist[i] > dist ? 1 : (map->dist[i] < dist ? -1 : 0);
+}
+
+/* The entries whose home is h: the first slot and how many. */
+static size_t rh_home_run(const ds_rh_map_t *map, size_t h, size_t *count) {
+  size_t mask = map->capacity - 1;
+  size_t i = h;
+  size_t first;
+  unsigned int d = 1;
+  while (map->dist[i] > d) { /* homes before h */
+    i = (i + 1) & mask;
+    d++;
+  }
+  first = i;
+  *count = 0;
+  while (map->dist[i] == d) {
+    (*count)++;
+    i = (i + 1) & mask;
+    d++;
+  }
+  return first;
+}
+
+/* Homes are visited in bit-reversed order, so the order of the entries
+ * does not depend on the capacity: growing splits each home into two that
+ * follow each other. Within a home, entries go by reversed hash. */
+bool ds_rh_map_after(const ds_rh_map_t *map, const void *key,
+                     const void **out_key, void **out_value) {
+  unsigned long hash = 0;
+  unsigned int dist = 0;
+  bool bounded = false;
+  size_t best = RH_SIZE_MAX;
+  size_t mask;
+  size_t home = 0;
+  size_t i;
+  size_t n;
+  size_t count;
+  if (map == NULL || map->size == 0) {
+    return false;
+  }
+  mask = map->capacity - 1;
+  if (key != NULL) {
+    hash = rh_mix(map->hash(key, map->user));
+    i = rh_find(map, key, hash);
+    if (i == RH_SIZE_MAX) {
+      return false;
+    }
+    dist = map->dist[i];
+    home = rh_home(map, hash);
+    bounded = true;
+  }
+  for (;;) {
+    size_t bit;
+    i = rh_home_run(map, home, &count);
+    for (n = 0; n < count; n++, i = (i + 1) & mask) {
+      if (bounded && rh_stable_order(map, i, hash, dist) <= 0) {
+        continue;
+      }
+      if (best == RH_SIZE_MAX ||
+          rh_stable_order(map, i, map->hashes[best], map->dist[best]) < 0) {
+        best = i;
+      }
+    }
+    if (best != RH_SIZE_MAX) {
+      break;
+    }
+    bounded = false;
+    /* the next home in bit-reversed order */
+    bit = map->capacity >> 1;
+    while (bit != 0 && (home & bit) != 0) {
+      home &= ~bit;
+      bit >>= 1;
+    }
+    if (bit == 0) {
+      return false;
+    }
+    home |= bit;
+  }
+  if (out_key != NULL) {
+    *out_key = rh_key(map, best);
+  }
+  if (out_value != NULL) {
+    *out_value = map->value_size > 0 ? rh_value(map, best) : NULL;
+  }
+  return true;
 }
 
 unsigned long ds_rh_map_hash_ulong(const void *key, void *user) {

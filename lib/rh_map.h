@@ -93,6 +93,20 @@ size_t ds_rh_map_size(const ds_rh_map_t *map);
 size_t ds_rh_map_capacity(const ds_rh_map_t *map);
 bool ds_rh_map_next(const ds_rh_map_t *map, size_t *cursor,
                     const void **out_key, void **out_value);
+/*
+ * Stable iteration: the entry after key's (the first entry for a NULL
+ * key) in an order fixed by the hashes alone, by bit-reversed hash and,
+ * for equal hashes, by insertion. Insertions, removals and growth do not
+ * change the order of the other entries, so stepping from each entry to
+ * the next visits every entry that stays in the map exactly once, whatever
+ * changes in between; entries inserted meanwhile may or may not come up.
+ * (ds_rh_map_next goes by slot, and a removal can move an entry past its
+ * cursor.) key must be in the map; false for a missing key and at the end.
+ * A whole iteration costs expected O(capacity). The key and value pointers
+ * last until the next change: copy the key before removing its entry.
+ */
+bool ds_rh_map_after(const ds_rh_map_t *map, const void *key,
+                     const void **out_key, void **out_value);
 
 unsigned long ds_rh_map_hash_ulong(const void *key, void *user);
 bool ds_rh_map_equal_ulong(const void *a, const void *b, void *user);
