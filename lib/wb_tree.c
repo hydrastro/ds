@@ -164,7 +164,11 @@ static ds_status_t wb_insert(ds_wb_tree_t *t, size_t v, const void *elem,
   size_t sub;
   ds_status_t st;
   if (v == WB_NONE) {
-    return wb_node(t, elem, out_root);
+    st = wb_node(t, elem, out_root);
+    if (st != DS_OK) {
+      *out_root = WB_NONE; /* nothing was added */
+    }
+    return st;
   }
   c = t->compare(elem, wb_at(t, v), t->user);
   if (c == 0) {
