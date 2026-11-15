@@ -89,8 +89,8 @@ void ds_trie_walk(ds_trie_t *trie, ds_trie_node_t *node, ds_trie_next_fn next,
                   va_list *args) {
   ds_trie_node_t *current;
   ds_trie_node_t *following;
-  if (trie == NULL || node == NULL || next == NULL || f == NULL) {
-    return;
+  if (node == NULL || next == NULL || f == NULL) {
+    return; /* trie is only passed on to f, and may be NULL */
   }
   current = trie_post_first(next, node);
   if (current == node) {
