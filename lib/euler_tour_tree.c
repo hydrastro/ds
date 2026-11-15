@@ -232,18 +232,18 @@ static bool ett_equal(const void *a, const void *b, void *user) {
   return memcmp(a, b, sizeof(ett_key_t)) == 0;
 }
 
-static ett_key_t ett_make_key(size_t u, size_t v) {
-  ett_key_t k;
-  memset(&k, 0, sizeof(k));
-  k.a = u < v ? u : v;
-  k.b = u < v ? v : u;
-  return k;
+static void ett_make_key(ett_key_t *k, size_t u, size_t v) {
+  memset(k, 0, sizeof(*k));
+  k->a = u < v ? u : v;
+  k->b = u < v ? v : u;
 }
 
 static unsigned char *ett_find_edge(const ds_ett_t *t, size_t u, size_t v) {
-  ett_key_t k = ett_make_key(u, v);
-  void *val = ds_map_get(&t->edge_map, &k);
+  ett_key_t k;
+  void *val;
   unsigned char *block;
+  ett_make_key(&k, u, v);
+  val = ds_map_get(&t->edge_map, &k);
   if (val == NULL) {
     return NULL;
   }
@@ -386,7 +386,7 @@ ds_status_t ds_ett_link(ds_ett_t *t, size_t u, size_t v) {
   if (block == NULL) {
     return DS_ERR_ALLOC;
   }
-  k = ett_make_key(u, v);
+  ett_make_key(&k, u, v);
   st = ds_map_put(&t->edge_map, &k, &block);
   if (DS_FAILED(st)) {
     ds_context_free(t->config.context, block);
@@ -444,7 +444,7 @@ ds_status_t ds_ett_cut(ds_ett_t *t, size_t u, size_t v) {
   }
   ett_cut_tour(t, (node_t *)(void *)block,
                (node_t *)(void *)(block + t->node_size), &outer, &inner);
-  k = ett_make_key(u, v);
+  ett_make_key(&k, u, v);
   (void)ds_map_remove(&t->edge_map, &k, NULL);
   ds_context_free(t->config.context, block);
   t->edges--;
