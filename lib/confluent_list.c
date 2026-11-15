@@ -5,11 +5,6 @@
 #define CE DS_CONFLUENT_EMPTY
 #define CL_STACK 160 /* > 1.45 log2(SIZE_MAX) + 2 */
 
-typedef struct cl_src {
-  const void *ext; /* element bytes, or NULL to copy node's value */
-  size_t node;
-} cl_src_t;
-
 typedef struct cl {
   ds_confluent_store_t *s;
   ds_status_t st;
@@ -141,8 +136,10 @@ static ds_status_t cl_grow(ds_confluent_store_t *s) {
   return DS_OK;
 }
 
-/* new node over l and r (both consumed) */
-static size_t cl_mk(cl_t *c, size_t l, cl_src_t src, size_t r) {
+/* new node over l and r (both consumed); its element is src_ext's bytes,
+ * or node src_node's value when src_ext is NULL */
+static size_t cl_mk(cl_t *c, size_t l, const void *src_ext, size_t src_node,
+                    size_t r) {
   ds_confluent_store_t *s = c->s;
   size_t v;
   size_t sl = cl_size(s, l);
@@ -166,10 +163,10 @@ static size_t cl_mk(cl_t *c, size_t l, cl_src_t src, size_t r) {
   } else {
     v = s->nodes++;
   }
-  if (src.ext != NULL) {
-    memcpy(s->value + v * s->elem_size, src.ext, s->elem_size);
-  } else if (src.node != v) {
-    memcpy(s->value + v * s->elem_size, s->value + src.node * s->elem_size,
+  if (src_ext != NULL) {
+    memcpy(s->value + v * s->elem_size, src_ext, s->elem_size);
+  } else if (src_node != v) {
+    memcpy(s->value + v * s->elem_size, s->value + src_node * s->elem_size,
            s->elem_size);
   }
   s->left[v] = l;
@@ -181,15 +178,9 @@ static size_t cl_mk(cl_t *c, size_t l, cl_src_t src, size_t r) {
   return v;
 }
 
-static cl_src_t cl_node_src(size_t node) {
-  cl_src_t src;
-  src.ext = NULL;
-  src.node = node;
-  return src;
-}
-
 /* l and r consumed; their heights differ by at most 2 */
-static size_t cl_balance(cl_t *c, size_t l, cl_src_t src, size_t r) {
+static size_t cl_balance(cl_t *c, size_t l, const void *src_ext,
+                         size_t src_node, size_t r) {
   ds_confluent_store_t *s = c->s;
   unsigned hl = cl_h(s, l);
   unsigned hr = cl_h(s, r);
@@ -200,8 +191,8 @@ static size_t cl_balance(cl_t *c, size_t l, cl_src_t src, size_t r) {
     ds_confluent_retain(s, ll);
     ds_confluent_retain(s, lr);
     if (cl_h(s, ll) >= cl_h(s, lr)) {
-      size_t right = cl_mk(c, lr, src, r);
-      res = cl_mk(c, ll, cl_node_src(l), right);
+      size_t right = cl_mk(c, lr, src_ext, src_node, r);
+      res = cl_mk(c, ll, NULL, l, right);
     } else {
       size_t lrl = s->left[lr];
       size_t lrr = s->right[lr];
@@ -209,9 +200,9 @@ static size_t cl_balance(cl_t *c, size_t l, cl_src_t src, size_t r) {
       size_t b;
       ds_confluent_retain(s, lrl);
       ds_confluent_retain(s, lrr);
-      a = cl_mk(c, ll, cl_node_src(l), lrl);
-      b = cl_mk(c, lrr, src, r);
-      res = cl_mk(c, a, cl_node_src(lr), b);
+      a = cl_mk(c, ll, NULL, l, lrl);
+      b = cl_mk(c, lrr, src_ext, src_node, r);
+      res = cl_mk(c, a, NULL, lr, b);
       ds_confluent_release(s, lr);
     }
     ds_confluent_release(s, l);
@@ -223,8 +214,8 @@ static size_t cl_balance(cl_t *c, size_t l, cl_src_t src, size_t r) {
     ds_confluent_retain(s, rl);
     ds_confluent_retain(s, rr);
     if (cl_h(s, rr) >= cl_h(s, rl)) {
-      size_t left = cl_mk(c, l, src, rl);
-      res = cl_mk(c, left, cl_node_src(r), rr);
+      size_t left = cl_mk(c, l, src_ext, src_node, rl);
+      res = cl_mk(c, left, NULL, r, rr);
     } else {
       size_t rll = s->left[rl];
       size_t rlr = s->right[rl];
@@ -232,19 +223,20 @@ static size_t cl_balance(cl_t *c, size_t l, cl_src_t src, size_t r) {
       size_t b;
       ds_confluent_retain(s, rll);
       ds_confluent_retain(s, rlr);
-      a = cl_mk(c, l, src, rll);
-      b = cl_mk(c, rlr, cl_node_src(r), rr);
-      res = cl_mk(c, a, cl_node_src(rl), b);
+      a = cl_mk(c, l, src_ext, src_node, rll);
+      b = cl_mk(c, rlr, NULL, r, rr);
+      res = cl_mk(c, a, NULL, rl, b);
       ds_confluent_release(s, rl);
     }
     ds_confluent_release(s, r);
     return res;
   }
-  return cl_mk(c, l, src, r);
+  return cl_mk(c, l, src_ext, src_node, r);
 }
 
-/* AVL join: l, src, r in order (l and r consumed) */
-static size_t cl_join(cl_t *c, size_t l, cl_src_t src, size_t r) {
+/* AVL join: l, the element, r in order (l and r consumed) */
+static size_t cl_join(cl_t *c, size_t l, const void *src_ext, size_t src_node,
+                      size_t r) {
   ds_confluent_store_t *s = c->s;
   unsigned hl = cl_h(s, l);
   unsigned hr = cl_h(s, r);
@@ -255,8 +247,8 @@ static size_t cl_join(cl_t *c, size_t l, cl_src_t src, size_t r) {
     size_t t;
     ds_confluent_retain(s, ll);
     ds_confluent_retain(s, lr);
-    t = cl_join(c, lr, src, r);
-    res = cl_balance(c, ll, cl_node_src(l), t);
+    t = cl_join(c, lr, src_ext, src_node, r);
+    res = cl_balance(c, ll, NULL, l, t);
     ds_confluent_release(s, l);
     return res;
   }
@@ -266,12 +258,12 @@ static size_t cl_join(cl_t *c, size_t l, cl_src_t src, size_t r) {
     size_t t;
     ds_confluent_retain(s, rl);
     ds_confluent_retain(s, rr);
-    t = cl_join(c, l, src, rl);
-    res = cl_balance(c, t, cl_node_src(r), rr);
+    t = cl_join(c, l, src_ext, src_node, rl);
+    res = cl_balance(c, t, NULL, r, rr);
     ds_confluent_release(s, r);
     return res;
   }
-  return cl_mk(c, l, src, r);
+  return cl_mk(c, l, src_ext, src_node, r);
 }
 
 /* t borrowed; *L gets the first i elements, *R the rest */
@@ -287,12 +279,12 @@ static void cl_split(cl_t *c, size_t t, size_t i, size_t *L, size_t *R) {
     size_t rp;
     cl_split(c, s->left[t], i, L, &rp);
     ds_confluent_retain(s, s->right[t]);
-    *R = cl_join(c, rp, cl_node_src(t), s->right[t]);
+    *R = cl_join(c, rp, NULL, t, s->right[t]);
   } else {
     size_t lp;
     cl_split(c, s->right[t], i - sl - 1, &lp, R);
     ds_confluent_retain(s, s->left[t]);
-    *L = cl_join(c, s->left[t], cl_node_src(t), lp);
+    *L = cl_join(c, s->left[t], NULL, t, lp);
   }
 }
 
@@ -314,7 +306,7 @@ static size_t cl_join2(cl_t *c, size_t a, size_t b) {
     ds_confluent_release(c->s, rest);
     return CE;
   }
-  res = cl_join(c, a, cl_node_src(first), rest);
+  res = cl_join(c, a, NULL, first, rest);
   ds_confluent_release(c->s, first);
   return res;
 }
@@ -337,16 +329,13 @@ static size_t cl_build(cl_t *c, const unsigned char *elems, size_t lo,
   size_t mid;
   size_t l;
   size_t r;
-  cl_src_t src;
   if (lo >= hi || c->st != DS_OK) {
     return CE;
   }
   mid = lo + (hi - lo) / 2;
   l = cl_build(c, elems, lo, mid);
   r = cl_build(c, elems, mid + 1, hi);
-  src.ext = elems + mid * c->s->elem_size;
-  src.node = CE;
-  return cl_mk(c, l, src, r);
+  return cl_mk(c, l, elems + mid * c->s->elem_size, CE, r);
 }
 
 ds_status_t ds_confluent_from_array(ds_confluent_store_t *s, const void *elems,
@@ -401,20 +390,17 @@ static size_t cl_set(cl_t *c, size_t t, size_t i, const void *elem) {
   if (i < sl) {
     size_t nl = cl_set(c, s->left[t], i, elem);
     ds_confluent_retain(s, s->right[t]);
-    return cl_mk(c, nl, cl_node_src(t), s->right[t]);
+    return cl_mk(c, nl, NULL, t, s->right[t]);
   }
   if (i == sl) {
-    cl_src_t src;
-    src.ext = elem;
-    src.node = CE;
     ds_confluent_retain(s, s->left[t]);
     ds_confluent_retain(s, s->right[t]);
-    return cl_mk(c, s->left[t], src, s->right[t]);
+    return cl_mk(c, s->left[t], elem, CE, s->right[t]);
   }
   {
     size_t nr = cl_set(c, s->right[t], i - sl - 1, elem);
     ds_confluent_retain(s, s->left[t]);
-    return cl_mk(c, s->left[t], cl_node_src(t), nr);
+    return cl_mk(c, s->left[t], NULL, t, nr);
   }
 }
 
@@ -457,7 +443,6 @@ ds_status_t ds_confluent_insert(ds_confluent_store_t *s, size_t list,
   size_t l;
   size_t r;
   size_t res;
-  cl_src_t src;
   if (s == NULL || elem == NULL || out == NULL) {
     return DS_ERR_NULL;
   }
@@ -471,9 +456,7 @@ ds_status_t ds_confluent_insert(ds_confluent_store_t *s, size_t list,
   c.s = s;
   c.st = DS_OK;
   cl_split(&c, list, index, &l, &r);
-  src.ext = e;
-  src.node = CE;
-  res = cl_join(&c, l, src, r);
+  res = cl_join(&c, l, e, CE, r);
   ds_context_free(s->context, e);
   return cl_finish(&c, res, out);
 }
