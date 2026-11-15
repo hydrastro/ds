@@ -227,15 +227,50 @@ void ds_splay_tree_destroy_node(ds_splay_tree_t *tree,
   }
 }
 
+/* Walks follow the parent links in O(1) space: a splay tree can be as
+ * deep as it is large (after a sequential scan, say). */
+#define SPLAY_FROM_ABOVE 0
+#define SPLAY_FROM_LEFT 1
+#define SPLAY_FROM_RIGHT 2
+
+/* where a walk goes after leaving x: its parent and the side x is on */
+static int splay_leave(ds_splay_tree_node_t *x, ds_splay_tree_node_t *root,
+                       ds_splay_tree_node_t **parent) {
+  *parent = x->parent;
+  if (x == root) {
+    return SPLAY_FROM_ABOVE;
+  }
+  return x == x->parent->left ? SPLAY_FROM_LEFT : SPLAY_FROM_RIGHT;
+}
+
 void ds_splay_tree_inorder_walk(ds_splay_tree_t *tree,
                                 ds_splay_tree_node_t *node,
                                 void (*callback)(ds_splay_tree_node_t *)) {
+  ds_splay_tree_node_t *x = node;
+  int from = SPLAY_FROM_ABOVE;
   if (node == tree->nil) {
     return;
   }
-  ds_splay_tree_inorder_walk(tree, node->left, callback);
-  callback(node);
-  ds_splay_tree_inorder_walk(tree, node->right, callback);
+  for (;;) {
+    ds_splay_tree_node_t *p;
+    if (from == SPLAY_FROM_ABOVE && x->left != tree->nil) {
+      x = x->left;
+      continue;
+    }
+    if (from != SPLAY_FROM_RIGHT) {
+      callback(x);
+      if (x->right != tree->nil) {
+        x = x->right;
+        from = SPLAY_FROM_ABOVE;
+        continue;
+      }
+    }
+    from = splay_leave(x, node, &p);
+    if (from == SPLAY_FROM_ABOVE) {
+      return;
+    }
+    x = p;
+  }
 }
 
 void ds_splay_tree_inorder_walk_tree(ds_splay_tree_t *tree,
@@ -243,36 +278,73 @@ void ds_splay_tree_inorder_walk_tree(ds_splay_tree_t *tree,
   ds_splay_tree_inorder_walk(tree, tree->root, callback);
 }
 
-static void
-splay_tree_destroy_recursive(ds_splay_tree_t *tree, ds_splay_tree_node_t *node,
-                             void (*destroy)(ds_splay_tree_node_t *)) {
-  if (node == tree->nil) {
+/* post-order: each node is released after both of its subtrees */
+static void splay_tree_destroy_all(ds_splay_tree_t *tree,
+                                   ds_splay_tree_node_t *node,
+                                   void (*destroy)(ds_splay_tree_node_t *)) {
+  ds_splay_tree_node_t *x = node;
+  int from = SPLAY_FROM_ABOVE;
+  if (node == tree->nil || destroy == NULL) {
     return;
   }
-  splay_tree_destroy_recursive(tree, node->left, destroy);
-  splay_tree_destroy_recursive(tree, node->right, destroy);
-  if (destroy != NULL) {
-    destroy(node);
+  for (;;) {
+    ds_splay_tree_node_t *p;
+    if (from == SPLAY_FROM_ABOVE && x->left != tree->nil) {
+      x = x->left;
+      continue;
+    }
+    if (from != SPLAY_FROM_RIGHT && x->right != tree->nil) {
+      x = x->right;
+      from = SPLAY_FROM_ABOVE;
+      continue;
+    }
+    from = splay_leave(x, node, &p);
+    destroy(x);
+    if (from == SPLAY_FROM_ABOVE) {
+      return;
+    }
+    x = p;
   }
 }
 
 void ds_splay_tree_destroy(ds_splay_tree_t *tree,
                            void (*destroy)(ds_splay_tree_node_t *)) {
-  splay_tree_destroy_recursive(tree, tree->root, destroy);
+  splay_tree_destroy_all(tree, tree->root, destroy);
   tree->deallocator(tree->nil);
   tree->deallocator(tree);
 }
 
-static void splay_tree_clone_recursive(
+/* clones in key order: each insertion into the new tree is a splay at an
+ * end, O(1) amortized */
+static void splay_tree_clone_all(
     ds_splay_tree_t *tree, ds_splay_tree_t *new_tree,
     ds_splay_tree_node_t *node,
     ds_splay_tree_node_t *(*clone_node)(ds_splay_tree_node_t *)) {
+  ds_splay_tree_node_t *x = node;
+  int from = SPLAY_FROM_ABOVE;
   if (node == tree->nil) {
     return;
   }
-  splay_tree_clone_recursive(tree, new_tree, node->left, clone_node);
-  ds_splay_tree_insert(new_tree, clone_node(node));
-  splay_tree_clone_recursive(tree, new_tree, node->right, clone_node);
+  for (;;) {
+    ds_splay_tree_node_t *p;
+    if (from == SPLAY_FROM_ABOVE && x->left != tree->nil) {
+      x = x->left;
+      continue;
+    }
+    if (from != SPLAY_FROM_RIGHT) {
+      ds_splay_tree_insert(new_tree, clone_node(x));
+      if (x->right != tree->nil) {
+        x = x->right;
+        from = SPLAY_FROM_ABOVE;
+        continue;
+      }
+    }
+    from = splay_leave(x, node, &p);
+    if (from == SPLAY_FROM_ABOVE) {
+      return;
+    }
+    x = p;
+  }
 }
 
 ds_splay_tree_t *ds_splay_tree_clone(
@@ -281,6 +353,6 @@ ds_splay_tree_t *ds_splay_tree_clone(
   ds_splay_tree_t *new_tree;
   new_tree = ds_splay_tree_create_alloc(tree->compare, tree->allocator,
                                         tree->deallocator);
-  splay_tree_clone_recursive(tree, new_tree, tree->root, clone_node);
+  splay_tree_clone_all(tree, new_tree, tree->root, clone_node);
   return new_tree;
 }
