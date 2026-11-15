@@ -51,6 +51,9 @@ ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
   ln2 = log(2.0);
   /* m = -n ln(p) / (ln2)^2 */
   m = -(n * log(p)) / (ln2 * ln2);
+  if (!(m < (double)((size_t)-1 / 2))) { /* no size_t holds the bits */
+    return NULL;
+  }
   num_bits = (size_t)(m + 0.5);
   if (num_bits < DS_BLOOM_BITS_PER_WORD) {
     num_bits = DS_BLOOM_BITS_PER_WORD;
@@ -78,8 +81,15 @@ ds_bloom_filter_create_with_params(size_t num_bits, size_t num_hashes,
   if (num_hashes < 1) {
     num_hashes = 1;
   }
+  if (allocator == NULL || deallocator == NULL ||
+      num_bits > (size_t)-1 - DS_BLOOM_BITS_PER_WORD) {
+    return NULL;
+  }
   num_words = bloom_compute_words(num_bits);
   filter = (ds_bloom_filter_t *)allocator(sizeof(ds_bloom_filter_t));
+  if (filter == NULL) {
+    return NULL;
+  }
   filter->allocator = allocator;
   filter->deallocator = deallocator;
   filter->num_bits = num_words * DS_BLOOM_BITS_PER_WORD;
@@ -87,57 +97,63 @@ ds_bloom_filter_create_with_params(size_t num_bits, size_t num_hashes,
   filter->num_hashes = num_hashes;
   filter->num_items = 0;
   filter->words = (unsigned long *)allocator(num_words * sizeof(unsigned long));
+  if (filter->words == NULL) {
+    deallocator(filter);
+    return NULL;
+  }
   for (i = 0; i < num_words; i++) {
     filter->words[i] = 0UL;
   }
   return filter;
 }
 
-static void bloom_each_index(ds_bloom_filter_t *filter, const void *key,
-                             size_t length, size_t *out) {
-  unsigned long h1 = bloom_hash_fnv(key, length, 2166136261UL);
-  unsigned long h2 = bloom_hash_fnv(key, length, 2166136333UL);
-  size_t i;
-  if ((h2 % filter->num_bits) == 0) {
-    h2 += 1;
+/* the two hashes behind a key's bit indices (double hashing): index i is
+ * (h1 + i h2) mod num_bits, computed as it is needed, so adding and
+ * querying never allocate */
+static void bloom_hashes(const ds_bloom_filter_t *filter, const void *key,
+                         size_t length, unsigned long *h1, unsigned long *h2) {
+  *h1 = bloom_hash_fnv(key, length, 2166136261UL);
+  *h2 = bloom_hash_fnv(key, length, 2166136333UL);
+  if ((*h2 % filter->num_bits) == 0) {
+    *h2 += 1;
   }
-  for (i = 0; i < filter->num_hashes; i++) {
-    unsigned long combined = h1 + (unsigned long)i * h2;
-    out[i] = (size_t)(combined % filter->num_bits);
-  }
+}
+
+static size_t bloom_index(const ds_bloom_filter_t *filter, unsigned long h1,
+                          unsigned long h2, size_t i) {
+  unsigned long combined = h1 + (unsigned long)i * h2;
+  return (size_t)(combined % filter->num_bits);
 }
 
 void ds_bloom_filter_add(ds_bloom_filter_t *filter, const void *key,
                          size_t length) {
-  size_t *indices;
+  unsigned long h1;
+  unsigned long h2;
   size_t i;
-  indices = (size_t *)filter->allocator(filter->num_hashes * sizeof(size_t));
-  bloom_each_index(filter, key, length, indices);
+  bloom_hashes(filter, key, length, &h1, &h2);
   for (i = 0; i < filter->num_hashes; i++) {
-    size_t bit = indices[i];
+    size_t bit = bloom_index(filter, h1, h2, i);
     filter->words[bit / DS_BLOOM_BITS_PER_WORD] |=
         1UL << (bit % DS_BLOOM_BITS_PER_WORD);
   }
   filter->num_items += 1;
-  filter->deallocator(indices);
 }
 
 bool ds_bloom_filter_maybe_contains(ds_bloom_filter_t *filter, const void *key,
                                     size_t length) {
-  size_t *indices;
+  unsigned long h1;
+  unsigned long h2;
   size_t i;
   bool result = true;
-  indices = (size_t *)filter->allocator(filter->num_hashes * sizeof(size_t));
-  bloom_each_index(filter, key, length, indices);
+  bloom_hashes(filter, key, length, &h1, &h2);
   for (i = 0; i < filter->num_hashes; i++) {
-    size_t bit = indices[i];
+    size_t bit = bloom_index(filter, h1, h2, i);
     if ((filter->words[bit / DS_BLOOM_BITS_PER_WORD] &
          (1UL << (bit % DS_BLOOM_BITS_PER_WORD))) == 0UL) {
       result = false;
       break;
     }
   }
-  filter->deallocator(indices);
   return result;
 }
 
@@ -185,9 +201,15 @@ bool ds_bloom_filter_union(ds_bloom_filter_t *filter,
 ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter) {
   ds_bloom_filter_t *new_filter;
   size_t i;
+  if (filter == NULL) {
+    return NULL;
+  }
   new_filter = ds_bloom_filter_create_with_params(
       filter->num_bits, filter->num_hashes, filter->allocator,
       filter->deallocator);
+  if (new_filter == NULL) {
+    return NULL;
+  }
   for (i = 0; i < filter->num_words; i++) {
     new_filter->words[i] = filter->words[i];
   }

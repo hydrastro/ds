@@ -19,6 +19,9 @@ typedef struct bloom_filter {
   void (*deallocator)(void *);
 } ds_bloom_filter_t;
 
+/* NULL when memory runs out, for sizes no size_t holds, or without an
+ * allocator and a deallocator (create_alloc, create_with_params and
+ * clone). Adding and querying never allocate. */
 ds_bloom_filter_t *ds_bloom_filter_create(size_t expected_items,
                                           double false_positive_rate);
 ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
