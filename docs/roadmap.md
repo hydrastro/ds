@@ -247,6 +247,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/map_iface: coalesced hashing and open addressing backends
 - lib/lsm_tree: persistence through a page store (write-ahead log, manifest slots, crash recovery)
 - lib/fault_store: fault-injecting, crash-simulating page store over any other
+- lib/posix_store: POSIX file page store with durable sync and real truncation
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

@@ -118,6 +118,7 @@
 #include "lib/persistent_trie.h"
 #include "lib/persistent_vector.h"
 #include "lib/plop_hash.h"
+#include "lib/posix_store.h"
 #include "lib/pq_iface.h"
 #include "lib/pushdown.h"
 #include "lib/quadtree.h"
