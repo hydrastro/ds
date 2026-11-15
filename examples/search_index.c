@@ -24,11 +24,9 @@ static const char *docs[] = {
     "jumps over the lazy dog again and again"};
 #define NDOCS (sizeof(docs) / sizeof(docs[0]))
 
-static ds_invidx_term_t term(const char *s) {
-  ds_invidx_term_t t;
-  t.text = s;
-  t.length = strlen(s);
-  return t;
+static void term(ds_invidx_term_t *t, const char *s) {
+  t->text = s;
+  t->length = strlen(s);
 }
 
 static int build(ds_inverted_index_t *idx, ds_invidx_mode_t mode) {
@@ -63,8 +61,8 @@ int main(void) {
   ds_invidx_result_t r;
   ds_invidx_term_t q[2];
 
-  q[0] = term("lazy");
-  q[1] = term("dog");
+  term(&q[0], "lazy");
+  term(&q[1], "dog");
 
   if (build(&idx, DS_INVIDX_DOCUMENT) != 0) {
     return 1;
@@ -87,8 +85,8 @@ int main(void) {
   }
   printf("positional index: %lu posting bytes\n",
          (unsigned long)ds_invidx_postings_bytes(&idx));
-  q[0] = term("quick");
-  q[1] = term("fox");
+  term(&q[0], "quick");
+  term(&q[1], "fox");
   if (ds_invidx_phrase(&idx, q, 2, &r) == DS_OK) {
     show("phrase \"quick fox\"", &r);
     ds_invidx_result_free(&idx, &r);
@@ -100,7 +98,7 @@ int main(void) {
   }
   printf("block index (2 documents per block): %lu posting bytes\n",
          (unsigned long)ds_invidx_postings_bytes(&idx));
-  q[0] = term("lazy");
+  term(&q[0], "lazy");
   if (ds_invidx_boolean(&idx, q, 1, NULL, 0, NULL, 0, &r) == DS_OK) {
     show("candidate blocks for lazy", &r);
     ds_invidx_result_free(&idx, &r);

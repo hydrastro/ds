@@ -19,11 +19,9 @@ static const char *docs[] = {
     "the compact index stores postings with gamma codes"};
 #define NDOCS (sizeof(docs) / sizeof(docs[0]))
 
-static ds_invidx_term_t term(const char *s) {
-  ds_invidx_term_t t;
-  t.text = s;
-  t.length = strlen(s);
-  return t;
+static void term(ds_invidx_term_t *t, const char *s) {
+  t->text = s;
+  t->length = strlen(s);
 }
 
 static void show(const char *label, const ds_invidx_result_t *r) {
@@ -90,8 +88,8 @@ int main(void) {
   (void)ds_invidx_scorer_bm25(&scorer[0], 1.2, 0.75);
   (void)ds_invidx_scorer_tfidf(&scorer[1], 0.2);
   (void)ds_invidx_scorer_dirichlet(&scorer[2], 50.0);
-  q[0] = term("compact");
-  q[1] = term("gamma");
+  term(&q[0], "compact");
+  term(&q[1], "gamma");
   printf("query \"compact gamma\", top 3:\n");
   for (s = 0; s < 3; s++) {
     memset(&ro, 0, sizeof(ro));
