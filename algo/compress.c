@@ -356,7 +356,9 @@ ds_status_t ds_arith_decompress(const unsigned char *in, size_t n,
   ds_arith_decoder_init(&dec, &r);
   for (i = 0; i < count && st == DS_OK; i++) {
     st = ds_arith_decode(&dec, &model, &sym);
-    out[i] = (unsigned char)sym;
+    if (st == DS_OK) {
+      out[i] = (unsigned char)sym;
+    }
   }
   ds_arith_adaptive_model_destroy(&am);
   return st;
