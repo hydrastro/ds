@@ -48,7 +48,9 @@ size_t ds_xfast_size(const ds_xfast_t *t);
 ds_status_t ds_xfast_insert(ds_xfast_t *t, unsigned long key,
                             const void *value);
 ds_status_t ds_xfast_remove(ds_xfast_t *t, unsigned long key, void *out_value);
-/* value slot of key, NULL if absent */
+/* value slot of key, NULL if absent. The slot is only as aligned as the
+ * chosen map keeps its values (lib/map_iface.h): copy through it with
+ * memcpy unless the map's alignment suffices for the value's type. */
 void *ds_xfast_find(const ds_xfast_t *t, unsigned long key);
 /* largest key <= x / < x, smallest key >= x / > x: DS_NOT_FOUND if none */
 ds_status_t ds_xfast_floor(const ds_xfast_t *t, unsigned long x,

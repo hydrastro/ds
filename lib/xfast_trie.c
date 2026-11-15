@@ -32,12 +32,52 @@ static unsigned long xf_prefix(const ds_xfast_t *t, unsigned long x,
   return x >> (t->bits - l);
 }
 
-static xf_leaf_t *xf_leaf(const ds_xfast_t *t, unsigned long x) {
-  return (xf_leaf_t *)ds_map_get(&t->levels[t->bits], &x);
+/*
+ * Nodes and leaves are copied in and out of the tables, never used in
+ * place: a map keeps its values only as aligned as its layout makes them
+ * (lib/map_iface.h: a stride of the value size for most backends), and a
+ * leaf's size includes the caller's value, so a leaf can sit at any
+ * address. Absent entries read as zero.
+ */
+static unsigned char *xf_leaf_slot(const ds_xfast_t *t, unsigned long x) {
+  return (unsigned char *)ds_map_get(&t->levels[t->bits], &x);
 }
 
-static xf_node_t *xf_node(const ds_xfast_t *t, unsigned l, unsigned long p) {
-  return (xf_node_t *)ds_map_get(&t->levels[l], &p);
+static bool xf_leaf_get(const ds_xfast_t *t, unsigned long x, xf_leaf_t *out) {
+  const unsigned char *s = xf_leaf_slot(t, x);
+  if (s == NULL) {
+    memset(out, 0, sizeof(*out));
+    return false;
+  }
+  memcpy(out, s, sizeof(*out));
+  return true;
+}
+
+static void xf_leaf_set(const ds_xfast_t *t, unsigned long x,
+                        const xf_leaf_t *in) {
+  unsigned char *s = xf_leaf_slot(t, x);
+  if (s != NULL) {
+    memcpy(s, in, sizeof(*in));
+  }
+}
+
+static bool xf_node_get(const ds_xfast_t *t, unsigned l, unsigned long p,
+                        xf_node_t *out) {
+  const void *s = ds_map_get(&t->levels[l], &p);
+  if (s == NULL) {
+    out->min = out->max = 0;
+    return false;
+  }
+  memcpy(out, s, sizeof(*out));
+  return true;
+}
+
+static void xf_node_set(const ds_xfast_t *t, unsigned l, unsigned long p,
+                        const xf_node_t *in) {
+  void *s = ds_map_get(&t->levels[l], &p);
+  if (s != NULL) {
+    memcpy(s, in, sizeof(*in));
+  }
 }
 
 ds_status_t ds_xfast_init(ds_xfast_t *t, unsigned bits, size_t value_size,
@@ -112,42 +152,43 @@ static unsigned xf_longest(const ds_xfast_t *t, unsigned long x) {
 static void xf_neighbours(const ds_xfast_t *t, unsigned long x, bool *hp,
                           unsigned long *pred, bool *hs, unsigned long *succ) {
   unsigned l;
-  xf_node_t *n;
+  xf_node_t n;
+  xf_leaf_t lf;
   *hp = *hs = false;
   if (t->count == 0) {
     return;
   }
   l = xf_longest(t, x);
-  n = xf_node(t, l, xf_prefix(t, x, l));
+  (void)xf_node_get(t, l, xf_prefix(t, x, l), &n);
   if (((x >> (t->bits - l - 1)) & 1UL) != 0) {
     /* the 1-child is missing: everything below is smaller */
-    xf_leaf_t *lf = xf_leaf(t, n->max);
+    (void)xf_leaf_get(t, n.max, &lf);
     *hp = true;
-    *pred = n->max;
-    *hs = lf->has_next != 0;
-    *succ = lf->next;
+    *pred = n.max;
+    *hs = lf.has_next != 0;
+    *succ = lf.next;
   } else {
-    xf_leaf_t *lf = xf_leaf(t, n->min);
+    (void)xf_leaf_get(t, n.min, &lf);
     *hs = true;
-    *succ = n->min;
-    *hp = lf->has_prev != 0;
-    *pred = lf->prev;
+    *succ = n.min;
+    *hp = lf.has_prev != 0;
+    *pred = lf.prev;
   }
 }
 
 void *ds_xfast_find(const ds_xfast_t *t, unsigned long key) {
-  xf_leaf_t *lf;
+  unsigned char *s;
   if (t == NULL || !xf_in_range(t, key)) {
     return NULL;
   }
-  lf = xf_leaf(t, key);
-  return lf == NULL ? NULL : (unsigned char *)lf + xf_round(sizeof(xf_leaf_t));
+  s = xf_leaf_slot(t, key);
+  return s == NULL ? NULL : s + xf_round(sizeof(xf_leaf_t));
 }
 
 ds_status_t ds_xfast_insert(ds_xfast_t *t, unsigned long key,
                             const void *value) {
   unsigned char *buf;
-  xf_leaf_t *lf;
+  unsigned char *s;
   bool hp;
   bool hs;
   unsigned long pred = 0;
@@ -162,11 +203,10 @@ ds_status_t ds_xfast_insert(ds_xfast_t *t, unsigned long key,
   if (!xf_in_range(t, key)) {
     return DS_ERR_RANGE;
   }
-  lf = xf_leaf(t, key);
-  if (lf != NULL) {
+  s = xf_leaf_slot(t, key);
+  if (s != NULL) {
     if (t->value_size > 0) {
-      memmove((unsigned char *)lf + xf_round(sizeof(xf_leaf_t)), value,
-              t->value_size);
+      memmove(s + xf_round(sizeof(xf_leaf_t)), value, t->value_size);
     }
     return DS_EXISTS;
   }
@@ -174,21 +214,21 @@ ds_status_t ds_xfast_insert(ds_xfast_t *t, unsigned long key,
   /* prefixes first, remembering what to undo */
   for (l = 0; l < t->bits && st == DS_OK; l++) {
     unsigned long p = xf_prefix(t, key, l);
-    xf_node_t *n = xf_node(t, l, p);
-    if (n == NULL) {
-      xf_node_t nn;
-      nn.min = nn.max = key;
+    xf_node_t n;
+    if (!xf_node_get(t, l, p, &n)) {
+      n.min = n.max = key;
       created[l] = 1;
-      st = ds_map_put(&t->levels[l], &p, &nn);
+      st = ds_map_put(&t->levels[l], &p, &n);
     } else {
       created[l] = 0;
-      old[l] = *n;
-      if (key < n->min) {
-        n->min = key;
+      old[l] = n;
+      if (key < n.min) {
+        n.min = key;
       }
-      if (key > n->max) {
-        n->max = key;
+      if (key > n.max) {
+        n.max = key;
       }
+      xf_node_set(t, l, p, &n);
     }
   }
   if (st == DS_OK) {
@@ -196,11 +236,13 @@ ds_status_t ds_xfast_insert(ds_xfast_t *t, unsigned long key,
     if (buf == NULL) {
       st = DS_ERR_ALLOC;
     } else {
-      xf_leaf_t *nl = (xf_leaf_t *)(void *)buf;
-      nl->has_prev = hp ? 1 : 0;
-      nl->has_next = hs ? 1 : 0;
-      nl->prev = pred;
-      nl->next = succ;
+      xf_leaf_t nl;
+      memset(&nl, 0, sizeof(nl)); /* the padding is stored too */
+      nl.has_prev = hp ? 1 : 0;
+      nl.has_next = hs ? 1 : 0;
+      nl.prev = pred;
+      nl.next = succ;
+      memcpy(buf, &nl, sizeof(nl));
       if (t->value_size > 0) {
         memcpy(buf + xf_round(sizeof(xf_leaf_t)), value, t->value_size);
       }
@@ -219,30 +261,31 @@ ds_status_t ds_xfast_insert(ds_xfast_t *t, unsigned long key,
       if (created[done]) {
         (void)ds_map_remove(&t->levels[done], &p, NULL);
       } else {
-        xf_node_t *n = xf_node(t, done, p);
-        if (n != NULL) {
-          *n = old[done];
-        }
+        xf_node_set(t, done, p, &old[done]);
       }
     }
     return st;
   }
   if (hp) {
-    xf_leaf_t *pl = xf_leaf(t, pred);
-    pl->has_next = 1;
-    pl->next = key;
+    xf_leaf_t pl;
+    (void)xf_leaf_get(t, pred, &pl);
+    pl.has_next = 1;
+    pl.next = key;
+    xf_leaf_set(t, pred, &pl);
   }
   if (hs) {
-    xf_leaf_t *sl = xf_leaf(t, succ);
-    sl->has_prev = 1;
-    sl->prev = key;
+    xf_leaf_t sl;
+    (void)xf_leaf_get(t, succ, &sl);
+    sl.has_prev = 1;
+    sl.prev = key;
+    xf_leaf_set(t, succ, &sl);
   }
   t->count++;
   return DS_OK;
 }
 
 ds_status_t ds_xfast_remove(ds_xfast_t *t, unsigned long key, void *out_value) {
-  xf_leaf_t *lf;
+  const unsigned char *s;
   xf_leaf_t links;
   unsigned l;
   if (t == NULL) {
@@ -251,24 +294,27 @@ ds_status_t ds_xfast_remove(ds_xfast_t *t, unsigned long key, void *out_value) {
   if (!xf_in_range(t, key)) {
     return DS_NOT_FOUND;
   }
-  lf = xf_leaf(t, key);
-  if (lf == NULL) {
+  s = xf_leaf_slot(t, key);
+  if (s == NULL) {
     return DS_NOT_FOUND;
   }
-  links = *lf;
+  memcpy(&links, s, sizeof(links));
   if (out_value != NULL && t->value_size > 0) {
-    memcpy(out_value, (unsigned char *)lf + xf_round(sizeof(xf_leaf_t)),
-           t->value_size);
+    memcpy(out_value, s + xf_round(sizeof(xf_leaf_t)), t->value_size);
   }
   if (links.has_prev) {
-    xf_leaf_t *pl = xf_leaf(t, links.prev);
-    pl->has_next = links.has_next;
-    pl->next = links.next;
+    xf_leaf_t pl;
+    (void)xf_leaf_get(t, links.prev, &pl);
+    pl.has_next = links.has_next;
+    pl.next = links.next;
+    xf_leaf_set(t, links.prev, &pl);
   }
   if (links.has_next) {
-    xf_leaf_t *sl = xf_leaf(t, links.next);
-    sl->has_prev = links.has_prev;
-    sl->prev = links.prev;
+    xf_leaf_t sl;
+    (void)xf_leaf_get(t, links.next, &sl);
+    sl.has_prev = links.has_prev;
+    sl.prev = links.prev;
+    xf_leaf_set(t, links.next, &sl);
   }
   (void)ds_map_remove(&t->levels[t->bits], &key, NULL);
   /* recompute the prefixes bottom-up from their children */
@@ -282,31 +328,28 @@ ds_status_t ds_xfast_remove(ds_xfast_t *t, unsigned long key, void *out_value) {
     unsigned long mx0 = 0;
     unsigned long mn1 = 0;
     unsigned long mx1 = 0;
-    xf_node_t *n = xf_node(t, l, p);
     if (l + 1 == t->bits) {
-      h0 = xf_leaf(t, c0) != NULL;
-      h1 = xf_leaf(t, c1) != NULL;
+      h0 = xf_leaf_slot(t, c0) != NULL;
+      h1 = xf_leaf_slot(t, c1) != NULL;
       mn0 = mx0 = c0;
       mn1 = mx1 = c1;
     } else {
-      xf_node_t *a = xf_node(t, l + 1, c0);
-      xf_node_t *b = xf_node(t, l + 1, c1);
-      h0 = a != NULL;
-      h1 = b != NULL;
-      if (h0) {
-        mn0 = a->min;
-        mx0 = a->max;
-      }
-      if (h1) {
-        mn1 = b->min;
-        mx1 = b->max;
-      }
+      xf_node_t a;
+      xf_node_t b;
+      h0 = xf_node_get(t, l + 1, c0, &a);
+      h1 = xf_node_get(t, l + 1, c1, &b);
+      mn0 = a.min;
+      mx0 = a.max;
+      mn1 = b.min;
+      mx1 = b.max;
     }
     if (!h0 && !h1) {
       (void)ds_map_remove(&t->levels[l], &p, NULL);
     } else {
-      n->min = h0 ? mn0 : mn1;
-      n->max = h1 ? mx1 : mx0;
+      xf_node_t n;
+      n.min = h0 ? mn0 : mn1;
+      n.max = h1 ? mx1 : mx0;
+      xf_node_set(t, l, p, &n);
     }
   }
   t->count--;
@@ -325,7 +368,7 @@ ds_status_t ds_xfast_floor(const ds_xfast_t *t, unsigned long x,
   if (!xf_in_range(t, x)) {
     return ds_xfast_max(t, out);
   }
-  if (xf_leaf(t, x) != NULL) {
+  if (xf_leaf_slot(t, x) != NULL) {
     *out = x;
     return DS_OK;
   }
@@ -349,7 +392,7 @@ ds_status_t ds_xfast_ceiling(const ds_xfast_t *t, unsigned long x,
   if (!xf_in_range(t, x)) {
     return DS_NOT_FOUND;
   }
-  if (xf_leaf(t, x) != NULL) {
+  if (xf_leaf_slot(t, x) != NULL) {
     *out = x;
     return DS_OK;
   }
@@ -363,15 +406,15 @@ ds_status_t ds_xfast_ceiling(const ds_xfast_t *t, unsigned long x,
 
 ds_status_t ds_xfast_predecessor(const ds_xfast_t *t, unsigned long x,
                                  unsigned long *out) {
-  xf_leaf_t *lf;
+  xf_leaf_t lf;
   if (t == NULL || out == NULL) {
     return DS_ERR_NULL;
   }
-  if (xf_in_range(t, x) && (lf = xf_leaf(t, x)) != NULL) {
-    if (!lf->has_prev) {
+  if (xf_in_range(t, x) && xf_leaf_get(t, x, &lf)) {
+    if (!lf.has_prev) {
       return DS_NOT_FOUND;
     }
-    *out = lf->prev;
+    *out = lf.prev;
     return DS_OK;
   }
   return ds_xfast_floor(t, x, out);
@@ -379,44 +422,42 @@ ds_status_t ds_xfast_predecessor(const ds_xfast_t *t, unsigned long x,
 
 ds_status_t ds_xfast_successor(const ds_xfast_t *t, unsigned long x,
                                unsigned long *out) {
-  xf_leaf_t *lf;
+  xf_leaf_t lf;
   if (t == NULL || out == NULL) {
     return DS_ERR_NULL;
   }
-  if (xf_in_range(t, x) && (lf = xf_leaf(t, x)) != NULL) {
-    if (!lf->has_next) {
+  if (xf_in_range(t, x) && xf_leaf_get(t, x, &lf)) {
+    if (!lf.has_next) {
       return DS_NOT_FOUND;
     }
-    *out = lf->next;
+    *out = lf.next;
     return DS_OK;
   }
   return ds_xfast_ceiling(t, x, out);
 }
 
 ds_status_t ds_xfast_min(const ds_xfast_t *t, unsigned long *out) {
-  xf_node_t *n;
-  unsigned long root = 0;
+  xf_node_t n;
   if (t == NULL || out == NULL) {
     return DS_ERR_NULL;
   }
   if (t->count == 0) {
     return DS_NOT_FOUND;
   }
-  n = xf_node(t, 0, root);
-  *out = n->min;
+  (void)xf_node_get(t, 0, 0, &n);
+  *out = n.min;
   return DS_OK;
 }
 
 ds_status_t ds_xfast_max(const ds_xfast_t *t, unsigned long *out) {
-  xf_node_t *n;
-  unsigned long root = 0;
+  xf_node_t n;
   if (t == NULL || out == NULL) {
     return DS_ERR_NULL;
   }
   if (t->count == 0) {
     return DS_NOT_FOUND;
   }
-  n = xf_node(t, 0, root);
-  *out = n->max;
+  (void)xf_node_get(t, 0, 0, &n);
+  *out = n.max;
   return DS_OK;
 }
