@@ -4,16 +4,30 @@
 #include <string.h>
 
 ds_btree_internal_node_t *ds_btree_create_node(ds_btree_t *tree, bool is_leaf) {
+  size_t keys = 2 * (size_t)tree->degree - 1;
   ds_btree_internal_node_t *node = (ds_btree_internal_node_t *)tree->allocator(
       sizeof(ds_btree_internal_node_t));
+  if (node == NULL) {
+    return NULL;
+  }
   node->num_keys = 0;
   node->is_leaf = is_leaf;
-  node->data = (ds_btree_node_t **)tree->allocator(
-      (2 * (unsigned int)tree->degree - 1) * sizeof(ds_btree_node_t *));
+  node->parent = NULL;
+  node->data =
+      (ds_btree_node_t **)tree->allocator(keys * sizeof(ds_btree_node_t *));
   node->children = (ds_btree_internal_node_t **)tree->allocator(
-      2 * (unsigned int)tree->degree * sizeof(ds_btree_internal_node_t *));
-  memset(node->children, 0,
-         2 * (unsigned int)tree->degree * sizeof(ds_btree_internal_node_t *));
+      (keys + 1) * sizeof(ds_btree_internal_node_t *));
+  if (node->data == NULL || node->children == NULL) {
+    if (node->data != NULL) {
+      tree->deallocator(node->data);
+    }
+    if (node->children != NULL) {
+      tree->deallocator(node->children);
+    }
+    tree->deallocator(node);
+    return NULL;
+  }
+  memset(node->children, 0, (keys + 1) * sizeof(ds_btree_internal_node_t *));
   return node;
 }
 
@@ -21,16 +35,46 @@ ds_btree_t *ds_btree_create(int degree) {
   return ds_btree_create_alloc(degree, malloc, free);
 }
 
-ds_btree_t *ds_btree_create_alloc(int degree, void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
-  ds_btree_t *tree = (ds_btree_t *)allocator(sizeof(ds_btree_t));
+/* the tree without its root: NULL for a degree below 2 (a node must hold
+ * at least three keys), one whose node arrays cannot be sized, or when
+ * memory runs out */
+static ds_btree_t *btree_shell(int degree, void *(*allocator)(size_t),
+                               void (*deallocator)(void *)) {
+  ds_btree_t *tree;
+  if (allocator == NULL || deallocator == NULL || degree < 2 ||
+      (size_t)degree > ((size_t)-1 / sizeof(void *) - 1) / 2) {
+    return NULL;
+  }
+  tree = (ds_btree_t *)allocator(sizeof(ds_btree_t));
+  if (tree == NULL) {
+    return NULL;
+  }
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->degree = degree;
-  tree->root = ds_btree_create_node(tree, true);
-  tree->root->parent = NULL;
-  tree->nil = (ds_btree_node_t *)allocator(sizeof(ds_btree_node_t));
+  tree->root = NULL;
   tree->size = 0;
+  tree->nil = (ds_btree_node_t *)allocator(sizeof(ds_btree_node_t));
+  if (tree->nil == NULL) {
+    deallocator(tree);
+    return NULL;
+  }
+  return tree;
+}
+
+ds_btree_t *ds_btree_create_alloc(int degree, void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
+  ds_btree_t *tree = btree_shell(degree, allocator, deallocator);
+  if (tree == NULL) {
+    return NULL;
+  }
+  tree->root = ds_btree_create_node(tree, true);
+  if (tree->root == NULL) {
+    deallocator(tree->nil);
+    deallocator(tree);
+    return NULL;
+  }
+  tree->root->parent = NULL;
 
   return tree;
 }
@@ -334,8 +378,10 @@ void ds_btree_destroy_recursive(ds_btree_t *tree,
       ds_btree_destroy_recursive(tree, node->children[i], destroy);
     }
   }
-  for (i = 0; i < node->num_keys; i++) {
-    destroy(node->data[i]);
+  if (destroy != NULL) { /* NULL owns nothing, as in the other trees */
+    for (i = 0; i < node->num_keys; i++) {
+      destroy(node->data[i]);
+    }
   }
   tree->deallocator(node->children);
   tree->deallocator(node->data);
@@ -431,45 +477,105 @@ void ds_btree_postorder_walk_tree(ds_btree_t *tree,
   ds_btree_postorder_walk_helper(tree, tree->root, callback);
 }
 
+/* a copy of the subtree at node; *out gets its root (NULL for no node or
+ * when that node cannot be allocated). Keys are cloned before children
+ * and counted as they come, and children start NULL, so after a failure
+ * *out is still a tree that ds_btree_destroy_tree takes apart, holding
+ * every clone made. DS_ERR_ALLOC for a node, DS_ERR_CALLBACK for a NULL
+ * from clone_node. The recursion is as deep as the tree: O(log n). */
+static ds_status_t
+btree_clone_subtree(const ds_btree_t *tree, ds_btree_t *new_tree,
+                    ds_btree_internal_node_t *node,
+                    ds_btree_node_t *(*clone_node)(ds_btree_node_t *),
+                    ds_btree_internal_node_t **out) {
+  int i;
+  ds_btree_internal_node_t *copy;
+  *out = NULL;
+  if (node == NULL) {
+    return DS_OK;
+  }
+  copy = ds_btree_create_node(new_tree, node->is_leaf);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  *out = copy;
+  for (i = 0; i < node->num_keys; i++) {
+    ds_btree_node_t *key = clone_node(node->data[i]);
+    if (key == NULL) {
+      return DS_ERR_CALLBACK;
+    }
+    key->internal = copy;
+    copy->data[i] = key;
+    copy->num_keys = i + 1;
+  }
+  if (!node->is_leaf) {
+    for (i = 0; i <= node->num_keys; i++) {
+      ds_status_t st = btree_clone_subtree(tree, new_tree, node->children[i],
+                                           clone_node, &copy->children[i]);
+      if (copy->children[i] != NULL) {
+        copy->children[i]->parent = copy;
+      }
+      if (st != DS_OK) {
+        return st;
+      }
+    }
+  }
+  return DS_OK;
+}
+
 ds_btree_internal_node_t *
 ds_btree_clone_recursive(ds_btree_t *tree, ds_btree_t *new_tree,
                          ds_btree_internal_node_t *node,
                          ds_btree_node_t *(*clone_node)(ds_btree_node_t *)) {
-  int i;
-  ds_btree_internal_node_t *new_node =
-      ds_btree_create_node(new_tree, node->is_leaf);
-  new_node->num_keys = node->num_keys;
-
-  for (i = 0; i < node->num_keys; i++) {
-    new_node->data[i] = clone_node(node->data[i]);
-    new_node->data[i]->internal = new_node;
-  }
-
-  if (!node->is_leaf) {
-    for (i = 0; i <= node->num_keys; i++) {
-      new_node->children[i] = ds_btree_clone_recursive(
-          tree, new_tree, node->children[i], clone_node);
-      if (new_node->children[i]) {
-        new_node->children[i]->parent = new_node;
-      }
-    }
-  }
-
-  return new_node;
+  ds_btree_internal_node_t *copy;
+  (void)btree_clone_subtree(tree, new_tree, node, clone_node, &copy);
+  return copy;
 }
 
 ds_btree_t *ds_btree_clone(ds_btree_t *tree,
                            ds_btree_node_t *(*clone_node)(ds_btree_node_t *)) {
   ds_btree_t *new_tree;
-  new_tree = (ds_btree_t *)tree->allocator(sizeof(ds_btree_t));
-  new_tree->allocator = tree->allocator;
-  new_tree->deallocator = tree->deallocator;
-  new_tree->degree = tree->degree;
-  new_tree->nil = (ds_btree_node_t *)tree->allocator(sizeof(ds_btree_node_t));
-
-  new_tree->root =
-      ds_btree_clone_recursive(tree, new_tree, tree->root, clone_node);
+  if (tree == NULL || clone_node == NULL) {
+    return NULL;
+  }
+  new_tree = btree_shell(tree->degree, tree->allocator, tree->deallocator);
+  if (new_tree == NULL) {
+    return NULL;
+  }
+  if (btree_clone_subtree(tree, new_tree, tree->root, clone_node,
+                          &new_tree->root) != DS_OK) {
+    ds_btree_destroy_tree(new_tree, NULL); /* the clones are not released */
+    return NULL;
+  }
   new_tree->size = tree->size;
 
   return new_tree;
+}
+
+ds_status_t ds_btree_clone_ex(const ds_btree_t *tree,
+                              ds_btree_node_t *(*clone_node)(ds_btree_node_t *),
+                              void (*destroy_clone)(ds_btree_node_t *),
+                              ds_btree_t **out) {
+  ds_btree_t *new_tree;
+  ds_status_t st;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  new_tree = btree_shell(tree->degree, tree->allocator, tree->deallocator);
+  if (new_tree == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  st = btree_clone_subtree(tree, new_tree, tree->root, clone_node,
+                           &new_tree->root);
+  if (st != DS_OK) {
+    ds_btree_destroy_tree(new_tree, destroy_clone);
+    return st;
+  }
+  new_tree->size = tree->size;
+  *out = new_tree;
+  return DS_OK;
 }

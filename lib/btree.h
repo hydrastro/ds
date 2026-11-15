@@ -2,6 +2,7 @@
 #define DS_BTREE_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -29,7 +30,11 @@ typedef struct btree {
   void (*deallocator)(void *);
 } ds_btree_t;
 
+/* NULL when memory runs out */
 ds_btree_internal_node_t *ds_btree_create_node(ds_btree_t *tree, bool is_leaf);
+/* NULL for a degree below 2 (the minimum degree t: nodes hold t - 1 to
+ * 2t - 1 keys), one too large to size the nodes, when memory runs out, or
+ * without an allocator and a deallocator */
 ds_btree_t *ds_btree_create(int degree);
 ds_btree_t *ds_btree_create_alloc(int degree, void *(*allocator)(size_t),
                                   void (*deallocator)(void *));
@@ -86,8 +91,20 @@ ds_btree_internal_node_t *
 ds_btree_clone_recursive(ds_btree_t *tree, ds_btree_t *new_tree,
                          ds_btree_internal_node_t *node,
                          ds_btree_node_t *(*clone_node)(ds_btree_node_t *));
+/* Legacy clone: NULL when the copy cannot be allocated, or when clone_node
+ * returns NULL; the clones it made before are then not released (clone_ex
+ * releases them). */
 ds_btree_t *ds_btree_clone(ds_btree_t *tree,
                            ds_btree_node_t *(*clone_node)(ds_btree_node_t *));
+/* Strong failure guarantee: NULL from clone_node rolls back the clones
+ * made so far through destroy_clone and returns DS_ERR_CALLBACK;
+ * DS_ERR_ALLOC when memory runs out (the clones are rolled back too). All
+ * callbacks are required. On any error *out is NULL and the source is
+ * unchanged. */
+ds_status_t ds_btree_clone_ex(const ds_btree_t *tree,
+                              ds_btree_node_t *(*clone_node)(ds_btree_node_t *),
+                              void (*destroy_clone)(ds_btree_node_t *),
+                              ds_btree_t **out);
 
 #ifdef __cplusplus
 }
