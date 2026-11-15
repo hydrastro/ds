@@ -14,6 +14,7 @@ typedef struct ds_ptrie_node {
   bool terminal;
   void *value;
   ds_ptrie_edge_t *children;
+  size_t count; /* terminal nodes in the subtree, this one included */
 } ds_ptrie_node_t;
 
 struct ds_ptrie_version {
@@ -36,23 +37,8 @@ static ds_ptrie_edge_t *ptrie_edge_find(ds_ptrie_edge_t *edge,
 static ds_ptrie_edge_t *ptrie_edge_clone_list(ds_ptrie_t *trie,
                                               ds_ptrie_edge_t *edge);
 static bool ptrie_node_empty(ds_ptrie_node_t *node);
-static size_t ptrie_terminal_count(ds_ptrie_node_t *node);
-static void ptrie_release_edge_list(ds_ptrie_t *trie, ds_ptrie_edge_t *edge);
 static ds_ptrie_node_t *ptrie_node_clone_shallow(ds_ptrie_t *trie,
                                                  ds_ptrie_node_t *node);
-static ds_ptrie_node_t *ptrie_insert_node(ds_ptrie_t *trie,
-                                          ds_ptrie_node_t *node,
-                                          const unsigned char *key, size_t len,
-                                          size_t pos, void *value);
-static ds_ptrie_node_t *ptrie_remove_node(ds_ptrie_t *trie,
-                                          ds_ptrie_node_t *node,
-                                          const unsigned char *key, size_t len,
-                                          size_t pos, bool *removed);
-static ds_ptrie_node_t *ptrie_remove_prefix_node(ds_ptrie_t *trie,
-                                                 ds_ptrie_node_t *node,
-                                                 const unsigned char *prefix,
-                                                 size_t prefix_len, size_t pos,
-                                                 size_t *removed_count);
 static ds_ptrie_version_t *ptrie_version_create(ds_ptrie_t *trie,
                                                 ds_ptrie_node_t *root);
 static ds_ptrie_node_t *ptrie_find_node(ds_ptrie_node_t *node,
@@ -102,6 +88,7 @@ static ds_ptrie_node_t *ptrie_node_create(ds_ptrie_t *trie) {
   node->terminal = false;
   node->value = NULL;
   node->children = NULL;
+  node->count = 0U;
   return node;
 }
 
@@ -111,9 +98,21 @@ static void ptrie_node_retain(ds_ptrie_node_t *node) {
   }
 }
 
+/* A node whose last reference goes releases its children in turn. The
+ * nodes to free form a list linked through their value pointers (each
+ * value is destroyed first), so a chain as deep as the longest key needs
+ * neither recursion nor memory. */
+static void ptrie_doom(ds_ptrie_t *trie, ds_ptrie_node_t **list,
+                       ds_ptrie_node_t *node) {
+  if (node->terminal) {
+    ptrie_value_destroy(trie, node->value);
+  }
+  node->value = *list;
+  *list = node;
+}
+
 static void ptrie_node_release(ds_ptrie_t *trie, ds_ptrie_node_t *node) {
-  ds_ptrie_edge_t *edge;
-  ds_ptrie_edge_t *next;
+  ds_ptrie_node_t *list = NULL;
   if (node == NULL) {
     return;
   }
@@ -121,17 +120,25 @@ static void ptrie_node_release(ds_ptrie_t *trie, ds_ptrie_node_t *node) {
   if (node->refs != 0UL) {
     return;
   }
-  if (node->terminal) {
-    ptrie_value_destroy(trie, node->value);
+  ptrie_doom(trie, &list, node);
+  while (list != NULL) {
+    ds_ptrie_node_t *x = list;
+    ds_ptrie_edge_t *edge = x->children;
+    list = (ds_ptrie_node_t *)x->value;
+    while (edge != NULL) {
+      ds_ptrie_edge_t *next = edge->next;
+      ds_ptrie_node_t *child = edge->child;
+      if (child != NULL) {
+        child->refs--;
+        if (child->refs == 0UL) {
+          ptrie_doom(trie, &list, child);
+        }
+      }
+      ds_context_free(trie->config.context, edge);
+      edge = next;
+    }
+    ds_context_free(trie->config.context, x);
   }
-  edge = node->children;
-  while (edge != NULL) {
-    next = edge->next;
-    ptrie_node_release(trie, edge->child);
-    ds_context_free(trie->config.context, edge);
-    edge = next;
-  }
-  ds_context_free(trie->config.context, node);
 }
 
 static ds_ptrie_edge_t *ptrie_edge_find(ds_ptrie_edge_t *edge,
@@ -183,34 +190,6 @@ static bool ptrie_node_empty(ds_ptrie_node_t *node) {
   return node != NULL && !node->terminal && node->children == NULL;
 }
 
-static size_t ptrie_terminal_count(ds_ptrie_node_t *node) {
-  ds_ptrie_edge_t *edge;
-  size_t count;
-
-  if (node == NULL) {
-    return 0U;
-  }
-
-  count = node->terminal ? 1U : 0U;
-  edge = node->children;
-  while (edge != NULL) {
-    count += ptrie_terminal_count(edge->child);
-    edge = edge->next;
-  }
-  return count;
-}
-
-static void ptrie_release_edge_list(ds_ptrie_t *trie, ds_ptrie_edge_t *edge) {
-  ds_ptrie_edge_t *next;
-
-  while (edge != NULL) {
-    next = edge->next;
-    ptrie_node_release(trie, edge->child);
-    ds_context_free(trie->config.context, edge);
-    edge = next;
-  }
-}
-
 static ds_ptrie_node_t *ptrie_node_clone_shallow(ds_ptrie_t *trie,
                                                  ds_ptrie_node_t *node) {
   ds_ptrie_node_t *copy;
@@ -220,6 +199,7 @@ static ds_ptrie_node_t *ptrie_node_clone_shallow(ds_ptrie_t *trie,
   }
   copy->terminal = node->terminal;
   copy->value = NULL;
+  copy->count = node->count;
   if (node->terminal) {
     copy->value = ptrie_value_clone(trie, node->value);
     if (copy->value == NULL && node->value != NULL &&
@@ -239,203 +219,177 @@ static ds_ptrie_node_t *ptrie_node_clone_shallow(ds_ptrie_t *trie,
   return copy;
 }
 
-static ds_ptrie_node_t *ptrie_insert_node(ds_ptrie_t *trie,
-                                          ds_ptrie_node_t *node,
-                                          const unsigned char *key, size_t len,
-                                          size_t pos, void *value) {
-  ds_ptrie_node_t *copy;
-  ds_ptrie_edge_t *edge;
-  ds_ptrie_node_t *old_child;
-  ds_ptrie_node_t *new_child;
-
-  copy = ptrie_node_clone_shallow(trie, node);
-  if (copy == NULL) {
+/* Updates copy the path from the root to the key, bottom up: path[d] is
+ * the node at depth d in the base version (NULL past its end), and each
+ * copy takes the copy below it as the child on the key's edge. Keys can be
+ * long, so the path lives in an array, not in call frames. */
+static ds_ptrie_node_t **ptrie_path(ds_ptrie_t *trie, ds_ptrie_node_t *root,
+                                    const unsigned char *key, size_t len) {
+  ds_ptrie_node_t **path;
+  size_t d;
+  if (len >= (size_t)-1 / sizeof(*path)) {
     return NULL;
   }
-  if (pos == len) {
-    if (copy->terminal) {
-      ptrie_value_destroy(trie, copy->value);
-    }
-    copy->terminal = true;
-    copy->value = value;
-    return copy;
+  path = (ds_ptrie_node_t **)ds_context_alloc(trie->config.context,
+                                              (len + 1U) * sizeof(*path));
+  if (path == NULL) {
+    return NULL;
   }
+  path[0] = root;
+  for (d = 0U; d < len; d++) {
+    ds_ptrie_edge_t *edge =
+        path[d] == NULL ? NULL : ptrie_edge_find(path[d]->children, key[d]);
+    path[d + 1U] = edge == NULL ? NULL : edge->child;
+  }
+  return path;
+}
 
-  edge = ptrie_edge_find(copy->children, key[pos]);
+/* puts child on copy's edge for token (creating the edge, or dropping it
+ * when child is NULL); false when an edge cannot be allocated */
+static bool ptrie_set_child(ds_ptrie_t *trie, ds_ptrie_node_t *copy,
+                            unsigned char token, ds_ptrie_node_t *child) {
+  ds_ptrie_edge_t *prev = NULL;
+  ds_ptrie_edge_t *edge = copy->children;
+  while (edge != NULL && edge->token != token) {
+    prev = edge;
+    edge = edge->next;
+  }
   if (edge != NULL) {
-    old_child = edge->child;
-    new_child = ptrie_insert_node(trie, old_child, key, len, pos + 1U, value);
-    if (new_child == NULL) {
-      ptrie_node_release(trie, copy);
-      return NULL;
+    ds_ptrie_node_t *old = edge->child;
+    if (child == NULL) {
+      if (prev == NULL) {
+        copy->children = edge->next;
+      } else {
+        prev->next = edge->next;
+      }
+      ds_context_free(trie->config.context, edge);
+    } else {
+      edge->child = child;
     }
-    edge->child = new_child;
-    ptrie_node_release(trie, old_child);
-  } else {
-    old_child = ptrie_node_create(trie);
-    if (old_child == NULL) {
-      ptrie_node_release(trie, copy);
-      return NULL;
-    }
-    new_child = ptrie_insert_node(trie, old_child, key, len, pos + 1U, value);
-    ptrie_node_release(trie, old_child);
-    if (new_child == NULL) {
-      ptrie_node_release(trie, copy);
-      return NULL;
-    }
-    edge = (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context,
-                                               sizeof(*edge));
-    if (edge == NULL) {
-      ptrie_node_release(trie, new_child);
-      ptrie_node_release(trie, copy);
-      return NULL;
-    }
-    edge->token = key[pos];
-    edge->child = new_child;
-    edge->next = copy->children;
-    copy->children = edge;
+    ptrie_node_release(trie, old); /* the reference the copy took */
+    return true;
   }
-  return copy;
+  if (child == NULL) {
+    return true;
+  }
+  edge =
+      (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context, sizeof(*edge));
+  if (edge == NULL) {
+    return false;
+  }
+  edge->token = token;
+  edge->child = child;
+  edge->next = copy->children;
+  copy->children = edge;
+  return true;
 }
 
-static ds_ptrie_node_t *ptrie_remove_node(ds_ptrie_t *trie,
-                                          ds_ptrie_node_t *node,
+/* the new root with key set to value (which the new version owns), or
+ * NULL when memory runs out (value then still belongs to the caller) */
+static ds_ptrie_node_t *ptrie_insert_path(ds_ptrie_t *trie,
+                                          ds_ptrie_node_t *root,
                                           const unsigned char *key, size_t len,
-                                          size_t pos, bool *removed) {
-  ds_ptrie_node_t *copy;
-  ds_ptrie_edge_t *edge;
-  ds_ptrie_edge_t *prev;
-  ds_ptrie_node_t *old_child;
-  ds_ptrie_node_t *new_child;
-
-  if (node == NULL) {
-    *removed = false;
+                                          void *value) {
+  ds_ptrie_node_t **path = ptrie_path(trie, root, key, len);
+  ds_ptrie_node_t *child = NULL;
+  ds_ptrie_node_t *leaf = NULL;
+  bool added;
+  size_t d;
+  if (path == NULL) {
     return NULL;
   }
-  copy = ptrie_node_clone_shallow(trie, node);
-  if (copy == NULL) {
-    *removed = false;
-    return NULL;
-  }
-  if (pos == len) {
-    if (!copy->terminal) {
-      ptrie_node_release(trie, copy);
-      *removed = false;
-      return NULL;
+  added = path[len] == NULL || !path[len]->terminal;
+  for (d = len + 1U; d-- > 0U;) {
+    ds_ptrie_node_t *copy = path[d] != NULL
+                                ? ptrie_node_clone_shallow(trie, path[d])
+                                : ptrie_node_create(trie);
+    if (copy == NULL) {
+      break;
     }
-    ptrie_value_destroy(trie, copy->value);
-    copy->terminal = false;
-    copy->value = NULL;
-    *removed = true;
-  } else {
-    prev = NULL;
-    edge = copy->children;
-    while (edge != NULL && edge->token != key[pos]) {
-      prev = edge;
-      edge = edge->next;
-    }
-    if (edge == NULL) {
-      ptrie_node_release(trie, copy);
-      *removed = false;
-      return NULL;
-    }
-    old_child = edge->child;
-    new_child = ptrie_remove_node(trie, old_child, key, len, pos + 1U, removed);
-    if (!*removed) {
-      ptrie_node_release(trie, copy);
-      return NULL;
-    }
-    if (new_child == NULL) {
-      if (prev == NULL) {
-        copy->children = edge->next;
-      } else {
-        prev->next = edge->next;
+    if (d == len) {
+      if (copy->terminal) {
+        ptrie_value_destroy(trie, copy->value);
       }
-      ptrie_node_release(trie, old_child);
-      ds_context_free(trie->config.context, edge);
-    } else {
-      edge->child = new_child;
-      ptrie_node_release(trie, old_child);
+      copy->terminal = true;
+      copy->value = value;
+      leaf = copy;
+    } else if (!ptrie_set_child(trie, copy, key[d], child)) {
+      ptrie_node_release(trie, copy);
+      break;
+    }
+    copy->count = (path[d] != NULL ? path[d]->count : 0U) + (added ? 1U : 0U);
+    child = copy; /* the copy above takes it over */
+    if (d == 0U) {
+      ds_context_free(trie->config.context, path);
+      return child;
     }
   }
-  if (pos != 0U && ptrie_node_empty(copy)) {
-    ptrie_node_release(trie, copy);
-    return NULL;
+  if (leaf != NULL) {
+    leaf->terminal = false; /* the caller still owns value */
+    leaf->value = NULL;
   }
-  return copy;
+  ptrie_node_release(trie, child);
+  ds_context_free(trie->config.context, path);
+  return NULL;
 }
 
-static ds_ptrie_node_t *ptrie_remove_prefix_node(ds_ptrie_t *trie,
-                                                 ds_ptrie_node_t *node,
-                                                 const unsigned char *prefix,
-                                                 size_t prefix_len, size_t pos,
-                                                 size_t *removed_count) {
-  ds_ptrie_node_t *copy;
-  ds_ptrie_edge_t *edge;
-  ds_ptrie_edge_t *prev;
-  ds_ptrie_node_t *old_child;
-  ds_ptrie_node_t *new_child;
-
-  if (node == NULL) {
+/* removes key (from_prefix false) or every key under it (true); the new
+ * root, or NULL when nothing was removed or memory ran out (*removed says
+ * how many keys went) */
+static ds_ptrie_node_t *ptrie_remove_path(ds_ptrie_t *trie,
+                                          ds_ptrie_node_t *root,
+                                          const unsigned char *key, size_t len,
+                                          bool from_prefix, size_t *removed) {
+  ds_ptrie_node_t **path;
+  ds_ptrie_node_t *child = NULL;
+  size_t d;
+  size_t gone;
+  *removed = 0U;
+  path = ptrie_path(trie, root, key, len);
+  if (path == NULL) {
     return NULL;
   }
-
-  copy = ptrie_node_clone_shallow(trie, node);
-  if (copy == NULL) {
+  if (path[len] == NULL ||
+      (from_prefix ? path[len]->count == 0U : !path[len]->terminal)) {
+    ds_context_free(trie->config.context, path);
     return NULL;
   }
-
-  if (pos == prefix_len) {
-    *removed_count = ptrie_terminal_count(copy);
-    if (*removed_count == 0U) {
-      ptrie_node_release(trie, copy);
-      return NULL;
-    }
-    if (copy->terminal) {
-      ptrie_value_destroy(trie, copy->value);
-      copy->terminal = false;
-      copy->value = NULL;
-    }
-    ptrie_release_edge_list(trie, copy->children);
-    copy->children = NULL;
-  } else {
-    prev = NULL;
-    edge = copy->children;
-    while (edge != NULL && edge->token != prefix[pos]) {
-      prev = edge;
-      edge = edge->next;
-    }
-    if (edge == NULL) {
-      ptrie_node_release(trie, copy);
-      *removed_count = 0U;
-      return NULL;
-    }
-    old_child = edge->child;
-    new_child = ptrie_remove_prefix_node(trie, old_child, prefix, prefix_len,
-                                         pos + 1U, removed_count);
-    if (*removed_count == 0U) {
-      ptrie_node_release(trie, copy);
-      return NULL;
-    }
-    if (new_child == NULL) {
-      if (prev == NULL) {
-        copy->children = edge->next;
-      } else {
-        prev->next = edge->next;
-      }
-      ptrie_node_release(trie, old_child);
-      ds_context_free(trie->config.context, edge);
+  gone = from_prefix ? path[len]->count : 1U;
+  for (d = len + 1U; d-- > 0U;) {
+    ds_ptrie_node_t *copy;
+    if (d == len && from_prefix) {
+      copy = ptrie_node_create(trie); /* the whole subtree goes */
     } else {
-      edge->child = new_child;
-      ptrie_node_release(trie, old_child);
+      copy = ptrie_node_clone_shallow(trie, path[d]);
+    }
+    if (copy == NULL) {
+      break;
+    }
+    if (d == len) {
+      if (copy->terminal) {
+        ptrie_value_destroy(trie, copy->value);
+        copy->terminal = false;
+        copy->value = NULL;
+      }
+    } else if (!ptrie_set_child(trie, copy, key[d], child)) {
+      ptrie_node_release(trie, copy);
+      break;
+    }
+    copy->count = path[d]->count - gone;
+    if (d != 0U && ptrie_node_empty(copy)) {
+      ptrie_node_release(trie, copy);
+      copy = NULL;
+    }
+    child = copy;
+    if (d == 0U) {
+      ds_context_free(trie->config.context, path);
+      *removed = gone;
+      return child;
     }
   }
-
-  if (pos != 0U && ptrie_node_empty(copy)) {
-    ptrie_node_release(trie, copy);
-    return NULL;
-  }
-  return copy;
+  ptrie_node_release(trie, child);
+  ds_context_free(trie->config.context, path);
+  return NULL;
 }
 
 static ds_ptrie_version_t *ptrie_version_create(ds_ptrie_t *trie,
@@ -530,41 +484,77 @@ static ds_status_t ptrie_buffer_grow(unsigned char **buffer, size_t *capacity,
   return DS_OK;
 }
 
+/* Visits the subtree in key order with an explicit stack: stack[i] is the
+ * next edge to take at depth + i, so the walk is as deep as the longest
+ * key without call frames. */
 static ds_status_t
 ptrie_visit_from(ds_ptrie_node_t *node, unsigned char **buffer, size_t depth,
                  size_t *capacity, ds_ptrie_visit_func_t visit, void *user,
                  const unsigned char *lower, size_t lower_len,
                  const unsigned char *upper, size_t upper_len) {
-  ds_ptrie_edge_t *edge;
-  ds_status_t status;
-
+  ds_ptrie_edge_t **stack;
+  size_t cap = 16U;
+  size_t top = 0U;
+  ds_status_t status = DS_OK;
   if (node == NULL) {
     return DS_OK;
   }
-
   if (node->terminal &&
-      ptrie_key_in_range(*buffer, depth, lower, lower_len, upper, upper_len)) {
-    if (!visit(*buffer, depth, node->value, user)) {
-      return DS_STOP;
+      ptrie_key_in_range(*buffer, depth, lower, lower_len, upper, upper_len) &&
+      !visit(*buffer, depth, node->value, user)) {
+    return DS_STOP;
+  }
+  if (node->children == NULL) {
+    return DS_OK;
+  }
+  stack = (ds_ptrie_edge_t **)malloc(cap * sizeof(*stack));
+  if (stack == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  stack[top++] = node->children;
+  while (top > 0U) {
+    ds_ptrie_edge_t *edge = stack[top - 1U];
+    size_t at = depth + top - 1U; /* where the edge's token goes */
+    ds_ptrie_node_t *child;
+    if (edge == NULL) {
+      top--;
+      continue;
+    }
+    stack[top - 1U] = edge->next;
+    status = ptrie_buffer_grow(buffer, capacity, at + 1U);
+    if (status != DS_OK) {
+      break;
+    }
+    (*buffer)[at] = edge->token;
+    child = edge->child;
+    if (child->terminal &&
+        ptrie_key_in_range(*buffer, at + 1U, lower, lower_len, upper,
+                           upper_len) &&
+        !visit(*buffer, at + 1U, child->value, user)) {
+      status = DS_STOP;
+      break;
+    }
+    if (child->children != NULL) {
+      if (top == cap) {
+        ds_ptrie_edge_t **grown;
+        if (cap > (size_t)-1 / 2U / sizeof(*stack)) {
+          status = DS_ERR_OVERFLOW;
+          break;
+        }
+        grown = (ds_ptrie_edge_t **)realloc((void *)stack,
+                                            2U * cap * sizeof(*stack));
+        if (grown == NULL) {
+          status = DS_ERR_ALLOC;
+          break;
+        }
+        stack = grown;
+        cap *= 2U;
+      }
+      stack[top++] = child->children;
     }
   }
-
-  edge = node->children;
-  while (edge != NULL) {
-    status = ptrie_buffer_grow(buffer, capacity, depth + 1U);
-    if (status != DS_OK) {
-      return status;
-    }
-    (*buffer)[depth] = edge->token;
-    status = ptrie_visit_from(edge->child, buffer, depth + 1U, capacity, visit,
-                              user, lower, lower_len, upper, upper_len);
-    if (status != DS_OK) {
-      return status;
-    }
-    edge = edge->next;
-  }
-
-  return DS_OK;
+  free((void *)stack);
+  return status;
 }
 
 ds_ptrie_t *ds_ptrie_create(const ds_ptrie_config_t *config) {
@@ -628,7 +618,7 @@ ds_ptrie_version_t *ds_ptrie_insert(ds_ptrie_t *trie, ds_ptrie_version_t *base,
       trie->config.clone_value != NULL) {
     return NULL;
   }
-  new_root = ptrie_insert_node(trie, base->root, key, len, 0U, stored_value);
+  new_root = ptrie_insert_path(trie, base->root, key, len, stored_value);
   if (new_root == NULL) {
     ptrie_value_destroy(trie, stored_value);
     return NULL;
@@ -645,13 +635,12 @@ ds_ptrie_version_t *ds_ptrie_remove(ds_ptrie_t *trie, ds_ptrie_version_t *base,
                                     const unsigned char *key, size_t len) {
   ds_ptrie_version_t *version;
   ds_ptrie_node_t *new_root;
-  bool removed;
+  size_t removed;
   if (trie == NULL || base == NULL || (key == NULL && len != 0U)) {
     return NULL;
   }
-  removed = false;
-  new_root = ptrie_remove_node(trie, base->root, key, len, 0U, &removed);
-  if (!removed || new_root == NULL) {
+  new_root = ptrie_remove_path(trie, base->root, key, len, false, &removed);
+  if (new_root == NULL) {
     return NULL;
   }
   version = ptrie_version_create(trie, new_root);
@@ -678,10 +667,9 @@ ds_ptrie_version_t *ds_ptrie_remove_prefix(ds_ptrie_t *trie,
     return NULL;
   }
 
-  removed_count = 0U;
-  new_root = ptrie_remove_prefix_node(trie, base->root, prefix, prefix_len, 0U,
-                                      &removed_count);
-  if (removed_count == 0U || new_root == NULL) {
+  new_root = ptrie_remove_path(trie, base->root, prefix, prefix_len, true,
+                               &removed_count);
+  if (new_root == NULL) {
     return NULL;
   }
   version = ptrie_version_create(trie, new_root);
@@ -742,7 +730,7 @@ size_t ds_ptrie_count_prefix(ds_ptrie_version_t *version,
     return 0U;
   }
   node = ptrie_find_node(version->root, prefix, prefix_len);
-  return ptrie_terminal_count(node);
+  return node == NULL ? 0U : node->count; /* kept along every path copy */
 }
 
 typedef struct ptrie_copy_prefix_state {
