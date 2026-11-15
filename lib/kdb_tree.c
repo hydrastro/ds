@@ -1360,23 +1360,22 @@ static ds_status_t kd_item_add(ds_context_t *ctx, size_t **items, size_t *count,
 /* ---- extended k-d tree
  * ------------------------------------------------------------------ */
 
-static kd_nodes_t ekd_nodes(ds_ekd_tree_t *t) {
-  kd_nodes_t n;
-  n.axis = &t->axis;
-  n.cut = &t->cut;
-  n.left = &t->left;
-  n.right = &t->right;
-  n.items = &t->items;
-  n.item_count = &t->item_count;
-  n.item_capacity = &t->item_capacity;
-  return n;
+static void ekd_nodes(kd_nodes_t *n, ds_ekd_tree_t *t) {
+  n->axis = &t->axis;
+  n->cut = &t->cut;
+  n->left = &t->left;
+  n->right = &t->right;
+  n->items = &t->items;
+  n->item_count = &t->item_count;
+  n->item_capacity = &t->item_capacity;
 }
 
 static ds_status_t ekd_new_leaf(ds_ekd_tree_t *t, size_t *out) {
-  kd_nodes_t n = ekd_nodes(t);
-  ds_status_t st =
-      kd_nodes_grow(t->context, &n, &t->node_capacity, t->nodes + 1);
+  kd_nodes_t n;
+  ds_status_t st;
   size_t v;
+  ekd_nodes(&n, t);
+  st = kd_nodes_grow(t->context, &n, &t->node_capacity, t->nodes + 1);
   if (st != DS_OK) {
     return st;
   }
@@ -1746,16 +1745,14 @@ ds_status_t ds_ekd_tree_query(ds_ekd_tree_t *t, const double *box,
  * -----------------------------------------------------------------------------
  */
 
-static kd_nodes_t skd_nodes(ds_skd_tree_t *t) {
-  kd_nodes_t n;
-  n.axis = &t->axis;
-  n.cut = &t->cut;
-  n.left = &t->left;
-  n.right = &t->right;
-  n.items = &t->items;
-  n.item_count = &t->item_count;
-  n.item_capacity = &t->item_capacity;
-  return n;
+static void skd_nodes(kd_nodes_t *n, ds_skd_tree_t *t) {
+  n->axis = &t->axis;
+  n->cut = &t->cut;
+  n->left = &t->left;
+  n->right = &t->right;
+  n->items = &t->items;
+  n->item_count = &t->item_count;
+  n->item_capacity = &t->item_capacity;
 }
 
 static ds_status_t skd_new_leaf(ds_skd_tree_t *t, size_t *out) {
@@ -1765,9 +1762,11 @@ static ds_status_t skd_new_leaf(ds_skd_tree_t *t, size_t *out) {
     t->free_list = t->left[v];
   } else {
     size_t cap = t->node_capacity;
-    kd_nodes_t n = skd_nodes(t);
-    ds_status_t st = kd_nodes_grow(t->context, &n, &cap, t->nodes + 1);
+    kd_nodes_t n;
+    ds_status_t st;
     void *p;
+    skd_nodes(&n, t);
+    st = kd_nodes_grow(t->context, &n, &cap, t->nodes + 1);
     if (st != DS_OK) {
       return st;
     }
