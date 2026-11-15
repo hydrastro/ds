@@ -2,6 +2,7 @@
 #define DS_BITVECTOR_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -34,13 +35,20 @@ typedef struct bitvector {
 
 #define DS_BITVECTOR_NPOS ((size_t) - 1)
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_bitvector_t *ds_bitvector_create(size_t num_bits);
 ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
                                           void *(*allocator)(size_t),
                                           void (*deallocator)(void *));
 void ds_bitvector_set(ds_bitvector_t *bv, size_t index, bool value);
 bool ds_bitvector_get(ds_bitvector_t *bv, size_t index);
+/* Legacy build: when the rank directory cannot be allocated, the vector
+ * keeps the directory it had (none before a first build, so rank and
+ * select must not be called); build_ex reports it */
 void ds_bitvector_build(ds_bitvector_t *bv);
+/* DS_ERR_ALLOC when the rank directory cannot be allocated, with the
+ * vector unchanged */
+ds_status_t ds_bitvector_build_ex(ds_bitvector_t *bv);
 size_t ds_bitvector_size(ds_bitvector_t *bv);
 size_t ds_bitvector_count_ones(ds_bitvector_t *bv);
 /* rank1(i): number of set bits in [0, i). rank0(i) = i - rank1(i). */

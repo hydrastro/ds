@@ -30,7 +30,13 @@ ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
   num_words = num_bits == 0
                   ? 0
                   : (num_bits + DS_BV_BITS_PER_WORD - 1) / DS_BV_BITS_PER_WORD;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
   bv = (ds_bitvector_t *)allocator(sizeof(ds_bitvector_t));
+  if (bv == NULL) {
+    return NULL;
+  }
   bv->allocator = allocator;
   bv->deallocator = deallocator;
   bv->num_bits = num_bits;
@@ -39,6 +45,10 @@ ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
       num_words == 0
           ? NULL
           : (unsigned long *)allocator(num_words * sizeof(unsigned long));
+  if (num_words != 0 && bv->words == NULL) {
+    deallocator(bv);
+    return NULL;
+  }
   for (i = 0; i < num_words; i++) {
     bv->words[i] = 0UL;
   }
@@ -72,24 +82,44 @@ bool ds_bitvector_get(ds_bitvector_t *bv, size_t index) {
   return result;
 }
 
-void ds_bitvector_build(ds_bitvector_t *bv) {
+ds_status_t ds_bitvector_build_ex(ds_bitvector_t *bv) {
   size_t i;
   size_t cumulative = 0;
   size_t sb;
-  bv->num_blocks = bv->num_words;
-  bv->num_superblocks = (bv->num_blocks + DS_BV_BLOCKS_PER_SUPERBLOCK - 1) /
-                            DS_BV_BLOCKS_PER_SUPERBLOCK +
-                        1;
+  size_t blocks;
+  size_t superblocks;
+  size_t *superblock_rank;
+  unsigned short *block_rank;
+  if (bv == NULL) {
+    return DS_ERR_NULL;
+  }
+  blocks = bv->num_words;
+  superblocks =
+      (blocks + DS_BV_BLOCKS_PER_SUPERBLOCK - 1) / DS_BV_BLOCKS_PER_SUPERBLOCK +
+      1;
+  /* the new directory first: a failure leaves the old one in place */
+  superblock_rank = (size_t *)bv->allocator(superblocks * sizeof(size_t));
+  block_rank =
+      (unsigned short *)bv->allocator((blocks + 1) * sizeof(unsigned short));
+  if (superblock_rank == NULL || block_rank == NULL) {
+    if (superblock_rank != NULL) {
+      bv->deallocator(superblock_rank);
+    }
+    if (block_rank != NULL) {
+      bv->deallocator(block_rank);
+    }
+    return DS_ERR_ALLOC;
+  }
   if (bv->superblock_rank != NULL) {
     bv->deallocator(bv->superblock_rank);
   }
   if (bv->block_rank != NULL) {
     bv->deallocator(bv->block_rank);
   }
-  bv->superblock_rank =
-      (size_t *)bv->allocator(bv->num_superblocks * sizeof(size_t));
-  bv->block_rank = (unsigned short *)bv->allocator((bv->num_blocks + 1) *
-                                                   sizeof(unsigned short));
+  bv->num_blocks = blocks;
+  bv->num_superblocks = superblocks;
+  bv->superblock_rank = superblock_rank;
+  bv->block_rank = block_rank;
   sb = 0;
   bv->superblock_rank[0] = 0;
   for (i = 0; i < bv->num_blocks; i++) {
@@ -105,7 +135,10 @@ void ds_bitvector_build(ds_bitvector_t *bv) {
                       DS_BV_BLOCKS_PER_SUPERBLOCK] = cumulative;
   bv->total_ones = cumulative;
   bv->built = true;
+  return DS_OK;
 }
+
+void ds_bitvector_build(ds_bitvector_t *bv) { (void)ds_bitvector_build_ex(bv); }
 
 size_t ds_bitvector_size(ds_bitvector_t *bv) {
   size_t result;
