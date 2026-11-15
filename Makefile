@@ -531,7 +531,7 @@ UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
 EMOJI_URL := https://www.unicode.org/Public/UCD/latest/ucd/emoji
 
-.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp check-headers check-noinline sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
+.PHONY: all clean distclean unicode-data install uninstall test test-build check check-cpp check-headers check-noinline check-o3 sanitize examples valgrind valgrind-test valgrind-examples format format-all format-check lint lint-all lint-style coverage coverage-detail coverage-html summary
 all: $(LIB_STATIC) $(LIB_SHARED)
 
 # Install only into ds's own include directory and uninstall only the
@@ -671,6 +671,15 @@ check-noinline: all
 	    -o $(BUILD_DIR)/noinline.o || { echo "source $$src"; fail=1; }; \
 	done; rm -f $(BUILD_DIR)/noinline.o; \
 	test $$fail = 0 && echo "every source compiles under the strict warnings without inlining"
+
+# The other direction: -O3 inlines and unrolls more, and its flow analysis
+# sees uninitialized reads that -O2 misses (one was a real bug).
+check-o3: all
+	@fail=0; for src in $(LIB_SRC); do \
+	  $(CC) $(filter-out -O2,$(CFLAGS)) -O3 $(INCLUDES) -c $$src \
+	    -o $(BUILD_DIR)/o3.o || { echo "source $$src"; fail=1; }; \
+	done; rm -f $(BUILD_DIR)/o3.o; \
+	test $$fail = 0 && echo "every source compiles under the strict warnings at -O3"
 
 # Line-coverage report. Builds an instrumented copy of the library, links and
 # runs every test against it, then aggregates with gcovr.
