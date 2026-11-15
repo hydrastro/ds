@@ -35,6 +35,8 @@ static void seg_apply_assign(ds_segment_tree_t *st, size_t node, size_t count,
   case DS_SEGMENT_TREE_SUM:
     st->tree[node] = value * (long)count;
     break;
+  case DS_SEGMENT_TREE_MIN:
+  case DS_SEGMENT_TREE_MAX:
   default:
     st->tree[node] = value;
     break;
@@ -51,6 +53,8 @@ static void seg_apply_add(ds_segment_tree_t *st, size_t node, size_t count,
   case DS_SEGMENT_TREE_SUM:
     st->tree[node] += delta * (long)count;
     break;
+  case DS_SEGMENT_TREE_MIN:
+  case DS_SEGMENT_TREE_MAX:
   default:
     st->tree[node] += delta;
     break;
@@ -103,10 +107,18 @@ ds_segment_tree_t *ds_segment_tree_create_alloc(const long *values, size_t n,
                                                 ds_segment_tree_op_t op,
                                                 void *(*allocator)(size_t),
                                                 void (*deallocator)(void *)) {
-  ds_segment_tree_t *st =
-      (ds_segment_tree_t *)allocator(sizeof(ds_segment_tree_t));
-  size_t cap = (n == 0 ? 1 : n) * 4;
+  ds_segment_tree_t *st;
+  size_t cap;
   size_t i;
+  if (allocator == NULL || deallocator == NULL || (n > 0 && values == NULL) ||
+      n > (size_t)-1 / 4 / sizeof(long)) {
+    return NULL;
+  }
+  cap = (n == 0 ? 1 : n) * 4;
+  st = (ds_segment_tree_t *)allocator(sizeof(ds_segment_tree_t));
+  if (st == NULL) {
+    return NULL;
+  }
   st->allocator = allocator;
   st->deallocator = deallocator;
   st->n = n;
@@ -116,6 +128,24 @@ ds_segment_tree_t *ds_segment_tree_create_alloc(const long *values, size_t n,
   st->lazy_add = (long *)allocator(cap * sizeof(long));
   st->lazy_set = (long *)allocator(cap * sizeof(long));
   st->has_set = (bool *)allocator(cap * sizeof(bool));
+  if (st->tree == NULL || st->lazy_add == NULL || st->lazy_set == NULL ||
+      st->has_set == NULL) {
+    /* a caller's deallocator need not take NULL */
+    if (st->tree != NULL) {
+      deallocator(st->tree);
+    }
+    if (st->lazy_add != NULL) {
+      deallocator(st->lazy_add);
+    }
+    if (st->lazy_set != NULL) {
+      deallocator(st->lazy_set);
+    }
+    if (st->has_set != NULL) {
+      deallocator(st->has_set);
+    }
+    deallocator(st);
+    return NULL;
+  }
   for (i = 0; i < cap; i++) {
     st->tree[i] = 0L;
     st->lazy_add[i] = 0L;

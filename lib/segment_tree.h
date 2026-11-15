@@ -39,6 +39,8 @@ typedef struct segment_tree {
   void (*deallocator)(void *);
 } ds_segment_tree_t;
 
+/* NULL when memory runs out, for n too large to size the tree, or without
+ * an allocator and a deallocator */
 ds_segment_tree_t *ds_segment_tree_create(const long *values, size_t n,
                                           ds_segment_tree_op_t op);
 ds_segment_tree_t *ds_segment_tree_create_alloc(const long *values, size_t n,
