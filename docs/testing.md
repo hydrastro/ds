@@ -19,7 +19,9 @@ make sanitize
 
 Runs the test suite under AddressSanitizer and UndefinedBehaviorSanitizer.
 This target is good at catching use-after-free, invalid access, allocator
-mismatches, and undefined behavior.
+mismatches, and undefined behavior. Every report is fatal
+(`-fno-sanitize-recover=all`, in the library as in the tests): by default
+UBSan only prints and lets a test pass.
 
 ## Valgrind
 

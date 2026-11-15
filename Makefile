@@ -784,10 +784,14 @@ distclean: clean
 	rm -f $(LIB_DIR)/*.gch *.gch
 
 
+# UBSan only reports by default and lets the program go on, so a test
+# with undefined behaviour would still pass: -fno-sanitize-recover=all
+# makes every report fatal, in the library as in the tests.
+SAN_FLAGS := -fsanitize=address,undefined -fno-sanitize-recover=all
 sanitize:
 	$(MAKE) clean
 	@status=0; \
-	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer -fsanitize=address,undefined' LDLIBS='-lm -fsanitize=address,undefined' test || status=$$?; \
+	$(MAKE) CFLAGS='-std=c89 -Wall -Wextra -Werror -pedantic -pedantic-errors -g -O1 -fno-omit-frame-pointer $(SAN_FLAGS)' TEST_CFLAGS='-std=c99 -Wall -Wextra -Werror -pedantic -g -O1 -fno-omit-frame-pointer $(SAN_FLAGS)' LDLIBS='-lm $(SAN_FLAGS)' test || status=$$?; \
 	$(MAKE) clean; \
 	exit $$status
 
