@@ -205,10 +205,32 @@ ds_avl_node_t *ds_avl_balance(ds_avl_t *tree, ds_avl_node_t *node) {
   return node;
 }
 
+/* heights and balance restored from n up to the root; a subtree that a
+ * rotation gives a new root is linked back into its parent (or becomes
+ * the tree's root) */
+static void avl_rebalance_up(ds_avl_t *tree, ds_avl_node_t *n) {
+  while (n != tree->nil) {
+    ds_avl_node_t *old_parent;
+    bool was_left;
+    old_parent = n->parent;
+    was_left = old_parent != tree->nil && n == old_parent->left;
+    n = ds_avl_balance(tree, n);
+    if (old_parent == tree->nil) {
+      tree->root = n;
+    } else if (was_left) {
+      old_parent->left = n;
+    } else {
+      old_parent->right = n;
+    }
+    n->parent = old_parent;
+    n = old_parent;
+  }
+}
+
 void ds_avl_insert(ds_avl_t *tree, ds_avl_node_t *data,
                    int (*compare)(ds_avl_node_t *, ds_avl_node_t *)) {
   int cmp;
-  ds_avl_node_t *n, *current, *parent;
+  ds_avl_node_t *current, *parent;
   current = tree->root;
   parent = tree->nil;
 
@@ -237,22 +259,7 @@ void ds_avl_insert(ds_avl_t *tree, ds_avl_node_t *data,
   } else {
     parent->right = data;
   }
-  for (n = parent; n != tree->nil;) {
-    ds_avl_node_t *old_parent;
-    bool was_left;
-    old_parent = n->parent;
-    was_left = old_parent != tree->nil && n == old_parent->left;
-    n = ds_avl_balance(tree, n);
-    if (old_parent == tree->nil) {
-      tree->root = n;
-    } else if (was_left) {
-      old_parent->left = n;
-    } else {
-      old_parent->right = n;
-    }
-    n->parent = old_parent;
-    n = old_parent;
-  }
+  avl_rebalance_up(tree, parent);
   tree->size += 1;
 }
 
@@ -276,32 +283,32 @@ void ds_avl_transplant(ds_avl_t *tree, ds_avl_node_t *u, ds_avl_node_t *v) {
   }
 }
 
+/* rebalancing starts at the lowest node whose subtree lost a node: the
+ * removed node's parent, or the successor's old parent when the successor
+ * moves up from below its right child */
 void ds_avl_delete_node(ds_avl_t *tree, ds_avl_node_t *data) {
   ds_avl_node_t *x, *y;
-  y = data;
   if (data->left == tree->nil) {
-    x = data->right;
+    x = data->parent;
     ds_avl_transplant(tree, data, data->right);
   } else if (data->right == tree->nil) {
-    x = data->left;
+    x = data->parent;
     ds_avl_transplant(tree, data, data->left);
   } else {
     y = ds_avl_min_node(tree, data->right);
     if (y->parent != data) {
+      x = y->parent;
       ds_avl_transplant(tree, y, y->right);
       y->right = data->right;
       y->right->parent = y;
+    } else {
+      x = y;
     }
     ds_avl_transplant(tree, data, y);
     y->left = data->left;
     y->left->parent = y;
-    x = y;
   }
-
-  while (x != tree->nil) {
-    x = ds_avl_balance(tree, x);
-    x = x->parent;
-  }
+  avl_rebalance_up(tree, x);
   tree->size -= 1;
 }
 
