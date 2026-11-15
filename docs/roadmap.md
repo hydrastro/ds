@@ -250,6 +250,9 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/posix_store: POSIX file page store with durable sync and real truncation
 - lib/wal_store: write-ahead logging for any page store (atomic commits, recovery, checkpoints)
 - lib/exact_sum: exact, removable sums of doubles with correctly rounded totals
+- lib/ed25519: Ed25519 signatures (RFC 8032) and X25519 key agreement (RFC 7748) in strict C89 without 64-bit integers
+- lib/ld_signature: the Ed25519 suite of eddsa-rdfc-2022, base58-btc multibase, Ed25519 Multikeys
+- lib/pq_iface: weak-heap backend
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 

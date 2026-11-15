@@ -770,7 +770,7 @@ No row is classified missing.
 | linear quadtree | structure | implemented | lib/quadtree |  |
 | linear search | algorithm | implemented | algo/search | ds_find |
 | link | concept | n/a |  |  |
-| linked data signature | structure | implemented | lib/ld_signature | RDFC-1.0 through lib/rdf_canon; the Data Integrity hash data with any lib/sha2 digest; pluggable suites, HMAC-SHA256 by default |
+| linked data signature | structure | implemented | lib/ld_signature | RDFC-1.0 through lib/rdf_canon; the Data Integrity hash data with any lib/sha2 digest; pluggable suites, HMAC-SHA256 by default, Ed25519 for eddsa-rdfc-2022 (multibase proof values, Multikeys) |
 | linked list | structure | implemented | lib/list, lib/dlist |  |
 | list | structure | implemented | lib/list |  |
 | list contraction | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
@@ -1547,6 +1547,9 @@ No row is classified missing.
 | executor | concept | implemented | `lib/executor`, `algo/parallel_sim` | a parallel step as independent tasks run by any executor (caller threads, a pool, OpenMP; sequential by default); drives the PRAM techniques |
 | SHA-2 | algorithm | implemented | `lib/sha2` | SHA-256, SHA-384, SHA-512 and HMAC in strict C89 (64-bit words as pairs of 32-bit halves); a digest capability for algorithms that take a hash |
 | RDF dataset canonicalization (RDFC-1.0) | algorithm | implemented | `lib/rdf_canon` | W3C RDFC-1.0 (formerly URDNA2015): first-degree hashes, Hash N-Degree Quads on an explicit stack with one shared issuer stack, any digest; N-Quads parsing and canonical serialization; poison-dataset limits; passes the W3C test suite |
+| Ed25519 (EdDSA) | algorithm | implemented | `lib/ed25519` | RFC 8032 pure Ed25519: deterministic signing; verification with the RFC's checks (S below the group order, canonical encodings of A and R); strict C89 without 64-bit integers (radix-2^8 field arithmetic); constant time for secrets |
+| X25519 key agreement | algorithm | implemented | `lib/ed25519` | RFC 7748 Diffie-Hellman on Curve25519: a Montgomery ladder with masked swaps; an all-zero shared secret (a small-order point) is refused |
+| base58 encoding (multibase) | algorithm | implemented | `lib/ld_signature` | Bitcoin's base58 alphabet behind the multibase 'z' prefix, each leading zero byte as '1'; Ed25519 Multikeys ("z6Mk...") |
 | associative-map capability | concept | implemented | `lib/map_iface` | ops table with traits over Robin Hood, Swiss table, cuckoo (with stash), linear hashing, extendible hashing, coalesced hashing (cellar) and open addressing (double hashing, Robin Hood placement); X-fast and Y-fast tables, pager page tables |
 | ordered-map capability | concept | implemented | `lib/ordered_iface` | split/join containers (sorted array, treap, fusion tree, (a,b)-tree); Y-fast buckets |
 | rank/select dictionary | structure | implemented | `lib/rank_select` | plain, RRR and Elias-Fano backends |

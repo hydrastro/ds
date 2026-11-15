@@ -64,6 +64,26 @@ make valgrind VALGRIND=/usr/bin/valgrind
 make valgrind VALGRIND_FLAGS="--leak-check=full --track-origins=yes --error-exitcode=99"
 ```
 
+## Build checks
+
+```sh
+make check-headers
+make check-cpp
+make check-noinline
+make check-o3
+make format-check
+```
+
+- `check-headers` installs into a scratch prefix and compiles every
+  installed header on its own, as a consumer without pkg-config sees it.
+- `check-cpp` builds and runs a C++ program over the headers.
+- `check-noinline` compiles every source at -O0 under the strict warnings:
+  `-Waggregate-return` only reports functions that survive inlining, so a
+  static helper returning a struct can hide at -O2.
+- `check-o3` compiles every source at -O3, whose flow analysis reports
+  uninitialized reads that -O2 misses.
+- `format-check` checks every source with `clang-format`.
+
 ## Examples
 
 ```sh

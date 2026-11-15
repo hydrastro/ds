@@ -130,7 +130,7 @@ says what remains:
 |---|---|---|
 | map cursors | the next put or remove | a position a packed cursor cannot hold is reported (`DS_ERR_OVERFLOW` from `ds_map_next_status`) instead of ending the iteration silently |
 | priority-queue handles | their item is popped or removed | |
-| priority-queue item pointers (`top`, `item`) | the item leaves; for `DS_PQ_MOVING_ITEMS` backends (packed, hollow), the next modification | |
+| priority-queue item pointers (`top`, `item`) | the item leaves; for `DS_PQ_MOVING_ITEMS` backends (packed, weak, hollow), the next modification | |
 | ordered-map cursors | the next modification | `ds_ordered_for_each` walks in linear time without allocating a cursor per step |
 | SSTable iterators | the table bytes are freed | they borrow the bytes |
 | SSTables opened with `ds_sstable_open_ex` | `ds_sstable_close` | the loaded AMQ filter is owned by the table |
