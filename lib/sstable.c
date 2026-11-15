@@ -695,8 +695,8 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
     if (!sst_bloom_params(b->bits_per_key, b->hash_count, &k, &bits)) {
       st = DS_ERR_OVERFLOW;
     }
-    kb = (unsigned char)k;
     if (st == DS_OK) {
+      kb = (unsigned char)k;
       st = sst_put(b->context, &b->buf, &b->len, &b->cap, &kb, 1);
     }
     if (st == DS_OK) {
