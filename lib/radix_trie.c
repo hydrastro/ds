@@ -7,10 +7,17 @@ static ds_radix_trie_node_t *radix_trie_new_node(ds_radix_trie_t *trie,
                                                  size_t edge_length) {
   ds_radix_trie_node_t *node =
       (ds_radix_trie_node_t *)trie->allocator(sizeof(ds_radix_trie_node_t));
+  if (node == NULL) {
+    return NULL;
+  }
   node->edge_length = edge_length;
   if (edge_length > 0) {
     size_t i;
     node->edge = (unsigned char *)trie->allocator(edge_length);
+    if (node->edge == NULL) {
+      trie->deallocator(node);
+      return NULL;
+    }
     for (i = 0; i < edge_length; i++) {
       node->edge[i] = edge[i];
     }
@@ -30,11 +37,22 @@ ds_radix_trie_t *ds_radix_trie_create(void) {
 
 ds_radix_trie_t *ds_radix_trie_create_alloc(void *(*allocator)(size_t),
                                             void (*deallocator)(void *)) {
-  ds_radix_trie_t *trie = (ds_radix_trie_t *)allocator(sizeof(ds_radix_trie_t));
+  ds_radix_trie_t *trie;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  trie = (ds_radix_trie_t *)allocator(sizeof(ds_radix_trie_t));
+  if (trie == NULL) {
+    return NULL;
+  }
   trie->allocator = allocator;
   trie->deallocator = deallocator;
   trie->size = 0;
   trie->root = radix_trie_new_node(trie, NULL, 0);
+  if (trie->root == NULL) {
+    deallocator(trie);
+    return NULL;
+  }
   return trie;
 }
 

@@ -25,6 +25,7 @@ typedef struct radix_trie {
   void (*deallocator)(void *);
 } ds_radix_trie_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_radix_trie_t *ds_radix_trie_create(void);
 ds_radix_trie_t *ds_radix_trie_create_alloc(void *(*allocator)(size_t),
                                             void (*deallocator)(void *));
