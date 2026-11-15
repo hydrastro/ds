@@ -743,7 +743,9 @@ ds_status_t ds_graph_minimum_spanning_tree(ds_graph_t *graph,
       edge_index++;
     }
   }
-  qsort(edges, edge_total, sizeof(*edges), graph_mst_edge_compare);
+  if (edge_total > 1U) { /* edges may be NULL when there are none */
+    qsort(edges, edge_total, sizeof(*edges), graph_mst_edge_compare);
+  }
 
   added = 0U;
   for (i = 0U; i < edge_total && added + 1U < graph->vertex_count; i++) {
