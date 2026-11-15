@@ -363,7 +363,7 @@ ds_status_t ds_inversion_list_cardinality(const ds_inversion_list_t *list,
   }
   ranges = (list->count + 1) / 2;
   for (r = 0; r < ranges; r++) {
-    ds_inversion_list_get_range(list, r, &lo, &hi);
+    (void)ds_inversion_list_get_range(list, r, &lo, &hi); /* r in range */
     span = hi - lo;
     if (span == ULONG_MAX || total > ULONG_MAX - span - 1) {
       return DS_ERR_OVERFLOW;
@@ -647,8 +647,8 @@ void ds_inversion_list_to_bits(const ds_inversion_list_t *list,
   }
   ranges = (list->count + 1) / 2;
   for (r = 0; r < ranges; r++) {
-    ds_inversion_list_get_range(list, r, &lo, &hi);
-    if (lo >= bit_count) {
+    if (ds_inversion_list_get_range(list, r, &lo, &hi) != DS_OK ||
+        lo >= bit_count) {
       break;
     }
     if (hi >= bit_count) {
