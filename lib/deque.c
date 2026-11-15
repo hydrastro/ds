@@ -7,10 +7,21 @@ ds_deque_t *ds_deque_create(void) {
 
 ds_deque_t *ds_deque_create_alloc(void *(*allocator)(size_t),
                                   void (*deallocator)(void *)) {
-  ds_deque_t *deque = (ds_deque_t *)allocator(sizeof(ds_deque_t));
+  ds_deque_t *deque;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  deque = (ds_deque_t *)allocator(sizeof(ds_deque_t));
+  if (deque == NULL) {
+    return NULL;
+  }
   deque->allocator = allocator;
   deque->deallocator = deallocator;
   deque->nil = (ds_deque_node_t *)allocator(sizeof(ds_deque_node_t));
+  if (deque->nil == NULL) {
+    deallocator(deque);
+    return NULL;
+  }
   deque->nil->next = deque->nil;
   deque->nil->prev = deque->nil;
   deque->head = deque->nil;
@@ -209,17 +220,57 @@ void ds_deque_walk_backwards(ds_deque_t *deque, ds_deque_node_t *current,
   }
 }
 
+/* clones of the source's nodes, in order, added to copy; false when
+ * clone_node returns NULL (the clones made so far are in copy) */
+static bool
+deque_clone_nodes(const ds_deque_t *deque, ds_deque_t *copy,
+                  ds_deque_node_t *(*clone_node)(ds_deque_node_t *)) {
+  ds_deque_node_t *current;
+  for (current = deque->head; current != deque->nil; current = current->next) {
+    ds_deque_node_t *node = clone_node(current);
+    if (node == NULL) {
+      return false;
+    }
+    ds_deque_push_back(copy, node);
+  }
+  return true;
+}
+
 ds_deque_t *ds_deque_clone(ds_deque_t *deque,
                            ds_deque_node_t *(*clone_node)(ds_deque_node_t *)) {
-  ds_deque_t *new_deque;
-  ds_deque_node_t *current;
-  new_deque = ds_deque_create_alloc(deque->allocator, deque->deallocator);
-  current = deque->head;
-  while (current != deque->nil) {
-    ds_deque_node_t *cloned_node = clone_node(current);
-    ds_deque_push_back(new_deque, cloned_node);
-    current = current->next;
+  ds_deque_t *copy;
+  if (deque == NULL || clone_node == NULL) {
+    return NULL;
   }
+  copy = ds_deque_create_alloc(deque->allocator, deque->deallocator);
+  if (copy != NULL && !deque_clone_nodes(deque, copy, clone_node)) {
+    /* the clones made so far are not released */
+    ds_deque_destroy(copy, NULL);
+    copy = NULL;
+  }
+  return copy;
+}
 
-  return new_deque;
+ds_status_t ds_deque_clone_ex(const ds_deque_t *deque,
+                              ds_deque_node_t *(*clone_node)(ds_deque_node_t *),
+                              void (*destroy_clone)(ds_deque_node_t *),
+                              ds_deque_t **out) {
+  ds_deque_t *copy;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (deque == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  copy = ds_deque_create_alloc(deque->allocator, deque->deallocator);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!deque_clone_nodes(deque, copy, clone_node)) {
+    ds_deque_destroy(copy, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  *out = copy;
+  return DS_OK;
 }
