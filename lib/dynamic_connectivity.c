@@ -63,20 +63,16 @@ static bool dc_equal(const void *x, const void *y, void *user) {
   return memcmp(x, y, sizeof(dc_key_t)) == 0;
 }
 
-static dc_key_t dc_ends(size_t u, size_t v) {
-  dc_key_t k;
-  memset(&k, 0, sizeof(k));
-  k.a = u < v ? u : v;
-  k.b = u < v ? v : u;
-  return k;
+static void dc_ends(dc_key_t *k, size_t u, size_t v) {
+  memset(k, 0, sizeof(*k));
+  k->a = u < v ? u : v;
+  k->b = u < v ? v : u;
 }
 
-static dc_key_t dc_list_key(size_t x, unsigned level, unsigned kind) {
-  dc_key_t k;
-  memset(&k, 0, sizeof(k));
-  k.a = x;
-  k.b = 2 * (size_t)level + kind;
-  return k;
+static void dc_list_key(dc_key_t *k, size_t x, unsigned level, unsigned kind) {
+  memset(k, 0, sizeof(*k));
+  k->a = x;
+  k->b = 2 * (size_t)level + kind;
 }
 
 static unsigned dc_side(const ds_dynconn_t *g, size_t e, size_t x) {
@@ -103,9 +99,10 @@ static void dc_flag(ds_dynconn_t *g, unsigned level, size_t x, unsigned kind,
 
 static ds_status_t dc_ensure_head(ds_dynconn_t *g, size_t x, unsigned level,
                                   unsigned kind) {
-  dc_key_t k = dc_list_key(x, level, kind);
+  dc_key_t k;
   size_t none = DC_NONE;
   ds_status_t st;
+  dc_list_key(&k, x, level, kind);
   if (ds_map_get(&g->heads, &k) != NULL) {
     return DS_OK;
   }
@@ -115,9 +112,11 @@ static ds_status_t dc_ensure_head(ds_dynconn_t *g, size_t x, unsigned level,
 
 static size_t dc_head(const ds_dynconn_t *g, size_t x, unsigned level,
                       unsigned kind) {
-  dc_key_t k = dc_list_key(x, level, kind);
-  const void *p = ds_map_get(&g->heads, &k);
+  dc_key_t k;
+  const void *p;
   size_t h = DC_NONE;
+  dc_list_key(&k, x, level, kind);
+  p = ds_map_get(&g->heads, &k);
   if (p != NULL) {
     memcpy(&h, p, sizeof(h));
   }
@@ -126,8 +125,10 @@ static size_t dc_head(const ds_dynconn_t *g, size_t x, unsigned level,
 
 static void dc_set_head(ds_dynconn_t *g, size_t x, unsigned level,
                         unsigned kind, size_t e) {
-  dc_key_t k = dc_list_key(x, level, kind);
-  void *p = ds_map_get(&g->heads, &k);
+  dc_key_t k;
+  void *p;
+  dc_list_key(&k, x, level, kind);
+  p = ds_map_get(&g->heads, &k);
   if (p != NULL) {
     memcpy(p, &e, sizeof(e));
   }
@@ -224,9 +225,11 @@ static void dc_free_edge(ds_dynconn_t *g, size_t e) {
 }
 
 static size_t dc_find(const ds_dynconn_t *g, size_t u, size_t v) {
-  dc_key_t k = dc_ends(u, v);
-  const void *p = ds_map_get(&g->by_ends, &k);
+  dc_key_t k;
+  const void *p;
   size_t e = DC_NONE;
+  dc_ends(&k, u, v);
+  p = ds_map_get(&g->by_ends, &k);
   if (p != NULL) {
     memcpy(&e, p, sizeof(e));
   }
@@ -354,7 +357,7 @@ ds_status_t ds_dc_insert(ds_dynconn_t *g, size_t u, size_t v) {
   kind = ds_ett_connected(&g->forest[0], u, v) ? DC_NONTREE : DC_TREE;
   st = dc_ensure_both(g, e, 0, kind);
   if (st == DS_OK) {
-    k = dc_ends(u, v);
+    dc_ends(&k, u, v);
     st = ds_map_put(&g->by_ends, &k, &e);
   }
   if (st == DS_OK && kind == DC_TREE) {
@@ -476,7 +479,7 @@ ds_status_t ds_dc_delete(ds_dynconn_t *g, size_t u, size_t v) {
   if (e == DC_NONE) {
     return DS_NOT_FOUND;
   }
-  k = dc_ends(u, v);
+  dc_ends(&k, u, v);
   (void)ds_map_remove(&g->by_ends, &k, NULL);
   level = g->edge[e].level;
   g->edges--;
