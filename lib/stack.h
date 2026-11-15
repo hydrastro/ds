@@ -40,6 +40,9 @@ ds_stack_node_t *ds_stack_search(ds_stack_t *stack, ds_stack_node_t *node,
                                                 ds_stack_node_t *));
 void ds_stack_walk_forward(ds_stack_t *stack, ds_stack_node_t *node,
                            void (*callback)(ds_stack_node_t *));
+/* from node to the end, last first, in O(1) space: the links are reversed
+ * during the walk (the callback must not inspect, traverse or change the
+ * stack) and restored by the time it returns */
 void ds_stack_walk_backwards(ds_stack_t *stack, ds_stack_node_t *node,
                              void (*callback)(ds_stack_node_t *));
 ds_stack_t *ds_stack_clone(ds_stack_t *stack,

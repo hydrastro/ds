@@ -43,6 +43,9 @@ ds_queue_node_t *ds_queue_search(ds_queue_t *queue, ds_queue_node_t *node,
                                                 ds_queue_node_t *));
 void ds_queue_walk_forward(ds_queue_t *queue, ds_queue_node_t *node,
                            void (*callback)(ds_queue_node_t *));
+/* from node to the end, last first, in O(1) space: the links are reversed
+ * during the walk (the callback must not inspect, traverse or change the
+ * queue) and restored by the time it returns */
 void ds_queue_walk_backwards(ds_queue_t *queue, ds_queue_node_t *node,
                              void (*callback)(ds_queue_node_t *));
 ds_queue_t *ds_queue_clone(ds_queue_t *queue,

@@ -53,7 +53,9 @@ void ds_stack_destroy(ds_stack_t *stack, void (*destroy)(ds_stack_node_t *)) {
   ds_stack_node_t *node = stack->top;
   while (node != stack->nil) {
     ds_stack_node_t *next = node->next;
-    destroy(node);
+    if (destroy != NULL) { /* as the queue and the list: NULL owns nothing */
+      destroy(node);
+    }
     node = next;
   }
   stack->deallocator(stack->nil);
@@ -132,14 +134,28 @@ void ds_stack_walk_forward(ds_stack_t *stack, ds_stack_node_t *start_node,
   }
 }
 
+/* reverses the links from current to the end, then walks them back,
+ * restoring each link before its node is visited: O(1) space, where
+ * recursion would go as deep as the stack is long */
 void ds_stack_walk_backwards(ds_stack_t *stack, ds_stack_node_t *current,
                              void (*callback)(ds_stack_node_t *)) {
-  if (current == stack->nil) {
-    return;
+  ds_stack_node_t *rev = stack->nil;
+  ds_stack_node_t *next;
+  while (current != stack->nil) {
+    next = current->next;
+    current->next = rev;
+    rev = current;
+    current = next;
   }
-
-  ds_stack_walk_backwards(stack, current->next, callback);
-  callback(current);
+  current = rev;
+  rev = stack->nil;
+  while (current != stack->nil) {
+    next = current->next;
+    current->next = rev;
+    rev = current;
+    callback(current);
+    current = next;
+  }
 }
 
 ds_stack_t *ds_stack_clone(ds_stack_t *stack,

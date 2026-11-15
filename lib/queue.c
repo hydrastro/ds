@@ -166,13 +166,28 @@ void ds_queue_walk_forward(ds_queue_t *queue, ds_queue_node_t *start_node,
   }
 }
 
+/* reverses the links from current to the end, then walks them back,
+ * restoring each link before its node is visited: O(1) space, where
+ * recursion would go as deep as the queue is long */
 void ds_queue_walk_backwards(ds_queue_t *queue, ds_queue_node_t *current,
                              void (*callback)(ds_queue_node_t *)) {
-  if (current == queue->nil) {
-    return;
+  ds_queue_node_t *rev = queue->nil;
+  ds_queue_node_t *next;
+  while (current != queue->nil) {
+    next = current->next;
+    current->next = rev;
+    rev = current;
+    current = next;
   }
-  ds_queue_walk_backwards(queue, current->next, callback);
-  callback(current);
+  current = rev;
+  rev = queue->nil;
+  while (current != queue->nil) {
+    next = current->next;
+    current->next = rev;
+    rev = current;
+    callback(current);
+    current = next;
+  }
 }
 
 ds_queue_t *ds_queue_clone(ds_queue_t *queue,
