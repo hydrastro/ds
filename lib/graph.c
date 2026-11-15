@@ -293,43 +293,68 @@ ds_status_t ds_graph_bfs(ds_graph_t *graph, size_t start,
   return DS_OK;
 }
 
-static ds_status_t graph_dfs_visit(ds_graph_t *graph, size_t vertex, bool *seen,
-                                   ds_graph_visit_func_t visit, void *user) {
-  size_t i;
-  size_t to;
-  seen[vertex] = true;
-  if (!visit(vertex, graph->vertices[vertex].data, user)) {
-    return DS_STOP;
-  }
-  for (i = 0U; i < graph->vertices[vertex].edge_count; i++) {
-    to = graph->vertices[vertex].edges[i].to;
-    if (!seen[to]) {
-      ds_status_t status;
-      status = graph_dfs_visit(graph, to, seen, visit, user);
-      if (status != DS_OK) {
-        return status;
-      }
-    }
-  }
-  return DS_OK;
-}
-
+/* Depth-first search on an explicit stack of (vertex, next edge), so the
+ * depth of the search (as much as the number of vertices, on a path) costs
+ * heap memory, not call frames. Vertices are visited in the order the
+ * recursive formulation would visit them. */
 ds_status_t ds_graph_dfs(ds_graph_t *graph, size_t start,
                          ds_graph_visit_func_t visit, void *user) {
   bool *seen;
-  ds_status_t status;
+  size_t *vstack;
+  size_t *estack;
+  size_t top = 0;
+  ds_status_t status = DS_OK;
   if (graph == NULL || visit == NULL) {
     return DS_ERR_NULL;
   }
   if (start >= graph->vertex_count) {
     return DS_ERR_RANGE;
   }
+  if (graph->vertex_count > (size_t)-1 / (2 * sizeof(size_t))) {
+    return DS_ERR_OVERFLOW;
+  }
   seen = (bool *)ds_context_calloc(graph->context, graph->vertex_count,
                                    sizeof(*seen));
-  if (seen == NULL) {
+  vstack = (size_t *)ds_context_alloc(graph->context,
+                                      2 * graph->vertex_count * sizeof(size_t));
+  if (seen == NULL || vstack == NULL) {
+    ds_context_free(graph->context, vstack);
+    ds_context_free(graph->context, seen);
     return DS_ERR_ALLOC;
   }
-  status = graph_dfs_visit(graph, start, seen, visit, user);
+  estack = vstack + graph->vertex_count;
+  seen[start] = true;
+  if (!visit(start, graph->vertices[start].data, user)) {
+    status = DS_STOP;
+  } else {
+    vstack[0] = start;
+    estack[0] = 0U;
+    top = 1;
+  }
+  while (top > 0) {
+    size_t v = vstack[top - 1];
+    size_t i = estack[top - 1];
+    size_t to;
+    while (i < graph->vertices[v].edge_count &&
+           seen[graph->vertices[v].edges[i].to]) {
+      i++;
+    }
+    if (i == graph->vertices[v].edge_count) {
+      top--;
+      continue;
+    }
+    estack[top - 1] = i + 1;
+    to = graph->vertices[v].edges[i].to;
+    seen[to] = true;
+    if (!visit(to, graph->vertices[to].data, user)) {
+      status = DS_STOP;
+      break;
+    }
+    vstack[top] = to;
+    estack[top] = 0U;
+    top++;
+  }
+  ds_context_free(graph->context, vstack);
   ds_context_free(graph->context, seen);
   return status;
 }
@@ -815,35 +840,55 @@ ds_status_t ds_graph_connected_components(ds_graph_t *graph,
   return DS_OK;
 }
 
-static void graph_scc_order_dfs(ds_graph_t *graph, size_t vertex, bool *seen,
-                                size_t *order, size_t *count) {
-  size_t i;
-  size_t to;
-
-  seen[vertex] = true;
-  for (i = 0U; i < graph->vertices[vertex].edge_count; i++) {
-    to = graph->vertices[vertex].edges[i].to;
-    if (!seen[to]) {
-      graph_scc_order_dfs(graph, to, seen, order, count);
+/* Kosaraju's first pass from root: vertices in order of finishing, on an
+ * explicit stack (vstack, with the next edge of each in estack) */
+static void graph_scc_order_dfs(ds_graph_t *graph, size_t root, bool *seen,
+                                size_t *order, size_t *count, size_t *vstack,
+                                size_t *estack) {
+  size_t top = 1;
+  seen[root] = true;
+  vstack[0] = root;
+  estack[0] = 0U;
+  while (top > 0) {
+    size_t v = vstack[top - 1];
+    size_t i = estack[top - 1];
+    while (i < graph->vertices[v].edge_count &&
+           seen[graph->vertices[v].edges[i].to]) {
+      i++;
     }
+    if (i == graph->vertices[v].edge_count) {
+      order[*count] = v;
+      (*count)++;
+      top--;
+      continue;
+    }
+    estack[top - 1] = i + 1;
+    v = graph->vertices[v].edges[i].to;
+    seen[v] = true;
+    vstack[top] = v;
+    estack[top] = 0U;
+    top++;
   }
-  order[*count] = vertex;
-  (*count)++;
 }
 
-static void graph_scc_reverse_mark(size_t vertex, size_t component,
+/* the second pass: every vertex that reaches root and has no component
+ * yet joins root's, by a flood fill on the stack */
+static void graph_scc_reverse_mark(size_t root, size_t component,
                                    size_t *components,
                                    const size_t *reverse_offsets,
-                                   const size_t *reverse_edges) {
-  size_t i;
-  size_t from;
-
-  components[vertex] = component;
-  for (i = reverse_offsets[vertex]; i < reverse_offsets[vertex + 1U]; i++) {
-    from = reverse_edges[i];
-    if (components[from] == (size_t)-1) {
-      graph_scc_reverse_mark(from, component, components, reverse_offsets,
-                             reverse_edges);
+                                   const size_t *reverse_edges, size_t *stack) {
+  size_t top = 1;
+  components[root] = component;
+  stack[0] = root;
+  while (top > 0) {
+    size_t v = stack[--top];
+    size_t i;
+    for (i = reverse_offsets[v]; i < reverse_offsets[v + 1U]; i++) {
+      size_t from = reverse_edges[i];
+      if (components[from] == (size_t)-1) {
+        components[from] = component;
+        stack[top++] = from;
+      }
     }
   }
 }
@@ -931,10 +976,13 @@ ds_status_t ds_graph_strongly_connected_components(ds_graph_t *graph,
     }
   }
 
+  /* reverse_counts and reverse_fill are free again: they become the
+   * explicit stacks of both passes */
   count = 0U;
   for (i = 0U; i < graph->vertex_count; i++) {
     if (!seen[i]) {
-      graph_scc_order_dfs(graph, i, seen, order, &count);
+      graph_scc_order_dfs(graph, i, seen, order, &count, reverse_counts,
+                          reverse_fill);
     }
   }
   component_count = 0U;
@@ -943,7 +991,7 @@ ds_status_t ds_graph_strongly_connected_components(ds_graph_t *graph,
     vertex = order[count];
     if (out_components[vertex] == (size_t)-1) {
       graph_scc_reverse_mark(vertex, component_count, out_components,
-                             reverse_offsets, reverse_edges);
+                             reverse_offsets, reverse_edges, reverse_counts);
       component_count++;
     }
   }
