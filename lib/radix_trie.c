@@ -335,40 +335,82 @@ bool ds_radix_trie_is_empty(ds_radix_trie_t *trie) {
   return result;
 }
 
-static void radix_trie_walk_recursive(
-    ds_radix_trie_node_t *node, unsigned char **buffer, size_t *buffer_cap,
-    size_t prefix_length, void *(*allocator)(size_t),
-    void (*deallocator)(void *),
-    void (*callback)(const unsigned char *, size_t, void *)) {
-  size_t needed = prefix_length + node->edge_length;
+/* The walk keeps the path from the root on an explicit stack (a radix
+ * trie is as deep as its longest chain of nested keys), next to the key
+ * buffer. Both grow through the trie's allocator; if one cannot grow, the
+ * walk ends there. */
+typedef struct rt_frame {
+  ds_radix_trie_node_t *node;
+  size_t next;   /* the next child to enter */
+  size_t prefix; /* key bytes up to and including this node's edge */
+} rt_frame_t;
+
+/* appends node's edge to the key at prefix and reports the key if node
+ * ends one; false when the buffer cannot grow */
+static bool rt_enter(ds_radix_trie_t *trie, ds_radix_trie_node_t *node,
+                     size_t prefix, unsigned char **buffer, size_t *cap,
+                     void (*callback)(const unsigned char *, size_t, void *)) {
+  size_t needed = prefix + node->edge_length;
   size_t i;
-  if (needed > *buffer_cap) {
-    size_t new_cap = *buffer_cap == 0 ? 16 : *buffer_cap;
+  if (needed > *cap) {
+    size_t new_cap = *cap == 0 ? 16 : *cap;
     unsigned char *grown;
-    size_t j;
     while (new_cap < needed) {
+      if (new_cap > (size_t)-1 / 2) {
+        return false;
+      }
       new_cap *= 2;
     }
-    grown = (unsigned char *)allocator(new_cap);
-    for (j = 0; j < prefix_length; j++) {
-      grown[j] = (*buffer)[j];
+    grown = (unsigned char *)trie->allocator(new_cap);
+    if (grown == NULL) {
+      return false;
+    }
+    for (i = 0; i < prefix; i++) {
+      grown[i] = (*buffer)[i];
     }
     if (*buffer != NULL) {
-      deallocator(*buffer);
+      trie->deallocator(*buffer);
     }
     *buffer = grown;
-    *buffer_cap = new_cap;
+    *cap = new_cap;
   }
   for (i = 0; i < node->edge_length; i++) {
-    (*buffer)[prefix_length + i] = node->edge[i];
+    (*buffer)[prefix + i] = node->edge[i];
   }
   if (node->is_terminal) {
     callback(*buffer, needed, node->value);
   }
-  for (i = 0; i < node->num_children; i++) {
-    radix_trie_walk_recursive(node->children[i], buffer, buffer_cap, needed,
-                              allocator, deallocator, callback);
+  return true;
+}
+
+static bool rt_push_frame(ds_radix_trie_t *trie, rt_frame_t **stack,
+                          size_t *depth, size_t *cap,
+                          ds_radix_trie_node_t *node, size_t prefix) {
+  if (*depth == *cap) {
+    size_t new_cap = *cap == 0 ? 16 : *cap * 2;
+    rt_frame_t *grown;
+    size_t i;
+    if (*cap > (size_t)-1 / 2 / sizeof(rt_frame_t)) {
+      return false;
+    }
+    grown = (rt_frame_t *)trie->allocator(new_cap * sizeof(rt_frame_t));
+    if (grown == NULL) {
+      return false;
+    }
+    for (i = 0; i < *depth; i++) {
+      grown[i] = (*stack)[i];
+    }
+    if (*stack != NULL) {
+      trie->deallocator(*stack);
+    }
+    *stack = grown;
+    *cap = new_cap;
   }
+  (*stack)[*depth].node = node;
+  (*stack)[*depth].next = 0;
+  (*stack)[*depth].prefix = prefix + node->edge_length;
+  (*depth)++;
+  return true;
 }
 
 void ds_radix_trie_walk(ds_radix_trie_t *trie,
@@ -376,34 +418,67 @@ void ds_radix_trie_walk(ds_radix_trie_t *trie,
                                          void *)) {
   unsigned char *buffer = NULL;
   size_t buffer_cap = 0;
-  radix_trie_walk_recursive(trie->root, &buffer, &buffer_cap, 0,
-                            trie->allocator, trie->deallocator, callback);
+  rt_frame_t *stack = NULL;
+  size_t depth = 0;
+  size_t stack_cap = 0;
+  if (trie->root != NULL &&
+      rt_enter(trie, trie->root, 0, &buffer, &buffer_cap, callback) &&
+      rt_push_frame(trie, &stack, &depth, &stack_cap, trie->root, 0)) {
+    while (depth > 0) {
+      rt_frame_t *f = &stack[depth - 1];
+      ds_radix_trie_node_t *child;
+      size_t prefix;
+      if (f->next == f->node->num_children) {
+        depth--;
+        continue;
+      }
+      child = f->node->children[f->next++];
+      prefix = f->prefix;
+      if (!rt_enter(trie, child, prefix, &buffer, &buffer_cap, callback) ||
+          !rt_push_frame(trie, &stack, &depth, &stack_cap, child, prefix)) {
+        break;
+      }
+    }
+  }
+  if (stack != NULL) {
+    trie->deallocator(stack);
+  }
   if (buffer != NULL) {
     trie->deallocator(buffer);
   }
 }
 
-static void radix_trie_destroy_recursive(ds_radix_trie_t *trie,
-                                         ds_radix_trie_node_t *node,
-                                         void (*destroy_value)(void *)) {
-  size_t i;
-  for (i = 0; i < node->num_children; i++) {
-    radix_trie_destroy_recursive(trie, node->children[i], destroy_value);
-  }
-  if (node->is_terminal && destroy_value != NULL) {
-    destroy_value(node->value);
-  }
-  if (node->children != NULL) {
-    trie->deallocator(node->children);
-  }
+/* Destruction needs no memory: nodes waiting to be freed form a list
+ * linked through their edge pointers, whose bytes are freed first. */
+static void rt_doom(ds_radix_trie_t *trie, ds_radix_trie_node_t **list,
+                    ds_radix_trie_node_t *node) {
   if (node->edge != NULL) {
     trie->deallocator(node->edge);
   }
-  trie->deallocator(node);
+  node->edge = (unsigned char *)(void *)*list;
+  *list = node;
 }
 
 void ds_radix_trie_destroy(ds_radix_trie_t *trie,
                            void (*destroy_value)(void *)) {
-  radix_trie_destroy_recursive(trie, trie->root, destroy_value);
+  ds_radix_trie_node_t *list = NULL;
+  if (trie->root != NULL) {
+    rt_doom(trie, &list, trie->root);
+  }
+  while (list != NULL) {
+    ds_radix_trie_node_t *x = list;
+    size_t i;
+    list = (ds_radix_trie_node_t *)(void *)x->edge;
+    for (i = 0; i < x->num_children; i++) {
+      rt_doom(trie, &list, x->children[i]);
+    }
+    if (x->is_terminal && destroy_value != NULL) {
+      destroy_value(x->value);
+    }
+    if (x->children != NULL) {
+      trie->deallocator(x->children);
+    }
+    trie->deallocator(x);
+  }
   trie->deallocator(trie);
 }
