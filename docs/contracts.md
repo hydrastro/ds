@@ -44,7 +44,11 @@ and destroy callbacks, user data and a representation id.
 - **SSTables and LSM trees.** Both take a `ds_sstable_comparator_t` (compare
   function, user data, id). The id is written into every table, and a table
   opened with a different order is rejected, so persisted data cannot be read
-  in the wrong order.
+  in the wrong order. Filters hash keys, so with a custom order they need a
+  `ds_sstable_key_hash_t` consistent with it (equal keys hash equally,
+  stable across runs): tables built with one mark their filter keyed, and
+  readers use it only once the same hash is attached; without one, custom
+  orders get no filter.
 - **Priority queues.** A queue records its compare function and user data. A
   native meld that moves nodes happens only when both queues use the same
   order; otherwise items are copied in the receiving queue's order.

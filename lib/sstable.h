@@ -83,14 +83,17 @@ extern "C" {
 #define DS_SSTABLE_FILTER_NONE 0u
 #define DS_SSTABLE_FILTER_BLOOM 1u /* the built-in Bloom filter */
 #define DS_SSTABLE_FILTER_AMQ 2u   /* an AMQ filter image */
+/* flag with a filter kind: the filter hashes keys with a key hash given
+ * for a custom comparator (version 3 footers) */
+#define DS_SSTABLE_FILTER_KEYED 0x100u
 
 /* Key order. compare returns <0, 0, >0 like memcmp; it must be a strict
  * weak order consistent across runs, since tables persist it. id names
  * the order in the footer (0 is reserved for the bytewise order); tables
  * and readers must agree on it. Copied into builders and tables.
- * Filters in the current formats hash raw bytes. Builders omit them and
- * readers bypass them for custom comparators, including in older images,
- * since equal keys need not have identical bytes. */
+ * Filters hash bytes, and a custom order may equate keys whose bytes
+ * differ, so tables with a custom comparator carry no filter unless the
+ * builder's options name a key hash consistent with it (below). */
 typedef int (*ds_sstable_cmp_fn)(const unsigned char *a, size_t a_len,
                                  const unsigned char *b, size_t b_len,
                                  void *user);
@@ -103,6 +106,21 @@ typedef struct ds_sstable_comparator {
 /* the default: bytes in memcmp order, shorter prefix first; id 0 */
 const ds_sstable_comparator_t *ds_sstable_bytewise(void);
 
+/* A key hash for a custom comparator: keys that compare equal must hash
+ * equally. Tables keep filters built from it under the comparator's id,
+ * so it must not change between runs either. Builders given one keep
+ * their filters and mark them keyed (version 3 footers, which readers
+ * that predate keyed filters refuse). A reader uses a keyed filter once
+ * the same hash is attached with ds_sstable_set_key_hash, and bypasses it
+ * otherwise, as it bypasses the raw-byte filters of older images with a
+ * custom order. The hash is mixed before use, so a plain one will do. */
+typedef unsigned long (*ds_sstable_hash_fn)(const unsigned char *key,
+                                            size_t len, void *user);
+typedef struct ds_sstable_key_hash {
+  ds_sstable_hash_fn hash;
+  void *user;
+} ds_sstable_key_hash_t;
+
 /* How tables are written. */
 typedef struct ds_sstable_options {
   size_t block_size;       /* 0: 4096 */
@@ -113,6 +131,9 @@ typedef struct ds_sstable_options {
   const ds_amq_ops_t *filter;
   unsigned filter_fp_bits;                   /* its fp_bits (0: default) */
   const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
+  /* a custom comparator's key hash, which keeps the filter (NULL: tables
+   * with a custom comparator get none); ignored for bytewise keys */
+  const ds_sstable_key_hash_t *key_hash;
 } ds_sstable_options_t;
 
 /* all defaults: 4096-byte blocks, restarts every 16 entries, no filter,
@@ -150,6 +171,8 @@ typedef struct ds_sstable_builder {
   size_t entries;
   ds_status_t error;
   ds_sstable_comparator_t cmp;
+  ds_sstable_key_hash_t key_hash; /* when keyed */
+  bool keyed;                     /* filters hash with key_hash */
   ds_context_t *context;
 } ds_sstable_builder_t;
 
@@ -197,6 +220,8 @@ typedef struct ds_sstable {
   unsigned filter_id;   /* the AMQ backend id, for DS_SSTABLE_FILTER_AMQ */
   ds_amq_t amq;         /* the loaded AMQ filter (ops NULL when not loaded) */
   ds_sstable_comparator_t cmp;
+  bool keyed;                     /* the filter hashes with a key hash */
+  ds_sstable_key_hash_t key_hash; /* attached by ds_sstable_set_key_hash */
 } ds_sstable_t;
 
 /* Checks the footer, checksum and region layout (bytewise order); the
@@ -220,6 +245,10 @@ ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
                                ds_context_t *context);
 /* frees a loaded filter; harmless for any opened table */
 void ds_sstable_close(ds_sstable_t *t);
+/* attaches the key hash a keyed filter was built with (NULL detaches it);
+ * it must be the builder's, or lookups may miss keys */
+ds_status_t ds_sstable_set_key_hash(ds_sstable_t *t,
+                                    const ds_sstable_key_hash_t *hash);
 /* true when may_contain can rule keys out */
 bool ds_sstable_has_filter(const ds_sstable_t *t);
 /* full structural check in O(len) plus O(longest key) memory: DS_OK,

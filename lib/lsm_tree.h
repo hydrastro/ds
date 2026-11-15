@@ -31,6 +31,9 @@
  * merges and the iterators, and is recorded in every table it writes (see
  * lib/sstable); the comparator is copied into lsm->cmp at init and the
  * caller's pointer is not kept (config.comparator reads NULL afterwards).
+ * Tables with a custom comparator carry filters only with
+ * config.key_hash, a hash consistent with it (copied the same way into
+ * lsm->key_hash).
  *
  * Budgets are in bytes: memtable_bytes counts each entry's key, value and
  * entry header (not the skip-list links), and level i > 0 may hold
@@ -115,6 +118,9 @@ typedef struct ds_lsm_config {
   unsigned filter_fp_bits;
   ds_lsm_memtable_t memtable;
   const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
+  /* with a custom comparator, a key hash consistent with it, so tables
+   * keep their filters (lib/sstable); NULL: no filters for custom orders */
+  const ds_sstable_key_hash_t *key_hash;
   ds_context_t *context;
   /* persistence (see above): a page store with 128 .. 2^32-1-byte pages, and
    * how many updates trigger a sync of the log (0: only ds_lsm_sync and
@@ -140,8 +146,9 @@ typedef struct ds_lsm_extent {
 
 typedef struct ds_lsm {
   ds_lsm_config_t config;
-  ds_sstable_comparator_t cmp; /* copied from config.comparator */
-  void **mem;                  /* array memtable: sorted entries */
+  ds_sstable_comparator_t cmp;    /* copied from config.comparator */
+  ds_sstable_key_hash_t key_hash; /* copied from config.key_hash */
+  void **mem;                     /* array memtable: sorted entries */
   size_t mem_count;
   size_t mem_capacity;
   size_t mem_bytes;

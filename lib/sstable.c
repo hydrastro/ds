@@ -141,9 +141,49 @@ static unsigned long sst_amq_hash(const unsigned char *p, size_t n) {
 #endif
 }
 
+/* a key hash folded and mixed to 32 bits (the Bloom filter's) */
+static unsigned long sst_mix32(unsigned long h) {
+#if ULONG_MAX > 0xFFFFFFFFUL
+  h ^= h >> 32;
+#endif
+  h &= 0xFFFFFFFFUL;
+  h ^= h >> 16;
+  h = (h * 0x85EBCA6BUL) & 0xFFFFFFFFUL;
+  h ^= h >> 13;
+  h = (h * 0xC2B2AE35UL) & 0xFFFFFFFFUL;
+  h ^= h >> 16;
+  return h;
+}
+
+/* a key hash mixed to the width of unsigned long (AMQ filters') */
+static unsigned long sst_mix_wide(unsigned long h) {
+#if ULONG_MAX > 0xFFFFFFFFUL
+  h ^= h >> 33;
+  h *= 0xFF51AFD7ED558CCDUL;
+  h ^= h >> 33;
+  h *= 0xC4CEB9FE1A85EC53UL;
+  h ^= h >> 33;
+  return h;
+#else
+  return sst_mix32(h);
+#endif
+}
+
+/* the hash a filter takes for a key: the comparator's key hash, mixed, for
+ * a keyed filter, otherwise a hash of the bytes */
+static unsigned long sst_hash_for(bool amq, const ds_sstable_key_hash_t *kh,
+                                  const unsigned char *p, size_t n) {
+  if (kh != NULL) {
+    unsigned long h = kh->hash(p, n, kh->user);
+    return amq ? sst_mix_wide(h) : sst_mix32(h);
+  }
+  return amq ? sst_amq_hash(p, n) : sst_key_hash(p, n);
+}
+
 static unsigned long sst_filter_hash(const ds_sstable_builder_t *b,
                                      const unsigned char *p, size_t n) {
-  return b->filter_ops != NULL ? sst_amq_hash(p, n) : sst_key_hash(p, n);
+  return sst_hash_for(b->filter_ops != NULL, b->keyed ? &b->key_hash : NULL, p,
+                      n);
 }
 
 static int sst_bytewise_cmp(const unsigned char *a, size_t na,
@@ -305,11 +345,17 @@ ds_status_t ds_sstable_builder_init_opts(ds_sstable_builder_t *b,
   b->filter_ops = options->filter;
   b->filter_fp_bits = options->filter_fp_bits;
   b->cmp = options->comparator == NULL ? sst_bytewise : *options->comparator;
-  /* The on-disk filters hash bytes, not comparator equivalence classes.
-   * A custom order may equate different spellings of the same key. */
+  /* Filters hash bytes, which a custom order may not respect (it can
+   * equate different spellings of a key): such tables keep a filter only
+   * with a key hash consistent with the order. */
   if (b->cmp.id != 0) {
-    b->bits_per_key = 0;
-    b->filter_ops = NULL;
+    if (options->key_hash != NULL && options->key_hash->hash != NULL) {
+      b->keyed = true;
+      b->key_hash = *options->key_hash;
+    } else {
+      b->bits_per_key = 0;
+      b->filter_ops = NULL;
+    }
   }
   b->context = context;
   return DS_OK;
@@ -643,6 +689,9 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
     size_t bits;
     size_t i;
     unsigned char kb;
+    if (b->keyed) {
+      foot_len = SST_FOOTER_V3; /* the kind field carries the flag */
+    }
     if (!sst_bloom_params(b->bits_per_key, b->hash_count, &k, &bits)) {
       st = DS_ERR_OVERFLOW;
     }
@@ -685,7 +734,9 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
     sst_put_u32(foot + 16, (unsigned long)b->entries);
     sst_put_u32(foot + 20, b->cmp.id);
     if (foot_len == SST_FOOTER_V3) {
-      sst_put_u32(foot + 24, DS_SSTABLE_FILTER_AMQ);
+      sst_put_u32(foot + 24, (b->filter_ops != NULL ? DS_SSTABLE_FILTER_AMQ
+                                                    : DS_SSTABLE_FILTER_BLOOM) |
+                                 (b->keyed ? DS_SSTABLE_FILTER_KEYED : 0U));
     }
     /* the checksum covers the data and the footer fields before it */
     crc = sst_crc_update(0xFFFFFFFFUL, b->buf, b->len);
@@ -795,6 +846,13 @@ ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,
     kind =
         t->filter_len >= 2 ? DS_SSTABLE_FILTER_BLOOM : DS_SSTABLE_FILTER_NONE;
   }
+  /* a keyed filter: built with a custom comparator's key hash */
+  t->keyed = (kind & DS_SSTABLE_FILTER_KEYED) != 0;
+  kind &= ~(unsigned long)DS_SSTABLE_FILTER_KEYED;
+  if (t->keyed && (cmp->id == 0 || kind == DS_SSTABLE_FILTER_NONE)) {
+    memset(t, 0, sizeof(*t));
+    return DS_ERR_INVALID;
+  }
   t->filter_kind = (unsigned)(kind & 0xFFUL);
   /* index inside the body with a well-formed restart array; the filter,
    * when present, after the index */
@@ -832,7 +890,7 @@ ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
   const unsigned char *img;
   ds_status_t st = ds_sstable_open_cmp(t, data, len, cmp);
   if (st != DS_OK || t->filter_kind != DS_SSTABLE_FILTER_AMQ ||
-      t->cmp.id != 0) {
+      (t->cmp.id != 0 && !t->keyed)) {
     return st;
   }
   img = t->data + t->filter_off;
@@ -858,8 +916,28 @@ void ds_sstable_close(ds_sstable_t *t) {
   memset(t, 0, sizeof(*t));
 }
 
+ds_status_t ds_sstable_set_key_hash(ds_sstable_t *t,
+                                    const ds_sstable_key_hash_t *hash) {
+  if (t == NULL) {
+    return DS_ERR_NULL;
+  }
+  if (hash == NULL || hash->hash == NULL) {
+    t->key_hash.hash = NULL;
+    t->key_hash.user = NULL;
+  } else {
+    t->key_hash = *hash;
+  }
+  return DS_OK;
+}
+
+/* the filter can be trusted: bytewise keys, or a keyed filter with its
+ * key hash attached */
+static bool sst_filter_usable(const ds_sstable_t *t) {
+  return t->cmp.id == 0 || (t->keyed && t->key_hash.hash != NULL);
+}
+
 bool ds_sstable_has_filter(const ds_sstable_t *t) {
-  if (t == NULL || t->data == NULL || t->cmp.id != 0) {
+  if (t == NULL || t->data == NULL || !sst_filter_usable(t)) {
     return false;
   }
   return t->filter_kind == DS_SSTABLE_FILTER_BLOOM ||
@@ -892,13 +970,14 @@ bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
   unsigned long h;
   unsigned long delta;
   size_t j;
-  if (t == NULL || t->data == NULL || t->cmp.id != 0) {
+  if (t == NULL || t->data == NULL || !sst_filter_usable(t)) {
     return true;
   }
   if (t->filter_kind == DS_SSTABLE_FILTER_AMQ) {
     return t->amq.ops == NULL ||
            ds_amq_contains(&t->amq,
-                           sst_amq_hash((const unsigned char *)key, key_len));
+                           sst_hash_for(true, t->keyed ? &t->key_hash : NULL,
+                                        (const unsigned char *)key, key_len));
   }
   if (t->filter_kind != DS_SSTABLE_FILTER_BLOOM || t->filter_len < 2) {
     return true;
@@ -906,7 +985,8 @@ bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
   f = t->data + t->filter_off;
   k = f[0];
   bits = (t->filter_len - 1) * 8;
-  h = sst_key_hash((const unsigned char *)key, key_len);
+  h = sst_hash_for(false, t->keyed ? &t->key_hash : NULL,
+                   (const unsigned char *)key, key_len);
   delta = ((h >> 17) | (h << 15)) & 0xFFFFFFFFUL;
   for (j = 0; j < k; j++) {
     size_t bit = (size_t)(h % (unsigned long)bits);

@@ -190,11 +190,17 @@ static void lsm_options(const ds_lsm_t *l, ds_sstable_options_t *o) {
   o->filter = l->config.filter;
   o->filter_fp_bits = l->config.filter_fp_bits;
   o->comparator = &l->cmp;
+  o->key_hash = l->key_hash.hash != NULL ? &l->key_hash : NULL;
 }
 
 static ds_status_t lsm_open(ds_lsm_t *l, ds_lsm_table_t *t) {
-  return ds_sstable_open_ex(&t->table, t->data, t->len, &l->cmp,
-                            l->config.filter, l->config.context);
+  ds_status_t st = ds_sstable_open_ex(&t->table, t->data, t->len, &l->cmp,
+                                      l->config.filter, l->config.context);
+  if (st == DS_OK) {
+    st = ds_sstable_set_key_hash(
+        &t->table, l->key_hash.hash != NULL ? &l->key_hash : NULL);
+  }
+  return st;
 }
 
 /* ---- persistence through a page store ---- */
@@ -1164,8 +1170,14 @@ ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config) {
   } else {
     lsm->cmp = *lsm->config.comparator;
   }
-  /* lsm->cmp is the copy in use; the caller's comparator is not kept */
+  /* lsm->cmp is the copy in use; the caller's comparator is not kept, nor
+   * its key hash, which only a custom order uses */
   lsm->config.comparator = NULL;
+  if (lsm->config.key_hash != NULL && lsm->config.key_hash->hash != NULL &&
+      lsm->cmp.id != 0) {
+    lsm->key_hash = *lsm->config.key_hash;
+  }
+  lsm->config.key_hash = NULL;
   if (lsm->config.memtable == DS_LSM_MEMTABLE_SKIPLIST) {
     size_t i;
     lsm->skip_head = ds_context_alloc(
