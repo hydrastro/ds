@@ -38,6 +38,7 @@ Core mutable containers:
 - `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
 - `lib/euler_tour_tree`: Euler-tour trees (link, cut, connectivity, component and subtree aggregates with lazy actions) over a treap, edges in a pluggable map
 - `lib/executor`: executors for parallel steps (independent tasks run by the caller's threads, a pool or OpenMP; sequentially by default), with chunking helpers
+- `lib/fault_store`: page store that injects failures and simulates crashes (volatile writes until sync; lose, apply all, a seeded subset, or tear a page) for testing storage stacks
 - `lib/finger_tree`: persistent 2-3 finger trees with a user monoid (deque ends, concat, split/lookup by monotone predicate)
 - `lib/fm_index`: FM-index (count, locate, extract, backward steps) over a pluggable rank backend: sampled occurrence table or wavelet matrix
 - `lib/fusion_tree`: fusion tree (Fredman–Willard: a B-tree of K-key nodes over machine words, each searched by parallel sketch comparison inside one word; floor, ceiling, predecessor, successor, rank, select, bulk loading), also a `lib/ordered_iface` backend

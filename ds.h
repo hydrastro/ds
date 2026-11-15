@@ -62,6 +62,7 @@
 #include "lib/euler_tour_tree.h"
 #include "lib/executor.h"
 #include "lib/extendible_hash.h"
+#include "lib/fault_store.h"
 #include "lib/fenwick_tree.h"
 #include "lib/fibonacci_heap.h"
 #include "lib/finger_tree.h"

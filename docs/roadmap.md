@@ -246,6 +246,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/ordered_iface: (a,b)-tree backend (O(log n) split and join, DS_ORDERED_SPLIT_LOG)
 - lib/map_iface: coalesced hashing and open addressing backends
 - lib/lsm_tree: persistence through a page store (write-ahead log, manifest slots, crash recovery)
+- lib/fault_store: fault-injecting, crash-simulating page store over any other
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
