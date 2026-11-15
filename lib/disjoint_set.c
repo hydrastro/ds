@@ -7,8 +7,14 @@ ds_disjoint_set_t *ds_disjoint_set_create(void) {
 
 ds_disjoint_set_t *ds_disjoint_set_create_alloc(void *(*allocator)(size_t),
                                                 void (*deallocator)(void *)) {
-  ds_disjoint_set_t *set =
-      (ds_disjoint_set_t *)allocator(sizeof(ds_disjoint_set_t));
+  ds_disjoint_set_t *set;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  set = (ds_disjoint_set_t *)allocator(sizeof(ds_disjoint_set_t));
+  if (set == NULL) {
+    return NULL;
+  }
   set->allocator = allocator;
   set->deallocator = deallocator;
   set->count = 0;

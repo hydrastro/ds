@@ -20,6 +20,7 @@ typedef struct disjoint_set {
   void (*deallocator)(void *);
 } ds_disjoint_set_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_disjoint_set_t *ds_disjoint_set_create(void);
 ds_disjoint_set_t *ds_disjoint_set_create_alloc(void *(*allocator)(size_t),
                                                 void (*deallocator)(void *));
