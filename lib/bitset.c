@@ -30,10 +30,16 @@ ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
   ds_bitset_t *bitset;
   size_t num_words;
   size_t i;
-  num_words = num_bits == 0 ? 0
-                            : (num_bits + DS_BITSET_BITS_PER_WORD - 1) /
-                                  DS_BITSET_BITS_PER_WORD;
+  num_words = num_bits / DS_BITSET_BITS_PER_WORD +
+              (num_bits % DS_BITSET_BITS_PER_WORD != 0 ? 1 : 0);
+  if (allocator == NULL || deallocator == NULL ||
+      num_words > ((size_t)-1) / sizeof(unsigned long)) {
+    return NULL;
+  }
   bitset = (ds_bitset_t *)allocator(sizeof(ds_bitset_t));
+  if (bitset == NULL) {
+    return NULL;
+  }
   bitset->allocator = allocator;
   bitset->deallocator = deallocator;
   bitset->num_bits = num_bits;
@@ -42,6 +48,10 @@ ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
       num_words == 0
           ? NULL
           : (unsigned long *)allocator(num_words * sizeof(unsigned long));
+  if (num_words > 0 && bitset->words == NULL) {
+    deallocator(bitset);
+    return NULL;
+  }
   for (i = 0; i < num_words; i++) {
     bitset->words[i] = 0UL;
   }
@@ -231,6 +241,9 @@ ds_bitset_t *ds_bitset_clone(ds_bitset_t *bitset) {
   size_t i;
   new_bitset = ds_bitset_create_alloc(bitset->num_bits, bitset->allocator,
                                       bitset->deallocator);
+  if (new_bitset == NULL) {
+    return NULL;
+  }
   for (i = 0; i < bitset->num_words; i++) {
     new_bitset->words[i] = bitset->words[i];
   }

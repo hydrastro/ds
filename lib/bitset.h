@@ -17,6 +17,7 @@ typedef struct bitset {
   void (*deallocator)(void *);
 } ds_bitset_t;
 
+/* NULL when memory runs out (create, create_alloc and clone) */
 ds_bitset_t *ds_bitset_create(size_t num_bits);
 ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
                                     void (*deallocator)(void *));
