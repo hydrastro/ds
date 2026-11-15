@@ -8,10 +8,21 @@ ds_dlist_t *ds_dlist_create(void) {
 
 ds_dlist_t *ds_dlist_create_alloc(void *(*allocator)(size_t),
                                   void (*deallocator)(void *)) {
-  ds_dlist_t *list = (ds_dlist_t *)allocator(sizeof(ds_dlist_t));
+  ds_dlist_t *list;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  list = (ds_dlist_t *)allocator(sizeof(ds_dlist_t));
+  if (list == NULL) {
+    return NULL;
+  }
   list->allocator = allocator;
   list->deallocator = deallocator;
   list->nil = (ds_dlist_node_t *)allocator(sizeof(ds_dlist_node_t));
+  if (list->nil == NULL) {
+    deallocator(list);
+    return NULL;
+  }
   list->head = list->nil;
   list->tail = list->nil;
   list->nil->prev = list->nil;
@@ -138,17 +149,57 @@ bool ds_dlist_is_empty(ds_dlist_t *list) {
   return result;
 }
 
+/* clones of the source's nodes, in order, added to copy; false when
+ * clone_node returns NULL (the clones made so far are in copy) */
+static bool
+dlist_clone_nodes(const ds_dlist_t *list, ds_dlist_t *copy,
+                  ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *)) {
+  ds_dlist_node_t *current;
+  for (current = list->head; current != list->nil; current = current->next) {
+    ds_dlist_node_t *node = clone_node(current);
+    if (node == NULL) {
+      return false;
+    }
+    ds_dlist_append(copy, node);
+  }
+  return true;
+}
+
 ds_dlist_t *ds_dlist_clone(ds_dlist_t *list,
                            ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *)) {
-  ds_dlist_t *new_list;
-  ds_dlist_node_t *current;
-  new_list = ds_dlist_create_alloc(list->allocator, list->deallocator);
-  current = list->head;
-  while (current != list->nil) {
-    ds_dlist_node_t *cloned_node = clone_node(current);
-    ds_dlist_append(new_list, cloned_node);
-    current = current->next;
+  ds_dlist_t *copy;
+  if (list == NULL || clone_node == NULL) {
+    return NULL;
   }
+  copy = ds_dlist_create_alloc(list->allocator, list->deallocator);
+  if (copy != NULL && !dlist_clone_nodes(list, copy, clone_node)) {
+    /* the clones made so far are not released */
+    ds_dlist_destroy(copy, NULL);
+    copy = NULL;
+  }
+  return copy;
+}
 
-  return new_list;
+ds_status_t ds_dlist_clone_ex(const ds_dlist_t *list,
+                              ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *),
+                              void (*destroy_clone)(ds_dlist_node_t *),
+                              ds_dlist_t **out) {
+  ds_dlist_t *copy;
+  if (out == NULL) {
+    return DS_ERR_NULL;
+  }
+  *out = NULL;
+  if (list == NULL || clone_node == NULL || destroy_clone == NULL) {
+    return DS_ERR_NULL;
+  }
+  copy = ds_dlist_create_alloc(list->allocator, list->deallocator);
+  if (copy == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (!dlist_clone_nodes(list, copy, clone_node)) {
+    ds_dlist_destroy(copy, destroy_clone);
+    return DS_ERR_CALLBACK;
+  }
+  *out = copy;
+  return DS_OK;
 }
