@@ -34,6 +34,7 @@ typedef struct ost {
   void (*deallocator)(void *);
 } ds_ost_t;
 
+/* NULL when memory runs out, or without an allocator and a deallocator */
 ds_ost_t *ds_ost_create(int (*compare)(ds_ost_node_t *, ds_ost_node_t *));
 ds_ost_t *ds_ost_create_alloc(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
                               void *(*allocator)(size_t),

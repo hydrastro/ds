@@ -35,12 +35,23 @@ ds_ost_t *ds_ost_create(int (*compare)(ds_ost_node_t *, ds_ost_node_t *)) {
 ds_ost_t *ds_ost_create_alloc(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
                               void *(*allocator)(size_t),
                               void (*deallocator)(void *)) {
-  ds_ost_t *tree = (ds_ost_t *)allocator(sizeof(ds_ost_t));
+  ds_ost_t *tree;
+  if (allocator == NULL || deallocator == NULL) {
+    return NULL;
+  }
+  tree = (ds_ost_t *)allocator(sizeof(ds_ost_t));
+  if (tree == NULL) {
+    return NULL;
+  }
   tree->compare = compare;
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->size = 0;
   tree->nil = (ds_ost_node_t *)allocator(sizeof(ds_ost_node_t));
+  if (tree->nil == NULL) {
+    deallocator(tree);
+    return NULL;
+  }
   tree->nil->left = tree->nil;
   tree->nil->right = tree->nil;
   tree->nil->parent = tree->nil;
