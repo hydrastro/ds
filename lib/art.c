@@ -96,8 +96,8 @@ static ds_art_node_t *art_alloc_node(ds_art_t *art, unsigned char type) {
 
 static ds_art_leaf_t *art_make_leaf(ds_art_t *art, const unsigned char *key,
                                     size_t key_length, void *value) {
-  ds_art_leaf_t *leaf =
-      (ds_art_leaf_t *)art->allocator(sizeof(ds_art_leaf_t) + key_length);
+  ds_art_leaf_t *leaf = (ds_art_leaf_t *)(void *)art->allocator(
+      sizeof(ds_art_leaf_t) + key_length);
   leaf->base.type = DS_ART_LEAF;
   leaf->base.num_children = 0;
   leaf->base.prefix_len = 0;
@@ -122,7 +122,7 @@ static ds_art_node_t **art_find_child(ds_art_node_t *node, unsigned char c) {
   int i;
   switch (node->type) {
   case DS_ART_NODE4: {
-    ds_art_node4_t *n = (ds_art_node4_t *)node;
+    ds_art_node4_t *n = (ds_art_node4_t *)(void *)node;
     for (i = 0; i < node->num_children; i++) {
       if (n->keys[i] == c) {
         return &n->children[i];
@@ -131,7 +131,7 @@ static ds_art_node_t **art_find_child(ds_art_node_t *node, unsigned char c) {
     break;
   }
   case DS_ART_NODE16: {
-    ds_art_node16_t *n = (ds_art_node16_t *)node;
+    ds_art_node16_t *n = (ds_art_node16_t *)(void *)node;
     for (i = 0; i < node->num_children; i++) {
       if (n->keys[i] == c) {
         return &n->children[i];
@@ -140,7 +140,7 @@ static ds_art_node_t **art_find_child(ds_art_node_t *node, unsigned char c) {
     break;
   }
   case DS_ART_NODE48: {
-    ds_art_node48_t *n = (ds_art_node48_t *)node;
+    ds_art_node48_t *n = (ds_art_node48_t *)(void *)node;
     unsigned char idx = n->child_index[c];
     if (idx != 0) {
       return &n->children[idx - 1];
@@ -148,7 +148,7 @@ static ds_art_node_t **art_find_child(ds_art_node_t *node, unsigned char c) {
     break;
   }
   case DS_ART_NODE256: {
-    ds_art_node256_t *n = (ds_art_node256_t *)node;
+    ds_art_node256_t *n = (ds_art_node256_t *)(void *)node;
     if (n->children[c] != NULL) {
       return &n->children[c];
     }
@@ -168,8 +168,9 @@ static void art_add_child(ds_art_t *art, ds_art_node_t *node,
 static ds_art_node_t *art_grow(ds_art_t *art, ds_art_node_t *node) {
   switch (node->type) {
   case DS_ART_NODE4: {
-    ds_art_node4_t *n = (ds_art_node4_t *)node;
-    ds_art_node16_t *m = (ds_art_node16_t *)art_alloc_node(art, DS_ART_NODE16);
+    ds_art_node4_t *n = (ds_art_node4_t *)(void *)node;
+    ds_art_node16_t *m =
+        (ds_art_node16_t *)(void *)art_alloc_node(art, DS_ART_NODE16);
     int i;
     m->base.num_children = node->num_children;
     m->base.prefix_len = node->prefix_len;
@@ -182,8 +183,9 @@ static ds_art_node_t *art_grow(ds_art_t *art, ds_art_node_t *node) {
     return (ds_art_node_t *)m;
   }
   case DS_ART_NODE16: {
-    ds_art_node16_t *n = (ds_art_node16_t *)node;
-    ds_art_node48_t *m = (ds_art_node48_t *)art_alloc_node(art, DS_ART_NODE48);
+    ds_art_node16_t *n = (ds_art_node16_t *)(void *)node;
+    ds_art_node48_t *m =
+        (ds_art_node48_t *)(void *)art_alloc_node(art, DS_ART_NODE48);
     int i;
     m->base.num_children = node->num_children;
     m->base.prefix_len = node->prefix_len;
@@ -196,9 +198,9 @@ static ds_art_node_t *art_grow(ds_art_t *art, ds_art_node_t *node) {
     return (ds_art_node_t *)m;
   }
   case DS_ART_NODE48: {
-    ds_art_node48_t *n = (ds_art_node48_t *)node;
+    ds_art_node48_t *n = (ds_art_node48_t *)(void *)node;
     ds_art_node256_t *m =
-        (ds_art_node256_t *)art_alloc_node(art, DS_ART_NODE256);
+        (ds_art_node256_t *)(void *)art_alloc_node(art, DS_ART_NODE256);
     int i;
     m->base.num_children = node->num_children;
     m->base.prefix_len = node->prefix_len;
@@ -221,7 +223,7 @@ static void art_add_child(ds_art_t *art, ds_art_node_t *node,
                           ds_art_node_t *child) {
   switch (node->type) {
   case DS_ART_NODE4: {
-    ds_art_node4_t *n = (ds_art_node4_t *)node;
+    ds_art_node4_t *n = (ds_art_node4_t *)(void *)node;
     if (node->num_children < 4) {
       int i;
       int pos = 0;
@@ -243,7 +245,7 @@ static void art_add_child(ds_art_t *art, ds_art_node_t *node,
     break;
   }
   case DS_ART_NODE16: {
-    ds_art_node16_t *n = (ds_art_node16_t *)node;
+    ds_art_node16_t *n = (ds_art_node16_t *)(void *)node;
     if (node->num_children < 16) {
       int i;
       int pos = 0;
@@ -265,7 +267,7 @@ static void art_add_child(ds_art_t *art, ds_art_node_t *node,
     break;
   }
   case DS_ART_NODE48: {
-    ds_art_node48_t *n = (ds_art_node48_t *)node;
+    ds_art_node48_t *n = (ds_art_node48_t *)(void *)node;
     if (node->num_children < 48) {
       int pos = 0;
       while (pos < 48 && n->children[pos] != NULL) {
@@ -284,7 +286,7 @@ static void art_add_child(ds_art_t *art, ds_art_node_t *node,
     break;
   }
   default: {
-    ds_art_node256_t *n = (ds_art_node256_t *)node;
+    ds_art_node256_t *n = (ds_art_node256_t *)(void *)node;
     n->children[c] = child;
     node->num_children++;
     break;
@@ -311,7 +313,7 @@ bool ds_art_insert(ds_art_t *art, const unsigned char *key, size_t key_length,
       break;
     }
     if (art_is_leaf(node)) {
-      ds_art_leaf_t *leaf = (ds_art_leaf_t *)node;
+      ds_art_leaf_t *leaf = (ds_art_leaf_t *)(void *)node;
       ds_art_node_t *new_node;
       ds_art_leaf_t *new_leaf;
       size_t prefix;
@@ -412,7 +414,7 @@ static ds_art_leaf_t *art_search(ds_art_t *art, const unsigned char *key,
   size_t depth = 0;
   while (node != NULL) {
     if (art_is_leaf(node)) {
-      ds_art_leaf_t *leaf = (ds_art_leaf_t *)node;
+      ds_art_leaf_t *leaf = (ds_art_leaf_t *)(void *)node;
       if (art_leaf_matches(leaf, key, key_length)) {
         return leaf;
       }
@@ -468,8 +470,9 @@ static void art_remove_child(ds_art_t *art, ds_art_node_t *node,
 static ds_art_node_t *art_shrink(ds_art_t *art, ds_art_node_t *node) {
   switch (node->type) {
   case DS_ART_NODE16: {
-    ds_art_node16_t *n = (ds_art_node16_t *)node;
-    ds_art_node4_t *m = (ds_art_node4_t *)art_alloc_node(art, DS_ART_NODE4);
+    ds_art_node16_t *n = (ds_art_node16_t *)(void *)node;
+    ds_art_node4_t *m =
+        (ds_art_node4_t *)(void *)art_alloc_node(art, DS_ART_NODE4);
     int i;
     m->base.num_children = node->num_children;
     m->base.prefix_len = node->prefix_len;
@@ -482,8 +485,9 @@ static ds_art_node_t *art_shrink(ds_art_t *art, ds_art_node_t *node) {
     return (ds_art_node_t *)m;
   }
   case DS_ART_NODE48: {
-    ds_art_node48_t *n = (ds_art_node48_t *)node;
-    ds_art_node16_t *m = (ds_art_node16_t *)art_alloc_node(art, DS_ART_NODE16);
+    ds_art_node48_t *n = (ds_art_node48_t *)(void *)node;
+    ds_art_node16_t *m =
+        (ds_art_node16_t *)(void *)art_alloc_node(art, DS_ART_NODE16);
     int i;
     int pos = 0;
     m->base.prefix_len = node->prefix_len;
@@ -500,8 +504,9 @@ static ds_art_node_t *art_shrink(ds_art_t *art, ds_art_node_t *node) {
     return (ds_art_node_t *)m;
   }
   case DS_ART_NODE256: {
-    ds_art_node256_t *n = (ds_art_node256_t *)node;
-    ds_art_node48_t *m = (ds_art_node48_t *)art_alloc_node(art, DS_ART_NODE48);
+    ds_art_node256_t *n = (ds_art_node256_t *)(void *)node;
+    ds_art_node48_t *m =
+        (ds_art_node48_t *)(void *)art_alloc_node(art, DS_ART_NODE48);
     int i;
     int pos = 0;
     m->base.prefix_len = node->prefix_len;
@@ -533,11 +538,11 @@ static void art_remove_child(ds_art_t *art, ds_art_node_t *node,
     int i;
     int pos = -1;
     if (node->type == DS_ART_NODE4) {
-      ds_art_node4_t *n = (ds_art_node4_t *)node;
+      ds_art_node4_t *n = (ds_art_node4_t *)(void *)node;
       keys = n->keys;
       children = n->children;
     } else {
-      ds_art_node16_t *n = (ds_art_node16_t *)node;
+      ds_art_node16_t *n = (ds_art_node16_t *)(void *)node;
       keys = n->keys;
       children = n->children;
     }
@@ -558,7 +563,7 @@ static void art_remove_child(ds_art_t *art, ds_art_node_t *node,
     break;
   }
   case DS_ART_NODE48: {
-    ds_art_node48_t *n = (ds_art_node48_t *)node;
+    ds_art_node48_t *n = (ds_art_node48_t *)(void *)node;
     unsigned char idx = n->child_index[c];
     if (idx == 0) {
       return;
@@ -569,7 +574,7 @@ static void art_remove_child(ds_art_t *art, ds_art_node_t *node,
     break;
   }
   default: {
-    ds_art_node256_t *n = (ds_art_node256_t *)node;
+    ds_art_node256_t *n = (ds_art_node256_t *)(void *)node;
     if (n->children[c] == NULL) {
       return;
     }
@@ -600,7 +605,7 @@ bool ds_art_remove(ds_art_t *art, const unsigned char *key, size_t key_length,
   while (*ref != NULL) {
     ds_art_node_t *node = *ref;
     if (art_is_leaf(node)) {
-      ds_art_leaf_t *leaf = (ds_art_leaf_t *)node;
+      ds_art_leaf_t *leaf = (ds_art_leaf_t *)(void *)node;
       if (art_leaf_matches(leaf, key, key_length)) {
         if (out_value != NULL) {
           *out_value = leaf->value;
@@ -656,115 +661,156 @@ bool ds_art_is_empty(ds_art_t *art) {
   return result;
 }
 
-static void art_walk_node(ds_art_node_t *node,
-                          void (*callback)(const unsigned char *, size_t,
-                                           void *, void *),
-                          void *user) {
-  int i;
-  if (node == NULL) {
-    return;
-  }
-  if (art_is_leaf(node)) {
-    ds_art_leaf_t *leaf = (ds_art_leaf_t *)node;
-    callback(leaf->key, leaf->key_length, leaf->value, user);
-    return;
-  }
+/* the first child at position *pos or later, in key order, moving *pos
+ * past it; NULL when there is none */
+static ds_art_node_t *art_next_child(ds_art_node_t *node, int *pos) {
+  int i = *pos;
   switch (node->type) {
   case DS_ART_NODE4: {
-    ds_art_node4_t *n = (ds_art_node4_t *)node;
-    for (i = 0; i < node->num_children; i++) {
-      art_walk_node(n->children[i], callback, user);
+    ds_art_node4_t *n = (ds_art_node4_t *)(void *)node;
+    if (i < node->num_children) {
+      *pos = i + 1;
+      return n->children[i];
     }
     break;
   }
   case DS_ART_NODE16: {
-    ds_art_node16_t *n = (ds_art_node16_t *)node;
-    for (i = 0; i < node->num_children; i++) {
-      art_walk_node(n->children[i], callback, user);
+    ds_art_node16_t *n = (ds_art_node16_t *)(void *)node;
+    if (i < node->num_children) {
+      *pos = i + 1;
+      return n->children[i];
     }
     break;
   }
   case DS_ART_NODE48: {
-    ds_art_node48_t *n = (ds_art_node48_t *)node;
-    for (i = 0; i < 256; i++) {
+    ds_art_node48_t *n = (ds_art_node48_t *)(void *)node;
+    for (; i < 256; i++) {
       if (n->child_index[i] != 0) {
-        art_walk_node(n->children[n->child_index[i] - 1], callback, user);
+        *pos = i + 1;
+        return n->children[n->child_index[i] - 1];
       }
     }
     break;
   }
   default: {
-    ds_art_node256_t *n = (ds_art_node256_t *)node;
-    for (i = 0; i < 256; i++) {
+    ds_art_node256_t *n = (ds_art_node256_t *)(void *)node;
+    for (; i < 256; i++) {
       if (n->children[i] != NULL) {
-        art_walk_node(n->children[i], callback, user);
+        *pos = i + 1;
+        return n->children[i];
       }
     }
     break;
   }
   }
+  *pos = 256;
+  return NULL;
 }
+
+/* The walk keeps its path on an explicit stack (the tree is as deep as
+ * its keys are long): a fixed array first, then the allocator. If the
+ * stack cannot grow, the walk ends there. */
+#define ART_STACK 32
+
+typedef struct art_frame {
+  ds_art_node_t *node;
+  int pos;
+} art_frame_t;
 
 void ds_art_walk(ds_art_t *art,
                  void (*callback)(const unsigned char *, size_t, void *,
                                   void *),
                  void *user) {
-  art_walk_node(art->root, callback, user);
+  art_frame_t local[ART_STACK];
+  art_frame_t *stack = local;
+  size_t cap = ART_STACK;
+  size_t top = 0;
+  ds_art_node_t *n = art->root;
+  if (n == NULL) {
+    return;
+  }
+  if (art_is_leaf(n)) {
+    ds_art_leaf_t *leaf = (ds_art_leaf_t *)(void *)n;
+    callback(leaf->key, leaf->key_length, leaf->value, user);
+    return;
+  }
+  stack[0].node = n;
+  stack[0].pos = 0;
+  top = 1;
+  while (top > 0) {
+    ds_art_node_t *c = art_next_child(stack[top - 1].node, &stack[top - 1].pos);
+    if (c == NULL) {
+      top--;
+      continue;
+    }
+    if (art_is_leaf(c)) {
+      ds_art_leaf_t *leaf = (ds_art_leaf_t *)(void *)c;
+      callback(leaf->key, leaf->key_length, leaf->value, user);
+      continue;
+    }
+    if (top == cap) {
+      art_frame_t *grown;
+      size_t i;
+      if (cap > (size_t)-1 / 2 / sizeof(art_frame_t)) {
+        break;
+      }
+      grown = (art_frame_t *)art->allocator(2 * cap * sizeof(art_frame_t));
+      if (grown == NULL) {
+        break;
+      }
+      for (i = 0; i < top; i++) {
+        grown[i] = stack[i];
+      }
+      if (stack != local) {
+        art->deallocator(stack);
+      }
+      stack = grown;
+      cap *= 2;
+    }
+    stack[top].node = c;
+    stack[top].pos = 0;
+    top++;
+  }
+  if (stack != local) {
+    art->deallocator(stack);
+  }
 }
 
-static void art_destroy_node(ds_art_t *art, ds_art_node_t *node,
-                             void (*destroy_value)(void *)) {
-  int i;
+/* Destruction needs no recursion and no memory: inner nodes waiting to be
+ * freed form a list linked through their prefix bytes, which destruction
+ * does not read; leaves are freed as they are met. */
+typedef char
+    art_link_fits[DS_ART_MAX_PREFIX >= sizeof(ds_art_node_t *) ? 1 : -1];
+
+static void art_doom(ds_art_t *art, ds_art_node_t **list, ds_art_node_t *node,
+                     void (*destroy_value)(void *)) {
   if (node == NULL) {
     return;
   }
   if (art_is_leaf(node)) {
-    ds_art_leaf_t *leaf = (ds_art_leaf_t *)node;
+    ds_art_leaf_t *leaf = (ds_art_leaf_t *)(void *)node;
     if (destroy_value != NULL) {
       destroy_value(leaf->value);
     }
     art->deallocator(leaf);
     return;
   }
-  switch (node->type) {
-  case DS_ART_NODE4: {
-    ds_art_node4_t *n = (ds_art_node4_t *)node;
-    for (i = 0; i < node->num_children; i++) {
-      art_destroy_node(art, n->children[i], destroy_value);
-    }
-    break;
-  }
-  case DS_ART_NODE16: {
-    ds_art_node16_t *n = (ds_art_node16_t *)node;
-    for (i = 0; i < node->num_children; i++) {
-      art_destroy_node(art, n->children[i], destroy_value);
-    }
-    break;
-  }
-  case DS_ART_NODE48: {
-    ds_art_node48_t *n = (ds_art_node48_t *)node;
-    for (i = 0; i < 256; i++) {
-      if (n->child_index[i] != 0) {
-        art_destroy_node(art, n->children[n->child_index[i] - 1],
-                         destroy_value);
-      }
-    }
-    break;
-  }
-  default: {
-    ds_art_node256_t *n = (ds_art_node256_t *)node;
-    for (i = 0; i < 256; i++) {
-      if (n->children[i] != NULL) {
-        art_destroy_node(art, n->children[i], destroy_value);
-      }
-    }
-    break;
-  }
-  }
-  art->deallocator(node);
+  memcpy(node->prefix, list, sizeof(*list));
+  *list = node;
 }
 
 void ds_art_destroy(ds_art_t *art, void (*destroy_value)(void *)) {
-  art_destroy_node(art, art->root, destroy_value);
+  ds_art_node_t *list = NULL;
+  art_doom(art, &list, art->root, destroy_value);
+  while (list != NULL) {
+    ds_art_node_t *x = list;
+    ds_art_node_t *c;
+    int pos = 0;
+    memcpy(&list, x->prefix, sizeof(list));
+    while ((c = art_next_child(x, &pos)) != NULL) {
+      art_doom(art, &list, c, destroy_value);
+    }
+    art->deallocator(x);
+  }
   art->deallocator(art);
 }
