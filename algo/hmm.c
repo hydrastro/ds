@@ -381,7 +381,9 @@ ds_status_t ds_hmm_baum_welch(ds_hmm_t *h, const size_t *const *seqs,
     for (q = 0; q < count && st == DS_OK; q++) {
       if (lens[q] > 0) {
         st = hm_forward(h, seqs[q], lens[q], alpha, scale, &ll);
-        prev += ll;
+        if (st == DS_OK) {
+          prev += ll;
+        }
       }
     }
   }
