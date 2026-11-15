@@ -96,6 +96,7 @@ void ds_btree_split_child(ds_btree_t *tree, ds_btree_internal_node_t *parent,
   if (!child->is_leaf) {
     for (i = 0; i < tree->degree; i++) {
       new_node->children[i] = child->children[i + tree->degree];
+      new_node->children[i]->parent = new_node;
     }
   }
   child->num_keys = tree->degree - 1;
@@ -225,71 +226,104 @@ void *ds_btree_maximum(ds_btree_t *tree) {
   return ds_btree_local_maximum(tree, tree->root);
 }
 
+/* node, not the root, has one key fewer than the minimum (degree - 1):
+ * borrow through the parent from a sibling that can spare a key, moving
+ * the matching child along when the nodes are internal, or merge with a
+ * sibling around their separator and fix the parent the same way. Keys
+ * keep their owner (internal) and children their parent. */
 void ds_btree_rebalance(ds_btree_t *tree, ds_btree_internal_node_t *node) {
   int i, j;
+  int t = tree->degree;
   ds_btree_internal_node_t *parent;
+  ds_btree_internal_node_t *left;
+  ds_btree_internal_node_t *right;
   parent = node->parent;
-  i = 0;
   if (parent == NULL) {
-    return;
+    return; /* the root may hold fewer keys */
   }
+  i = 0;
   while (i <= parent->num_keys && parent->children[i] != node) {
     i++;
   }
-
-  if (parent->num_keys - 1 > i &&
-      parent->children[i + 1]->num_keys > tree->degree - 1) {
+  left = i > 0 ? parent->children[i - 1] : NULL;
+  right = i < parent->num_keys ? parent->children[i + 1] : NULL;
+  if (right != NULL && right->num_keys > t - 1) {
+    /* the separator comes down, right's first key goes up */
     node->data[node->num_keys] = parent->data[i];
     node->data[node->num_keys]->internal = node;
-    node->num_keys++;
-    parent->data[i] = parent->children[i + 1]->data[0];
-    parent->data[i]->internal = parent;
-    for (j = 1; j < parent->children[i + 1]->num_keys; j++) {
-      parent->children[i + 1]->data[j - 1] = parent->children[i + 1]->data[j];
+    if (!node->is_leaf) {
+      node->children[node->num_keys + 1] = right->children[0];
+      node->children[node->num_keys + 1]->parent = node;
     }
-    parent->children[i + 1]->num_keys--;
-  } else if (i != 0 && parent->children[i - 1]->num_keys > tree->degree - 1) {
+    node->num_keys++;
+    parent->data[i] = right->data[0];
+    parent->data[i]->internal = parent;
+    for (j = 1; j < right->num_keys; j++) {
+      right->data[j - 1] = right->data[j];
+    }
+    if (!right->is_leaf) {
+      for (j = 1; j <= right->num_keys; j++) {
+        right->children[j - 1] = right->children[j];
+      }
+      right->children[right->num_keys] = NULL;
+    }
+    right->num_keys--;
+  } else if (left != NULL && left->num_keys > t - 1) {
+    /* the separator comes down, left's last key goes up */
     for (j = node->num_keys; j > 0; j--) {
       node->data[j] = node->data[j - 1];
     }
-    node->data[0] = parent->data[i];
+    if (!node->is_leaf) {
+      for (j = node->num_keys + 1; j > 0; j--) {
+        node->children[j] = node->children[j - 1];
+      }
+      node->children[0] = left->children[left->num_keys];
+      node->children[0]->parent = node;
+      left->children[left->num_keys] = NULL;
+    }
+    node->data[0] = parent->data[i - 1];
     node->data[0]->internal = node;
     node->num_keys++;
-    parent->data[i] =
-        parent->children[i - 1]->data[parent->children[i - 1]->num_keys - 1];
-    parent->data[i]->internal = parent;
-    parent->children[i - 1]->num_keys--;
+    parent->data[i - 1] = left->data[left->num_keys - 1];
+    parent->data[i - 1]->internal = parent;
+    left->num_keys--;
   } else {
+    /* merge next into recipient around the separator at sep */
     ds_btree_internal_node_t *recipient, *next;
-
-    if (i != 0) {
-      recipient = parent->children[i - 1];
+    int sep, base;
+    if (left != NULL) {
+      recipient = left;
       next = node;
-      j = i - 1;
+      sep = i - 1;
     } else {
       recipient = node;
-      next = parent->children[i + 1];
-      j = i;
+      next = right;
+      sep = i;
     }
-    recipient->data[recipient->num_keys] = parent->data[j];
-    recipient->data[recipient->num_keys]->internal = recipient;
-    recipient->num_keys++;
+    base = recipient->num_keys;
+    recipient->data[base] = parent->data[sep];
+    recipient->data[base]->internal = recipient;
     for (j = 0; j < next->num_keys; j++) {
-      recipient->data[recipient->num_keys] = next->data[j];
-      recipient->data[recipient->num_keys]->internal = recipient;
-      recipient->num_keys++;
+      recipient->data[base + 1 + j] = next->data[j];
+      recipient->data[base + 1 + j]->internal = recipient;
     }
+    if (!recipient->is_leaf) {
+      for (j = 0; j <= next->num_keys; j++) {
+        recipient->children[base + 1 + j] = next->children[j];
+        recipient->children[base + 1 + j]->parent = recipient;
+      }
+    }
+    recipient->num_keys = base + 1 + next->num_keys;
     tree->deallocator(next->children);
     tree->deallocator(next->data);
     tree->deallocator(next);
-
-    for (j = i + 1; j < parent->num_keys; j++) {
+    for (j = sep + 1; j < parent->num_keys; j++) {
       parent->data[j - 1] = parent->data[j];
     }
-
-    for (j = i + 2; j <= parent->num_keys; j++) {
+    for (j = sep + 2; j <= parent->num_keys; j++) {
       parent->children[j - 1] = parent->children[j];
     }
+    parent->children[parent->num_keys] = NULL;
     parent->num_keys--;
     if (parent == tree->root && parent->num_keys == 0) {
       tree->root = recipient;
@@ -297,7 +331,7 @@ void ds_btree_rebalance(ds_btree_t *tree, ds_btree_internal_node_t *node) {
       tree->deallocator(parent->children);
       tree->deallocator(parent->data);
       tree->deallocator(parent);
-    } else if (parent->num_keys < tree->degree - 1) {
+    } else if (parent != tree->root && parent->num_keys < t - 1) {
       ds_btree_rebalance(tree, parent);
     }
   }
