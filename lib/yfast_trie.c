@@ -134,13 +134,24 @@ static unsigned long yf_top(const ds_yfast_t *t) {
   return t->bits >= YF_MAXBITS ? (unsigned long)-1 : (1UL << t->bits) - 1;
 }
 
+/* the bucket id stored with representative rep, copied out: the x-fast
+ * trie's value slots are only as aligned as its map keeps values */
+static size_t yf_rep_id(const ds_yfast_t *t, unsigned long rep) {
+  size_t id = 0;
+  const void *v = ds_xfast_find(&t->reps, rep);
+  if (v != NULL) {
+    memcpy(&id, v, sizeof(id));
+  }
+  return id;
+}
+
 /* bucket covering x, its representative and id (count of reps > 0) */
 static void *yf_bucket_of(const ds_yfast_t *t, unsigned long x,
                           unsigned long *rep, size_t *id) {
   unsigned long r = 0;
   (void)ds_xfast_floor(&t->reps, x, &r); /* rep 0 always exists */
   *rep = r;
-  *id = *(size_t *)ds_xfast_find(&t->reps, r);
+  *id = yf_rep_id(t, r);
   return t->buckets[*id];
 }
 
@@ -243,8 +254,8 @@ ds_status_t ds_yfast_remove(ds_yfast_t *t, unsigned long key, void *out_value) {
       lo_rep = other;
       hi_rep = rep;
     }
-    lo_id = *(size_t *)ds_xfast_find(&t->reps, lo_rep);
-    hi_id = *(size_t *)ds_xfast_find(&t->reps, hi_rep);
+    lo_id = yf_rep_id(t, lo_rep);
+    hi_id = yf_rep_id(t, hi_rep);
     if (ops->join(t->buckets[lo_id], t->buckets[hi_id]) == DS_OK) {
       (void)ds_xfast_remove(&t->reps, hi_rep, NULL);
       yf_free_bucket(t, hi_id);
@@ -288,7 +299,7 @@ ds_status_t ds_yfast_floor(const ds_yfast_t *t, unsigned long x,
     if (ds_xfast_predecessor(&t->reps, rep, &rep) != DS_OK) {
       return DS_NOT_FOUND;
     }
-    b = t->buckets[*(size_t *)ds_xfast_find(&t->reps, rep)];
+    b = t->buckets[yf_rep_id(t, rep)];
     x = yf_top(t);
   }
 }
@@ -312,7 +323,7 @@ ds_status_t ds_yfast_ceiling(const ds_yfast_t *t, unsigned long x,
     if (ds_xfast_successor(&t->reps, rep, &rep) != DS_OK) {
       return DS_NOT_FOUND;
     }
-    b = t->buckets[*(size_t *)ds_xfast_find(&t->reps, rep)];
+    b = t->buckets[yf_rep_id(t, rep)];
     x = 0;
   }
 }
