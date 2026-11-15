@@ -56,6 +56,7 @@
 #include "lib/dynamic_connectivity.h"
 #include "lib/dynamic_hash.h"
 #include "lib/dynamic_msf.h"
+#include "lib/ed25519.h"
 #include "lib/elastic_trie.h"
 #include "lib/elias_fano.h"
 #include "lib/enfilade.h"

@@ -235,6 +235,7 @@ LIB_SRC := \
   $(LIB_DIR)/ab_tree.c \
   $(LIB_DIR)/executor.c \
   $(LIB_DIR)/sha2.c \
+  $(LIB_DIR)/ed25519.c \
   $(LIB_DIR)/rdf_canon.c \
   $(LIB_DIR)/fault_store.c \
   $(LIB_DIR)/posix_store.c \
@@ -326,6 +327,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/fault_store.c $(LIB_DIR)/fault_store.h \
   $(LIB_DIR)/rdf_canon.c $(LIB_DIR)/rdf_canon.h \
   $(LIB_DIR)/sha2.c $(LIB_DIR)/sha2.h \
+  $(LIB_DIR)/ed25519.c $(LIB_DIR)/ed25519.h \
   $(LIB_DIR)/executor.c $(LIB_DIR)/executor.h \
   $(LIB_DIR)/ab_tree.c $(LIB_DIR)/ab_tree.h \
   $(LIB_DIR)/dynamic_msf.c $(LIB_DIR)/dynamic_msf.h \
