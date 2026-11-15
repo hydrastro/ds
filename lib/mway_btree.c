@@ -208,9 +208,9 @@ ds_status_t ds_mway_btree_insert(ds_mway_btree_t *t, const void *elem) {
   size_t v;
   size_t i;
   size_t depth = 0;
-  size_t r;
+  size_t r = 0;
   size_t mid;
-  size_t nr;
+  size_t nr = 0; /* both set by mw_node, which cannot fail after mw_reserve */
   size_t rc = MW_NONE;
   bool found;
   ds_status_t st;
