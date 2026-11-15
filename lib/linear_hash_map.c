@@ -276,7 +276,10 @@ static void *lh_emplace(ds_linear_hash_map_t *map, const void *key,
       }
     }
   }
-  (void)lh_find(map, key, h, &b, &i);
+  if (!lh_find(map, key, h, &b, &i)) {
+    *out_status = DS_ERR_STATE; /* cannot happen: the entry was stored */
+    return NULL;
+  }
   return lh_rec_value(map, lh_rec(lh_bucket(map, b), i));
 }
 
