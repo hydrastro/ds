@@ -37,6 +37,7 @@ Core mutable containers:
 - `lib/elias_fano`: Elias-Fano compressed monotone sequences (access, next_geq, prev_leq via sampled select)
 - `lib/enfilade`: enfilades (width-summarised sequences with retrieve and rearrange)
 - `lib/euler_tour_tree`: Euler-tour trees (link, cut, connectivity, component and subtree aggregates with lazy actions) over a treap, edges in a pluggable map
+- `lib/exact_sum`: exact sums of doubles (a Kulisch long accumulator: add and remove in any order, correctly rounded totals, no intermediate overflow; `ds_fsum`)
 - `lib/executor`: executors for parallel steps (independent tasks run by the caller's threads, a pool or OpenMP; sequentially by default), with chunking helpers
 - `lib/fault_store`: page store that injects failures and simulates crashes (volatile writes until sync; lose, apply all, a seeded subset, or tear a page) for testing storage stacks
 - `lib/finger_tree`: persistent 2-3 finger trees with a user monoid (deque ends, concat, split/lookup by monotone predicate)

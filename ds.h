@@ -60,6 +60,7 @@
 #include "lib/elias_fano.h"
 #include "lib/enfilade.h"
 #include "lib/euler_tour_tree.h"
+#include "lib/exact_sum.h"
 #include "lib/executor.h"
 #include "lib/extendible_hash.h"
 #include "lib/fault_store.h"

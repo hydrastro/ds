@@ -249,6 +249,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/fault_store: fault-injecting, crash-simulating page store over any other
 - lib/posix_store: POSIX file page store with durable sync and real truncation
 - lib/wal_store: write-ahead logging for any page store (atomic commits, recovery, checkpoints)
+- lib/exact_sum: exact, removable sums of doubles with correctly rounded totals
 - `make test`, `make sanitize`, `make examples`, and
   `make valgrind`
 
