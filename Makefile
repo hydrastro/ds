@@ -191,6 +191,7 @@ LIB_SRC := \
   $(LIB_DIR)/confluent_list.c \
   $(LIB_DIR)/topology_tree.c \
   $(LIB_DIR)/checked.c \
+  $(LIB_DIR)/stage.c \
   $(LIB_DIR)/map_iface.c \
   $(LIB_DIR)/xfast_trie.c \
   $(LIB_DIR)/yfast_trie.c \
@@ -372,6 +373,7 @@ FORMAT_SRC := \
   $(LIB_DIR)/xfast_trie.c $(LIB_DIR)/xfast_trie.h \
   $(LIB_DIR)/map_iface.c $(LIB_DIR)/map_iface.h \
   $(LIB_DIR)/checked.c $(LIB_DIR)/checked.h \
+  $(LIB_DIR)/stage.c $(LIB_DIR)/stage.h \
   $(LIB_DIR)/topology_tree.c $(LIB_DIR)/topology_tree.h \
   $(LIB_DIR)/confluent_list.c $(LIB_DIR)/confluent_list.h \
   $(LIB_DIR)/plop_hash.c $(LIB_DIR)/plop_hash.h \

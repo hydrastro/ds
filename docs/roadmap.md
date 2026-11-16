@@ -185,6 +185,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/confluent_list: confluently persistent lists
 - lib/topology_tree: topology trees, O(log n) worst-case link and cut, path aggregates
 - lib/checked: checked size arithmetic
+- lib/stage: arguments copied aside before a container changes, so it can take data it holds itself
 - algo/weighted_matching: weighted general matching
 - lib/map_iface: pluggable map capability
 - lib/xfast_trie: X-fast tries on pluggable maps
