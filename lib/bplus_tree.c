@@ -3,19 +3,22 @@
 
 /*
  * B+ tree: all records live in leaves; internal nodes hold separator keys for
- * routing only. Leaves are doubly linked for ordered/range scans. A node holds
- * at most (order - 1) keys and, when internal, (order) children. The bstar flag
- * raises occupancy: on a full leaf, insertion first tries to redistribute into
- * an adjacent sibling and only splits (2 nodes -> 3) when the sibling is also
- * full, yielding ~2/3 minimum fill instead of ~1/2.
+ * routing only (each separator is the smallest record of the subtree to its
+ * right). Leaves are doubly linked for ordered/range scans. A node holds at
+ * most (order - 1) keys and, when internal, (order) children.
+ *
+ * The bstar flag applies the B* split policy to every level: a node that
+ * overflows first hands keys to an adjacent sibling with room, and when its
+ * adjacent siblings are full it splits together with one of them, two nodes
+ * into three, each about two-thirds full; only the root splits in two.
+ * Insertions therefore leave nodes fuller than plain splitting does.
+ * Deletion keeps every node but the root at least half full in both modes
+ * (a two-thirds bound cannot survive a split of the root).
  */
 
 static int bplus_max_keys(ds_bplus_tree_t *tree) { return tree->order - 1; }
 
 static int bplus_min_keys(ds_bplus_tree_t *tree) {
-  if (tree->bstar) {
-    return (2 * (tree->order - 1)) / 3;
-  }
   return (tree->order - 1) / 2;
 }
 
@@ -190,6 +193,8 @@ static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
                                      ds_bplus_tree_internal_node_t *left,
                                      ds_bplus_tree_node_t *key,
                                      ds_bplus_tree_internal_node_t *right);
+static void bplus_overflow(ds_bplus_tree_t *tree,
+                           ds_bplus_tree_internal_node_t *node);
 
 /* split an internal node that has overflowed (num_keys == order) */
 static void bplus_split_internal(ds_bplus_tree_t *tree,
@@ -236,12 +241,14 @@ static void bplus_split_leaf(ds_bplus_tree_t *tree,
   bplus_insert_into_parent(tree, leaf, right->keys[0], right);
 }
 
-/* B* leaf overflow: try to push the overflow record into a sibling that has
- * room before resorting to a split. Returns true if redistribution handled it.
- */
-static bool bplus_bstar_relieve_leaf(ds_bplus_tree_t *tree,
-                                     ds_bplus_tree_internal_node_t *leaf) {
-  ds_bplus_tree_internal_node_t *parent = leaf->parent;
+/* B*: an overflowing node (one key too many) hands one key to an adjacent
+ * sibling with room, through the parent's separator. Leaves move a record
+ * and reset the separator to the right node's minimum; internal nodes
+ * rotate: the separator comes down with the edge child, and the next key
+ * goes up. Returns true when a sibling took it. */
+static bool bplus_bstar_relieve(ds_bplus_tree_t *tree,
+                                ds_bplus_tree_internal_node_t *node) {
+  ds_bplus_tree_internal_node_t *parent = node->parent;
   int max_keys = bplus_max_keys(tree);
   int idx;
   int i;
@@ -249,40 +256,206 @@ static bool bplus_bstar_relieve_leaf(ds_bplus_tree_t *tree,
     return false;
   }
   idx = 0;
-  while (idx <= parent->num_keys && parent->children[idx] != leaf) {
+  while (idx <= parent->num_keys && parent->children[idx] != node) {
     idx += 1;
   }
-  /* try left sibling */
-  if (idx > 0) {
+  if (idx > 0 && parent->children[idx - 1]->num_keys < max_keys) {
     ds_bplus_tree_internal_node_t *left = parent->children[idx - 1];
-    if (left->num_keys < max_keys) {
-      ds_bplus_tree_node_t *moved = leaf->keys[0];
-      left->keys[left->num_keys] = moved;
+    if (node->is_leaf) {
+      left->keys[left->num_keys] = node->keys[0];
       left->num_keys += 1;
-      for (i = 0; i < leaf->num_keys - 1; i++) {
-        leaf->keys[i] = leaf->keys[i + 1];
+      for (i = 0; i < node->num_keys - 1; i++) {
+        node->keys[i] = node->keys[i + 1];
       }
-      leaf->num_keys -= 1;
-      parent->keys[idx - 1] = leaf->keys[0];
-      return true;
+      node->num_keys -= 1;
+      parent->keys[idx - 1] = node->keys[0];
+    } else {
+      left->keys[left->num_keys] = parent->keys[idx - 1];
+      left->children[left->num_keys + 1] = node->children[0];
+      left->children[left->num_keys + 1]->parent = left;
+      left->num_keys += 1;
+      parent->keys[idx - 1] = node->keys[0];
+      for (i = 0; i < node->num_keys - 1; i++) {
+        node->keys[i] = node->keys[i + 1];
+      }
+      for (i = 0; i < node->num_keys; i++) {
+        node->children[i] = node->children[i + 1];
+      }
+      node->num_keys -= 1;
     }
+    return true;
   }
-  /* try right sibling */
-  if (idx < parent->num_keys) {
+  if (idx < parent->num_keys &&
+      parent->children[idx + 1]->num_keys < max_keys) {
     ds_bplus_tree_internal_node_t *right = parent->children[idx + 1];
-    if (right->num_keys < max_keys) {
-      ds_bplus_tree_node_t *moved = leaf->keys[leaf->num_keys - 1];
-      for (i = right->num_keys; i > 0; i--) {
-        right->keys[i] = right->keys[i - 1];
-      }
-      right->keys[0] = moved;
-      right->num_keys += 1;
-      leaf->num_keys -= 1;
-      parent->keys[idx] = right->keys[0];
-      return true;
+    for (i = right->num_keys; i > 0; i--) {
+      right->keys[i] = right->keys[i - 1];
     }
+    if (node->is_leaf) {
+      right->keys[0] = node->keys[node->num_keys - 1];
+      right->num_keys += 1;
+      node->num_keys -= 1;
+      parent->keys[idx] = right->keys[0];
+    } else {
+      for (i = right->num_keys + 1; i > 0; i--) {
+        right->children[i] = right->children[i - 1];
+      }
+      right->keys[0] = parent->keys[idx];
+      right->children[0] = node->children[node->num_keys];
+      right->children[0]->parent = right;
+      right->num_keys += 1;
+      parent->keys[idx] = node->keys[node->num_keys - 1];
+      node->num_keys -= 1;
+    }
+    return true;
   }
   return false;
+}
+
+/* B*: an overflowing node and a full adjacent sibling become three nodes,
+ * each about two-thirds full. The keys of both (and, between internal
+ * nodes, their separator) are laid out in order in scratch arrays and dealt
+ * out again; the new third node goes to the parent with its separator.
+ * Returns false when there is no sibling or no memory for the scratch. */
+static bool bplus_bstar_split(ds_bplus_tree_t *tree,
+                              ds_bplus_tree_internal_node_t *node) {
+  ds_bplus_tree_internal_node_t *parent = node->parent;
+  ds_bplus_tree_internal_node_t *a, *b, *c;
+  ds_bplus_tree_node_t **keys;
+  ds_bplus_tree_internal_node_t **kids = NULL;
+  ds_bplus_tree_node_t *up1, *up2;
+  int idx, si, i, n, na, nb, nc, k;
+  if (parent == NULL) {
+    return false;
+  }
+  idx = 0;
+  while (idx <= parent->num_keys && parent->children[idx] != node) {
+    idx += 1;
+  }
+  si = idx < parent->num_keys ? idx : idx - 1; /* a = children[si] */
+  if (si < 0) {
+    return false;
+  }
+  a = parent->children[si];
+  b = parent->children[si + 1];
+  n = a->num_keys + b->num_keys + (node->is_leaf ? 0 : 1);
+  keys = (ds_bplus_tree_node_t **)tree->allocator((size_t)n * sizeof(*keys));
+  if (keys == NULL) {
+    return false;
+  }
+  if (!node->is_leaf) {
+    kids = (ds_bplus_tree_internal_node_t **)tree->allocator((size_t)(n + 1) *
+                                                             sizeof(*kids));
+    if (kids == NULL) {
+      tree->deallocator(keys);
+      return false;
+    }
+  }
+  c = bplus_create_node(tree, node->is_leaf);
+  if (c == NULL) {
+    if (kids != NULL) {
+      tree->deallocator(kids);
+    }
+    tree->deallocator(keys);
+    return false;
+  }
+  k = 0;
+  for (i = 0; i < a->num_keys; i++) {
+    keys[k++] = a->keys[i];
+  }
+  if (!node->is_leaf) {
+    keys[k++] = parent->keys[si];
+  }
+  for (i = 0; i < b->num_keys; i++) {
+    keys[k++] = b->keys[i];
+  }
+  if (node->is_leaf) {
+    /* n records: a third each, the remainder to the later nodes */
+    na = n / 3;
+    nb = (n + 1) / 3;
+    nc = n - na - nb;
+    for (i = 0; i < na; i++) {
+      a->keys[i] = keys[i];
+    }
+    for (i = 0; i < nb; i++) {
+      b->keys[i] = keys[na + i];
+    }
+    for (i = 0; i < nc; i++) {
+      c->keys[i] = keys[na + nb + i];
+    }
+    a->num_keys = na;
+    b->num_keys = nb;
+    c->num_keys = nc;
+    up1 = b->keys[0];
+    up2 = c->keys[0];
+    c->next = b->next;
+    c->prev = b;
+    if (b->next != NULL) {
+      b->next->prev = c;
+    }
+    b->next = c;
+  } else {
+    /* n keys and n + 1 children: two keys go up, the rest is dealt out */
+    for (i = 0; i <= a->num_keys; i++) {
+      kids[i] = a->children[i];
+    }
+    for (i = 0; i <= b->num_keys; i++) {
+      kids[a->num_keys + 1 + i] = b->children[i];
+    }
+    na = (n - 2) / 3;
+    nb = (n - 1) / 3;
+    nc = n - 2 - na - nb;
+    for (i = 0; i < na; i++) {
+      a->keys[i] = keys[i];
+    }
+    for (i = 0; i <= na; i++) {
+      a->children[i] = kids[i];
+      kids[i]->parent = a;
+    }
+    up1 = keys[na];
+    for (i = 0; i < nb; i++) {
+      b->keys[i] = keys[na + 1 + i];
+    }
+    for (i = 0; i <= nb; i++) {
+      b->children[i] = kids[na + 1 + i];
+      kids[na + 1 + i]->parent = b;
+    }
+    up2 = keys[na + 1 + nb];
+    for (i = 0; i < nc; i++) {
+      c->keys[i] = keys[na + nb + 2 + i];
+    }
+    for (i = 0; i <= nc; i++) {
+      c->children[i] = kids[na + nb + 2 + i];
+      kids[na + nb + 2 + i]->parent = c;
+    }
+    a->num_keys = na;
+    b->num_keys = nb;
+    c->num_keys = nc;
+    tree->deallocator(kids);
+  }
+  tree->deallocator(keys);
+  parent->keys[si] = up1;
+  c->parent = parent;
+  bplus_internal_insert_at(parent, si + 1, up2, c);
+  if (parent->num_keys >= tree->order) {
+    bplus_overflow(tree, parent);
+  }
+  return true;
+}
+
+/* a node with one key too many: under B*, a sibling takes a key or two
+ * full nodes become three; otherwise (and at the root) it splits in two */
+static void bplus_overflow(ds_bplus_tree_t *tree,
+                           ds_bplus_tree_internal_node_t *node) {
+  if (tree->bstar &&
+      (bplus_bstar_relieve(tree, node) || bplus_bstar_split(tree, node))) {
+    return;
+  }
+  if (node->is_leaf) {
+    bplus_split_leaf(tree, node);
+  } else {
+    bplus_split_internal(tree, node);
+  }
 }
 
 static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
@@ -309,7 +482,7 @@ static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
   }
   bplus_internal_insert_at(parent, idx, key, right);
   if (parent->num_keys >= tree->order) {
-    bplus_split_internal(tree, parent);
+    bplus_overflow(tree, parent);
   }
 }
 
@@ -354,9 +527,7 @@ bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data) {
     }
   }
   if (leaf->num_keys >= tree->order) {
-    if (!tree->bstar || !bplus_bstar_relieve_leaf(tree, leaf)) {
-      bplus_split_leaf(tree, leaf);
-    }
+    bplus_overflow(tree, leaf);
   }
   return result;
 }
@@ -633,12 +804,32 @@ static void bplus_fix_underflow(ds_bplus_tree_t *tree,
   }
 }
 
+/* the removed record may still be a separator above its leaf (when its
+ * leaf emptied, or merged away, before the separators were refreshed);
+ * the path to where it was is walked once more, and any separator that is
+ * the record becomes the minimum of the subtree to its right */
+static void bplus_purge_separator(ds_bplus_tree_t *tree,
+                                  ds_bplus_tree_node_t *gone) {
+  ds_bplus_tree_internal_node_t *node = tree->root;
+  while (!node->is_leaf) {
+    int i = 0;
+    while (i < node->num_keys && tree->compare(gone, node->keys[i]) >= 0) {
+      i += 1;
+    }
+    if (i > 0 && node->keys[i - 1] == gone) {
+      node->keys[i - 1] = bplus_subtree_min(node->children[i]);
+    }
+    node = node->children[i];
+  }
+}
+
 bool ds_bplus_tree_remove(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key,
                           ds_bplus_tree_node_t **out_data) {
   ds_bplus_tree_internal_node_t *leaf;
   int pos;
   int i;
   bool removed = false;
+  ds_bplus_tree_node_t *gone;
   leaf = bplus_find_leaf(tree, key);
   pos = -1;
   for (i = 0; i < leaf->num_keys; i++) {
@@ -650,8 +841,9 @@ bool ds_bplus_tree_remove(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key,
   if (pos < 0) {
     return false;
   }
+  gone = leaf->keys[pos];
   if (out_data != NULL) {
-    *out_data = leaf->keys[pos];
+    *out_data = gone;
   }
   for (i = pos; i < leaf->num_keys - 1; i++) {
     leaf->keys[i] = leaf->keys[i + 1];
@@ -665,5 +857,6 @@ bool ds_bplus_tree_remove(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key,
   if (leaf != tree->root && leaf->num_keys < bplus_min_keys(tree)) {
     bplus_fix_underflow(tree, leaf);
   }
+  bplus_purge_separator(tree, gone);
   return removed;
 }

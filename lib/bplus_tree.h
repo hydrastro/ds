@@ -29,6 +29,11 @@ typedef struct bplus_tree_internal_node {
 
 typedef struct bplus_tree {
   int order;
+  /* the B* split policy: an overflowing node first hands a key to an
+   * adjacent sibling with room, and two full siblings split into three
+   * nodes about two-thirds full (only the root splits in two). Random
+   * insertions fill leaves to about 85% instead of 70%. Deletion keeps
+   * nodes but the root at least half full either way. */
   bool bstar;
   ds_bplus_tree_internal_node_t *root;
   ds_bplus_tree_internal_node_t *head; /* first (leftmost) leaf */
