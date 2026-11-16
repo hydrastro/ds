@@ -460,6 +460,15 @@ int ds_str_reserve_exact(ds_str_t *s, size_t cap) {
   return r;
 }
 
+int ds_str_append_fmt(ds_str_t *s, const char *fmt, ...) {
+  va_list ap;
+  int r;
+  va_start(ap, fmt);
+  r = ds_str_append_vfmt(s, fmt, ap);
+  va_end(ap);
+  return r;
+}
+
 int ds_str_assign(ds_str_t *s, const void *data, size_t n) {
   int r;
   if (!s)
