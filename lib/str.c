@@ -184,8 +184,59 @@ int ds_str_shrink_to_fit(ds_str_t *s) {
   return 0;
 }
 
+/* Grows s like ds__ensure, but hands the old buffer to the caller in *old
+ * (NULL when the buffer did not move) instead of freeing it, so that data
+ * read from the string itself stays valid until the caller releases it
+ * with str_release. */
+static int str_grow_keep(ds_str_t *s, size_t need_cap, char **old) {
+  char *nbuf;
+  *old = NULL;
+  if (s->cap >= need_cap) {
+    return 0;
+  }
+  need_cap = ds__grow_cap(s->cap, need_cap);
+  if (need_cap > SIZE_MAX - 1u) {
+    return -1;
+  }
+  nbuf = (char *)s->allocator(need_cap + 1u);
+  if (!nbuf) {
+    return -1;
+  }
+  if (s->len) {
+    memcpy(nbuf, s->buf, s->len);
+  }
+  nbuf[s->len] = '\0';
+  *old = s->buf;
+  s->buf = nbuf;
+  s->cap = need_cap;
+  return 0;
+}
+
+static void str_release(ds_str_t *s, char *old) {
+  if (old) {
+    s->deallocator(old);
+  }
+}
+
+static void str_reverse(char *p, size_t n) {
+  char t;
+  size_t i = 0;
+  while (n > i + 1u) {
+    n--;
+    t = p[i];
+    p[i] = p[n];
+    p[n] = t;
+    i++;
+  }
+}
+
+#define STR_STAGE_BYTES 256u
+
+/* data may be a part of s itself: the old buffer outlives the copy, and in
+ * place the bytes written are past the end of the string */
 int ds_str_append(ds_str_t *s, const void *data, size_t n) {
   size_t need_len;
+  char *old;
   if (!s || (!data && n))
     return -1;
   if (n == 0u)
@@ -194,12 +245,13 @@ int ds_str_append(ds_str_t *s, const void *data, size_t n) {
   if (need_len < s->len) {
     return -1;
   }
-  if (ds__ensure(s, need_len) != 0) {
+  if (str_grow_keep(s, need_len, &old) != 0) {
     return -1;
   }
   memcpy(s->buf + s->len, data, n);
   s->len = need_len;
   s->buf[s->len] = '\0';
+  str_release(s, old);
   return 0;
 }
 
@@ -213,8 +265,10 @@ int ds_str_pushc(ds_str_t *s, int c) {
   return ds_str_append(s, &ch, 1u);
 }
 
+/* data may be a part of s itself (see ds_str_append) */
 int ds_str_insert(ds_str_t *s, size_t pos, const void *data, size_t n) {
   size_t len;
+  char *old;
   if (!s || (!data && n))
     return -1;
   len = s->len;
@@ -223,13 +277,31 @@ int ds_str_insert(ds_str_t *s, size_t pos, const void *data, size_t n) {
   if (n == 0u) {
     return 0;
   }
-  if (ds__ensure(s, len + n) != 0) {
+  if (len + n < len) {
     return -1;
   }
-  memmove(s->buf + pos + n, s->buf + pos, len - pos);
-  memcpy(s->buf + pos, data, n);
+  if (str_grow_keep(s, len + n, &old) != 0) {
+    return -1;
+  }
+  if (old || pos == len) {
+    /* data is intact: in the old buffer, or before the bytes that move */
+    memmove(s->buf + pos + n, s->buf + pos, len - pos);
+    memcpy(s->buf + pos, data, n);
+  } else if (n <= STR_STAGE_BYTES) {
+    char stage[STR_STAGE_BYTES];
+    memcpy(stage, data, n);
+    memmove(s->buf + pos + n, s->buf + pos, len - pos);
+    memcpy(s->buf + pos, stage, n);
+  } else {
+    /* staged past the end, then rotated in front of the tail */
+    memcpy(s->buf + len, data, n);
+    str_reverse(s->buf + pos, len - pos);
+    str_reverse(s->buf + len, n);
+    str_reverse(s->buf + pos, len - pos + n);
+  }
   s->len = len + n;
   s->buf[s->len] = '\0';
+  str_release(s, old);
   return 0;
 }
 
@@ -442,14 +514,25 @@ int ds_str_append_vfmt(ds_str_t *s, const char *fmt, va_list ap) {
   if (need < 0)
     return -1;
 
-  if (ds__ensure(s, s->len + (size_t)need) != 0) {
-    return -1;
+  /* formatted apart, then appended: an argument may point into s */
+  if ((size_t)need < STR_STAGE_BYTES) {
+    char stage[STR_STAGE_BYTES];
+    if (vsnprintf(stage, sizeof(stage), fmt, ap) != need) {
+      return -1;
+    }
+    return ds_str_append(s, stage, (size_t)need);
+  } else {
+    char *tmp = (char *)s->allocator((size_t)need + 1u);
+    int r;
+    if (!tmp) {
+      return -1;
+    }
+    r = vsnprintf(tmp, (size_t)need + 1u, fmt, ap) == need
+            ? ds_str_append(s, tmp, (size_t)need)
+            : -1;
+    s->deallocator(tmp);
+    return r;
   }
-  if (vsnprintf(s->buf + s->len, (size_t)need + 1, fmt, ap) != need) {
-    return -1;
-  }
-  s->len += (size_t)need;
-  return 0;
 }
 
 int ds_str_reserve_exact(ds_str_t *s, size_t cap) {
@@ -471,19 +554,21 @@ int ds_str_append_fmt(ds_str_t *s, const char *fmt, ...) {
 
 int ds_str_assign(ds_str_t *s, const void *data, size_t n) {
   int r;
+  char *old;
   if (!s)
     return -1;
   if (!data && n)
     return -1;
-  r = ds__ensure(s, n);
+  r = str_grow_keep(s, n, &old);
   if (r != 0) {
     return -1;
   }
-  if (n)
-    memcpy(s->buf, data, n);
+  if (n) /* data may be a part of s itself */
+    memmove(s->buf, data, n);
   s->len = n;
   if (s->buf) /* assigning "" to a string that never had a buffer */
     s->buf[s->len] = '\0';
+  str_release(s, old);
   return 0;
 }
 

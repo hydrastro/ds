@@ -40,6 +40,9 @@ void ds_str_clear(ds_str_t *s);
 void ds_str_delete(ds_str_t *s);
 int ds_str_reserve(ds_str_t *s, size_t need);
 int ds_str_shrink_to_fit(ds_str_t *s);
+/* The bytes given to append, insert and assign, and the arguments of the
+ * formatted appends, may lie in the string itself (a copy of a part of it):
+ * they are read as they were before the call. */
 int ds_str_append(ds_str_t *s, const void *data, size_t n);
 int ds_str_append_cstr(ds_str_t *s, const char *cstr);
 int ds_str_pushc(ds_str_t *s, int c);
