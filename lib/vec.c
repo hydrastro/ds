@@ -47,30 +47,116 @@ static ds_status_t vec_set_capacity(ds_vec_t *vec, size_t capacity) {
   return DS_OK;
 }
 
-/* Make room for `extra` more elements, growing geometrically. */
-static ds_status_t vec_grow_for(ds_vec_t *vec, size_t extra) {
-  size_t needed;
-  size_t capacity;
-  if (extra > VEC_SIZE_MAX - vec->size) {
-    return DS_ERR_OVERFLOW;
-  }
-  needed = vec->size + extra;
-  if (needed <= vec->capacity) {
-    return DS_OK;
-  }
-  if (vec->fixed) {
-    return DS_ERR_OVERFLOW;
-  }
-  capacity =
+/* The capacity to grow to for `needed` elements: geometric from the
+ * current one. */
+static size_t vec_next_capacity(const ds_vec_t *vec, size_t needed) {
+  size_t capacity =
       vec->capacity < VEC_MIN_CAPACITY ? VEC_MIN_CAPACITY : vec->capacity;
   while (capacity < needed) {
     if (capacity > VEC_SIZE_MAX / 2) {
-      capacity = needed;
-      break;
+      return needed;
     }
     capacity *= 2;
   }
-  return vec_set_capacity(vec, capacity);
+  return capacity;
+}
+
+/* count elements from src at dst, or one element repeated (repeat), or
+ * zeros (src NULL). memmove: src may even be the free room itself, an
+ * element the caller just popped. */
+static void vec_fill(unsigned char *dst, const void *src, size_t count,
+                     bool repeat, size_t es) {
+  size_t i;
+  if (src == NULL) {
+    memset(dst, 0, count * es);
+  } else if (repeat) {
+    if (count > 0) {
+      memmove(dst, src, es);
+    }
+    for (i = 1; i < count; i++) {
+      memcpy(dst + i * es, dst, es);
+    }
+  } else {
+    memmove(dst, src, count * es);
+  }
+}
+
+static void vec_reverse_bytes(unsigned char *p, size_t n) {
+  unsigned char t;
+  size_t i = 0;
+  while (n > i + 1) {
+    n--;
+    t = p[i];
+    p[i] = p[n];
+    p[n] = t;
+    i++;
+  }
+}
+
+#define VEC_STAGE_BYTES 256
+
+/* Opens count slots at index and fills them from src (see vec_fill). src
+ * may be elements of the vector itself, as in pushing one of its elements
+ * or inserting a slice of it: growth copies them into the new block before
+ * the old one goes, and in place they are staged where the shift cannot
+ * reach (past the last element, at the end of the block or on the stack)
+ * before the elements after index move up. Pointers cannot tell whether
+ * src lies in the vector without comparing unrelated objects, so every
+ * path is safe either way. */
+static ds_status_t vec_open(ds_vec_t *vec, size_t index, const void *src,
+                            size_t count, bool repeat) {
+  size_t es = vec->elem_size;
+  size_t tail;
+  size_t capacity;
+  unsigned char *data;
+  unsigned char stage[VEC_STAGE_BYTES];
+  if (count > VEC_SIZE_MAX - vec->size) {
+    return DS_ERR_OVERFLOW;
+  }
+  tail = vec->size - index;
+  if (vec->size + count > vec->capacity) {
+    if (vec->fixed) {
+      return DS_ERR_OVERFLOW;
+    }
+    capacity = vec_next_capacity(vec, vec->size + count);
+    if (capacity > VEC_SIZE_MAX / es) {
+      return DS_ERR_OVERFLOW;
+    }
+    data = (unsigned char *)ds_context_alloc(vec->context, capacity * es);
+    if (data == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    if (index > 0) {
+      memcpy(data, vec->data, index * es);
+    }
+    vec_fill(data + index * es, src, count, repeat, es);
+    if (tail > 0) {
+      memcpy(data + (index + count) * es, vec_ptr(vec, index), tail * es);
+    }
+    ds_context_free(vec->context, vec->data);
+    vec->data = data;
+    vec->capacity = capacity;
+  } else if (tail == 0) {
+    vec_fill(vec_ptr(vec, index), src, count, repeat, es);
+  } else if (vec->capacity - vec->size - count >= count) {
+    data = vec_ptr(vec, vec->capacity - count); /* past the shifted tail */
+    vec_fill(data, src, count, repeat, es);
+    memmove(vec_ptr(vec, index + count), vec_ptr(vec, index), tail * es);
+    memcpy(vec_ptr(vec, index), data, count * es);
+  } else if (count * es <= VEC_STAGE_BYTES) {
+    vec_fill(stage, src, count, repeat, es);
+    memmove(vec_ptr(vec, index + count), vec_ptr(vec, index), tail * es);
+    memcpy(vec_ptr(vec, index), stage, count * es);
+  } else {
+    /* staged after the last element, then rotated in front of the tail */
+    data = vec_ptr(vec, index);
+    vec_fill(vec_ptr(vec, vec->size), src, count, repeat, es);
+    vec_reverse_bytes(data, tail * es);
+    vec_reverse_bytes(data + tail * es, count * es);
+    vec_reverse_bytes(data, (tail + count) * es);
+  }
+  vec->size += count;
+  return DS_OK;
 }
 
 ds_status_t ds_vec_init(ds_vec_t *vec, size_t elem_size,
@@ -179,45 +265,26 @@ ds_status_t ds_vec_shrink_to_fit(ds_vec_t *vec) {
 }
 
 ds_status_t ds_vec_resize(ds_vec_t *vec, size_t size, const void *fill) {
-  ds_status_t status;
-  size_t i;
   if (size <= vec->size) {
     vec->size = size;
     return DS_OK;
   }
-  status = vec_grow_for(vec, size - vec->size);
-  if (status != DS_OK) {
-    return status;
-  }
-  for (i = vec->size; i < size; i++) {
-    if (fill != NULL) {
-      memcpy(vec_ptr(vec, i), fill, vec->elem_size);
-    } else {
-      memset(vec_ptr(vec, i), 0, vec->elem_size);
-    }
-  }
-  vec->size = size;
-  return DS_OK;
+  return vec_open(vec, vec->size, fill, size - vec->size, true);
 }
 
 void ds_vec_clear(ds_vec_t *vec) { vec->size = 0; }
 
 ds_status_t ds_vec_push(ds_vec_t *vec, const void *elem) {
-  ds_status_t status;
   if (elem == NULL) {
     return DS_ERR_NULL;
   }
-  status = vec_grow_for(vec, 1);
-  if (status != DS_OK) {
-    return status;
-  }
-  memcpy(vec_ptr(vec, vec->size), elem, vec->elem_size);
-  vec->size++;
-  return DS_OK;
+  return vec_open(vec, vec->size, elem, 1, false);
 }
 
 void *ds_vec_emplace(ds_vec_t *vec) {
-  if (vec_grow_for(vec, 1) != DS_OK) {
+  if (vec->size == vec->capacity &&
+      (vec->fixed || vec->size == VEC_SIZE_MAX ||
+       vec_set_capacity(vec, vec_next_capacity(vec, vec->size + 1)) != DS_OK)) {
     return NULL;
   }
   vec->size++;
@@ -245,7 +312,6 @@ ds_status_t ds_vec_insert(ds_vec_t *vec, size_t index, const void *elem) {
 
 ds_status_t ds_vec_insert_n(ds_vec_t *vec, size_t index, const void *elems,
                             size_t count) {
-  ds_status_t status;
   if (count == 0) {
     return DS_OK;
   }
@@ -255,18 +321,7 @@ ds_status_t ds_vec_insert_n(ds_vec_t *vec, size_t index, const void *elems,
   if (index > vec->size) {
     return DS_ERR_RANGE;
   }
-  /* `elems` must not point into this vector: growing may move the block. */
-  status = vec_grow_for(vec, count);
-  if (status != DS_OK) {
-    return status;
-  }
-  if (index < vec->size) {
-    memmove(vec_ptr(vec, index + count), vec_ptr(vec, index),
-            (vec->size - index) * vec->elem_size);
-  }
-  memcpy(vec_ptr(vec, index), elems, count * vec->elem_size);
-  vec->size += count;
-  return DS_OK;
+  return vec_open(vec, index, elems, count, false);
 }
 
 ds_status_t ds_vec_erase(ds_vec_t *vec, size_t index, void *out) {

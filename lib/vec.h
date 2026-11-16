@@ -13,7 +13,9 @@
  *
  * The struct is public so a vector can live on the stack or in static
  * storage. Element pointers returned by the accessors stay valid until the
- * next operation that changes the size or the capacity.
+ * next operation that changes the size or the capacity. The source of push,
+ * append, insert / insert_n and the fill of resize may be elements of the
+ * vector itself: they are read as they were before the call.
  *
  * Complexity:
  *   at / get / set / back / swap_remove     O(1)
