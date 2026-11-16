@@ -177,7 +177,8 @@ ds_status_t ds_lru_cache_put(ds_lru_cache_t *cache, const void *key,
   }
   memcpy(lru_key(cache, n), key, cache->key_size);
   if (cache->value_size > 0) {
-    memcpy(lru_value(cache, n), value, cache->value_size);
+    /* memmove: value may be the evicted entry's own (a peek of it) */
+    memmove(lru_value(cache, n), value, cache->value_size);
   }
   status = ds_rh_map_put(&cache->index, lru_key(cache, n), &n);
   if (status != DS_OK) {
