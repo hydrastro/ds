@@ -1,11 +1,14 @@
 #include "string_map.h"
-#include <stdlib.h>
 #include <string.h>
+
+/* Everything a map holds (itself, its table, the copies of its keys) comes
+ * from its context; the table's user pointer is that context, so the key
+ * destructor can give the copies back. */
 
 static size_t string_map_hash(void *key, void *user);
 static int string_map_compare(void *a, void *b, void *user);
 static void string_map_destroy_key(void *key, void *user);
-static char *string_map_strdup(const char *str);
+static char *string_map_strdup(ds_context_t *context, const char *str);
 static void *string_map_key_ptr(const char *key);
 
 static size_t string_map_hash(void *key, void *user) {
@@ -19,8 +22,7 @@ static int string_map_compare(void *a, void *b, void *user) {
 }
 
 static void string_map_destroy_key(void *key, void *user) {
-  (void)user;
-  free(key);
+  ds_context_free((ds_context_t *)user, key);
 }
 
 static void *string_map_key_ptr(const char *key) {
@@ -32,14 +34,14 @@ static void *string_map_key_ptr(const char *key) {
   return u.v;
 }
 
-static char *string_map_strdup(const char *str) {
+static char *string_map_strdup(ds_context_t *context, const char *str) {
   size_t len;
   char *copy;
   if (str == NULL) {
     return NULL;
   }
   len = strlen(str) + 1U;
-  copy = (char *)malloc(len);
+  copy = (char *)ds_context_alloc(context, len);
   if (copy == NULL) {
     return NULL;
   }
@@ -55,7 +57,10 @@ ds_string_map_t *ds_string_map_create_ctx(ds_context_t *context) {
   ds_string_map_t *map;
   ds_hash_table_config_t config;
 
-  map = (ds_string_map_t *)malloc(sizeof(*map));
+  if (context == NULL) {
+    context = ds_default_context();
+  }
+  map = (ds_string_map_t *)ds_context_alloc(context, sizeof(*map));
   if (map == NULL) {
     return NULL;
   }
@@ -65,10 +70,11 @@ ds_string_map_t *ds_string_map_create_ctx(ds_context_t *context) {
   config.hash = string_map_hash;
   config.compare = string_map_compare;
   config.destroy_key = string_map_destroy_key;
+  config.user = context;
   config.context = context;
   map->table = ds_hash_table_create_config(&config);
   if (map->table == NULL) {
-    free(map);
+    ds_context_free(context, map);
     return NULL;
   }
   return map;
@@ -82,13 +88,13 @@ ds_status_t ds_string_map_put(ds_string_map_t *map, const char *key,
   if (map == NULL || key == NULL) {
     return DS_ERR_NULL;
   }
-  copy = string_map_strdup(key);
+  copy = string_map_strdup(map->table->context, key);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
   status = ds_hash_table_insert_take_key(map->table, copy, value);
   if (status != DS_OK) {
-    free(copy);
+    ds_context_free(map->table->context, copy);
   }
   return status;
 }
@@ -116,11 +122,13 @@ ds_status_t ds_string_map_contains(ds_string_map_t *map, const char *key) {
 }
 
 void ds_string_map_destroy(ds_string_map_t *map) {
+  ds_context_t *context;
   if (map == NULL) {
     return;
   }
+  context = map->table->context;
   ds_hash_table_destroy(map->table);
-  free(map);
+  ds_context_free(context, map);
 }
 
 ds_string_set_t *ds_string_set_create(void) {
@@ -129,13 +137,16 @@ ds_string_set_t *ds_string_set_create(void) {
 
 ds_string_set_t *ds_string_set_create_ctx(ds_context_t *context) {
   ds_string_set_t *set;
-  set = (ds_string_set_t *)malloc(sizeof(*set));
+  if (context == NULL) {
+    context = ds_default_context();
+  }
+  set = (ds_string_set_t *)ds_context_alloc(context, sizeof(*set));
   if (set == NULL) {
     return NULL;
   }
   set->map = ds_string_map_create_ctx(context);
   if (set->map == NULL) {
-    free(set);
+    ds_context_free(context, set);
     return NULL;
   }
   return set;
@@ -163,9 +174,11 @@ ds_status_t ds_string_set_remove(ds_string_set_t *set, const char *key) {
 }
 
 void ds_string_set_destroy(ds_string_set_t *set) {
+  ds_context_t *context;
   if (set == NULL) {
     return;
   }
+  context = set->map->table->context;
   ds_string_map_destroy(set->map);
-  free(set);
+  ds_context_free(context, set);
 }
