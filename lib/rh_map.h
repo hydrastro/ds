@@ -16,7 +16,9 @@
  * Keys and values live in two separate arrays, so a value pointer has the
  * alignment of value_size-sized array elements and can be cast to the
  * user's type. Pointers returned by get/emplace stay valid until the next
- * insertion or removal.
+ * insertion or removal; the key and value given to put, insert or emplace
+ * may still be such pointers into the map (another entry's value, used as
+ * a value or as a key): they are read before anything moves.
  *
  * The user hash is mixed before use, so a weak hash (e.g. the identity on
  * integers) still spreads well. Ready-made hash/equal functions for

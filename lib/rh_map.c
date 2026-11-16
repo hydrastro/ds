@@ -99,7 +99,11 @@ static void *rh_alloc(ds_context_t *context, size_t bytes) {
   return ds_context_alloc(context, bytes == 0 ? 1 : bytes);
 }
 
-static ds_status_t rh_rehash(ds_rh_map_t *map, size_t capacity) {
+/* Moves the entries to arrays of capacity slots. The old arrays are freed,
+ * or handed back in *old (when given) for rh_release, so that a key or
+ * value read from them stays valid until the caller is done with it. */
+static ds_status_t rh_rehash(ds_rh_map_t *map, size_t capacity,
+                             ds_rh_map_t *old) {
   ds_rh_map_t next = *map;
   size_t start = 0;
   size_t n;
@@ -144,15 +148,89 @@ static ds_status_t rh_rehash(ds_rh_map_t *map, size_t capacity) {
       }
     }
   }
-  ds_context_free(map->context, map->keys);
-  ds_context_free(map->context, map->values);
-  ds_context_free(map->context, map->hashes);
-  ds_context_free(map->context, map->dist);
+  if (old != NULL) {
+    *old = *map;
+  } else {
+    ds_context_free(map->context, map->keys);
+    ds_context_free(map->context, map->values);
+    ds_context_free(map->context, map->hashes);
+    ds_context_free(map->context, map->dist);
+  }
   *map = next;
   return DS_OK;
 }
 
-static ds_status_t rh_make_room(ds_rh_map_t *map) {
+static void rh_hold_none(ds_rh_map_t *old) {
+  old->keys = NULL;
+  old->values = NULL;
+  old->hashes = NULL;
+  old->dist = NULL;
+}
+
+/* frees the arrays rh_rehash handed back, if it did */
+static void rh_release(const ds_rh_map_t *map, ds_rh_map_t *old) {
+  ds_context_free(map->context, old->keys);
+  ds_context_free(map->context, old->values);
+  ds_context_free(map->context, old->hashes);
+  ds_context_free(map->context, old->dist);
+  rh_hold_none(old);
+}
+
+static void rh_swap_bytes(unsigned char *a, unsigned char *b, size_t n) {
+  unsigned char t;
+  size_t k;
+  for (k = 0; k < n; k++) {
+    t = a[k];
+    a[k] = b[k];
+    b[k] = t;
+  }
+}
+
+/* Places a new entry, key known to be absent and a free slot known to
+ * exist, and returns its slot. key and value (NULL: zeros) may point into
+ * the map itself, a value used as a key, say: they are first copied to the
+ * free slot that ends the cluster, which neither can lie in, and that slot
+ * then moves down to the entry's place as the residents shift up. */
+static size_t rh_place_entry(ds_rh_map_t *map, const void *key,
+                             unsigned long hash, const void *value) {
+  size_t mask = map->capacity - 1;
+  size_t i = rh_home(map, hash);
+  size_t e;
+  size_t prev;
+  unsigned int d = 1;
+  while (map->dist[i] != 0 && map->dist[i] >= d) {
+    i = (i + 1) & mask;
+    d++;
+  }
+  e = i;
+  while (map->dist[e] != 0) {
+    e = (e + 1) & mask;
+  }
+  memcpy(rh_key(map, e), key, map->key_size);
+  if (map->value_size > 0) {
+    if (value != NULL) {
+      memcpy(rh_value(map, e), value, map->value_size);
+    } else {
+      memset(rh_value(map, e), 0, map->value_size);
+    }
+  }
+  while (e != i) {
+    prev = (e - 1) & mask;
+    rh_swap_bytes(rh_key(map, e), rh_key(map, prev), map->key_size);
+    if (map->value_size > 0) {
+      rh_swap_bytes(rh_value(map, e), rh_value(map, prev), map->value_size);
+    }
+    map->hashes[e] = map->hashes[prev];
+    map->dist[e] = map->dist[prev] + 1U;
+    e = prev;
+  }
+  map->hashes[i] = hash;
+  map->dist[i] = d;
+  map->size++;
+  return i;
+}
+
+static ds_status_t rh_make_room(ds_rh_map_t *map, ds_rh_map_t *old) {
   size_t capacity;
   if (map->capacity > 0 && map->size + 1 <= rh_max_size(map->capacity)) {
     return DS_OK;
@@ -164,7 +242,7 @@ static ds_status_t rh_make_room(ds_rh_map_t *map) {
     return DS_ERR_OVERFLOW;
   }
   capacity = map->capacity == 0 ? RH_MIN_CAPACITY : map->capacity * 2;
-  return rh_rehash(map, capacity);
+  return rh_rehash(map, capacity, old);
 }
 
 static ds_status_t rh_check_config(const ds_rh_map_config_t *config) {
@@ -270,6 +348,7 @@ void ds_rh_map_destroy(ds_rh_map_t *map) {
 void *ds_rh_map_emplace(ds_rh_map_t *map, const void *key, bool *out_inserted) {
   unsigned long hash;
   size_t i;
+  ds_rh_map_t old;
   if (out_inserted != NULL) {
     *out_inserted = false;
   }
@@ -281,13 +360,12 @@ void *ds_rh_map_emplace(ds_rh_map_t *map, const void *key, bool *out_inserted) {
   if (i != RH_SIZE_MAX) {
     return rh_value(map, i);
   }
-  if (rh_make_room(map) != DS_OK) {
+  rh_hold_none(&old);
+  if (rh_make_room(map, &old) != DS_OK) {
     return NULL;
   }
-  i = rh_place(map, key, hash);
-  if (map->value_size > 0) {
-    memset(rh_value(map, i), 0, map->value_size);
-  }
+  i = rh_place_entry(map, key, hash, NULL);
+  rh_release(map, &old);
   if (out_inserted != NULL) {
     *out_inserted = true;
   }
@@ -299,6 +377,7 @@ static ds_status_t rh_store(ds_rh_map_t *map, const void *key,
   unsigned long hash;
   size_t i;
   ds_status_t status;
+  ds_rh_map_t old;
   if (key == NULL || (value == NULL && map->value_size > 0)) {
     return DS_ERR_NULL;
   }
@@ -310,14 +389,13 @@ static ds_status_t rh_store(ds_rh_map_t *map, const void *key,
     }
     return DS_EXISTS;
   }
-  status = rh_make_room(map);
+  rh_hold_none(&old);
+  status = rh_make_room(map, &old);
   if (status != DS_OK) {
     return status;
   }
-  i = rh_place(map, key, hash);
-  if (map->value_size > 0) {
-    memcpy(rh_value(map, i), value, map->value_size);
-  }
+  (void)rh_place_entry(map, key, hash, value);
+  rh_release(map, &old);
   return DS_OK;
 }
 
@@ -394,7 +472,7 @@ ds_status_t ds_rh_map_reserve(ds_rh_map_t *map, size_t count) {
   if (capacity == map->capacity) {
     return DS_OK;
   }
-  return rh_rehash(map, capacity);
+  return rh_rehash(map, capacity, NULL);
 }
 
 size_t ds_rh_map_size(const ds_rh_map_t *map) { return map->size; }
