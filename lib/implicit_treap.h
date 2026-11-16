@@ -46,7 +46,11 @@
  *                 before a node is restructured; a tag is applied to a
  *                 subtree after the reversals already pending in it.
  *
- * Element pointers returned by at() are valid until the next modifying call.
+ * Element pointers returned by at() are valid until the next modifying call,
+ * and may be passed to it: insert() and set() copy an element read from the
+ * treap before anything moves, and apply() works from a copy of its tag, so
+ * the tag may be an element of the range it updates. An empty range is
+ * nothing to reverse or tag (DS_OK); query() needs a nonempty one.
  * Nodes come from the ds_context_t. Concurrency: one thread at a time.
  */
 
@@ -85,7 +89,7 @@ typedef struct ds_itreap {
   size_t tag_offset;
   size_t node_bytes;
   unsigned long seed;
-  unsigned char *scratch; /* two summaries for combining */
+  unsigned char *scratch; /* two summaries for combining, a tag's copy */
 } ds_itreap_t;
 
 typedef bool (*ds_itreap_visit_func_t)(const void *elem, size_t index,

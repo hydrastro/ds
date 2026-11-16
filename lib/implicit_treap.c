@@ -30,6 +30,14 @@ static bool it_has_sum(const ds_itreap_t *t) {
 
 static bool it_has_tag(const ds_itreap_t *t) { return t->config.tag_size > 0; }
 
+/* The scratch block holds two summaries for it_pull, then (aligned) the
+ * copy of the tag that ds_itreap_apply works from; init has checked that
+ * these sizes do not overflow. */
+static unsigned char *it_tag_copy(const ds_itreap_t *t) {
+  size_t a = sizeof(it_align_t);
+  return t->scratch + (2 * t->config.summary_size + a - 1) / a * a;
+}
+
 static void it_swap_bytes(unsigned char *a, unsigned char *b, size_t n) {
   unsigned char tmp;
   size_t i;
@@ -190,6 +198,7 @@ void ds_itreap_config_init(ds_itreap_config_t *config) {
 ds_status_t ds_itreap_init(ds_itreap_t *treap,
                            const ds_itreap_config_t *config) {
   size_t header;
+  size_t scratch;
   if (treap == NULL || config == NULL) {
     return DS_ERR_NULL;
   }
@@ -215,7 +224,8 @@ ds_status_t ds_itreap_init(ds_itreap_t *treap,
     size_t rev_off;
     size_t tag_off;
     size_t bytes;
-    size_t scratch;
+    size_t sums;
+    size_t tag_room;
     if (!ds_size_align(sizeof(ds_itreap_node_t), a, &header) ||
         !ds_size_align(config->elem_size, a, &e) ||
         !ds_size_align(config->summary_size, a, &sm) ||
@@ -224,7 +234,9 @@ ds_status_t ds_itreap_init(ds_itreap_t *treap,
         !ds_size_add(sum_off, sm, &rev_off) ||
         !ds_size_add(rev_off, sm, &tag_off) ||
         !ds_size_add(tag_off, tg, &bytes) ||
-        !ds_size_mul(config->summary_size, 2, &scratch)) {
+        !ds_size_mul(config->summary_size, 2, &sums) ||
+        !ds_size_align(sums, a, &tag_room) ||
+        !ds_size_add(tag_room, config->tag_size, &scratch)) {
       return DS_ERR_OVERFLOW;
     }
     treap->config = *config;
@@ -239,9 +251,8 @@ ds_status_t ds_itreap_init(ds_itreap_t *treap,
   }
   treap->root = NULL;
   treap->seed = 0x2545F491UL;
-  treap->scratch = (unsigned char *)ds_context_alloc(
-      treap->config.context,
-      config->summary_size > 0 ? 2 * config->summary_size : 1);
+  treap->scratch = (unsigned char *)ds_context_alloc(treap->config.context,
+                                                     scratch > 0 ? scratch : 1);
   return treap->scratch == NULL ? DS_ERR_ALLOC : DS_OK;
 }
 
@@ -423,6 +434,7 @@ ds_status_t ds_itreap_apply(ds_itreap_t *treap, size_t first, size_t last,
   ds_itreap_node_t *left;
   ds_itreap_node_t *mid;
   ds_itreap_node_t *right;
+  unsigned char *copy;
   ds_status_t status;
   if (tag == NULL) {
     return DS_ERR_NULL;
@@ -430,11 +442,19 @@ ds_status_t ds_itreap_apply(ds_itreap_t *treap, size_t first, size_t last,
   if (!it_has_tag(treap)) {
     return DS_ERR_UNSUPPORTED;
   }
+  if (first == last && last <= ds_itreap_size(treap)) {
+    return DS_OK; /* nothing to tag */
+  }
+  /* The tag may be an element of this treap, even one inside the range
+   * (add element k to every element): tagging the range changes it before
+   * the summaries and the pending tag read it, so they read a copy. */
+  copy = it_tag_copy(treap);
+  memcpy(copy, tag, treap->config.tag_size);
   status = it_cut(treap, first, last, &left, &mid, &right);
   if (status != DS_OK) {
     return status;
   }
-  it_tag(treap, mid, tag);
+  it_tag(treap, mid, copy);
   it_join(treap, left, mid, right);
   return DS_OK;
 }
