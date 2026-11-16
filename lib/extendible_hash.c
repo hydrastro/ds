@@ -1,4 +1,5 @@
 #include "extendible_hash.h"
+#include "stage.h"
 #include <limits.h>
 #include <string.h>
 
@@ -330,9 +331,16 @@ static void *eh_emplace(ds_extendible_hash_t *map, const void *key,
 
 void *ds_extendible_hash_emplace(ds_extendible_hash_t *map, const void *key,
                                  bool *out_inserted) {
-  bool inserted;
+  bool inserted = false;
   ds_status_t status;
-  void *slot = eh_emplace(map, key, &inserted, &status);
+  void *slot = NULL;
+  ds_stage_t stage;
+  /* the key may be read from the map itself (see stage.h) */
+  if (ds_stage_copy(&stage, map->config.context, true, key,
+                    map->config.key_size, NULL, 0) == DS_OK) {
+    slot = eh_emplace(map, stage.key, &inserted, &status);
+    ds_stage_release(&stage);
+  }
   if (out_inserted != NULL) {
     *out_inserted = inserted;
   }
@@ -341,41 +349,54 @@ void *ds_extendible_hash_emplace(ds_extendible_hash_t *map, const void *key,
 
 ds_status_t ds_extendible_hash_put(ds_extendible_hash_t *map, const void *key,
                                    const void *value) {
-  bool inserted;
+  bool inserted = false;
   ds_status_t status;
   void *slot;
+  ds_stage_t stage;
   if (key == NULL || (value == NULL && map->config.value_size > 0)) {
     return DS_ERR_NULL;
   }
-  slot = eh_emplace(map, key, &inserted, &status);
-  if (slot == NULL) {
+  /* key and value may be read from the map itself (see stage.h) */
+  status = ds_stage_copy(&stage, map->config.context, true, key,
+                         map->config.key_size, value, map->config.value_size);
+  if (status != DS_OK) {
     return status;
   }
-  if (map->config.value_size > 0) {
-    memcpy(slot, value, map->config.value_size);
+  slot = eh_emplace(map, stage.key, &inserted, &status);
+  if (slot != NULL) {
+    status = DS_OK;
+    if (map->config.value_size > 0) {
+      memmove(slot, stage.value, map->config.value_size);
+    }
   }
-  return DS_OK;
+  ds_stage_release(&stage);
+  return status;
 }
 
 ds_status_t ds_extendible_hash_insert(ds_extendible_hash_t *map,
                                       const void *key, const void *value) {
-  bool inserted;
+  bool inserted = false;
   ds_status_t status;
   void *slot;
+  ds_stage_t stage;
   if (key == NULL || (value == NULL && map->config.value_size > 0)) {
     return DS_ERR_NULL;
   }
-  slot = eh_emplace(map, key, &inserted, &status);
-  if (slot == NULL) {
+  /* key and value may be read from the map itself (see stage.h) */
+  status = ds_stage_copy(&stage, map->config.context, true, key,
+                         map->config.key_size, value, map->config.value_size);
+  if (status != DS_OK) {
     return status;
   }
-  if (!inserted) {
-    return DS_EXISTS;
+  slot = eh_emplace(map, stage.key, &inserted, &status);
+  if (slot != NULL) {
+    status = inserted ? DS_OK : DS_EXISTS;
+    if (inserted && map->config.value_size > 0) {
+      memcpy(slot, stage.value, map->config.value_size);
+    }
   }
-  if (map->config.value_size > 0) {
-    memcpy(slot, value, map->config.value_size);
-  }
-  return DS_OK;
+  ds_stage_release(&stage);
+  return status;
 }
 
 void *ds_extendible_hash_get(const ds_extendible_hash_t *map, const void *key) {
