@@ -505,11 +505,13 @@ static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
     prbt_set_left(tree, copy, child);
   } else {
     if (prbt_is_red(copy->left)) {
-      copy = prbt_rotate_right(tree, copy);
-      if (copy == NULL) {
+      child = prbt_rotate_right(tree, copy);
+      if (child == NULL) {
+        prbt_node_release(tree, copy);
         *failed = true;
         return NULL;
       }
+      copy = child;
     }
     cmp = tree->config.compare(key, copy->key, tree->config.user);
     if (cmp == 0 && copy->right == NULL) {
