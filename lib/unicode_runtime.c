@@ -12,8 +12,14 @@ int ucd_do_init(void) { return 0; }
 int ucd_init_once(void) { return 0; }
 void ensure_ucd_once_lock(void) {}
 
+/* Unicode scalar values: noncharacters are valid text and pass through
+ * normalization, case mapping and segmentation; surrogates, overlong forms
+ * and values past U+10FFFF are errors. */
+#define U8_SCALAR                                                              \
+  (DS_U8_REJECT_SURROGATE | DS_U8_REJECT_OVERLONG | DS_U8_REJECT_OUT_OF_RANGE)
+
 int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp) {
-  return ds_str_u8_next(buf, len, ioff, out_cp, DS_U8_STRICT);
+  return ds_str_u8_next(buf, len, ioff, out_cp, U8_SCALAR);
 }
 int u8_push(ds_str_t *s, unsigned long cp) { return ds_str_u8_push_cp(s, cp); }
 
@@ -51,7 +57,8 @@ int compose_Hangul(unsigned long *LVT, unsigned long next, size_t *consumed) {
     *consumed = 1u;
     return 1;
   }
-  if (is_Hangul_S(s) && ((next > TBase) && (next <= TBase + TCount - 1))) {
+  if (is_Hangul_S(s) && (s - SBase) % TCount == 0ul && /* LV, not LVT */
+      ((next > TBase) && (next <= TBase + TCount - 1))) {
     unsigned long TIndex = next - TBase;
     *LVT = s + TIndex;
     *consumed = 1u;
@@ -133,15 +140,20 @@ int decompose_cp(unsigned long cp, int compat, void *out_vec_void) {
   return out->push(out, cp);
 }
 
+/* The canonical ordering algorithm: a stable sort by combining class of
+ * each run of non-starters. A starter (class 0) never moves, and no mark
+ * moves across one. */
 void reorder_ccc(void *vec_void) {
   u32vec_like *v = (u32vec_like *)vec_void;
   size_t i;
   for (i = 1; i < v->n; ++i) {
     unsigned long x = v->p[i], cx = get_ccc(x);
     size_t j = i;
+    if (cx == 0ul)
+      continue;
     while (j > 0) {
       unsigned long y = v->p[j - 1], cy = get_ccc(y);
-      if (cy <= cx)
+      if (cy == 0ul || cy <= cx)
         break;
       v->p[j] = y;
       --j;
@@ -149,13 +161,6 @@ void reorder_ccc(void *vec_void) {
     v->p[j] = x;
   }
 }
-
-#ifndef U_COMP_KEYS_A
-#ifdef U_COMP_A
-#define U_COMP_KEYS_A U_COMP_A
-#define U_COMP_KEYS_B U_COMP_B
-#endif
-#endif
 
 int ds__pair_cmp(unsigned long a1, unsigned long b1, unsigned long a2,
                  unsigned long b2) {
@@ -325,6 +330,7 @@ int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat,
   u32vec_like tmp;
   size_t i;
   unsigned long cp;
+  int r;
 
   if (!dst || !src)
     return -1;
@@ -335,11 +341,15 @@ int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat,
   tmp.push = u32vec_push;
 
   i = 0;
-  while (u8_next(src->buf, src->len, &i, &cp) == 1) {
+  while ((r = u8_next(src->buf, src->len, &i, &cp)) == 1) {
     if (decompose_cp(cp, compat, &tmp) != 0) {
       u32vec_free(&tmp);
       return -1;
     }
+  }
+  if (r < 0) { /* not UTF-8: an error, not a shorter result */
+    u32vec_free(&tmp);
+    return -1;
   }
   reorder_ccc(&tmp);
   if (compose)
@@ -359,6 +369,7 @@ int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src) {
   u32vec_like out;
   size_t i;
   unsigned long cp;
+  int r;
 
   if (!dst || !src)
     return -1;
@@ -369,11 +380,52 @@ int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src) {
   out.push = u32vec_push;
 
   i = 0;
-  while (u8_next(src->buf, src->len, &i, &cp) == 1) {
+  while ((r = u8_next(src->buf, src->len, &i, &cp)) == 1) {
     if (fold_cp(cp, &out) != 0) {
       u32vec_free(&out);
       return -1;
     }
+  }
+  if (r < 0) {
+    u32vec_free(&out);
+    return -1;
+  }
+  ds_str_clear(dst);
+  for (i = 0; i < out.n; ++i)
+    if (u8_push(dst, out.p[i]) != 0) {
+      u32vec_free(&out);
+      return -1;
+    }
+  u32vec_free(&out);
+  return 0;
+}
+
+/* Maps every code point of src through a simple (one to one) table into
+ * dst. The result is built apart first, so dst may be src. */
+static int ucd_map_simple(ds_str_t *dst, const ds_str_t *src,
+                          const unsigned long *keys, const unsigned long *vals,
+                          size_t len) {
+  u32vec_like out;
+  size_t i = 0;
+  unsigned long cp;
+  int r;
+
+  if (!dst || !src)
+    return -1;
+
+  out.p = NULL;
+  out.n = 0;
+  out.cap = 0;
+  out.push = u32vec_push;
+  while ((r = u8_next(src->buf, src->len, &i, &cp)) == 1) {
+    if (out.push(&out, ds__map_simple(keys, vals, len, cp)) != 0) {
+      u32vec_free(&out);
+      return -1;
+    }
+  }
+  if (r < 0) {
+    u32vec_free(&out);
+    return -1;
   }
   ds_str_clear(dst);
   for (i = 0; i < out.n; ++i)
@@ -386,35 +438,13 @@ int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src) {
 }
 
 int ds__ucd_tolower(ds_str_t *dst, const ds_str_t *src) {
-  size_t i = 0;
-  unsigned long cp;
-
-  if (!dst || !src)
-    return -1;
-
-  ds_str_clear(dst);
-  while (u8_next(src->buf, src->len, &i, &cp) == 1) {
-    cp = ds__map_simple(U_TOLOWER_KEYS, U_TOLOWER_VALS, U_TOLOWER_LEN, cp);
-    if (u8_push(dst, cp) != 0)
-      return -1;
-  }
-  return 0;
+  return ucd_map_simple(dst, src, U_TOLOWER_KEYS, U_TOLOWER_VALS,
+                        U_TOLOWER_LEN);
 }
 
 int ds__ucd_toupper(ds_str_t *dst, const ds_str_t *src) {
-  size_t i = 0;
-  unsigned long cp;
-
-  if (!dst || !src)
-    return -1;
-
-  ds_str_clear(dst);
-  while (u8_next(src->buf, src->len, &i, &cp) == 1) {
-    cp = ds__map_simple(U_TOUPPER_KEYS, U_TOUPPER_VALS, U_TOUPPER_LEN, cp);
-    if (u8_push(dst, cp) != 0)
-      return -1;
-  }
-  return 0;
+  return ucd_map_simple(dst, src, U_TOUPPER_KEYS, U_TOUPPER_VALS,
+                        U_TOUPPER_LEN);
 }
 
 long ds__ucd_grapheme_len(const ds_str_t *s) {
@@ -455,6 +485,21 @@ int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf,
   return 0;
 }
 
+/* GB11 (ExtPict Extend* ZWJ x ExtPict) as a state: last_base_is_EP says
+ * the text so far ends with ExtPict Extend*, prev_is_zwj_ign_ext that it
+ * ends with ExtPict Extend* ZWJ. */
+static void gb11_update(ds__grapheme_iter_t *it, unsigned long prop) {
+  if (prop == GB_Extend) {
+    it->prev_is_zwj_ign_ext = 0;
+  } else if (prop == GB_ZWJ) {
+    it->prev_is_zwj_ign_ext = it->last_base_is_EP;
+    it->last_base_is_EP = 0;
+  } else {
+    it->last_base_is_EP = is_EP(it->cp);
+    it->prev_is_zwj_ign_ext = 0;
+  }
+}
+
 int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
                            size_t *out_len) {
   while (1) {
@@ -463,10 +508,10 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
     int break_here = 1;
     int r;
 
-    if (!it || !it->buf)
+    if (!it)
       return -1;
 
-    if (it->i >= it->len) {
+    if (it->i >= it->len) { /* also the end of an empty, unallocated text */
       if (it->cur_start < it->len) {
         if (out_start)
           *out_start = it->cur_start;
@@ -512,13 +557,13 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
     else if ((it->prev_prop == GB_LVT || it->prev_prop == GB_T) &&
              (prop == GB_T))
       break_here = 0;
-    else if (prop == GB_Extend)
+    else if (prop == GB_Extend || prop == GB_ZWJ) /* GB9 */
       break_here = 0;
     else if (prop == GB_SpacingMark)
       break_here = 0;
     else if (it->prev_prop == GB_Prepend)
       break_here = 0;
-    else if (is_EP(it->cp) && it->prev_is_zwj_ign_ext && it->last_base_is_EP)
+    else if (is_EP(it->cp) && it->prev_is_zwj_ign_ext) /* GB11 */
       break_here = 0;
     else if (it->prev_prop == GB_Regional_Indicator &&
              prop == GB_Regional_Indicator) {
@@ -540,13 +585,7 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
       else
         it->ri_run_len = 0;
 
-      if (prop == GB_Extend) {
-      } else if (prop == GB_ZWJ) {
-        it->prev_is_zwj_ign_ext = 1;
-      } else {
-        it->last_base_is_EP = is_EP(it->cp);
-        it->prev_is_zwj_ign_ext = 0;
-      }
+      gb11_update(it, prop);
       return 1;
     }
 
@@ -556,13 +595,7 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
     else
       it->ri_run_len = 0;
 
-    if (prop == GB_Extend) {
-    } else if (prop == GB_ZWJ) {
-      it->prev_is_zwj_ign_ext = 1;
-    } else {
-      it->last_base_is_EP = is_EP(it->cp);
-      it->prev_is_zwj_ign_ext = 0;
-    }
+    gb11_update(it, prop);
   }
 }
 
