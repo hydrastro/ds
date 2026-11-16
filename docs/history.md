@@ -40,6 +40,11 @@ Retroactive insertion/deletion invalidates affected checkpoints. If a parent is
 edited before a child branch's fork point, descendant checkpoints are invalidated
 as well.
 
+A snapshot or query whose replay was at least the checkpoint interval long
+keeps its state as a checkpoint on the branch that owns its time: the branch
+itself, or, for a time before its fork, the ancestor whose operations hold
+that time.
+
 ## Operation interface
 
 A container adapter supplies:
@@ -66,7 +71,10 @@ ds_history_transaction_begin(history);
 ds_history_transaction_commit(history);
 ```
 
-This is useful for bulk retroactive edits or branch merges.
+The first edit in a transaction drops every checkpoint, and later edits
+invalidate nothing; snapshots taken after that edit keep no checkpoint until
+the outermost commit. This is useful for bulk retroactive edits or branch
+merges.
 
 ## Branch merge
 

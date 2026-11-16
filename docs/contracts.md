@@ -125,6 +125,26 @@ says what remains:
 | `lib/fault_store` | an injected failure changes nothing; a base-store failure during sync keeps the operations not yet applied for the next sync |
 | the legacy intrusive containers (`lib/list`, `lib/stack`, `lib/queue`, `lib/deque`, `lib/dlist`, `lib/ring_list`, `lib/circular_buffer`, `lib/heap`, `lib/bst`, `lib/avl`, `lib/rbt`, `lib/splay_tree`, `lib/treap`, `lib/btree`, `lib/bplus_tree`, `lib/skip_list`) | constructors return NULL when memory runs out, releasing what they took; `clone_ex` rolls back every clone it made through `destroy_clone` (`DS_ERR_CALLBACK` for a NULL clone, `DS_ERR_ALLOC`); a legacy clone returns NULL, and the clones it made before are not released; `lib/heap` and `lib/skip_list` insertion through `insert_ex` reports a failed allocation with nothing changed (the legacy insert leaves the node out); `lib/bplus_tree` clones by insertion, whose splits still assume memory |
 | the other legacy constructors (`lib/order_statistic_tree`, `lib/bitvector`, `lib/wavelet_tree`, `lib/bloom_filter`, `lib/fenwick_tree`, `lib/segment_tree`, `lib/disjoint_set`, `lib/pairing_heap`, `lib/fibonacci_heap`, `lib/radix_trie`, `lib/aho_corasick`, `lib/hamt`, `lib/art`, `lib/rope`, `lib/bitset`, `lib/str`) | return NULL when memory runs out, releasing what they took, as do the clones they offer; `ds_bitvector_build_ex` keeps the old rank directory when the new one cannot be allocated. Insertion into the radix trie, Aho-Corasick automaton, HAMT, ART and rope still assumes memory |
+| `lib/persistent_rbt`, `lib/persistent_trie` | every update builds a new version; when memory or a clone is refused it returns NULL with its base unchanged and nothing leaked (also a prefix copy or move that fails partway) |
+
+## Sources inside the destination
+
+An operation that copies caller data into a container may be given data
+that the container itself holds, such as one of a vector's elements or a
+part of a string. It reads the source as it was before the call: growth
+copies the source into the new block before the old one is freed, and an
+operation in place stages it where the move cannot reach. No path
+compares pointers into unrelated objects.
+
+| Module | Operations |
+|---|---|
+| `lib/vec` | push, append, insert and insert_n, the fill of resize |
+| `lib/array_deque` | push_back, push_front, insert, set, push_back_overwrite |
+| `lib/gap_buffer` | insert (a stretch on either side of the gap) |
+| `lib/str` | append, insert, assign, and the arguments of the formatted appends |
+| `lib/slot_map` | insert (a value from `ds_slot_map_get`) |
+| `lib/lru_cache`, `lib/sieve_cache` | put (a value peeked from the entry it evicts) |
+| `lib/min_max_heap`, `lib/monotonic_queue` | push (one of the heap's ends, the queue's own front) |
 
 ## Cursors and handles
 

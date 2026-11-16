@@ -239,7 +239,7 @@ No row is classified missing.
 | brute force string search | algorithm | implemented | algo/string_search |  |
 | brute force string search with mismatches | algorithm | implemented | algo/string_search |  |
 | BSP-tree | structure | implemented | lib/bsp_tree |  |
-| B*-tree | structure | implemented | lib/bplus_tree | B* split policy |
+| B*-tree | structure | implemented | lib/bplus_tree | the B* policy at every level (`bstar`): an overflowing node hands a key to an adjacent sibling with room, and two full siblings split into three; random insertions fill leaves to about 85% (plain splits: about 70%) |
 | B-tree | structure | implemented | lib/btree |  |
 | bubble sort | algorithm | implemented | algo/sort_classic |  |
 | bucket | concept | n/a |  |  |
