@@ -8,12 +8,20 @@ static size_t gb_gap(const ds_gap_buffer_t *gb) {
   return gb->gap_end - gb->gap_start;
 }
 
-static ds_status_t gb_grow(ds_gap_buffer_t *gb, size_t extra) {
+/* Makes the gap hold at least extra bytes and, when text is given, copies
+ * extra bytes of it to the start of the gap. text may lie in the buffer
+ * itself (on either side of the gap): growth copies it before the old block
+ * goes, and in place the gap is not part of it. */
+static ds_status_t gb_grow(ds_gap_buffer_t *gb, size_t extra,
+                           const void *text) {
   size_t length = ds_gap_buffer_length(gb);
   size_t capacity;
   size_t tail = gb->capacity - gb->gap_end;
   unsigned char *data;
   if (gb_gap(gb) >= extra) {
+    if (text != NULL) {
+      memcpy(gb->data + gb->gap_start, text, extra);
+    }
     return DS_OK;
   }
   if (gb->fixed || extra > GB_SIZE_MAX - length) {
@@ -33,6 +41,9 @@ static ds_status_t gb_grow(ds_gap_buffer_t *gb, size_t extra) {
   }
   if (gb->gap_start > 0) {
     memcpy(data, gb->data, gb->gap_start);
+  }
+  if (text != NULL) {
+    memcpy(data + gb->gap_start, text, extra);
   }
   if (tail > 0) {
     memcpy(data + capacity - tail, gb->data + gb->gap_end, tail);
@@ -55,7 +66,7 @@ ds_status_t ds_gap_buffer_init(ds_gap_buffer_t *gb, size_t capacity,
   gb->gap_end = 0;
   gb->context = context != NULL ? context : ds_default_context();
   gb->fixed = false;
-  return capacity > 0 ? gb_grow(gb, capacity) : DS_OK;
+  return capacity > 0 ? gb_grow(gb, capacity, NULL) : DS_OK;
 }
 
 ds_status_t ds_gap_buffer_init_buffer(ds_gap_buffer_t *gb, void *buffer,
@@ -119,11 +130,10 @@ ds_status_t ds_gap_buffer_insert(ds_gap_buffer_t *gb, const void *text,
   if (text == NULL) {
     return DS_ERR_NULL;
   }
-  status = gb_grow(gb, size);
+  status = gb_grow(gb, size, text);
   if (status != DS_OK) {
     return status;
   }
-  memcpy(gb->data + gb->gap_start, text, size);
   gb->gap_start += size;
   return DS_OK;
 }

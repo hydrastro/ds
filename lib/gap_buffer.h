@@ -9,7 +9,9 @@
  * which is how people type.
  *
  * Positions are byte offsets in [0, length]. The text is not
- * NUL-terminated; ds_gap_buffer_copy() extracts a range.
+ * NUL-terminated; ds_gap_buffer_copy() extracts a range. The text inserted
+ * may come from the buffer itself (a stretch on one side of the gap): it is
+ * read as it was before the call.
  *
  * Storage: dynamic (ds_gap_buffer_init, grows through a ds_context_t) or a
  * caller buffer (ds_gap_buffer_init_buffer, DS_ERR_OVERFLOW when full).
