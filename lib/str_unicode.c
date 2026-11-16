@@ -197,10 +197,10 @@ int ds_str_u8_next(const char *buf, size_t len, size_t *ioff,
   size_t i = ioff ? *ioff : 0;
   size_t adv;
   int r;
+  if (i >= len) /* the end, also of a string that never had a buffer */
+    return 0;
   if (!buf)
     return -1;
-  if (i >= len)
-    return 0;
   r = ds__decode_one((const unsigned char *)buf + i, len - i, &adv, out_cp,
                      flags);
   if (r <= 0)
@@ -214,10 +214,10 @@ int ds_str_u8_prev(const char *buf, size_t len, size_t *ioff,
                    unsigned long *out_cp, unsigned int flags) {
   size_t i = ioff ? *ioff : len;
   const unsigned char *p = (const unsigned char *)buf;
+  if (i == 0) /* the start, also of a string that never had a buffer */
+    return 0;
   if (!buf)
     return -1;
-  if (i == 0)
-    return 0;
   {
     size_t j = i;
     size_t start = j;
@@ -368,7 +368,8 @@ int ds_str_u8_ascii_tolower(ds_str_t *dst, const ds_str_t *src) {
   if (ds_str_reserve(dst, src->len) != 0) {
     return -1;
   }
-  for (i = 0, n = src->len; i < n; ++i)
+  n = src->len;
+  for (i = 0; i < n; ++i)
     dst->buf[i] = (char)ds__ascii_lower((unsigned char)src->buf[i]);
   dst->len = src->len;
   dst->buf[dst->len] = '\0';
@@ -382,7 +383,8 @@ int ds_str_u8_ascii_toupper(ds_str_t *dst, const ds_str_t *src) {
   if (ds_str_reserve(dst, src->len) != 0) {
     return -1;
   }
-  for (i = 0, n = src->len; i < n; ++i)
+  n = src->len;
+  for (i = 0; i < n; ++i)
     dst->buf[i] = (char)ds__ascii_upper((unsigned char)src->buf[i]);
   dst->len = src->len;
   dst->buf[dst->len] = '\0';
@@ -925,7 +927,7 @@ int ds__is_c0_c1(unsigned long cp) {
   return (cp < 0x20ul) || (cp == 0x7Ful) || (cp >= 0x80ul && cp <= 0x9Ful);
 }
 
-const ds__range DS__WIDE_TABLE[] = {
+static const ds__range DS__WIDE_TABLE[] = {
     {0x1100ul, 0x115Ful},   {0x231Aul, 0x231Bul},   {0x2329ul, 0x232Aul},
     {0x2E80ul, 0x303Eul},   {0x3040ul, 0x3247ul},   {0x3250ul, 0x4DBFul},
     {0x4E00ul, 0xA4C6ul},   {0xA960ul, 0xA97Cul},   {0xAC00ul, 0xD7A3ul},
