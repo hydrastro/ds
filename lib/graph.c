@@ -1,4 +1,5 @@
 #include "graph.h"
+#include "checked.h"
 #include "pq_iface.h"
 #include <float.h>
 #include <stdlib.h>
@@ -8,14 +9,30 @@ static ds_status_t graph_reserve_vertices(ds_graph_t *graph, size_t capacity);
 static ds_status_t graph_reserve_edges(ds_graph_t *graph, size_t vertex,
                                        size_t capacity);
 
+/* the next capacity: twice the current one, at least minimum */
+static ds_status_t graph_grown(size_t current, size_t minimum, size_t item,
+                               size_t *out_capacity) {
+  size_t bytes;
+  if (current == 0U) {
+    *out_capacity = minimum;
+  } else if (!ds_size_mul(current, 2U, out_capacity)) {
+    return DS_ERR_OVERFLOW;
+  }
+  return ds_size_mul(*out_capacity, item, &bytes) ? DS_OK : DS_ERR_OVERFLOW;
+}
+
 static ds_status_t graph_reserve_vertices(ds_graph_t *graph, size_t capacity) {
   ds_graph_vertex_t *vertices;
   size_t i;
+  size_t bytes;
   if (capacity <= graph->vertex_capacity) {
     return DS_OK;
   }
-  vertices = (ds_graph_vertex_t *)ds_context_realloc(
-      graph->context, graph->vertices, capacity * sizeof(*vertices));
+  if (!ds_size_mul(capacity, sizeof(*vertices), &bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
+  vertices = (ds_graph_vertex_t *)ds_context_realloc(graph->context,
+                                                     graph->vertices, bytes);
   if (vertices == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -33,11 +50,15 @@ static ds_status_t graph_reserve_vertices(ds_graph_t *graph, size_t capacity) {
 static ds_status_t graph_reserve_edges(ds_graph_t *graph, size_t vertex,
                                        size_t capacity) {
   ds_graph_edge_t *edges;
+  size_t bytes;
   if (capacity <= graph->vertices[vertex].edge_capacity) {
     return DS_OK;
   }
+  if (!ds_size_mul(capacity, sizeof(*edges), &bytes)) {
+    return DS_ERR_OVERFLOW;
+  }
   edges = (ds_graph_edge_t *)ds_context_realloc(
-      graph->context, graph->vertices[vertex].edges, capacity * sizeof(*edges));
+      graph->context, graph->vertices[vertex].edges, bytes);
   if (edges == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -94,8 +115,12 @@ ds_status_t ds_graph_add_vertex(ds_graph_t *graph, void *data,
     return DS_ERR_NULL;
   }
   if (graph->vertex_count == graph->vertex_capacity) {
-    status = graph_reserve_vertices(
-        graph, graph->vertex_capacity == 0U ? 8U : graph->vertex_capacity * 2U);
+    size_t capacity;
+    status = graph_grown(graph->vertex_capacity, 8U, sizeof(ds_graph_vertex_t),
+                         &capacity);
+    if (status == DS_OK) {
+      status = graph_reserve_vertices(graph, capacity);
+    }
     if (status != DS_OK) {
       return status;
     }
@@ -126,11 +151,12 @@ ds_status_t ds_graph_add_weighted_edge(ds_graph_t *graph, size_t from,
     return DS_ERR_RANGE;
   }
   if (graph->vertices[from].edge_count == graph->vertices[from].edge_capacity) {
-    status =
-        graph_reserve_edges(graph, from,
-                            graph->vertices[from].edge_capacity == 0U
-                                ? 4U
-                                : graph->vertices[from].edge_capacity * 2U);
+    size_t capacity;
+    status = graph_grown(graph->vertices[from].edge_capacity, 4U,
+                         sizeof(ds_graph_edge_t), &capacity);
+    if (status == DS_OK) {
+      status = graph_reserve_edges(graph, from, capacity);
+    }
     if (status != DS_OK) {
       return status;
     }
@@ -171,7 +197,9 @@ ds_status_t ds_graph_update_edge(ds_graph_t *graph, size_t from, size_t to,
   }
   for (i = 0U; i < graph->vertices[from].edge_count; i++) {
     if (graph->vertices[from].edges[i].to == to) {
-      if (destroy_old_edge != NULL) {
+      /* data kept by the update (a new weight only) is not destroyed */
+      if (destroy_old_edge != NULL &&
+          graph->vertices[from].edges[i].data != data) {
         destroy_old_edge(graph->vertices[from].edges[i].data);
       }
       graph->vertices[from].edges[i].weight = weight;
@@ -709,8 +737,11 @@ ds_status_t ds_graph_minimum_spanning_tree(ds_graph_t *graph,
   }
   edges = NULL;
   if (edge_total != 0U) {
-    edges = (graph_mst_edge_t *)ds_context_alloc(graph->context,
-                                                 edge_total * sizeof(*edges));
+    size_t bytes;
+    if (!ds_size_mul(edge_total, sizeof(*edges), &bytes)) {
+      return DS_ERR_OVERFLOW;
+    }
+    edges = (graph_mst_edge_t *)ds_context_alloc(graph->context, bytes);
     if (edges == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -783,7 +814,6 @@ ds_status_t ds_graph_connected_components(ds_graph_t *graph,
   size_t count;
   size_t root_a;
   size_t root_b;
-  bool found;
 
   if (out_count != NULL) {
     *out_count = 0U;
@@ -818,22 +848,19 @@ ds_status_t ds_graph_connected_components(ds_graph_t *graph,
     }
   }
 
+  /* components numbered in order of their first vertex: roots[r] is the
+   * number of root r's component, (size_t)-1 until it has one */
+  for (i = 0U; i < graph->vertex_count; i++) {
+    roots[i] = (size_t)-1;
+  }
   count = 0U;
   for (i = 0U; i < graph->vertex_count; i++) {
     root = graph_uf_find(parent, i);
-    found = false;
-    for (j = 0U; j < count; j++) {
-      if (roots[j] == root) {
-        out_components[i] = j;
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      roots[count] = root;
-      out_components[i] = count;
+    if (roots[root] == (size_t)-1) {
+      roots[root] = count;
       count++;
     }
+    out_components[i] = roots[root];
   }
 
   ds_context_free(graph->context, roots);
