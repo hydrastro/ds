@@ -147,37 +147,68 @@ bool ds_bitset_any(ds_bitset_t *bitset) {
 
 bool ds_bitset_none(ds_bitset_t *bitset) { return !ds_bitset_any(bitset); }
 
+/* the bits of word w that lie inside the set */
+static unsigned long bitset_word_mask(const ds_bitset_t *bitset, size_t w) {
+  size_t used = bitset->num_bits % DS_BITSET_BITS_PER_WORD;
+  return w + 1 == bitset->num_words && used != 0 ? (1UL << used) - 1UL : ~0UL;
+}
+
+/* whole words at a time */
 bool ds_bitset_all(ds_bitset_t *bitset) {
-  bool result = true;
-  size_t i;
-  if (bitset->num_bits == 0) {
-    return true;
-  }
-  for (i = 0; i < bitset->num_bits; i++) {
-    if ((bitset->words[bitset_word_index(i)] & bitset_bit_mask(i)) == 0UL) {
-      result = false;
-      break;
+  size_t w;
+  for (w = 0; w < bitset->num_words; w++) {
+    unsigned long mask = bitset_word_mask(bitset, w);
+    if ((bitset->words[w] & mask) != mask) {
+      return false;
     }
   }
-  return result;
+  return true;
 }
 
 size_t ds_bitset_find_first(ds_bitset_t *bitset) {
   return ds_bitset_find_next(bitset, DS_BITSET_NPOS);
 }
 
+static size_t bitset_lowest_bit(unsigned long word) {
+  size_t bit = 0;
+  while ((word & 0xFFUL) == 0UL) {
+    word >>= 8;
+    bit += 8;
+  }
+  while ((word & 1UL) == 0UL) {
+    word >>= 1;
+    bit++;
+  }
+  return bit;
+}
+
+/* skips empty words whole */
 size_t ds_bitset_find_next(ds_bitset_t *bitset, size_t index) {
   size_t start;
-  size_t i;
-  size_t result = DS_BITSET_NPOS;
-  start = index == DS_BITSET_NPOS ? 0 : index + 1;
-  for (i = start; i < bitset->num_bits; i++) {
-    if ((bitset->words[bitset_word_index(i)] & bitset_bit_mask(i)) != 0UL) {
-      result = i;
-      break;
-    }
+  size_t w;
+  unsigned long word;
+  if (index == DS_BITSET_NPOS) {
+    start = 0;
+  } else if (index >= bitset->num_bits) {
+    return DS_BITSET_NPOS;
+  } else {
+    start = index + 1;
   }
-  return result;
+  if (start >= bitset->num_bits) {
+    return DS_BITSET_NPOS;
+  }
+  w = bitset_word_index(start);
+  word = bitset->words[w] & ~(bitset_bit_mask(start) - 1UL);
+  for (;;) {
+    word &= bitset_word_mask(bitset, w);
+    if (word != 0UL) {
+      return w * DS_BITSET_BITS_PER_WORD + bitset_lowest_bit(word);
+    }
+    if (++w >= bitset->num_words) {
+      return DS_BITSET_NPOS;
+    }
+    word = bitset->words[w];
+  }
 }
 
 bool ds_bitset_and(ds_bitset_t *bitset, ds_bitset_t *other) {
