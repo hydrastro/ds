@@ -63,6 +63,11 @@ ds_ptrie_move_prefix(ds_ptrie_t *trie, ds_ptrie_version_t *base,
 ds_status_t ds_ptrie_longest_prefix(ds_ptrie_version_t *version,
                                     const unsigned char *key, size_t len,
                                     size_t *out_len, void **out_value);
+/* Visits go in key order: bytes compare as unsigned and a key comes
+ * before its extensions. A range is inclusive, a NULL bound leaves its end
+ * open, and the walk skips what lies outside it. The visitor stops a visit
+ * by returning false (DS_STOP); scratch memory comes from the trie's
+ * context (DS_ERR_ALLOC when it is refused). */
 ds_status_t ds_ptrie_visit_prefix(ds_ptrie_version_t *version,
                                   const unsigned char *prefix,
                                   size_t prefix_len,

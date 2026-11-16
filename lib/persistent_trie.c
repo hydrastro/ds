@@ -20,6 +20,7 @@ typedef struct ds_ptrie_node {
 struct ds_ptrie_version {
   unsigned long refs;
   ds_ptrie_node_t *root;
+  ds_context_t *context; /* the trie's, for the scratch memory of visits */
 };
 
 struct ds_ptrie {
@@ -48,11 +49,23 @@ static int ptrie_key_compare(const unsigned char *a, size_t alen,
 static bool ptrie_key_in_range(const unsigned char *key, size_t key_len,
                                const unsigned char *lower, size_t lower_len,
                                const unsigned char *upper, size_t upper_len);
-static ds_status_t
-ptrie_visit_from(ds_ptrie_node_t *node, unsigned char **buffer, size_t depth,
-                 size_t *capacity, ds_ptrie_visit_func_t visit, void *user,
-                 const unsigned char *lower, size_t lower_len,
-                 const unsigned char *upper, size_t upper_len);
+
+/* a visit in key order: the key of the current path, the visitor and the
+ * bounds of a range (NULL when open) */
+typedef struct ptrie_walk {
+  ds_context_t *context;
+  unsigned char *key;
+  size_t key_capacity;
+  ds_ptrie_visit_func_t visit;
+  void *user;
+  const unsigned char *lower;
+  size_t lower_len;
+  const unsigned char *upper;
+  size_t upper_len;
+} ptrie_walk_t;
+
+static ds_status_t ptrie_walk(ptrie_walk_t *walk, ds_ptrie_node_t *node,
+                              size_t depth);
 
 void ds_ptrie_config_init(ds_ptrie_config_t *config) {
   if (config == NULL) {
@@ -141,15 +154,14 @@ static void ptrie_node_release(ds_ptrie_t *trie, ds_ptrie_node_t *node) {
   }
 }
 
+/* a node's edges are kept in token order, so visits come out in key order
+ * and a search stops at the first larger token */
 static ds_ptrie_edge_t *ptrie_edge_find(ds_ptrie_edge_t *edge,
                                         unsigned char token) {
-  while (edge != NULL) {
-    if (edge->token == token) {
-      return edge;
-    }
+  while (edge != NULL && edge->token < token) {
     edge = edge->next;
   }
-  return NULL;
+  return edge != NULL && edge->token == token ? edge : NULL;
 }
 
 static ds_ptrie_edge_t *ptrie_edge_clone_list(ds_ptrie_t *trie,
@@ -250,11 +262,12 @@ static bool ptrie_set_child(ds_ptrie_t *trie, ds_ptrie_node_t *copy,
                             unsigned char token, ds_ptrie_node_t *child) {
   ds_ptrie_edge_t *prev = NULL;
   ds_ptrie_edge_t *edge = copy->children;
-  while (edge != NULL && edge->token != token) {
+  ds_ptrie_edge_t *added;
+  while (edge != NULL && edge->token < token) {
     prev = edge;
     edge = edge->next;
   }
-  if (edge != NULL) {
+  if (edge != NULL && edge->token == token) {
     ds_ptrie_node_t *old = edge->child;
     if (child == NULL) {
       if (prev == NULL) {
@@ -272,15 +285,19 @@ static bool ptrie_set_child(ds_ptrie_t *trie, ds_ptrie_node_t *copy,
   if (child == NULL) {
     return true;
   }
-  edge =
-      (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context, sizeof(*edge));
-  if (edge == NULL) {
+  added =
+      (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context, sizeof(*added));
+  if (added == NULL) {
     return false;
   }
-  edge->token = token;
-  edge->child = child;
-  edge->next = copy->children;
-  copy->children = edge;
+  added->token = token;
+  added->child = child;
+  added->next = edge; /* in token order */
+  if (prev == NULL) {
+    copy->children = added;
+  } else {
+    prev->next = added;
+  }
   return true;
 }
 
@@ -402,6 +419,7 @@ static ds_ptrie_version_t *ptrie_version_create(ds_ptrie_t *trie,
   }
   version->refs = 1UL;
   version->root = root;
+  version->context = trie->config.context;
   return version;
 }
 
@@ -461,53 +479,79 @@ static bool ptrie_key_in_range(const unsigned char *key, size_t key_len,
   return true;
 }
 
-static ds_status_t ptrie_buffer_grow(unsigned char **buffer, size_t *capacity,
-                                     size_t needed) {
-  unsigned char *next;
+/* a block of capacity * 2 (at least needed) items with the old ones
+ * copied, from the context, or NULL (the old block stays) */
+static void *ptrie_grow(ds_context_t *context, void *block, size_t *capacity,
+                        size_t needed, size_t width) {
+  void *next;
   size_t new_capacity;
-
-  if (needed <= *capacity) {
-    return DS_OK;
-  }
 
   new_capacity = *capacity == 0U ? 16U : *capacity;
   while (new_capacity < needed) {
+    if (new_capacity > (size_t)-1 / 2U / width) {
+      return NULL;
+    }
     new_capacity *= 2U;
   }
-
-  next = (unsigned char *)realloc(*buffer, new_capacity);
-  if (next == NULL) {
-    return DS_ERR_ALLOC;
+  if (new_capacity > (size_t)-1 / width) {
+    return NULL;
   }
-  *buffer = next;
+  next = ds_context_alloc(context, new_capacity * width);
+  if (next == NULL) {
+    return NULL;
+  }
+  if (block != NULL) {
+    memcpy(next, block, *capacity * width);
+    ds_context_free(context, block);
+  }
   *capacity = new_capacity;
-  return DS_OK;
+  return next;
 }
 
-/* Visits the subtree in key order with an explicit stack: stack[i] is the
- * next edge to take at depth + i, so the walk is as deep as the longest
- * key without call frames. */
-static ds_status_t
-ptrie_visit_from(ds_ptrie_node_t *node, unsigned char **buffer, size_t depth,
-                 size_t *capacity, ds_ptrie_visit_func_t visit, void *user,
-                 const unsigned char *lower, size_t lower_len,
-                 const unsigned char *upper, size_t upper_len) {
+/* where the path of length len stands against the range: -1 when every
+ * key under it is below the lower bound, 1 when it is above the upper
+ * bound (and so is every key after it in key order), 0 otherwise */
+static int ptrie_path_position(const ptrie_walk_t *walk, size_t len) {
+  size_t n;
+  if (walk->upper != NULL &&
+      ptrie_key_compare(walk->key, len, walk->upper, walk->upper_len) > 0) {
+    return 1;
+  }
+  if (walk->lower != NULL) {
+    n = len < walk->lower_len ? len : walk->lower_len;
+    if (n != 0U && memcmp(walk->key, walk->lower, n) < 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+/* Visits the subtree of node, whose path fills walk->key up to depth, in
+ * key order (edges are sorted, and a key comes before its extensions).
+ * The walk is iterative: stack[i] is the next edge to take at depth + i,
+ * so it is as deep as the longest key without call frames. Subtrees below
+ * the range are skipped, and the walk ends at the first path above it. */
+static ds_status_t ptrie_walk(ptrie_walk_t *walk, ds_ptrie_node_t *node,
+                              size_t depth) {
   ds_ptrie_edge_t **stack;
   size_t cap = 16U;
   size_t top = 0U;
   ds_status_t status = DS_OK;
-  if (node == NULL) {
+  void *grown;
+  if (node == NULL || ptrie_path_position(walk, depth) != 0) {
     return DS_OK;
   }
   if (node->terminal &&
-      ptrie_key_in_range(*buffer, depth, lower, lower_len, upper, upper_len) &&
-      !visit(*buffer, depth, node->value, user)) {
+      ptrie_key_in_range(walk->key, depth, walk->lower, walk->lower_len,
+                         walk->upper, walk->upper_len) &&
+      !walk->visit(walk->key, depth, node->value, walk->user)) {
     return DS_STOP;
   }
   if (node->children == NULL) {
     return DS_OK;
   }
-  stack = (ds_ptrie_edge_t **)malloc(cap * sizeof(*stack));
+  stack = (ds_ptrie_edge_t **)ds_context_alloc(walk->context,
+                                               cap * sizeof(*stack));
   if (stack == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -516,49 +560,57 @@ ptrie_visit_from(ds_ptrie_node_t *node, unsigned char **buffer, size_t depth,
     ds_ptrie_edge_t *edge = stack[top - 1U];
     size_t at = depth + top - 1U; /* where the edge's token goes */
     ds_ptrie_node_t *child;
+    int position;
     if (edge == NULL) {
       top--;
       continue;
     }
     stack[top - 1U] = edge->next;
-    status = ptrie_buffer_grow(buffer, capacity, at + 1U);
-    if (status != DS_OK) {
-      break;
+    if (at >= walk->key_capacity) {
+      grown = ptrie_grow(walk->context, walk->key, &walk->key_capacity,
+                         at + 1U, 1U);
+      if (grown == NULL) {
+        status = DS_ERR_ALLOC;
+        break;
+      }
+      walk->key = (unsigned char *)grown;
     }
-    (*buffer)[at] = edge->token;
+    walk->key[at] = edge->token;
+    position = ptrie_path_position(walk, at + 1U);
+    if (position > 0) {
+      break; /* everything from here on is above the range */
+    }
+    if (position < 0) {
+      continue; /* the whole subtree is below it */
+    }
     child = edge->child;
     if (child->terminal &&
-        ptrie_key_in_range(*buffer, at + 1U, lower, lower_len, upper,
-                           upper_len) &&
-        !visit(*buffer, at + 1U, child->value, user)) {
+        ptrie_key_in_range(walk->key, at + 1U, walk->lower, walk->lower_len,
+                           walk->upper, walk->upper_len) &&
+        !walk->visit(walk->key, at + 1U, child->value, walk->user)) {
       status = DS_STOP;
       break;
     }
     if (child->children != NULL) {
       if (top == cap) {
-        ds_ptrie_edge_t **grown;
-        if (cap > (size_t)-1 / 2U / sizeof(*stack)) {
-          status = DS_ERR_OVERFLOW;
-          break;
-        }
-        grown = (ds_ptrie_edge_t **)realloc((void *)stack,
-                                            2U * cap * sizeof(*stack));
+        grown = ptrie_grow(walk->context, (void *)stack, &cap, top + 1U,
+                           sizeof(*stack));
         if (grown == NULL) {
           status = DS_ERR_ALLOC;
           break;
         }
-        stack = grown;
-        cap *= 2U;
+        stack = (ds_ptrie_edge_t **)grown;
       }
       stack[top++] = child->children;
     }
   }
-  free((void *)stack);
+  ds_context_free(walk->context, (void *)stack);
   return status;
 }
 
 ds_ptrie_t *ds_ptrie_create(const ds_ptrie_config_t *config) {
   ds_ptrie_t *trie;
+  ds_ptrie_node_t *node;
   trie = (ds_ptrie_t *)ds_context_alloc(
       config != NULL && config->context != NULL ? config->context
                                                 : ds_default_context(),
@@ -578,10 +630,11 @@ ds_ptrie_t *ds_ptrie_create(const ds_ptrie_config_t *config) {
     ds_context_free(trie->config.context, trie);
     return NULL;
   }
-  trie->root = ptrie_version_create(trie, ptrie_node_create(trie));
-  if (trie->root == NULL || trie->root->root == NULL) {
-    if (trie->root != NULL) {
-      ds_context_free(trie->config.context, trie->root);
+  node = ptrie_node_create(trie);
+  trie->root = node == NULL ? NULL : ptrie_version_create(trie, node);
+  if (trie->root == NULL) {
+    if (node != NULL) {
+      ds_context_free(trie->config.context, node);
     }
     ds_context_free(trie->config.context, trie);
     return NULL;
@@ -939,13 +992,25 @@ ds_status_t ds_ptrie_longest_prefix(ds_ptrie_version_t *version,
   return DS_OK;
 }
 
+static void ptrie_walk_init(ptrie_walk_t *walk, ds_ptrie_version_t *version,
+                            ds_ptrie_visit_func_t visit, void *user) {
+  walk->context = version->context;
+  walk->key = NULL;
+  walk->key_capacity = 0U;
+  walk->visit = visit;
+  walk->user = user;
+  walk->lower = NULL;
+  walk->lower_len = 0U;
+  walk->upper = NULL;
+  walk->upper_len = 0U;
+}
+
 ds_status_t ds_ptrie_visit_prefix(ds_ptrie_version_t *version,
                                   const unsigned char *prefix,
                                   size_t prefix_len,
                                   ds_ptrie_visit_func_t visit, void *user) {
   ds_ptrie_node_t *node;
-  unsigned char *buffer;
-  size_t capacity;
+  ptrie_walk_t walk;
   ds_status_t status;
 
   if (version == NULL || visit == NULL ||
@@ -958,18 +1023,17 @@ ds_status_t ds_ptrie_visit_prefix(ds_ptrie_version_t *version,
     return DS_NOT_FOUND;
   }
 
-  capacity = prefix_len == 0U ? 16U : prefix_len;
-  buffer = (unsigned char *)malloc(capacity);
-  if (buffer == NULL) {
+  ptrie_walk_init(&walk, version, visit, user);
+  walk.key = (unsigned char *)ptrie_grow(walk.context, NULL,
+                                         &walk.key_capacity, prefix_len, 1U);
+  if (walk.key == NULL) {
     return DS_ERR_ALLOC;
   }
   if (prefix_len != 0U) {
-    memcpy(buffer, prefix, prefix_len);
+    memcpy(walk.key, prefix, prefix_len);
   }
-
-  status = ptrie_visit_from(node, &buffer, prefix_len, &capacity, visit, user,
-                            NULL, 0U, NULL, 0U);
-  free(buffer);
+  status = ptrie_walk(&walk, node, prefix_len);
+  ds_context_free(walk.context, walk.key);
   return status;
 }
 
@@ -977,8 +1041,7 @@ ds_status_t ds_ptrie_visit_range(ds_ptrie_version_t *version,
                                  const unsigned char *lower, size_t lower_len,
                                  const unsigned char *upper, size_t upper_len,
                                  ds_ptrie_visit_func_t visit, void *user) {
-  unsigned char *buffer;
-  size_t capacity;
+  ptrie_walk_t walk;
   ds_status_t status;
 
   if (version == NULL || visit == NULL || (lower == NULL && lower_len != 0U) ||
@@ -990,15 +1053,18 @@ ds_status_t ds_ptrie_visit_range(ds_ptrie_version_t *version,
     return DS_ERR_RANGE;
   }
 
-  capacity = 16U;
-  buffer = (unsigned char *)calloc(capacity, 1);
-  if (buffer == NULL) {
+  ptrie_walk_init(&walk, version, visit, user);
+  walk.lower = lower;
+  walk.lower_len = lower_len;
+  walk.upper = upper;
+  walk.upper_len = upper_len;
+  walk.key = (unsigned char *)ptrie_grow(walk.context, NULL,
+                                         &walk.key_capacity, 1U, 1U);
+  if (walk.key == NULL) {
     return DS_ERR_ALLOC;
   }
-
-  status = ptrie_visit_from(version->root, &buffer, 0U, &capacity, visit, user,
-                            lower, lower_len, upper, upper_len);
-  free(buffer);
+  status = ptrie_walk(&walk, version->root, 0U);
+  ds_context_free(walk.context, walk.key);
   return status;
 }
 
