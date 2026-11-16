@@ -105,6 +105,10 @@ ds_avl_node_t *ds_avl_search(ds_avl_t *tree, ds_avl_node_t *data,
   return tree->nil;
 }
 
+bool ds_avl_is_empty(ds_avl_t *tree) {
+  return tree == NULL || tree->root == tree->nil;
+}
+
 void ds_avl_destroy_node(ds_avl_t *tree, ds_avl_node_t *node,
                          void (*destroy)(ds_avl_node_t *)) {
   ds_avl_delete_node(tree, node);
