@@ -708,6 +708,7 @@ ds_trie_node_t *ds_trie_clone_node(ds_trie_t *trie, ds_trie_node_t *node,
   new_node->is_terminal = node->is_terminal;
   new_node->terminal_data = node->terminal_data;
   new_node->parent = parent_node;
+  new_node->children = NULL; /* store_clone may save and restore it */
   new_node->children =
       trie->store_clone(trie, node->children, new_node, clone_data);
   if (new_node->children == NULL) {
