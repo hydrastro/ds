@@ -331,6 +331,9 @@ long ds_str_find(ds_str_t *s, const void *needle, size_t n, size_t start) {
     return -1;
   }
   h = (const unsigned char *)s->buf;
+  if (start + n > len) { /* no room; also an empty string's NULL buffer */
+    return -1;
+  }
   if (n == 1u) {
     p = memchr(h + start, *nd, len - start);
     ret = p ? (long)((const unsigned char *)p - h) : -1;
@@ -470,7 +473,8 @@ int ds_str_assign(ds_str_t *s, const void *data, size_t n) {
   if (n)
     memcpy(s->buf, data, n);
   s->len = n;
-  s->buf[s->len] = '\0';
+  if (s->buf) /* assigning "" to a string that never had a buffer */
+    s->buf[s->len] = '\0';
   return 0;
 }
 
