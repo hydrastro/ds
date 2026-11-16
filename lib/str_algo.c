@@ -71,19 +71,26 @@ void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p) {
 
 long ds_str_find_twoway(ds_str_t *s, const void *needle, size_t m,
                         size_t start) {
+  if (!s) {
+    return -1;
+  }
+  return ds_mem_find(s->buf, s->len, needle, m, start);
+}
+
+long ds_mem_find(const void *haystack, size_t n, const void *needle, size_t m,
+                 size_t start) {
   const unsigned char *y;
   const unsigned char *x = (const unsigned char *)needle;
-  size_t n, ell, per, s1, p1, s2, p2, i, j;
-  if (!s || !needle || m == 0u)
+  size_t ell, per, s1, p1, s2, p2, i, j;
+  if (!needle || m == 0u)
     return -1;
-  n = s->len;
   if (start > n) {
     return -1;
   }
-  if (m > n - start) { /* no room; also an empty string's NULL buffer */
+  if (m > n - start) { /* no room; also an empty text's NULL buffer */
     return -1;
   }
-  y = (const unsigned char *)s->buf;
+  y = (const unsigned char *)haystack;
   if (m == 1u) {
     const void *p = memchr(y + start, x[0], n - start);
     return p ? (long)((const unsigned char *)p - y) : -1;

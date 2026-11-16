@@ -18,6 +18,13 @@ void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p);
 long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start);
 long ds_str_find_twoway(ds_str_t *s, const void *needle, size_t n,
                         size_t start);
+/* The first occurrence of needle[0..m) in haystack[0..n) at or after
+ * start, by two-way matching (Crochemore and Perrin: linear time,
+ * constant memory), or -1 (also for an empty needle). haystack may be
+ * NULL when n is 0. ds_str_find_twoway and the string views search
+ * through it. */
+long ds_mem_find(const void *haystack, size_t n, const void *needle, size_t m,
+                 size_t start);
 
 int ds_str_ltrim_set(ds_str_t *s, const unsigned char *set, size_t set_n);
 int ds_str_rtrim_set(ds_str_t *s, const unsigned char *set, size_t set_n);
