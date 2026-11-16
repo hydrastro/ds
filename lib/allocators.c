@@ -6,9 +6,14 @@
 
 #define DS_DEBUG_ALLOC_MAGIC 0x4453414cUL
 
-typedef struct ds_debug_header {
-  unsigned long magic;
-  size_t size;
+/* padded to the strictest alignment, so that the block after it is
+ * aligned as the backing block is */
+typedef union ds_debug_header {
+  struct {
+    unsigned long magic;
+    size_t size;
+  } h;
+  ds_max_align_t align;
 } ds_debug_header_t;
 
 static const ds_diagnostic_desc_t DS_DEBUG_ALLOC_BAD_FREE = {
@@ -149,6 +154,31 @@ void ds_context_use_arena(ds_context_t *context, ds_arena_t *arena) {
   context->resource = DS_RESOURCE_FALLIBLE | DS_RESOURCE_BOUNDED;
 }
 
+/* A free block holds its free-list link and, when the stride has room
+ * after it, a mark: the pool's address. Blocks lose the mark when handed
+ * out, so freeing a block without it is O(1); only a block that has it (a
+ * double free, or data that happen to match) is looked for in the list. */
+static int pool_has_mark_room(const ds_pool_t *pool) {
+  return pool->block_size >= sizeof(ds_pool_free_node_t) + sizeof(void *);
+}
+
+static void pool_set_mark(ds_pool_t *pool, unsigned char *block, int on) {
+  const void *mark = on ? (const void *)pool : NULL;
+  if (pool_has_mark_room(pool)) {
+    memcpy(block + sizeof(ds_pool_free_node_t), (const void *)&mark,
+           sizeof(mark));
+  }
+}
+
+static int pool_has_mark(const ds_pool_t *pool, const unsigned char *block) {
+  const void *mark;
+  if (!pool_has_mark_room(pool)) {
+    return 1; /* no room: every free looks in the list */
+  }
+  memcpy((void *)&mark, block + sizeof(ds_pool_free_node_t), sizeof(mark));
+  return mark == (const void *)pool;
+}
+
 static void pool_build_free_list(ds_pool_t *pool) {
   size_t i;
   unsigned char *block;
@@ -160,6 +190,7 @@ static void pool_build_free_list(ds_pool_t *pool) {
     node = (ds_pool_free_node_t *)(void *)block;
     node->next = pool->free_list;
     pool->free_list = node;
+    pool_set_mark(pool, block, 1);
   }
 }
 
@@ -336,6 +367,7 @@ static void *pool_alloc(size_t size, void *user) {
   if (pool->available_count != 0U) {
     pool->available_count--;
   }
+  pool_set_mark(pool, (unsigned char *)(void *)node, 0);
   return node;
 }
 
@@ -369,13 +401,16 @@ static void pool_free(void *ptr, void *user) {
     return;
   }
   pool = (ds_pool_t *)user;
-  if (!pool_owns_pointer(pool, ptr) || pool_is_free_pointer(pool, ptr)) {
+  if (!pool_owns_pointer(pool, ptr) ||
+      (pool_has_mark(pool, (const unsigned char *)ptr) &&
+       pool_is_free_pointer(pool, ptr))) {
     return;
   }
   node = (ds_pool_free_node_t *)ptr;
   node->next = pool->free_list;
   pool->free_list = node;
   pool->available_count++;
+  pool_set_mark(pool, (unsigned char *)ptr, 1);
 }
 
 void ds_context_use_pool(ds_context_t *context, ds_pool_t *pool) {
@@ -410,8 +445,8 @@ static void *debug_alloc(size_t size, void *user) {
     debug->stats.failed_allocations++;
     return NULL;
   }
-  header->magic = DS_DEBUG_ALLOC_MAGIC;
-  header->size = size;
+  header->h.magic = DS_DEBUG_ALLOC_MAGIC;
+  header->h.size = size;
   debug->stats.allocations++;
   debug->stats.bytes_live += size;
   debug->stats.bytes_total += size;
@@ -445,16 +480,16 @@ static void debug_free(void *ptr, void *user) {
   }
   debug = (ds_debug_allocator_t *)user;
   header = ((ds_debug_header_t *)ptr) - 1;
-  if (header->magic != DS_DEBUG_ALLOC_MAGIC) {
+  if (header->h.magic != DS_DEBUG_ALLOC_MAGIC) {
     debug->stats.failed_allocations++;
     ds_context_emit_diagnostic(debug->backing, &DS_DEBUG_ALLOC_BAD_FREE, NULL,
                                0U, __FILE__, (unsigned long)__LINE__,
                                DS_FUNCTION);
     return;
   }
-  header->magic = 0UL;
-  if (debug->stats.bytes_live >= header->size) {
-    debug->stats.bytes_live -= header->size;
+  header->h.magic = 0UL;
+  if (debug->stats.bytes_live >= header->h.size) {
+    debug->stats.bytes_live -= header->h.size;
   } else {
     debug->stats.bytes_live = 0U;
   }
@@ -477,7 +512,7 @@ static void *debug_realloc(void *ptr, size_t size, void *user) {
   }
   debug = (ds_debug_allocator_t *)user;
   old_header = ((ds_debug_header_t *)ptr) - 1;
-  if (debug == NULL || old_header->magic != DS_DEBUG_ALLOC_MAGIC) {
+  if (debug == NULL || old_header->h.magic != DS_DEBUG_ALLOC_MAGIC) {
     if (debug != NULL) {
       debug->stats.failed_allocations++;
       ds_context_emit_diagnostic(debug->backing, &DS_DEBUG_ALLOC_BAD_FREE, NULL,
@@ -490,11 +525,84 @@ static void *debug_realloc(void *ptr, size_t size, void *user) {
   if (next == NULL) {
     return NULL;
   }
-  copy_size = old_header->size < size ? old_header->size : size;
+  copy_size = old_header->h.size < size ? old_header->h.size : size;
   memcpy(next, ptr, copy_size);
   debug_free(ptr, user);
   debug->stats.reallocations++;
   return next;
+}
+
+/* ---- a context over allocator functions ---- */
+
+typedef union functions_header {
+  size_t size;
+  ds_max_align_t align;
+} functions_header_t;
+
+static void *functions_alloc(size_t size, void *user) {
+  ds_allocator_functions_t *functions = (ds_allocator_functions_t *)user;
+  functions_header_t *header;
+  size_t total;
+  if (functions == NULL || functions->allocate == NULL ||
+      !ds_size_add(size, sizeof(*header), &total)) {
+    return NULL;
+  }
+  header = (functions_header_t *)functions->allocate(total);
+  if (header == NULL) {
+    return NULL;
+  }
+  header->size = size;
+  return (void *)(header + 1);
+}
+
+static void *functions_calloc(size_t count, size_t size, void *user) {
+  void *ptr;
+  size_t total;
+  if (!ds_size_mul(count, size, &total)) {
+    return NULL;
+  }
+  ptr = functions_alloc(total, user);
+  if (ptr != NULL) {
+    memset(ptr, 0, total);
+  }
+  return ptr;
+}
+
+static void functions_free(void *ptr, void *user) {
+  ds_allocator_functions_t *functions = (ds_allocator_functions_t *)user;
+  if (ptr == NULL || functions == NULL || functions->release == NULL) {
+    return;
+  }
+  functions->release((void *)((functions_header_t *)ptr - 1));
+}
+
+static void *functions_realloc(void *ptr, size_t size, void *user) {
+  void *next;
+  size_t old;
+  if (ptr == NULL) {
+    return functions_alloc(size, user);
+  }
+  old = ((const functions_header_t *)ptr - 1)->size;
+  next = functions_alloc(size, user);
+  if (next == NULL) {
+    return NULL; /* the old block stays */
+  }
+  memcpy(next, ptr, old < size ? old : size);
+  functions_free(ptr, user);
+  return next;
+}
+
+void ds_context_use_allocator_functions(ds_context_t *context,
+                                        ds_allocator_functions_t *functions) {
+  if (context == NULL) {
+    return;
+  }
+  context->alloc = functions_alloc;
+  context->calloc = functions_calloc;
+  context->realloc = functions_realloc;
+  context->free = functions_free;
+  context->user = functions;
+  context->resource = DS_RESOURCE_HEAP;
 }
 
 void ds_debug_allocator_init(ds_debug_allocator_t *debug,

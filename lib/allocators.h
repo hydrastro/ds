@@ -96,6 +96,26 @@ void ds_pool_destroy(ds_pool_t *pool, ds_context_t *context);
 size_t ds_pool_available(const ds_pool_t *pool);
 void ds_context_use_pool(ds_context_t *context, ds_pool_t *pool);
 
+/*
+ * A context over allocator functions: the malloc- and free-shaped pair
+ * that the older interfaces take (bitset, hash table, trie). Each block
+ * carries its size in a header of DS_MAX_ALIGN bytes or more, so the
+ * context can reallocate (a new block, the contents, the old block
+ * released; the old block stays when the new one cannot be had) and
+ * calloc checks its product. Reallocating to zero bytes gives a block of
+ * zero bytes. allocate must return blocks aligned for any object, as
+ * malloc does; the context's blocks are then aligned the same way. The
+ * functions are read at each call through the pointer given, which must
+ * stay valid while the context has blocks.
+ */
+typedef struct ds_allocator_functions {
+  void *(*allocate)(size_t size);
+  void (*release)(void *block);
+} ds_allocator_functions_t;
+
+void ds_context_use_allocator_functions(ds_context_t *context,
+                                        ds_allocator_functions_t *functions);
+
 void ds_debug_allocator_init(ds_debug_allocator_t *debug,
                              ds_context_t *backing);
 void ds_context_use_debug_allocator(ds_context_t *context,
