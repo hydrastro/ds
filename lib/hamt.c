@@ -123,7 +123,8 @@ static bool hamt_key_equal(ds_hamt_node_t *leaf, const void *key,
   if (leaf->key_length != key_length) {
     return false;
   }
-  return memcmp(leaf->key, key, key_length) == 0;
+  /* the empty key has no buffer: memcmp needs valid pointers even for 0 */
+  return key_length == 0 || memcmp(leaf->key, key, key_length) == 0;
 }
 
 /* insert child pointer at slot, growing the compact array */
