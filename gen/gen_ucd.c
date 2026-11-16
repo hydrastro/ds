@@ -73,6 +73,7 @@ ulvec TOLOWER_KEYS, TOLOWER_VALS, TOUPPER_KEYS, TOUPPER_VALS;
 ulvec FOLD_KEYS, FOLD_POOL; uivec FOLD_CNT, FOLD_OFF;
 range3 *GB = NULL; size_t GB_N = 0, GB_CAP = 0;
 range3 *EP = NULL; size_t EP_N = 0, EP_CAP = 0;
+range3 *INCB = NULL; size_t INCB_N = 0, INCB_CAP = 0;
 
 int comp_push(unsigned long a, unsigned long b, unsigned long v) {
   comp_triplet *np;
@@ -372,6 +373,49 @@ int load_EP(const char *path) {
   return 0;
 }
 
+/* Indic_Conjunct_Break from DerivedCoreProperties.txt, for the grapheme
+ * rule GB9c: Linker 1, Consonant 2, Extend 3 (None is not stored). */
+int load_InCB(const char *path) {
+  FILE *f = fopen(path, "rb");
+  char line[1024];
+  if (!f) return -1;
+
+  while (fgets(line, sizeof(line), f)) {
+    char *p = line, *semi, *semi2, *hash, *dots, *end, *name, *value;
+    unsigned long a, b, val;
+
+    if (*p=='#' || *p=='\n' || *p=='\0') continue;
+    hash = strchr(p,'#'); if (hash) *hash = 0;
+    semi = strchr(p,';'); if (!semi) continue; *semi = 0;
+    semi2 = strchr(semi+1,';'); if (!semi2) continue; *semi2 = 0;
+
+    name = semi+1; while (*name==' '||*name=='\t') ++name;
+    end = name; while (*end && *end!=' '&&*end!='\t'&&*end!='\n') ++end; *end = 0;
+    if (strcmp(name, "InCB")!=0) continue;
+
+    value = semi2+1; while (*value==' '||*value=='\t') ++value;
+    end = value; while (*end && *end!=' '&&*end!='\t'&&*end!='\n'&&*end!='\r') ++end; *end = 0;
+    if (strcmp(value, "Linker")==0) val = 1;
+    else if (strcmp(value, "Consonant")==0) val = 2;
+    else if (strcmp(value, "Extend")==0) val = 3;
+    else continue;
+
+    while (*p==' '||*p=='\t') ++p;
+    dots = strstr(p, "..");
+    if (dots) {
+      *dots = 0;
+      if (hex_to_u32(p, &a)!=0) continue;
+      if (hex_to_u32(dots+2, &b)!=0) continue;
+    } else {
+      if (hex_to_u32(p, &a)!=0) continue;
+      b = a;
+    }
+    if (range_push(&INCB, &INCB_N, &INCB_CAP, a, b, val)!=0) { fclose(f); return -1; }
+  }
+  fclose(f);
+  return 0;
+}
+
 int sort_and_dedupe_maps(void) {
   size_t i, w;
 
@@ -457,6 +501,7 @@ int sort_and_dedupe_maps(void) {
   qsort(COMP, COMP_N, sizeof(comp_triplet), cmp_triplet);
   qsort(GB, GB_N, sizeof(range3), cmp_range3);
   qsort(EP, EP_N, sizeof(range3), cmp_range3);
+  qsort(INCB, INCB_N, sizeof(range3), cmp_range3);
   return 0;
 }
 
@@ -498,6 +543,8 @@ int write_header(const char *out_h) {
     "extern const size_t        U_GB_LEN;\n"
     "extern const ucd_range_t   U_EP_RANGES[];\n"
     "extern const size_t        U_EP_LEN;\n\n"
+    "extern const ucd_range_t   U_INCB_RANGES[];\n"
+    "extern const size_t        U_INCB_LEN;\n\n"
     "#endif/* DS_UNICODE_TABLES_H */\n");
   fclose(h);
   return 0;
@@ -592,7 +639,16 @@ int write_source(const char *out_c) {
     fprintf(c,"{0x%lXul,0x%lXul,%luul}", EP[i].start, EP[i].end, (unsigned long)EP[i].prop);
   }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_EP_LEN = %luu;\n", (unsigned long)EP_N);
+  fprintf(c, "const size_t U_EP_LEN = %luu;\n\n", (unsigned long)EP_N);
+
+  fprintf(c, "const ucd_range_t U_INCB_RANGES[] = {");
+  for (i=0;i<INCB_N;++i) {
+    if (i) fprintf(c,",");
+    fprintf(c,"{0x%lXul,0x%lXul,%luul}", INCB[i].start, INCB[i].end, (unsigned long)INCB[i].prop);
+  }
+  if (INCB_N == 0) fprintf(c,"{0ul,0ul,0ul}");
+  fprintf(c, "};\n");
+  fprintf(c, "const size_t U_INCB_LEN = %luu;\n", (unsigned long)INCB_N);
 
   fclose(c);
   return 0;
@@ -604,6 +660,7 @@ int main(int argc, char **argv) {
   const char *path_compexcl = NULL;
   const char *path_gb = NULL;
   const char *path_emoji = NULL;
+  const char *path_derived = NULL;
   const char *out_c = NULL;
   const char *out_h = NULL;
   ulvec excl; excl.a=NULL; excl.n=0; excl.cap=0;
@@ -616,12 +673,13 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "--comp-excl") && i+1<argc) path_compexcl = argv[++i];
     else if (!strcmp(argv[i], "--gb-prop") && i+1<argc) path_gb = argv[++i];
     else if (!strcmp(argv[i], "--emoji-data") && i+1<argc) path_emoji = argv[++i];
+    else if (!strcmp(argv[i], "--derived-core") && i+1<argc) path_derived = argv[++i];
     else if (!strcmp(argv[i], "--out-c") && i+1<argc) out_c = argv[++i];
     else if (!strcmp(argv[i], "--out-h") && i+1<argc) out_h = argv[++i];
   }
 
   if (!path_unicode || !path_casefold || !path_compexcl || !path_gb || !path_emoji || !out_c || !out_h) {
-    fprintf(stderr, "usage: gen_ucd --unicode-data U --case-folding C --comp-excl X --gb-prop G --emoji-data E --out-c out.c --out-h out.h\n");
+    fprintf(stderr, "usage: gen_ucd --unicode-data U --case-folding C --comp-excl X --gb-prop G --emoji-data E [--derived-core D] --out-c out.c --out-h out.h\n");
     return 1;
   }
 
@@ -631,6 +689,8 @@ int main(int argc, char **argv) {
   if (build_comp_pairs(&DECOMP_KEYS, &DECOMP_CNT, &DECOMP_OFF, &DECOMP_POOL, &DECOMP_ISCOMPAT, &excl)!=0) { fprintf(stderr,"Comp pairs build failed\n"); return 1; }
   if (load_GB(path_gb)!=0) { fprintf(stderr,"GB parse failed\n"); return 1; }
   if (load_EP(path_emoji)!=0) { fprintf(stderr,"EP parse failed\n"); return 1; }
+  /* optional: without it the InCB table is empty and GB9c never applies */
+  if (path_derived && load_InCB(path_derived)!=0) { fprintf(stderr,"InCB parse failed\n"); return 1; }
   if (sort_and_dedupe_maps()!=0) { fprintf(stderr,"sort/dedupe failed\n"); return 1; }
 
   if (write_header(out_h)!=0) { fprintf(stderr,"write header failed\n"); return 1; }

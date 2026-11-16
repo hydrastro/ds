@@ -525,7 +525,8 @@ UCD_FILES := \
   $(DATA_DIR)/CaseFolding.txt \
   $(DATA_DIR)/CompositionExclusions.txt \
   $(DATA_DIR)/GraphemeBreakProperty.txt \
-  $(DATA_DIR)/emoji-data.txt
+  $(DATA_DIR)/emoji-data.txt \
+  $(DATA_DIR)/DerivedCoreProperties.txt
 
 UCD_BASE := https://www.unicode.org/Public/UCD/latest/ucd
 UCD_AUX  := $(UCD_BASE)/auxiliary
@@ -570,6 +571,8 @@ $(DATA_DIR)/GraphemeBreakProperty.txt: | $(DATA_DIR)
 	@[ -f $@ ] || curl -fsSL -o $@ $(UCD_AUX)/GraphemeBreakProperty.txt
 $(DATA_DIR)/emoji-data.txt: | $(DATA_DIR)
 	@[ -f $@ ] || curl -fsSL -o $@ $(EMOJI_URL)/emoji-data.txt
+$(DATA_DIR)/DerivedCoreProperties.txt: | $(DATA_DIR)
+	@[ -f $@ ] || curl -fsSL -o $@ $(UCD_BASE)/DerivedCoreProperties.txt
 
 unicode-data: $(UCD_FILES)
 
@@ -588,6 +591,7 @@ $(GEN_SRC_C) $(GEN_SRC_H) $(GEN_STAMP) &: $(GEN_BIN) $(UCD_FILES) | $(BUILD_DIR)
 	  --comp-excl    $(DATA_DIR)/CompositionExclusions.txt \
 	  --gb-prop      $(DATA_DIR)/GraphemeBreakProperty.txt \
 	  --emoji-data   $(DATA_DIR)/emoji-data.txt \
+	  --derived-core $(DATA_DIR)/DerivedCoreProperties.txt \
 	  --out-c        $(GEN_SRC_C) \
 	  --out-h        $(GEN_SRC_H)
 	@touch $(GEN_STAMP)

@@ -64,6 +64,9 @@ enum {
   GB_LVT
 };
 
+/* Indic_Conjunct_Break values in the generated U_INCB_RANGES */
+enum { INCB_None = 0, INCB_Linker, INCB_Consonant, INCB_Extend };
+
 typedef struct {
   const char *buf;
   size_t len;
@@ -75,6 +78,8 @@ typedef struct {
   int ri_run_len;
   int prev_is_zwj_ign_ext;
   int last_base_is_EP;
+  int incb_state; /* GB9c: 1 after Consonant [Extend Linker]*, 2 once a
+                     Linker is among them */
 
   unsigned long cp, prop;
   int break_here;

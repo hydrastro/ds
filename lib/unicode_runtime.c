@@ -477,12 +477,39 @@ int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf,
   it->ri_run_len = 0;
   it->prev_is_zwj_ign_ext = 0;
   it->last_base_is_EP = 0;
+  it->incb_state = 0;
   it->cp = 0;
   it->prop = GB_Other;
   it->break_here = 0;
   it->prev_is_Control = 0;
   it->cur_is_Control = 0;
   return 0;
+}
+
+static unsigned long incb_get(unsigned long cp) {
+  size_t lo = 0, hi = U_INCB_LEN;
+  while (lo < hi) {
+    size_t mid = lo + ((hi - lo) >> 1);
+    if (cp < U_INCB_RANGES[mid].start)
+      hi = mid;
+    else if (cp > U_INCB_RANGES[mid].end)
+      lo = mid + 1;
+    else
+      return U_INCB_RANGES[mid].prop;
+  }
+  return INCB_None;
+}
+
+/* GB9c (Consonant [Extend Linker]* Linker [Extend Linker]* x Consonant)
+ * as a state, see incb_state */
+static void gb9c_update(ds__grapheme_iter_t *it) {
+  unsigned long v = incb_get(it->cp);
+  if (v == INCB_Consonant)
+    it->incb_state = 1;
+  else if (v == INCB_Linker)
+    it->incb_state = it->incb_state != 0 ? 2 : 0;
+  else if (v != INCB_Extend)
+    it->incb_state = 0;
 }
 
 /* GB11 (ExtPict Extend* ZWJ x ExtPict) as a state: last_base_is_EP says
@@ -536,6 +563,8 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
 
       it->last_base_is_EP = is_EP(it->cp);
       it->prev_is_zwj_ign_ext = 0;
+      it->incb_state = 0;
+      gb9c_update(it);
       it->ri_run_len = (prop == GB_Regional_Indicator) ? 1 : 0;
       continue;
     }
@@ -563,6 +592,8 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
       break_here = 0;
     else if (it->prev_prop == GB_Prepend)
       break_here = 0;
+    else if (it->incb_state == 2 && incb_get(it->cp) == INCB_Consonant)
+      break_here = 0; /* GB9c */
     else if (is_EP(it->cp) && it->prev_is_zwj_ign_ext) /* GB11 */
       break_here = 0;
     else if (it->prev_prop == GB_Regional_Indicator &&
@@ -586,6 +617,7 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
         it->ri_run_len = 0;
 
       gb11_update(it, prop);
+      gb9c_update(it);
       return 1;
     }
 
@@ -596,6 +628,7 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
       it->ri_run_len = 0;
 
     gb11_update(it, prop);
+    gb9c_update(it);
   }
 }
 

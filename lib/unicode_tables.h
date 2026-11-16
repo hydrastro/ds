@@ -48,6 +48,8 @@ extern const ucd_range_t U_GB_RANGES[];
 extern const size_t U_GB_LEN;
 extern const ucd_range_t U_EP_RANGES[];
 extern const size_t U_EP_LEN;
+extern const ucd_range_t U_INCB_RANGES[];
+extern const size_t U_INCB_LEN;
 
 #define U_COMP_A U_COMP_KEYS_A
 #define U_COMP_B U_COMP_KEYS_B
