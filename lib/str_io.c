@@ -1,5 +1,10 @@
 #include "str_io.h"
+#include <limits.h>
 #include <string.h>
+
+/* p + i, without arithmetic on a null pointer (an empty view's data may
+ * be NULL) */
+static const char *io_at(const char *p, size_t i) { return i == 0 ? p : p + i; }
 
 int ds_str_write_all(ds_str_t *s, ds_write_cb cb, void *ud) {
   size_t off = 0u, n;
@@ -9,13 +14,60 @@ int ds_str_write_all(ds_str_t *s, ds_write_cb cb, void *ud) {
   }
   n = FUNC_str_len(s);
   while (off < n) {
-    w = cb(ud, s->buf + off, n - off);
-    if (w <= 0) {
+    /* ask at most what the returned long can count */
+    size_t ask = n - off > (size_t)LONG_MAX ? (size_t)LONG_MAX : n - off;
+    w = cb(ud, s->buf + off, ask);
+    if (w <= 0 || (size_t)w > ask) {
       return -1;
     }
     off += (size_t)w;
   }
   return 0;
+}
+
+/* Writes bufs[0..count) in full: a short write resumes where it stopped
+ * (the first buffer then starts inside), and each call asks for at most
+ * LONG_MAX bytes, so that the count it returns is exact. bufs and lens
+ * are the caller's scratch copies. */
+static int io_write_batch(const void **bufs, size_t *lens, size_t count,
+                          ds_writev_cb vcb, void *ud) {
+  size_t first = 0;
+  for (;;) {
+    size_t asked = 0, n = 0, keep = 0, done;
+    long w;
+    while (first < count && lens[first] == 0) {
+      first++;
+    }
+    if (first == count) {
+      return 0;
+    }
+    while (first + n < count && lens[first + n] <= (size_t)LONG_MAX - asked) {
+      asked += lens[first + n];
+      n++;
+    }
+    if (n == 0) { /* the first buffer alone is longer: ask for part */
+      keep = lens[first];
+      lens[first] = (size_t)LONG_MAX;
+      asked = (size_t)LONG_MAX;
+      n = 1;
+    }
+    w = vcb(ud, bufs + first, lens + first, n);
+    if (keep != 0) {
+      lens[first] = keep;
+    }
+    if (w <= 0 || (size_t)w > asked) {
+      return -1;
+    }
+    done = (size_t)w;
+    while (done > 0 && done >= lens[first]) {
+      done -= lens[first];
+      first++;
+    }
+    if (done > 0) {
+      bufs[first] = (const unsigned char *)bufs[first] + done;
+      lens[first] -= done;
+    }
+  }
 }
 
 int ds_str_writev_all(ds_str_t **arr, size_t count, ds_writev_cb vcb,
@@ -24,23 +76,18 @@ int ds_str_writev_all(ds_str_t **arr, size_t count, ds_writev_cb vcb,
   if (!vcb) {
     return -1;
   }
-  if (count == 0) {
-    return 0;
-  }
   while (i < count) {
     const void *bufs[16];
     size_t lens[16];
     size_t j, batch = count - i;
-    long w;
     if (batch > 16)
       batch = 16;
     for (j = 0; j < batch; ++j) {
       ds_str_t *s = arr[i + j];
-      bufs[j] = s ? (const void *)s->buf : (const void *)"";
+      bufs[j] = s && s->buf ? (const void *)s->buf : (const void *)"";
       lens[j] = s ? s->len : 0u;
     }
-    w = vcb(ud, bufs, lens, batch);
-    if (w < 0)
+    if (io_write_batch(bufs, lens, batch, vcb, ud) != 0)
       return -1;
     i += batch;
   }
@@ -64,21 +111,18 @@ int ds_str_views_writev_all(const ds_str_view_t *views, size_t count,
   size_t i = 0;
   if (!vcb)
     return -1;
-  if (count == 0)
-    return 0;
   while (i < count) {
     const void *bufs[16];
     size_t lens[16];
     size_t j, batch = count - i;
-    long w;
     if (batch > 16)
       batch = 16;
     for (j = 0; j < batch; ++j) {
-      bufs[j] = views[i + j].data;
+      bufs[j] = views[i + j].data != NULL ? (const void *)views[i + j].data
+                                          : (const void *)"";
       lens[j] = views[i + j].len;
     }
-    w = vcb(ud, bufs, lens, batch);
-    if (w < 0)
+    if (io_write_batch(bufs, lens, batch, vcb, ud) != 0)
       return -1;
     i += batch;
   }
@@ -106,7 +150,7 @@ int ds_str_view_sub(ds_str_view_t v, size_t pos, size_t n, ds_str_view_t *out) {
     pos = v.len;
   if (n > v.len - pos)
     n = v.len - pos;
-  out->data = v.data + pos;
+  out->data = io_at(v.data, pos);
   out->len = n;
   return 0;
 }
@@ -121,21 +165,7 @@ int ds_str_view_eq(ds_str_view_t a, ds_str_view_t b) {
 
 long ds_str_view_find(ds_str_view_t v, const void *needle, size_t n,
                       size_t start) {
-  size_t i;
-  const unsigned char *h = (const unsigned char *)v.data;
-  const unsigned char *nd = (const unsigned char *)needle;
-  if (!needle || n == 0u)
-    return -1;
-  if (start > v.len)
-    return -1;
-  if (n == 1u) {
-    const void *p = memchr(h + start, *nd, v.len - start);
-    return p ? (long)((const unsigned char *)p - h) : -1;
-  }
-  for (i = start; i + n <= v.len; ++i)
-    if (memcmp(h + i, nd, n) == 0)
-      return (long)i;
-  return -1;
+  return ds_mem_find(v.data, v.len, needle, n, start);
 }
 
 long ds_str_view_count(ds_str_view_t v, const void *needle, size_t n) {
@@ -165,10 +195,10 @@ void ds_str_view_split_each_substr(ds_str_view_t v, const void *sep,
   for (;;) {
     at = ds_str_view_find(v, sep, nsep, pos);
     if (at < 0) {
-      cb(v.data + pos, v.len - pos, ud);
+      cb(io_at(v.data, pos), v.len - pos, ud);
       break;
     }
-    cb(v.data + pos, (size_t)at - pos, ud);
+    cb(io_at(v.data, pos), (size_t)at - pos, ud);
     pos = (size_t)at + nsep;
     if (pos > v.len)
       pos = v.len;
@@ -188,7 +218,7 @@ int ds_str_view_starts_with(ds_str_view_t v, const void *prefix, size_t n) {
     return 0;
   if (v.len < n)
     return 0;
-  return memcmp(v.data, prefix, n) == 0;
+  return n == 0 || memcmp(v.data, prefix, n) == 0;
 }
 
 int ds_str_view_ends_with(ds_str_view_t v, const void *suffix, size_t n) {
@@ -196,7 +226,7 @@ int ds_str_view_ends_with(ds_str_view_t v, const void *suffix, size_t n) {
     return 0;
   if (v.len < n)
     return 0;
-  return memcmp(v.data + (v.len - n), suffix, n) == 0;
+  return n == 0 || memcmp(v.data + (v.len - n), suffix, n) == 0;
 }
 
 int ds_str_view_ltrim_set(ds_str_view_t v, const unsigned char *set,
@@ -206,7 +236,7 @@ int ds_str_view_ltrim_set(ds_str_view_t v, const unsigned char *set,
     return -1;
   while (i < v.len && ds__view_in_set((unsigned char)v.data[i], set, set_n))
     ++i;
-  out->data = v.data + i;
+  out->data = io_at(v.data, i);
   out->len = v.len - i;
   return 0;
 }
@@ -239,7 +269,7 @@ int ds_str_view_ltrim_pred(ds_str_view_t v, ds_view_pred pred,
     return -1;
   while (i < v.len && pred((unsigned char)v.data[i]))
     ++i;
-  out->data = v.data + i;
+  out->data = io_at(v.data, i);
   out->len = v.len - i;
   return 0;
 }
@@ -278,5 +308,5 @@ void ds_str_view_split_each_c(ds_str_view_t v, unsigned char sep,
       start = i + 1;
     }
   }
-  cb(v.data + start, v.len - start, ud);
+  cb(io_at(v.data, start), v.len - start, ud);
 }

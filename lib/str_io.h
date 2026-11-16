@@ -10,11 +10,20 @@
 extern "C" {
 #endif
 
+/* A view of len bytes at data; data may be NULL when len is 0 (a zeroed
+ * view is empty). Searches are two-way matching (ds_mem_find). */
 typedef struct ds_str_view {
   const char *data;
   size_t len;
 } ds_str_view_t;
 
+/* Write callbacks. ds_write_cb writes some of buf[0..n) and returns how
+ * many bytes it wrote: fewer than n is a short write, which the caller
+ * resumes; 0 or less is a failure. ds_writev_cb does the same for the
+ * buffers in order and returns the bytes it wrote across them. The _all
+ * functions resume short writes until everything is written, asking each
+ * call for at most LONG_MAX bytes so that the count it returns is exact,
+ * and return 0, or -1 when a callback fails. */
 typedef long (*ds_write_cb)(void *ud, const void *buf, size_t n);
 typedef long (*ds_writev_cb)(void *ud, const void *const *bufs,
                              const size_t *lens, size_t count);
