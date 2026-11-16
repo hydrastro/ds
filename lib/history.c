@@ -542,6 +542,23 @@ static void *history_materialize(ds_history_branch_t *branch,
   return state;
 }
 
+/* Keeps a checkpoint of state, the state at time on branch, when its
+ * replay was long enough. It goes to the branch that owns that time: kept
+ * on a branch before its fork, it would stand for the parent's state
+ * there, and a later replay on the branch would start from it and skip the
+ * parent's operations up to the fork. None is kept once a transaction has
+ * edited, as the transaction's later edits invalidate nothing. */
+static void history_cache(ds_history_branch_t *branch, unsigned long time,
+                          void *state, size_t replayed_count) {
+  ds_history_t *history = branch->history;
+  if (history->checkpoint_interval == 0U ||
+      replayed_count < history->checkpoint_interval ||
+      history->transaction_dirty) {
+    return;
+  }
+  (void)history_store_checkpoint(history_owner(branch, time), time, state);
+}
+
 static unsigned long
 history_branch_local_head_time(ds_history_branch_t *branch) {
   struct ds_history_operation_node *op;
@@ -1033,7 +1050,6 @@ size_t ds_history_branch_merge(ds_history_branch_t *target,
 
 void *ds_history_branch_snapshot_at(ds_history_branch_t *branch,
                                     unsigned long time) {
-  ds_history_t *history;
   void *state;
   size_t replayed_count;
 
@@ -1041,12 +1057,10 @@ void *ds_history_branch_snapshot_at(ds_history_branch_t *branch,
     return NULL;
   }
 
-  history = branch->history;
   replayed_count = 0U;
   state = history_materialize(branch, time, &replayed_count);
-  if (state != NULL && history->checkpoint_interval != 0U &&
-      replayed_count >= history->checkpoint_interval) {
-    (void)history_store_checkpoint(branch, time, state);
+  if (state != NULL) {
+    history_cache(branch, time, state, replayed_count);
   }
   return state;
 }
@@ -1090,10 +1104,7 @@ void *ds_history_branch_query_at(ds_history_branch_t *branch,
     return NULL;
   }
 
-  if (history->checkpoint_interval != 0U &&
-      replayed_count >= history->checkpoint_interval) {
-    (void)history_store_checkpoint(branch, time, state);
-  }
+  history_cache(branch, time, state, replayed_count);
 
   result = history->ops.query(state, query);
   history->ops.destroy_state(state);
@@ -1458,8 +1469,8 @@ static char *history_read_name(ds_history_t *history,
                                size_t name_len) {
   char *name;
 
-  if (name_len == 0U) {
-    return NULL;
+  if (name_len == 0U || name_len == (size_t)-1) {
+    return NULL; /* none, or one whose terminator would not fit */
   }
   name = (char *)history->allocator(name_len + 1U);
   if (name == NULL) {
