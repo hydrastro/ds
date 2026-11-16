@@ -14,7 +14,8 @@
  *
  * The struct is public so a deque can live on the stack or in static storage.
  * Element pointers stay valid until the next push, pop, insert, erase or
- * capacity change.
+ * capacity change. The element given to a push, an insert or a set may be
+ * one of the deque's own: it is read as it was before the call.
  *
  * Complexity:
  *   push/pop front/back       O(1) (amortized when the deque grows)

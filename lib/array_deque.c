@@ -41,9 +41,25 @@ static void adq_reverse_slots(ds_array_deque_t *deque, size_t first,
   }
 }
 
+/* the elements in order into dst */
+static void adq_copy_out(const ds_array_deque_t *deque, unsigned char *dst) {
+  size_t es = deque->elem_size;
+  size_t first;
+  if (deque->size == 0) {
+    return;
+  }
+  first = deque->capacity - deque->head;
+  if (first > deque->size) {
+    first = deque->size;
+  }
+  memcpy(dst, deque->data + deque->head * es, first * es);
+  if (deque->size > first) {
+    memcpy(dst + first * es, deque->data, (deque->size - first) * es);
+  }
+}
+
 static ds_status_t adq_set_capacity(ds_array_deque_t *deque, size_t capacity) {
   unsigned char *data;
-  size_t first;
   size_t es = deque->elem_size;
   if (deque->fixed) {
     return capacity <= deque->capacity ? DS_OK : DS_ERR_OVERFLOW;
@@ -62,16 +78,7 @@ static ds_status_t adq_set_capacity(ds_array_deque_t *deque, size_t capacity) {
   if (data == NULL) {
     return DS_ERR_ALLOC;
   }
-  if (deque->size > 0) {
-    first = deque->capacity - deque->head;
-    if (first > deque->size) {
-      first = deque->size;
-    }
-    memcpy(data, deque->data + deque->head * es, first * es);
-    if (deque->size > first) {
-      memcpy(data + first * es, deque->data, (deque->size - first) * es);
-    }
-  }
+  adq_copy_out(deque, data);
   ds_context_free(deque->context, deque->data);
   deque->data = data;
   deque->capacity = capacity;
@@ -79,22 +86,55 @@ static ds_status_t adq_set_capacity(ds_array_deque_t *deque, size_t capacity) {
   return DS_OK;
 }
 
-static ds_status_t adq_grow_for_one(ds_array_deque_t *deque) {
+/* Copies elem into a free slot: at the front (it becomes index 0 and the
+ * others move up one) or after the last element, growing a full block
+ * first. The size is left to the caller. elem may be one of the deque's own
+ * elements: growth copies it into the new block before the old one goes,
+ * and in place the free slot is not one of them. */
+static ds_status_t adq_stage(ds_array_deque_t *deque, const void *elem,
+                             bool front) {
+  size_t es = deque->elem_size;
   size_t capacity;
-  if (deque->size < deque->capacity) {
+  unsigned char *data;
+  if (deque->size == deque->capacity) {
+    if (deque->fixed) {
+      return DS_ERR_OVERFLOW;
+    }
+    if (deque->capacity < ADQ_MIN_CAPACITY) {
+      capacity = ADQ_MIN_CAPACITY;
+    } else if (deque->capacity > ADQ_SIZE_MAX / 2) {
+      return DS_ERR_OVERFLOW;
+    } else {
+      capacity = deque->capacity * 2;
+    }
+    if (capacity > ADQ_SIZE_MAX / es) {
+      return DS_ERR_OVERFLOW;
+    }
+    data = (unsigned char *)ds_context_alloc(deque->context, capacity * es);
+    if (data == NULL) {
+      return DS_ERR_ALLOC;
+    }
+    adq_copy_out(deque, front ? data + es : data);
+    memcpy(front ? data : data + deque->size * es, elem, es);
+    ds_context_free(deque->context, deque->data);
+    deque->data = data;
+    deque->capacity = capacity;
+    deque->head = 0;
     return DS_OK;
   }
-  if (deque->fixed) {
-    return DS_ERR_OVERFLOW;
-  }
-  if (deque->capacity < ADQ_MIN_CAPACITY) {
-    capacity = ADQ_MIN_CAPACITY;
-  } else if (deque->capacity > ADQ_SIZE_MAX / 2) {
-    return DS_ERR_OVERFLOW;
+  /* memmove: elem may even be the free slot itself, an element the caller
+   * just popped (the monotonic queue pushes what may be its own front) */
+  if (front) {
+    deque->head = deque->head == 0 ? deque->capacity - 1 : deque->head - 1;
+    memmove(deque->data + deque->head * es, elem, es);
   } else {
-    capacity = deque->capacity * 2;
+    memmove(adq_slot(deque, deque->size), elem, es);
   }
-  return adq_set_capacity(deque, capacity);
+  return DS_OK;
+}
+
+static void adq_swap(ds_array_deque_t *deque, size_t a, size_t b) {
+  adq_swap_bytes(adq_slot(deque, a), adq_slot(deque, b), deque->elem_size);
 }
 
 ds_status_t ds_array_deque_init(ds_array_deque_t *deque, size_t elem_size,
@@ -211,11 +251,10 @@ ds_status_t ds_array_deque_push_back(ds_array_deque_t *deque,
   if (elem == NULL) {
     return DS_ERR_NULL;
   }
-  status = adq_grow_for_one(deque);
+  status = adq_stage(deque, elem, false);
   if (status != DS_OK) {
     return status;
   }
-  memcpy(adq_slot(deque, deque->size), elem, deque->elem_size);
   deque->size++;
   return DS_OK;
 }
@@ -226,12 +265,10 @@ ds_status_t ds_array_deque_push_front(ds_array_deque_t *deque,
   if (elem == NULL) {
     return DS_ERR_NULL;
   }
-  status = adq_grow_for_one(deque);
+  status = adq_stage(deque, elem, true);
   if (status != DS_OK) {
     return status;
   }
-  deque->head = deque->head == 0 ? deque->capacity - 1 : deque->head - 1;
-  memcpy(deque->data + deque->head * deque->elem_size, elem, deque->elem_size);
   deque->size++;
   return DS_OK;
 }
@@ -298,23 +335,27 @@ ds_status_t ds_array_deque_insert(ds_array_deque_t *deque, size_t index,
   if (index > deque->size) {
     return DS_ERR_RANGE;
   }
-  status = adq_grow_for_one(deque);
-  if (status != DS_OK) {
-    return status;
-  }
+  /* staged on the nearer end, then swapped into place, so elem may be one
+   * of the elements that move */
   if (index < deque->size / 2) {
-    /* Open a slot at the front, then shift the first `index` left. */
-    deque->head = deque->head == 0 ? deque->capacity - 1 : deque->head - 1;
+    status = adq_stage(deque, elem, true);
+    if (status != DS_OK) {
+      return status;
+    }
+    deque->size++;
     for (j = 0; j < index; j++) {
-      adq_move(deque, j, j + 1);
+      adq_swap(deque, j, j + 1);
     }
   } else {
-    for (j = deque->size; j > index; j--) {
-      adq_move(deque, j, j - 1);
+    status = adq_stage(deque, elem, false);
+    if (status != DS_OK) {
+      return status;
+    }
+    deque->size++;
+    for (j = deque->size - 1; j > index; j--) {
+      adq_swap(deque, j, j - 1);
     }
   }
-  memcpy(adq_slot(deque, index), elem, deque->elem_size);
-  deque->size++;
   return DS_OK;
 }
 
