@@ -10,6 +10,8 @@ extern "C" {
 #endif
 
 int ds__in_set(unsigned char c, const unsigned char *set, size_t n);
+/* the maximal suffix of x[0..m) under the byte order (_rev: the reversed
+ * order): *ms gets where it starts, *p its period (two-way matching) */
 void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p);
 void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p);
 

@@ -10,131 +10,143 @@ int ds__in_set(unsigned char c, const unsigned char *set, size_t n) {
   return 0;
 }
 
-void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p) {
-  size_t i = 0, j = 1, k = 1;
-  int a;
-  *p = 1;
-  *ms = 0;
-  while (j + k <= m) {
-    a = (int)x[j + k - 1] - (int)x[i + k - 1];
-    if (a < 0) {
-      j += k;
-      k = 1;
-      *p = (int)(j - i);
-    } else if (a > 0) {
-      i = j;
-      j = i + 1;
-      k = 1;
-      *p = 1;
-    } else {
-      if (k == (size_t)*p) {
-        j += (size_t)*p;
-        k = 1;
+/*
+ * Two-way string matching (Crochemore and Perrin, 1991). The needle is cut
+ * at a critical factorization x = u v, found as the later of the maximal
+ * suffixes of x under the byte order and under its reverse; v is matched
+ * left to right, then u right to left. When u is a suffix of a prefix of
+ * v's period (the "periodic" case), a mismatch can shift only by the
+ * period, and the matched periods are remembered; otherwise any mismatch
+ * shifts past the longer half. Linear time, constant space.
+ */
+
+/* the maximal suffix of x[0..m) under the byte order (reverse != 0: the
+ * reversed order): where it starts, and its period */
+static void tw_max_suffix(const unsigned char *x, size_t m, int reverse,
+                          size_t *start, size_t *period) {
+  size_t best = 0; /* start of the largest suffix so far */
+  size_t cand = 1; /* start of the suffix compared with it */
+  size_t off = 0;  /* how far the two agree */
+  size_t per = 1;  /* period of the best suffix so far */
+  while (cand + off < m) {
+    unsigned char a = x[cand + off];
+    unsigned char b = x[best + off];
+    if (a == b) {
+      if (off + 1 == per) { /* a whole period matched: skip it */
+        cand += per;
+        off = 0;
       } else {
-        ++k;
+        off += 1;
       }
+    } else if ((a < b) != (reverse != 0)) {
+      /* the candidate is smaller, and so is every start up to it */
+      cand += off + 1;
+      off = 0;
+      per = cand - best;
+    } else {
+      /* the candidate is larger: it becomes the best */
+      best = cand;
+      cand = best + 1;
+      off = 0;
+      per = 1;
     }
   }
+  *start = best;
+  *period = per;
+}
+
+void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p) {
+  size_t start, period;
+  tw_max_suffix(x, m, 0, &start, &period);
+  *ms = (int)start;
+  *p = (int)period;
 }
 
 void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p) {
-  size_t i = 0, j = 1, k = 1;
-  int a;
-  *p = 1;
-  *ms = 0;
-  while (j + k <= m) {
-    a = (int)x[i + k - 1] - (int)x[j + k - 1];
-    if (a < 0) {
-      j += k;
-      k = 1;
-      *p = (int)(j - i);
-    } else if (a > 0) {
-      i = j;
-      j = i + 1;
-      k = 1;
-      *p = 1;
-    } else {
-      if (k == (size_t)*p) {
-        j += (size_t)*p;
-        k = 1;
-      } else {
-        ++k;
-      }
-    }
-  }
+  size_t start, period;
+  tw_max_suffix(x, m, 1, &start, &period);
+  *ms = (int)start;
+  *p = (int)period;
 }
 
 long ds_str_find_twoway(ds_str_t *s, const void *needle, size_t m,
                         size_t start) {
   const unsigned char *y;
   const unsigned char *x = (const unsigned char *)needle;
-  size_t n;
-  int ms, p1, p2;
-  size_t q, j, memory;
-  long ret = -1;
+  size_t n, ell, per, s1, p1, s2, p2, i, j;
   if (!s || !needle || m == 0u)
     return -1;
   n = s->len;
   if (start > n) {
     return -1;
   }
+  if (m > n - start) { /* no room; also an empty string's NULL buffer */
+    return -1;
+  }
   y = (const unsigned char *)s->buf;
   if (m == 1u) {
     const void *p = memchr(y + start, x[0], n - start);
-    ret = p ? (long)((const unsigned char *)p - y) : -1;
-    return ret;
+    return p ? (long)((const unsigned char *)p - y) : -1;
   }
-  ds__maximal_suffix(x, m, &ms, &p1);
-  q = (size_t)ms;
-  ds__maximal_suffix_rev(x, m, &ms, &p2);
-  if ((size_t)ms > q)
-    q = (size_t)ms;
-
-  if (memcmp(x, x + p1, (size_t)(m - (size_t)p1)) == 0) {
-    size_t per = (size_t)p1;
-    j = start;
-    memory = 0;
+  /* the critical factorization: the later of the two maximal suffixes */
+  tw_max_suffix(x, m, 0, &s1, &p1);
+  tw_max_suffix(x, m, 1, &s2, &p2);
+  if (s1 >= s2) {
+    ell = s1;
+    per = p1;
+  } else {
+    ell = s2;
+    per = p2;
+  }
+  j = start;
+  if (memcmp(x, x + per, ell) == 0) {
+    /* periodic: shifts are by the period, and after one the first
+     * (m - per) bytes are known to match */
+    size_t memory = 0;
     while (j <= n - m) {
-      size_t i = (q > memory) ? q : memory;
-      while (i < m && x[i] == y[j + i])
-        ++i;
+      i = ell > memory ? ell : memory;
+      while (i < m && x[i] == y[j + i]) {
+        i += 1;
+      }
       if (i >= m) {
-        i = q;
-        while (i > memory && x[i - 1] == y[j + i - 1])
-          --i;
+        i = ell;
+        while (i > memory && x[i - 1] == y[j + i - 1]) {
+          i -= 1;
+        }
         if (i <= memory) {
-          ret = (long)j;
-          break;
+          return (long)j;
         }
         j += per;
         memory = m - per;
       } else {
-        j += (i - q + 1);
+        j += i - ell + 1;
         memory = 0;
       }
     }
   } else {
-    size_t per = (size_t)p1;
-    j = start;
+    /* the halves differ: a full right half match that fails on the left
+     * shifts past the longer half */
+    per = (ell > m - ell ? ell : m - ell) + 1;
     while (j <= n - m) {
-      size_t i = q;
-      while (i < m && x[i] == y[j + i])
-        ++i;
+      i = ell;
+      while (i < m && x[i] == y[j + i]) {
+        i += 1;
+      }
       if (i >= m) {
-        i = q;
-        while (i > 0 && x[i - 1] == y[j + i - 1])
-          --i;
+        i = ell;
+        while (i > 0 && x[i - 1] == y[j + i - 1]) {
+          i -= 1;
+        }
         if (i == 0) {
-          ret = (long)j;
-          break;
+          return (long)j;
         }
         j += per;
       } else {
-        j += (i - q + 1);
+        j += i - ell + 1;
       }
     }
   }
-  return ret;
+  return -1;
 }
 
 long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start) {
@@ -145,7 +157,7 @@ long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start) {
   if (!s || !needle || n == 0u)
     return -1;
   len = s->len;
-  if (start > len) {
+  if (start > len || n > len - start) { /* also an empty string's NULL buffer */
     return -1;
   }
   if (n == 1u) {
@@ -196,8 +208,10 @@ int ds_str_rtrim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
   len = s->len;
   while (len && ds__in_set((unsigned char)s->buf[len - 1], set, set_n))
     --len;
-  s->len = len;
-  s->buf[len] = '\0';
+  if (len != s->len) { /* an empty string may have no buffer at all */
+    s->len = len;
+    s->buf[len] = '\0';
+  }
   return 0;
 }
 
@@ -229,8 +243,10 @@ int ds_str_rtrim_pred(ds_str_t *s, ds_byte_pred pred) {
   len = s->len;
   while (len && pred((unsigned char)s->buf[len - 1]))
     --len;
-  s->len = len;
-  s->buf[len] = '\0';
+  if (len != s->len) { /* an empty string may have no buffer at all */
+    s->len = len;
+    s->buf[len] = '\0';
+  }
   return 0;
 }
 
@@ -301,6 +317,8 @@ int ds_str_starts_with(ds_str_t *s, const void *prefix, size_t n) {
     return 0;
   if (s->len < n)
     return 0;
+  if (n == 0u) /* an empty string may have no buffer at all */
+    return 1;
   return memcmp(s->buf, prefix, n) == 0;
 }
 
@@ -309,6 +327,8 @@ int ds_str_ends_with(ds_str_t *s, const void *suffix, size_t n) {
     return 0;
   if (s->len < n)
     return 0;
+  if (n == 0u)
+    return 1;
   return memcmp(s->buf + (s->len - n), suffix, n) == 0;
 }
 
