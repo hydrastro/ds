@@ -193,7 +193,8 @@ ds_status_t ds_sieve_cache_put(ds_sieve_cache_t *cache, const void *key,
   }
   memcpy(sv_key(cache, n), key, cache->key_size);
   if (cache->value_size > 0) {
-    memcpy(sv_value(cache, n), value, cache->value_size);
+    /* memmove: value may be the evicted entry's own (a peek of it) */
+    memmove(sv_value(cache, n), value, cache->value_size);
   }
   cache->visited[n] = 0;
   status = ds_rh_map_put(&cache->index, sv_key(cache, n), &n);
