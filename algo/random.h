@@ -14,7 +14,9 @@
  * ds_rng_bounded() is unbiased (rejection sampling, no modulo bias).
  *
  * ds_alias_table_t (Vose's alias method) samples index i with probability
- * weight[i] / sum(weights) in O(1) after O(n) setup.
+ * weight[i] / sum(weights) in O(1) after O(n) setup. Weights are finite
+ * and non-negative, not all zero (DS_ERR_INVALID otherwise); any finite
+ * size works, up to DBL_MAX.
  *
  * Classic generators and sampling:
  *   ds_lcg_t                 linear congruential generator

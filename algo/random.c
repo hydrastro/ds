@@ -1,5 +1,6 @@
 #include "random.h"
 #include "../lib/checked.h"
+#include <float.h>
 #include <limits.h>
 #include <math.h>
 
@@ -144,17 +145,25 @@ static ds_status_t alias_build(ds_alias_table_t *table, const double *weights,
   size_t s;
   size_t l;
   double sum = 0.0;
+  double top = 0.0;
   for (i = 0; i < n; i++) {
-    if (!(weights[i] >= 0.0)) {
-      return DS_ERR_INVALID; /* negative or NaN */
+    if (!(weights[i] >= 0.0 && weights[i] <= DBL_MAX)) {
+      return DS_ERR_INVALID; /* negative, infinite or NaN */
     }
-    sum += weights[i];
+    if (weights[i] > top) {
+      top = weights[i];
+    }
   }
-  if (!(sum > 0.0)) {
+  if (!(top > 0.0)) {
     return DS_ERR_INVALID;
   }
+  /* relative to the largest weight, so that no sum or product overflows
+   * however large the weights are */
   for (i = 0; i < n; i++) {
-    table->prob[i] = weights[i] * (double)n / sum;
+    sum += weights[i] / top;
+  }
+  for (i = 0; i < n; i++) {
+    table->prob[i] = weights[i] / top * (double)n / sum;
     table->alias[i] = i;
     if (table->prob[i] < 1.0) {
       work[small++] = i;
