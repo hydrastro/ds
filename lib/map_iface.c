@@ -9,17 +9,18 @@
 #include <limits.h>
 #include <string.h>
 
-/* put through emplace, so every backend reports DS_EXISTS on replacement
- * (as ds_rh_map_put does) */
-static ds_status_t mi_put_slot(void *slot, bool inserted, const void *value,
-                               size_t value_size) {
-  if (slot == NULL) {
-    return DS_ERR_ALLOC;
+/* put through the backend's insert, so every backend reports DS_EXISTS on
+ * replacement (as ds_rh_map_put does) and its own status on failure
+ * (DS_ERR_OVERFLOW from cuckoo or extendible hashing for too many equal
+ * hashes, say). The insert stages key and value (see stage.h); a
+ * replacement then moves the value over the existing one, which nothing
+ * moved. */
+static ds_status_t mi_put_status(ds_status_t status, void *existing,
+                                 const void *value, size_t value_size) {
+  if (status == DS_EXISTS && existing != NULL && value_size > 0) {
+    memmove(existing, value, value_size);
   }
-  if (value_size > 0) {
-    memmove(slot, value, value_size);
-  }
-  return inserted ? DS_OK : DS_EXISTS;
+  return status;
 }
 
 /* ---- Robin Hood backend ---- */
@@ -88,9 +89,10 @@ static void mi_sw_destroy(void *map) {
 
 static ds_status_t mi_sw_put(void *map, const void *key, const void *value) {
   ds_swiss_map_t *m = (ds_swiss_map_t *)map;
-  bool inserted = false;
-  void *slot = ds_swiss_map_emplace(m, key, &inserted);
-  return mi_put_slot(slot, inserted, value, m->config.value_size);
+  ds_status_t status = ds_swiss_map_insert(m, key, value);
+  return mi_put_status(status,
+                       status == DS_EXISTS ? ds_swiss_map_get(m, key) : NULL,
+                       value, m->config.value_size);
 }
 
 static void *mi_sw_get(const void *map, const void *key) {
@@ -138,9 +140,10 @@ static void mi_ck_destroy(void *map) {
 
 static ds_status_t mi_ck_put(void *map, const void *key, const void *value) {
   ds_cuckoo_map_t *m = (ds_cuckoo_map_t *)map;
-  bool inserted = false;
-  void *slot = ds_cuckoo_map_emplace(m, key, &inserted);
-  return mi_put_slot(slot, inserted, value, m->config.value_size);
+  ds_status_t status = ds_cuckoo_map_insert(m, key, value);
+  return mi_put_status(status,
+                       status == DS_EXISTS ? ds_cuckoo_map_get(m, key) : NULL,
+                       value, m->config.value_size);
 }
 
 static void *mi_ck_get(const void *map, const void *key) {
@@ -239,9 +242,10 @@ static void mi_lh_destroy(void *map) {
 
 static ds_status_t mi_lh_put(void *map, const void *key, const void *value) {
   ds_linear_hash_map_t *m = (ds_linear_hash_map_t *)map;
-  bool inserted = false;
-  void *slot = ds_linear_hash_map_emplace(m, key, &inserted);
-  return mi_put_slot(slot, inserted, value, m->config.value_size);
+  ds_status_t status = ds_linear_hash_map_insert(m, key, value);
+  return mi_put_status(
+      status, status == DS_EXISTS ? ds_linear_hash_map_get(m, key) : NULL,
+      value, m->config.value_size);
 }
 
 static void *mi_lh_get(const void *map, const void *key) {
@@ -302,9 +306,10 @@ static void mi_eh_destroy(void *map) {
 
 static ds_status_t mi_eh_put(void *map, const void *key, const void *value) {
   ds_extendible_hash_t *m = (ds_extendible_hash_t *)map;
-  bool inserted = false;
-  void *slot = ds_extendible_hash_emplace(m, key, &inserted);
-  return mi_put_slot(slot, inserted, value, m->config.value_size);
+  ds_status_t status = ds_extendible_hash_insert(m, key, value);
+  return mi_put_status(
+      status, status == DS_EXISTS ? ds_extendible_hash_get(m, key) : NULL,
+      value, m->config.value_size);
 }
 
 static void *mi_eh_get(const void *map, const void *key) {
@@ -375,9 +380,10 @@ static void mi_co_destroy(void *map) {
 
 static ds_status_t mi_co_put(void *map, const void *key, const void *value) {
   ds_coalesced_map_t *m = (ds_coalesced_map_t *)map;
-  bool inserted = false;
-  void *slot = ds_coalesced_map_emplace(m, key, &inserted);
-  return mi_put_slot(slot, inserted, value, m->config.value_size);
+  ds_status_t status = ds_coalesced_map_insert(m, key, value);
+  return mi_put_status(
+      status, status == DS_EXISTS ? ds_coalesced_map_get(m, key) : NULL, value,
+      m->config.value_size);
 }
 
 static void *mi_co_get(const void *map, const void *key) {
@@ -429,9 +435,10 @@ static void mi_oa_destroy(void *map) {
 
 static ds_status_t mi_oa_put(void *map, const void *key, const void *value) {
   ds_open_map_t *m = (ds_open_map_t *)map;
-  bool inserted = false;
-  void *slot = ds_open_map_emplace(m, key, &inserted);
-  return mi_put_slot(slot, inserted, value, m->config.value_size);
+  ds_status_t status = ds_open_map_insert(m, key, value);
+  return mi_put_status(status,
+                       status == DS_EXISTS ? ds_open_map_get(m, key) : NULL,
+                       value, m->config.value_size);
 }
 
 static void *mi_oa_get(const void *map, const void *key) {
