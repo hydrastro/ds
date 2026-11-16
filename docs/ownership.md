@@ -90,11 +90,20 @@ pool allocators have stricter behavior than `malloc`:
 
 - arena realloc of an existing pointer is unsupported and returns `NULL`;
 - pool allocation only supports fixed-size blocks;
-- pool frees reject pointers outside the pool and double-free attempts;
+- pool frees reject pointers outside the pool and double-free attempts (in
+  O(1) unless the block's data happen to look like a free block's mark);
 - debug allocator statistics are intended for diagnostics and test visibility.
 
 Use the default context or a debug allocator when a module requires general
 `realloc` behavior.
+
+Older interfaces take a pair of allocator functions instead of a context
+(`void *(*)(size_t)` and `void (*)(void *)`, as the bitset, the hash table
+and the trie do). `ds_context_use_allocator_functions` makes a context over
+such a pair, with a size header per block so that it can reallocate; a
+structure built through the pair can hand it to the context-based modules
+inside it. The trie's Robin Hood and sorted-vector stores do this for their
+arrays.
 
 ## Allocation failure
 

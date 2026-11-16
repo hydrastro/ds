@@ -136,6 +136,16 @@ copies the source into the new block before the old one is freed, and an
 operation in place stages it where the move cannot reach. No path
 compares pointers into unrelated objects.
 
+The hash maps stage their key and value arguments with `lib/stage`: a
+copy on the stack up to `DS_STAGE_BYTES` (256 by default, a compile-time
+setting), a block from the map's context beyond that. A map in fixed
+storage must not allocate, so it stages only what fits on the stack.
+That is all the Swiss and coalesced maps need there, since without growth
+an insertion moves no entry; the cuckoo map (displacement chains) and the
+open-addressing map (Robin Hood placement) still move entries, so in
+fixed storage their arguments over `DS_STAGE_BYTES` must not come from
+the map.
+
 | Module | Operations |
 |---|---|
 | `lib/vec` | push, append, insert and insert_n, the fill of resize |
@@ -145,6 +155,11 @@ compares pointers into unrelated objects.
 | `lib/slot_map` | insert (a value from `ds_slot_map_get`) |
 | `lib/lru_cache`, `lib/sieve_cache` | put (a value peeked from the entry it evicts) |
 | `lib/min_max_heap`, `lib/monotonic_queue` | push (one of the heap's ends, the queue's own front) |
+| `lib/rh_map` | put, insert and emplace (keys and values read from the map, which moves entries as it places one) |
+| `lib/swiss_map`, `lib/cuckoo_map`, `lib/open_map`, `lib/coalesced_map`, `lib/linear_hash_map`, `lib/extendible_hash` | put, insert and emplace (another entry's value as the value or the key, while the table grows or splits) |
+| `lib/map_iface` | put on every backend (it reports the backend's own status) |
+| `lib/implicit_treap` | insert and set (an element from `ds_itreap_at`), apply (a tag that is an element of the range it updates) |
+| `lib/graph` | update_edge keeps data it is given back: the old data is destroyed only when replaced |
 
 ## Cursors and handles
 
