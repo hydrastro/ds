@@ -17,11 +17,16 @@ static void *slot_map_resize_block(ds_context_t *context, void *block,
   return ds_context_realloc(context, block, bytes);
 }
 
-/* Each block is resized separately; capacity only changes once all three
- * succeeded, so a failure leaves the map consistent (with some blocks
- * merely larger than needed). */
-static ds_status_t slot_map_set_capacity(ds_slot_map_t *map, size_t capacity) {
+/* Grows the blocks to capacity. The bookkeeping blocks are resized in
+ * place; the values move to a new block, into which stage (when given) is
+ * copied at the dense end before the old block goes, so stage may be one of
+ * the map's own values. Capacity only changes once every block succeeded,
+ * so a failure leaves the map consistent (with some blocks merely larger
+ * than needed). */
+static ds_status_t slot_map_set_capacity(ds_slot_map_t *map, size_t capacity,
+                                         const void *stage) {
   void *block;
+  unsigned char *values;
   if (map->fixed) {
     return DS_ERR_OVERFLOW;
   }
@@ -29,12 +34,6 @@ static ds_status_t slot_map_set_capacity(ds_slot_map_t *map, size_t capacity) {
       capacity > SLOT_MAP_SIZE_MAX / sizeof(ds_slot_map_slot_t)) {
     return DS_ERR_OVERFLOW;
   }
-  block = slot_map_resize_block(map->context, map->values,
-                                capacity * map->elem_size);
-  if (block == NULL) {
-    return DS_ERR_ALLOC;
-  }
-  map->values = (unsigned char *)block;
   block = slot_map_resize_block(map->context, map->dense_slot,
                                 capacity * sizeof(size_t));
   if (block == NULL) {
@@ -47,14 +46,28 @@ static ds_status_t slot_map_set_capacity(ds_slot_map_t *map, size_t capacity) {
     return DS_ERR_ALLOC;
   }
   map->slots = (ds_slot_map_slot_t *)block;
+  values = (unsigned char *)ds_context_alloc(map->context,
+                                             capacity * map->elem_size);
+  if (values == NULL) {
+    return DS_ERR_ALLOC;
+  }
+  if (map->size > 0) {
+    memcpy(values, map->values, map->size * map->elem_size);
+  }
+  if (stage != NULL) {
+    memcpy(values + map->size * map->elem_size, stage, map->elem_size);
+  }
+  ds_context_free(map->context, map->values);
+  map->values = values;
   map->capacity = capacity;
   return DS_OK;
 }
 
-static ds_status_t slot_map_acquire(ds_slot_map_t *map, size_t *out_slot) {
-  ds_status_t status;
+/* Makes room for one more value and copies value (when given) to the dense
+ * end. value may be one of the map's own: growth stages it in the new
+ * block, and in place the dense end is free room. */
+static ds_status_t slot_map_make_room(ds_slot_map_t *map, const void *value) {
   size_t capacity;
-  size_t slot;
   if (map->free_head == SLOT_MAP_NONE && map->slot_count == map->capacity) {
     if (map->fixed) {
       return DS_ERR_OVERFLOW;
@@ -66,11 +79,17 @@ static ds_status_t slot_map_acquire(ds_slot_map_t *map, size_t *out_slot) {
     } else {
       capacity = map->capacity * 2;
     }
-    status = slot_map_set_capacity(map, capacity);
-    if (status != DS_OK) {
-      return status;
-    }
+    return slot_map_set_capacity(map, capacity, value);
   }
+  if (value != NULL) {
+    memcpy(slot_map_value(map, map->size), value, map->elem_size);
+  }
+  return DS_OK;
+}
+
+/* a free slot; slot_map_make_room has made sure there is one */
+static size_t slot_map_acquire(ds_slot_map_t *map) {
+  size_t slot;
   if (map->free_head != SLOT_MAP_NONE) {
     slot = map->free_head;
     map->free_head = map->slots[slot].index;
@@ -78,8 +97,7 @@ static ds_status_t slot_map_acquire(ds_slot_map_t *map, size_t *out_slot) {
     slot = map->slot_count++;
     map->slots[slot].generation = 0;
   }
-  *out_slot = slot;
-  return DS_OK;
+  return slot;
 }
 
 static void slot_map_release(ds_slot_map_t *map, size_t slot) {
@@ -153,13 +171,15 @@ void ds_slot_map_destroy(ds_slot_map_t *map) {
   map->free_head = SLOT_MAP_NONE;
 }
 
-void *ds_slot_map_emplace(ds_slot_map_t *map,
-                          ds_slot_map_handle_t *out_handle) {
+static void *slot_map_emplace_from(ds_slot_map_t *map,
+                                   ds_slot_map_handle_t *out_handle,
+                                   const void *value) {
   size_t slot;
   size_t dense;
-  if (slot_map_acquire(map, &slot) != DS_OK) {
+  if (slot_map_make_room(map, value) != DS_OK) {
     return NULL;
   }
+  slot = slot_map_acquire(map);
   map->slots[slot].generation++; /* even (free) -> odd (occupied) */
   dense = map->size++;
   map->slots[slot].index = dense;
@@ -171,9 +191,13 @@ void *ds_slot_map_emplace(ds_slot_map_t *map,
   return slot_map_value(map, dense);
 }
 
+void *ds_slot_map_emplace(ds_slot_map_t *map,
+                          ds_slot_map_handle_t *out_handle) {
+  return slot_map_emplace_from(map, out_handle, NULL);
+}
+
 ds_status_t ds_slot_map_insert(ds_slot_map_t *map, const void *value,
                                ds_slot_map_handle_t *out_handle) {
-  void *dst;
   if (value == NULL) {
     return DS_ERR_NULL;
   }
@@ -181,11 +205,9 @@ ds_status_t ds_slot_map_insert(ds_slot_map_t *map, const void *value,
       map->fixed) {
     return DS_ERR_OVERFLOW;
   }
-  dst = ds_slot_map_emplace(map, out_handle);
-  if (dst == NULL) {
+  if (slot_map_emplace_from(map, out_handle, value) == NULL) {
     return map->fixed ? DS_ERR_OVERFLOW : DS_ERR_ALLOC;
   }
-  memcpy(dst, value, map->elem_size);
   return DS_OK;
 }
 
@@ -243,7 +265,7 @@ ds_status_t ds_slot_map_reserve(ds_slot_map_t *map, size_t capacity) {
   if (capacity <= map->capacity) {
     return DS_OK;
   }
-  return slot_map_set_capacity(map, capacity);
+  return slot_map_set_capacity(map, capacity, NULL);
 }
 
 size_t ds_slot_map_size(const ds_slot_map_t *map) { return map->size; }

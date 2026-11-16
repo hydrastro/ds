@@ -14,7 +14,8 @@
  * Values are kept dense (removal moves the last value into the hole), so
  * iterating over ds_slot_map_data() visits every live value with no gaps.
  * Value pointers are therefore only valid until the next insert or remove;
- * hold handles, not pointers.
+ * hold handles, not pointers. The value given to insert may still be one of
+ * the map's own (from ds_slot_map_get): it is read before anything moves.
  *
  * Generations are odd while a slot is occupied and even while it is free.
  * A slot whose generation would wrap around is retired for good, so a
