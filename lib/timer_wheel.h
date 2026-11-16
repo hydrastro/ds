@@ -11,12 +11,14 @@
  * suits interrupt-driven or bare-metal schedulers.
  *
  * Time is an unsigned long tick count chosen by the caller (milliseconds,
- * jiffies, loop iterations). ds_timer_wheel_advance(wheel, n) processes n
- * ticks; processing tick t fires every timer whose expiry is t. A timer
- * started with an expiry that is already reached (expires <= now) fires on
- * the next tick processed. Tick counts may wrap around: expiries are compared
- * modulo ULONG_MAX + 1, so a timer must not be scheduled more than
- * ULONG_MAX / 2 ticks ahead.
+ * jiffies, loop iterations); now is the last tick processed, at first the
+ * time given to init. ds_timer_wheel_advance(wheel, n) processes the n ticks
+ * after now, and ds_timer_wheel_advance_to(wheel, t) the ticks up to t;
+ * processing tick t makes it now and fires every timer whose expiry is t. A
+ * timer started with an expiry that is already reached (expires <= now)
+ * fires on the next tick processed. Tick counts may wrap around: expiries
+ * are compared modulo ULONG_MAX + 1, so a timer must not be scheduled more
+ * than ULONG_MAX / 2 ticks ahead.
  *
  * Layout: DS_TIMER_WHEEL_LEVELS levels of DS_TIMER_WHEEL_SLOTS slots. Level 0
  * resolves single ticks; timers further away sit in coarser levels and are
@@ -24,8 +26,10 @@
  * range (2^24 ticks with the defaults) are parked in the last level and
  * re-cascaded until they come within range, so any delay works.
  *
- * Callbacks run with the timer already stopped. A callback may start, restart
- * or cancel any timer, including its own (periodic timers re-add themselves).
+ * Callbacks run with the timer already stopped and now set to the tick being
+ * processed. A callback may start, restart or cancel any timer, including
+ * its own: a periodic timer re-adds itself with
+ * ds_timer_wheel_start_after(wheel, timer, period).
  *
  * Complexity: start, cancel O(1); advance O(ticks + timers fired + timers
  * cascaded); each timer cascades at most DS_TIMER_WHEEL_LEVELS - 1 times per

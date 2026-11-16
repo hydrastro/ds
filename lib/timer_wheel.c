@@ -27,19 +27,21 @@ static size_t tw_slot(unsigned long time, unsigned int level) {
   return (size_t)((time >> (level * DS_TIMER_WHEEL_BITS)) & TW_MASK);
 }
 
-/* Place a timer relative to wheel->now, the next tick to be processed. */
+/* Place a timer relative to the next tick to be processed, wheel->now + 1
+ * (wheel->now is the last tick processed: the current time). */
 static void tw_place(ds_timer_wheel_t *wheel, ds_timer_t *timer) {
-  unsigned long delta = timer->expires - wheel->now;
+  unsigned long next = wheel->now + 1UL;
+  unsigned long delta = timer->expires - next;
   unsigned long when = timer->expires;
   unsigned int level;
   if (delta > ULONG_MAX / 2) {
-    /* Already due: fire on the next tick processed. */
-    tw_link(&wheel->slots[0][tw_slot(wheel->now, 0)], timer);
+    /* Already reached: fire on the next tick processed. */
+    tw_link(&wheel->slots[0][tw_slot(next, 0)], timer);
     return;
   }
   if (delta > TW_MAX_DELTA) {
     /* Out of range: park at the far edge and re-cascade later. */
-    when = wheel->now + TW_MAX_DELTA;
+    when = next + TW_MAX_DELTA;
     delta = TW_MAX_DELTA;
   }
   for (level = 0; level + 1 < DS_TIMER_WHEEL_LEVELS; level++) {
@@ -58,8 +60,9 @@ static void tw_detach(ds_timer_t **head, ds_timer_t **list) {
   }
 }
 
-static size_t tw_cascade(ds_timer_wheel_t *wheel, unsigned int level) {
-  size_t index = tw_slot(wheel->now, level);
+static size_t tw_cascade(ds_timer_wheel_t *wheel, unsigned int level,
+                         unsigned long tick) {
+  size_t index = tw_slot(tick, level);
   ds_timer_t *list;
   ds_timer_t *timer;
   tw_detach(&wheel->slots[level][index], &list);
@@ -71,21 +74,25 @@ static size_t tw_cascade(ds_timer_wheel_t *wheel, unsigned int level) {
   return index;
 }
 
+/* Processes the tick after wheel->now. The callbacks see that tick as the
+ * current time, so a timer restarted from its callback with
+ * ds_timer_wheel_start_after(period) keeps its period. */
 static size_t tw_tick(ds_timer_wheel_t *wheel) {
-  size_t index = tw_slot(wheel->now, 0);
+  unsigned long tick = wheel->now + 1UL;
+  size_t index = tw_slot(tick, 0);
   size_t fired = 0;
   unsigned int level;
   ds_timer_t *list;
   ds_timer_t *timer;
   if (index == 0) {
     for (level = 1; level < DS_TIMER_WHEEL_LEVELS; level++) {
-      if (tw_cascade(wheel, level) != 0) {
+      if (tw_cascade(wheel, level, tick) != 0) {
         break;
       }
     }
   }
   tw_detach(&wheel->slots[0][index], &list);
-  wheel->now++;
+  wheel->now = tick;
   /* Take timers one at a time from the detached list, so a callback may
    * cancel or restart any timer, including ones still in this list. */
   while (list != NULL) {
