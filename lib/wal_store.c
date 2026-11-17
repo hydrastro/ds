@@ -4,6 +4,7 @@
 #include <string.h>
 
 #define WAL_SUPER_MAGIC "DSWALS1"
+#define WAL_INIT_MAGIC "DSWALI1"
 #define WAL_GROUP_MAGIC "DSWALG1"
 #define WAL_VERSION 1UL
 #define WAL_HDR 48U   /* group header before its entries */
@@ -477,8 +478,15 @@ static ds_status_t wal_format(wal_t *w) {
   w->epoch = 1;
   w->seq = 1;
   w->count = ds_page_store_count(w->data);
-  memset(w->buf, 0, w->ps);
+  /* Only an empty log or our valid marker may enter this function. Keep
+   * the marker until the first superblock has been durably published. */
+  wal_super_encode(w, w->buf, w->epoch, w->seq, w->count);
+  memcpy(w->buf, WAL_INIT_MAGIC, 8);
+  wal_put4(w->buf + 40, wal_crc(w->buf, 40));
   st = ds_page_store_write(w->log, 0, w->buf);
+  if (st == DS_OK) {
+    st = ds_page_store_sync(w->log);
+  }
   if (st == DS_OK) {
     wal_super_encode(w, w->buf, w->epoch, w->seq, w->count);
     st = ds_page_store_write(w->log, 1, w->buf);
@@ -508,8 +516,8 @@ static ds_status_t wal_group_read(wal_t *w, unsigned long pos,
   }
   n = wal_get4(h + 32);
   flags = wal_get4(h + 36);
-  if (n == 0 || n > (unsigned long)w->per_group || flags > WAL_COMMIT ||
-      wal_get4(h + 40) != 0) {
+  if ((n == 0 && flags != WAL_COMMIT) || n > (unsigned long)w->per_group ||
+      flags > WAL_COMMIT || wal_get4(h + 40) != 0) {
     return DS_NOT_FOUND;
   }
   crc = ds_sstable_crc32c(0, h, 44);
@@ -680,6 +688,7 @@ ds_status_t ds_page_store_wal(ds_page_store_t *store, ds_page_store_t *data,
   unsigned long best = 0;
   unsigned long slot;
   unsigned long logn;
+  bool initializing = false;
   if (store == NULL || data == NULL || log == NULL || data->ops == NULL ||
       log->ops == NULL) {
     return DS_ERR_NULL;
@@ -725,6 +734,13 @@ ds_status_t ds_page_store_wal(ds_page_store_t *store, ds_page_store_t *data,
     unsigned long epoch = 0, seq = 0, count = 0;
     ds_status_t s = ds_page_store_read(log, slot, w->buf);
     if (s == DS_OK) {
+      if (slot == 0 && logn <= WAL_FIRST &&
+          memcmp(w->buf, WAL_INIT_MAGIC, 8) == 0 &&
+          wal_get4(w->buf + 8) == (unsigned long)ps &&
+          wal_get4(w->buf + 12) == WAL_VERSION &&
+          wal_get4(w->buf + 40) == wal_crc(w->buf, 40)) {
+        initializing = true;
+      }
       s = wal_super_decode(w, w->buf, slot, &epoch, &seq, &count);
     }
     if (s == DS_OK && epoch > best) {
@@ -739,7 +755,7 @@ ds_status_t ds_page_store_wal(ds_page_store_t *store, ds_page_store_t *data,
   }
   if (st == DS_OK) {
     if (best == 0) {
-      st = logn <= WAL_FIRST ? wal_format(w) : DS_ERR_INVALID;
+      st = logn == 0 || initializing ? wal_format(w) : DS_ERR_INVALID;
       w->tail = WAL_FIRST;
       w->zero_from = w->count;
     } else {

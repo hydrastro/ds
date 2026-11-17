@@ -1057,8 +1057,14 @@ static bool lsm_init_torn(const unsigned char *page, size_t ps) {
   unsigned char m[16];
   size_t i = 0;
   memcpy(m, lsm_init_magic, 8);
+  /* A zero-filled foreign page (or an unidentifiable torn first write)
+   * is not proof that this store belongs to us. */
+  if (memcmp(page, m, 8) != 0) {
+    return false;
+  }
   lsm_put4(m + 8, (unsigned long)ps);
   lsm_put4(m + 12, ds_sstable_crc32c(0, m, 12));
+  i = 8;
   while (i < 16 && page[i] == m[i]) {
     i++;
   }

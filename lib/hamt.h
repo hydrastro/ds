@@ -2,6 +2,7 @@
 #define DS_HAMT_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -32,7 +33,11 @@ typedef struct hamt {
 ds_hamt_t *ds_hamt_create(void);
 ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *));
-/* insert or update; returns true if a new key was added, false on update */
+/* DS_OK for a new key, DS_EXISTS for an update. Allocation/size failure
+ * leaves all existing keys and values unchanged; values remain borrowed. */
+ds_status_t ds_hamt_insert_ex(ds_hamt_t *hamt, const void *key,
+                              size_t key_length, void *value);
+/* true for a new key; false on update or failure (use _ex to distinguish). */
 bool ds_hamt_insert(ds_hamt_t *hamt, const void *key, size_t key_length,
                     void *value);
 bool ds_hamt_contains(ds_hamt_t *hamt, const void *key, size_t key_length);

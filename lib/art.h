@@ -2,6 +2,7 @@
 #define DS_ART_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -13,12 +14,14 @@ extern "C" {
  * Adaptive Radix Tree (ART): a space-efficient radix tree mapping byte-string
  * keys to void* values. Its defining trick is adaptive node sizing: each inner
  * node is one of four layouts -- Node4, Node16, Node48, Node256 -- and grows or
- * shrinks to the smallest layout that fits its current child count, so sparse
- * nodes stay tiny while dense nodes stay O(1) to index. Path compression
+ * shrinks with hysteresis as its child count changes, so sparse nodes stay
+ * small while dense nodes stay O(1) to index. Path compression
  * collapses chains of single-child nodes. This is a portable scalar
- * implementation (no SIMD). Keys should be distinct byte strings; for correct
- * prefix behavior callers typically include a terminating byte or use
- * fixed-length keys.
+ * implementation (no SIMD). Keys are arbitrary byte strings, including empty
+ * keys and embedded NULs. A terminal slot is distinct from byte children.
+ * Compressed prefixes keep their full size; up to 10 bytes are inline and
+ * longer prefixes have an owned buffer. Parent links make walks and
+ * destruction iterative with O(1) auxiliary memory.
  */
 
 typedef struct art ds_art_t;
@@ -27,7 +30,11 @@ typedef struct art ds_art_t;
 ds_art_t *ds_art_create(void);
 ds_art_t *ds_art_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *));
-/* insert or update; returns true if a new key was added, false on update */
+/* DS_OK for a new key, DS_EXISTS for an update. Errors leave the tree and
+ * borrowed values unchanged; every allocation precedes the commit. */
+ds_status_t ds_art_insert_ex(ds_art_t *art, const unsigned char *key,
+                             size_t key_length, void *value);
+/* true for a new key; false on update or failure (use _ex to distinguish). */
 bool ds_art_insert(ds_art_t *art, const unsigned char *key, size_t key_length,
                    void *value);
 bool ds_art_contains(ds_art_t *art, const unsigned char *key,
@@ -35,9 +42,12 @@ bool ds_art_contains(ds_art_t *art, const unsigned char *key,
 void *ds_art_get(ds_art_t *art, const unsigned char *key, size_t key_length);
 bool ds_art_remove(ds_art_t *art, const unsigned char *key, size_t key_length,
                    void **out_value);
+/* Removal succeeds even if optional node shrinking/prefix compression cannot
+ * allocate: the larger layout or a unary node remains valid. */
 size_t ds_art_size(ds_art_t *art);
 bool ds_art_is_empty(ds_art_t *art);
-/* iterate keys in lexicographic order */
+/* iterate keys in lexicographic order without allocation; callbacks must not
+ * mutate/destroy the tree. Empty/prefix keys precede their extensions. */
 void ds_art_walk(ds_art_t *art,
                  void (*callback)(const unsigned char *, size_t, void *,
                                   void *),

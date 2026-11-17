@@ -1,24 +1,10 @@
 #include "bloom_filter.h"
+#include "../algo/hash.h"
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 
 #define DS_BLOOM_BITS_PER_WORD (sizeof(unsigned long) * CHAR_BIT)
-
-/* FNV-1a hash using 32-bit parameters so the constants fit in any
- * conforming unsigned long (which is at least 32 bits wide). */
-static unsigned long bloom_hash_fnv(const void *key, size_t length,
-                                    unsigned long basis) {
-  const unsigned char *bytes = (const unsigned char *)key;
-  unsigned long hash = basis;
-  size_t i;
-  for (i = 0; i < length; i++) {
-    hash ^= (unsigned long)bytes[i];
-    hash *= 16777619UL;
-    hash &= 0xFFFFFFFFUL;
-  }
-  return hash;
-}
 
 static size_t bloom_compute_words(size_t num_bits) {
   if (num_bits == 0) {
@@ -107,22 +93,22 @@ ds_bloom_filter_create_with_params(size_t num_bits, size_t num_hashes,
   return filter;
 }
 
-/* the two hashes behind a key's bit indices (double hashing): index i is
- * (h1 + i h2) mod num_bits, computed as it is needed, so adding and
- * querying never allocate */
+/* Hash the bytes twice, then avalanche each probe separately. Two nearby
+ * FNV bases do not make independent hashes; arithmetic progressions also
+ * produce unusually correlated codewords in small filters. O(length + k). */
 static void bloom_hashes(const ds_bloom_filter_t *filter, const void *key,
                          size_t length, unsigned long *h1, unsigned long *h2) {
-  *h1 = bloom_hash_fnv(key, length, 2166136261UL);
-  *h2 = bloom_hash_fnv(key, length, 2166136333UL);
-  if ((*h2 % filter->num_bits) == 0) {
-    *h2 += 1;
-  }
+  (void)filter;
+  *h1 = ds_hash_murmur3_32(key, length, 0UL);
+  *h2 = ds_hash_murmur3_32(key, length, 0x9747b28cUL);
 }
 
 static size_t bloom_index(const ds_bloom_filter_t *filter, unsigned long h1,
                           unsigned long h2, size_t i) {
-  unsigned long combined = h1 + (unsigned long)i * h2;
-  return (size_t)(combined % filter->num_bits);
+  unsigned long lo = ds_hash_mix32(h1 + (unsigned long)i * 0x9e3779b9UL);
+  unsigned long hi = ds_hash_mix32(h2 + (unsigned long)i * 0x85ebca6bUL);
+  size_t combined = (size_t)lo | (((size_t)hi << 16) << 16);
+  return combined % filter->num_bits;
 }
 
 void ds_bloom_filter_add(ds_bloom_filter_t *filter, const void *key,
@@ -136,7 +122,9 @@ void ds_bloom_filter_add(ds_bloom_filter_t *filter, const void *key,
     filter->words[bit / DS_BLOOM_BITS_PER_WORD] |=
         1UL << (bit % DS_BLOOM_BITS_PER_WORD);
   }
-  filter->num_items += 1;
+  if (filter->num_items != (size_t)-1) {
+    filter->num_items += 1;
+  }
 }
 
 bool ds_bloom_filter_maybe_contains(ds_bloom_filter_t *filter, const void *key,
@@ -194,7 +182,9 @@ bool ds_bloom_filter_union(ds_bloom_filter_t *filter,
   for (i = 0; i < filter->num_words; i++) {
     filter->words[i] |= other->words[i];
   }
-  filter->num_items += other->num_items;
+  filter->num_items = other->num_items > (size_t)-1 - filter->num_items
+                          ? (size_t)-1
+                          : filter->num_items + other->num_items;
   return true;
 }
 

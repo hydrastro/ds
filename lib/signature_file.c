@@ -1,20 +1,16 @@
 #include "signature_file.h"
+#include "../algo/hash.h"
 #include <string.h>
 
 static size_t sf_default_hash(const unsigned char *w, size_t len, size_t seed,
                               void *user) {
-  /* FNV-1a with the seed folded in, then a final mix */
-  size_t h = (size_t)2166136261UL ^ (seed * (size_t)0x9E3779B1UL);
-  size_t i;
+  unsigned long h1, h2, lo, hi;
   (void)user;
-  for (i = 0; i < len; i++) {
-    h ^= w[i];
-    h *= (size_t)16777619UL;
-  }
-  h ^= h >> 15;
-  h *= (size_t)0x2c1b3c6dUL;
-  h ^= h >> 12;
-  return h;
+  h1 = ds_hash_murmur3_32(w, len, 0UL);
+  h2 = ds_hash_murmur3_32(w, len, 0x9747b28cUL);
+  lo = ds_hash_mix32(h1 + (unsigned long)seed * 0x9e3779b9UL);
+  hi = ds_hash_mix32(h2 + (unsigned long)seed * 0x85ebca6bUL);
+  return (size_t)lo | (((size_t)hi << 16) << 16);
 }
 
 ds_status_t ds_signature_file_init(ds_signature_file_t *f, size_t m, size_t k,
@@ -52,18 +48,27 @@ size_t ds_signature_file_records(const ds_signature_file_t *f) {
 void ds_signature_superimpose(const ds_signature_file_t *f,
                               const unsigned char *word, size_t len,
                               unsigned char *sig) {
-  size_t h1;
-  size_t h2;
+  unsigned long h1 = 0;
+  unsigned long h2 = 0;
   size_t i;
   size_t bit;
   if (f == NULL || sig == NULL || (word == NULL && len > 0)) {
     return;
   }
-  /* k positions by double hashing */
-  h1 = f->hash(word, len, 0, f->user);
-  h2 = f->hash(word, len, 1, f->user) | 1u;
+  /* Each probe is mixed independently, not an arithmetic progression.
+   * The built-in path reads the word twice regardless of k. */
+  if (f->hash == sf_default_hash) {
+    h1 = ds_hash_murmur3_32(word, len, 0UL);
+    h2 = ds_hash_murmur3_32(word, len, 0x9747b28cUL);
+  }
   for (i = 0; i < f->k; i++) {
-    bit = (h1 + i * h2) % f->m;
+    if (f->hash == sf_default_hash) {
+      unsigned long lo = ds_hash_mix32(h1 + (unsigned long)i * 0x9e3779b9UL);
+      unsigned long hi = ds_hash_mix32(h2 + (unsigned long)i * 0x85ebca6bUL);
+      bit = ((size_t)lo | (((size_t)hi << 16) << 16)) % f->m;
+    } else {
+      bit = f->hash(word, len, i, f->user) % f->m;
+    }
     sig[bit / 8] = (unsigned char)(sig[bit / 8] | (1u << (bit % 8)));
   }
 }
@@ -83,9 +88,15 @@ ds_status_t ds_signature_file_add(ds_signature_file_t *f,
                                   const size_t *lens, size_t count,
                                   size_t *out_record) {
   size_t cap;
+  size_t i;
   void *p;
   if (f == NULL || (count > 0 && (words == NULL || lens == NULL))) {
     return DS_ERR_NULL;
+  }
+  for (i = 0; i < count; i++) {
+    if (words[i] == NULL && lens[i] != 0) {
+      return DS_ERR_NULL;
+    }
   }
   if (f->records == f->capacity) {
     cap = f->capacity < 16 ? 16 : f->capacity * 2;
@@ -119,6 +130,11 @@ ds_status_t ds_signature_file_query(const ds_signature_file_t *f,
   if (f == NULL || visit == NULL ||
       (count > 0 && (words == NULL || lens == NULL))) {
     return DS_ERR_NULL;
+  }
+  for (i = 0; i < count; i++) {
+    if (words[i] == NULL && lens[i] != 0) {
+      return DS_ERR_NULL;
+    }
   }
   q = (unsigned char *)ds_context_alloc(f->context, f->row_bytes);
   if (q == NULL) {

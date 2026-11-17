@@ -123,8 +123,13 @@ says what remains:
 | `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
 | `lib/wal_store` | a failed write or truncation changes nothing; a failed sync leaves its commit pending, and the next write, truncation or sync completes it first (failing, with nothing else changed, while it cannot); a failed checkpoint leaves the log as it was, and a log restart that fails is pending in the same way; after a crash the store opens as of the last completed sync (or the one under way, if its commit record landed) |
 | `lib/fault_store` | an injected failure changes nothing; a base-store failure during sync keeps the operations not yet applied for the next sync |
-| the legacy intrusive containers (`lib/list`, `lib/stack`, `lib/queue`, `lib/deque`, `lib/dlist`, `lib/ring_list`, `lib/circular_buffer`, `lib/heap`, `lib/bst`, `lib/avl`, `lib/rbt`, `lib/splay_tree`, `lib/treap`, `lib/btree`, `lib/bplus_tree`, `lib/skip_list`) | constructors return NULL when memory runs out, releasing what they took; `clone_ex` rolls back every clone it made through `destroy_clone` (`DS_ERR_CALLBACK` for a NULL clone, `DS_ERR_ALLOC`); a legacy clone returns NULL, and the clones it made before are not released; `lib/heap` and `lib/skip_list` insertion through `insert_ex` reports a failed allocation with nothing changed (the legacy insert leaves the node out); `lib/bplus_tree` clones by insertion, whose splits still assume memory |
-| the other legacy constructors (`lib/order_statistic_tree`, `lib/bitvector`, `lib/wavelet_tree`, `lib/bloom_filter`, `lib/fenwick_tree`, `lib/segment_tree`, `lib/disjoint_set`, `lib/pairing_heap`, `lib/fibonacci_heap`, `lib/radix_trie`, `lib/aho_corasick`, `lib/hamt`, `lib/art`, `lib/rope`, `lib/bitset`, `lib/str`) | return NULL when memory runs out, releasing what they took, as do the clones they offer; `ds_bitvector_build_ex` keeps the old rank directory when the new one cannot be allocated. Insertion into the radix trie, Aho-Corasick automaton, HAMT, ART and rope still assumes memory |
+| the legacy intrusive containers (`lib/list`, `lib/stack`, `lib/queue`, `lib/deque`, `lib/dlist`, `lib/ring_list`, `lib/circular_buffer`, `lib/heap`, `lib/bst`, `lib/avl`, `lib/rbt`, `lib/splay_tree`, `lib/treap`, `lib/btree`, `lib/bplus_tree`, `lib/skip_list`) | constructors return NULL when memory runs out, releasing what they took; `clone_ex` rolls back every clone it made through `destroy_clone` (`DS_ERR_CALLBACK` for a NULL clone, `DS_ERR_ALLOC`); a legacy clone returns NULL, and the clones it made before are not released; `lib/heap` and `lib/skip_list` insertion through `insert_ex` reports a failed allocation with nothing changed (the legacy insert leaves the node out); `lib/bplus_tree` insertion stages all split nodes and B* scratch space before mutation, and its checked clone rolls back an insertion failure |
+| the other legacy constructors (`lib/order_statistic_tree`, `lib/bitvector`, `lib/wavelet_tree`, `lib/bloom_filter`, `lib/fenwick_tree`, `lib/segment_tree`, `lib/disjoint_set`, `lib/pairing_heap`, `lib/fibonacci_heap`, `lib/radix_trie`, `lib/aho_corasick`, `lib/hamt`, `lib/art`, `lib/rope`, `lib/bitset`, `lib/str`) | return NULL when memory runs out, releasing what they took, as do the clones they offer; `ds_bitvector_build_ex` keeps the old rank directory when the new one cannot be allocated |
+| `lib/hamt`, `lib/art`, `lib/radix_trie` | checked insertion prepares every new node, key and layout before publishing; errors preserve keys and values; ART/radix removal may skip optional compression without losing the deletion |
+| `lib/aho_corasick` | checked add constructs a missing path privately; checked compile reserves the BFS queue before replacing failure links; checked searches report compilation failure |
+| `lib/rope` | checked append, insert, delete, concat and rebalance prepare a balanced replacement root; errors preserve both inputs; concat rejects different allocator pairs and self-concat |
+| `lib/result` | operations stage the payload handle and persistent diagnostic sequence; failure preserves inputs and output; callback side effects are outside this guarantee |
+| `lib/i18n` | registration copies storage before replacing an entry; rendering publishes complete output only on success, including when a formatter ignores a writer failure |
 | `lib/persistent_rbt`, `lib/persistent_trie` | every update builds a new version; when memory or a clone is refused it returns NULL with its base unchanged and nothing leaked (also a prefix copy or move that fails partway) |
 
 ## Sources inside the destination
@@ -159,6 +164,7 @@ the map.
 | `lib/swiss_map`, `lib/cuckoo_map`, `lib/open_map`, `lib/coalesced_map`, `lib/linear_hash_map`, `lib/extendible_hash` | put, insert and emplace (another entry's value as the value or the key, while the table grows or splits) |
 | `lib/map_iface` | put on every backend (it reports the backend's own status) |
 | `lib/implicit_treap` | insert and set (an element from `ds_itreap_at`), apply (a tag that is an element of the range it updates) |
+| `lib/rope` | append and insert may read bytes in the current rope; the old root stays alive until publication |
 | `lib/graph` | update_edge keeps data it is given back: the old data is destroyed only when replaced |
 
 ## Cursors and handles
@@ -179,6 +185,8 @@ the map.
 | inverted-index term texts | the index is destroyed | term bytes live in chunks that never move |
 | inverted-index posting cursors | the next add, remove or compaction | cursors skip deleted documents |
 | inverted-index dictionary cursors | the next add | ordered dictionaries only |
+| Result payloads and diagnostic views | the owning handle is released/replaced, unless another handle retains the owner | borrowed payloads additionally require the application owner to remain alive |
+| i18n output text | its text handle is destroyed or successfully rendered again | a failed render leaves the previous text intact |
 | RRB vector element pointers and iterators | the version is released | versions share nodes; nothing is edited in place |
 | rank-pairing heap item pointers | the item leaves | nodes never move, even on increase |
 | strict Fibonacci heap handles and item pointers | the item leaves | items live in cells that never move; a decrease below the minimum swaps cells between nodes, not items between cells |
@@ -192,9 +200,8 @@ the map.
 
 ## Costs
 
-- **Stack depth.** No call recursion grows faster than O(log n).
-  Balanced structures and divide-and-conquer algorithms recurse to their
-  logarithmic height (quicksorts recurse into the smaller side). Where
+- **Stack depth.** Balanced structures and divide-and-conquer algorithms
+  recurse to logarithmic height (quicksorts recurse into the smaller side). Where
   depth follows the data (unbalanced and splay trees, tries of long keys,
   lists, graph searches, chains of history branches), walks, clones and
   destruction use parent links, explicit stacks on the heap, or lists
@@ -203,7 +210,18 @@ the map.
   with their `next` operation; only a custom store written without one
   still recurses, through its own apply and clone. Two recursions are
   bounded by the caller instead: game-tree search by its depth argument,
-  and the CTL parser by a nesting limit.
+  the CTL parser by a nesting limit, and nested i18n callbacks by `max_depth`
+  (32 by default). Treap paths have logarithmic expected depth, not a
+  deterministic worst-case bound.
+- **Rope.** Nodes form an AVL tree with at most 64 bytes per leaf. Indexing
+  and joining use logarithmic tree height; building inserted text is linear
+  in its byte length. Split-based edits have a conservative O(log² leaves)
+  bound plus copied bytes. Reference counting keeps old paths alive until
+  the new root is ready; release follows balanced height.
+- **Result logs.** Copying a version retains a payload owner and RRB root.
+  Same-config binding concatenates RRB logs in O(M log_M n), where M is the
+  configurable branching factor. Different configs import the preceding log
+  into the callback's config; that conversion is not a logarithmic join.
 - **Priority queues.** Each operation states a worst-case and an amortized
   (or expected) cost class. Algorithms that take a queue inherit those costs:
   the graph-view `*_with` functions say what that means for Dijkstra, Prim
@@ -339,9 +357,13 @@ Statuses already separate several outcomes:
 - `DS_SUCCEEDED` only says the status is not an error. It does not say that a
   payload exists, so lookups that can miss report `DS_NOT_FOUND` explicitly.
 
-The outcomes listed below are what a richer result type will need to carry.
-Its design is still to come; this list records the distinctions the
-operations already make.
+`lib/result` now carries an explicitly tagged domain value/error, independent
+of NULL and diagnostic severity, with owned or borrowed payloads and an ordered
+immutable log. Its operational return status remains separate from that domain
+outcome. Existing cheap status/value pairs remain available. See
+[result-i18n.md](result-i18n.md) for lifetimes and composition. The distinctions
+below remain the responsibility of the domain payload; the Result layer does
+not guess them from diagnostics.
 
 - **Found, absent, could not finish.** Finger-tree lookup returns `DS_OK`,
   `DS_NOT_FOUND` or `DS_ERR_ALLOC` instead of NULL for both of the last two.

@@ -78,9 +78,11 @@
  * DS_PAGE_STORE_DURABLE_SYNC trait: the stdio file store's sync is fflush,
  * which survives a crash of the process, not of the machine). An empty
  * store starts a new tree: an initialization marker goes to slot 0's page
- * first, so a store where that start was cut short (the marker, even
- * torn, and no valid slot: nothing committed) starts over, while a store
- * with neither is not a tree's and is DS_ERR_INVALID, never overwritten.
+ * first, so a store where that start was cut short (an identifiable marker
+ * and no valid slot: nothing committed) starts over, while a store
+ * with neither is DS_ERR_INVALID, never overwritten. A torn marker whose
+ * complete magic did not land, including an all-zero page, is unidentifiable
+ * and is refused; recovery cannot distinguish it from a foreign file.
  * Tables are read back into memory when the tree opens:
  * the store gives durability, not out-of-core lookups. Updates since the
  * last sync are lost at ds_lsm_destroy unless synced first.

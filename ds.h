@@ -6,6 +6,7 @@
 #include "lib/context.h"
 #include "lib/diagnostic.h"
 #include "lib/error.h"
+#include "lib/i18n.h"
 #include "lib/iter.h"
 #include "lib/result.h"
 #include "lib/status.h"

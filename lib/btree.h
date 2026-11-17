@@ -53,6 +53,7 @@ ds_btree_search_node(ds_btree_t *tree, ds_btree_internal_node_t *node,
 ds_btree_node_t *ds_btree_search(ds_btree_t *tree, ds_btree_node_t *key,
                                  int (*compare)(ds_btree_node_t *,
                                                 ds_btree_node_t *));
+/* Empty trees/subtrees return tree->nil; a NULL tree returns NULL. */
 void *ds_btree_local_minimum(ds_btree_t *tree, ds_btree_internal_node_t *node);
 void *ds_btree_local_maximum(ds_btree_t *tree, ds_btree_internal_node_t *node);
 void *ds_btree_minimum(ds_btree_t *tree);

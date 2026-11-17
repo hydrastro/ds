@@ -1,5 +1,7 @@
 #include "bplus_tree.h"
+#include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*
  * B+ tree: all records live in leaves; internal nodes hold separator keys for
@@ -15,6 +17,21 @@
  * Deletion keeps every node but the root at least half full in both modes
  * (a two-thirds bound cannot survive a split of the root).
  */
+
+/* One split node per overflowing level and, at most, a new root. With
+ * order >= 3, a size_t-sized tree cannot have more than this many levels. */
+#define BPLUS_PLAN_NODES (sizeof(size_t) * CHAR_BIT + 3)
+typedef struct bplus_plan {
+  ds_bplus_tree_internal_node_t *nodes[BPLUS_PLAN_NODES];
+  size_t count;
+  size_t used;
+  ds_bplus_tree_node_t **keys;
+  ds_bplus_tree_internal_node_t **kids;
+} bplus_plan_t;
+
+static ds_bplus_tree_internal_node_t *bplus_planned_node(bplus_plan_t *p) {
+  return p->nodes[p->used++];
+}
 
 static int bplus_max_keys(ds_bplus_tree_t *tree) { return tree->order - 1; }
 
@@ -77,7 +94,8 @@ ds_bplus_tree_t *ds_bplus_tree_create_alloc(
     void *(*allocator)(size_t), void (*deallocator)(void *)) {
   ds_bplus_tree_t *tree;
   int clamped = order < 3 ? 3 : order;
-  if (allocator == NULL || deallocator == NULL ||
+  if (allocator == NULL || deallocator == NULL || compare == NULL ||
+      clamped > (INT_MAX - 2) / 2 ||
       (size_t)clamped > (size_t)-1 / sizeof(void *) - 2) {
     return NULL;
   }
@@ -192,17 +210,20 @@ bplus_subtree_min(ds_bplus_tree_internal_node_t *node) {
 static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
                                      ds_bplus_tree_internal_node_t *left,
                                      ds_bplus_tree_node_t *key,
-                                     ds_bplus_tree_internal_node_t *right);
+                                     ds_bplus_tree_internal_node_t *right,
+                                     bplus_plan_t *plan);
 static void bplus_overflow(ds_bplus_tree_t *tree,
-                           ds_bplus_tree_internal_node_t *node);
+                           ds_bplus_tree_internal_node_t *node,
+                           bplus_plan_t *plan);
 
 /* split an internal node that has overflowed (num_keys == order) */
 static void bplus_split_internal(ds_bplus_tree_t *tree,
-                                 ds_bplus_tree_internal_node_t *node) {
+                                 ds_bplus_tree_internal_node_t *node,
+                                 bplus_plan_t *plan) {
   int total = node->num_keys;
   int mid = total / 2;
   ds_bplus_tree_node_t *up = node->keys[mid];
-  ds_bplus_tree_internal_node_t *right = bplus_create_node(tree, false);
+  ds_bplus_tree_internal_node_t *right = bplus_planned_node(plan);
   int i;
   int r = 0;
   for (i = mid + 1; i < total; i++) {
@@ -215,15 +236,16 @@ static void bplus_split_internal(ds_bplus_tree_t *tree,
   right->children[r]->parent = right;
   right->num_keys = total - mid - 1;
   node->num_keys = mid;
-  bplus_insert_into_parent(tree, node, up, right);
+  bplus_insert_into_parent(tree, node, up, right, plan);
 }
 
 /* split a leaf that has overflowed (num_keys == order) */
 static void bplus_split_leaf(ds_bplus_tree_t *tree,
-                             ds_bplus_tree_internal_node_t *leaf) {
+                             ds_bplus_tree_internal_node_t *leaf,
+                             bplus_plan_t *plan) {
   int total = leaf->num_keys;
   int mid = (total + 1) / 2;
-  ds_bplus_tree_internal_node_t *right = bplus_create_node(tree, true);
+  ds_bplus_tree_internal_node_t *right = bplus_planned_node(plan);
   int i;
   int r = 0;
   for (i = mid; i < total; i++) {
@@ -238,7 +260,7 @@ static void bplus_split_leaf(ds_bplus_tree_t *tree,
     leaf->next->prev = right;
   }
   leaf->next = right;
-  bplus_insert_into_parent(tree, leaf, right->keys[0], right);
+  bplus_insert_into_parent(tree, leaf, right->keys[0], right, plan);
 }
 
 /* B*: an overflowing node (one key too many) hands one key to an adjacent
@@ -316,9 +338,11 @@ static bool bplus_bstar_relieve(ds_bplus_tree_t *tree,
  * each about two-thirds full. The keys of both (and, between internal
  * nodes, their separator) are laid out in order in scratch arrays and dealt
  * out again; the new third node goes to the parent with its separator.
- * Returns false when there is no sibling or no memory for the scratch. */
+ * Scratch and the third node were reserved before insertion. Returns false
+ * when there is no sibling (the root uses an ordinary two-way split). */
 static bool bplus_bstar_split(ds_bplus_tree_t *tree,
-                              ds_bplus_tree_internal_node_t *node) {
+                              ds_bplus_tree_internal_node_t *node,
+                              bplus_plan_t *plan) {
   ds_bplus_tree_internal_node_t *parent = node->parent;
   ds_bplus_tree_internal_node_t *a, *b, *c;
   ds_bplus_tree_node_t **keys;
@@ -339,26 +363,9 @@ static bool bplus_bstar_split(ds_bplus_tree_t *tree,
   a = parent->children[si];
   b = parent->children[si + 1];
   n = a->num_keys + b->num_keys + (node->is_leaf ? 0 : 1);
-  keys = (ds_bplus_tree_node_t **)tree->allocator((size_t)n * sizeof(*keys));
-  if (keys == NULL) {
-    return false;
-  }
-  if (!node->is_leaf) {
-    kids = (ds_bplus_tree_internal_node_t **)tree->allocator((size_t)(n + 1) *
-                                                             sizeof(*kids));
-    if (kids == NULL) {
-      tree->deallocator(keys);
-      return false;
-    }
-  }
-  c = bplus_create_node(tree, node->is_leaf);
-  if (c == NULL) {
-    if (kids != NULL) {
-      tree->deallocator(kids);
-    }
-    tree->deallocator(keys);
-    return false;
-  }
+  keys = plan->keys;
+  kids = plan->kids;
+  c = bplus_planned_node(plan);
   k = 0;
   for (i = 0; i < a->num_keys; i++) {
     keys[k++] = a->keys[i];
@@ -431,14 +438,12 @@ static bool bplus_bstar_split(ds_bplus_tree_t *tree,
     a->num_keys = na;
     b->num_keys = nb;
     c->num_keys = nc;
-    tree->deallocator(kids);
   }
-  tree->deallocator(keys);
   parent->keys[si] = up1;
   c->parent = parent;
   bplus_internal_insert_at(parent, si + 1, up2, c);
   if (parent->num_keys >= tree->order) {
-    bplus_overflow(tree, parent);
+    bplus_overflow(tree, parent, plan);
   }
   return true;
 }
@@ -446,26 +451,28 @@ static bool bplus_bstar_split(ds_bplus_tree_t *tree,
 /* a node with one key too many: under B*, a sibling takes a key or two
  * full nodes become three; otherwise (and at the root) it splits in two */
 static void bplus_overflow(ds_bplus_tree_t *tree,
-                           ds_bplus_tree_internal_node_t *node) {
-  if (tree->bstar &&
-      (bplus_bstar_relieve(tree, node) || bplus_bstar_split(tree, node))) {
+                           ds_bplus_tree_internal_node_t *node,
+                           bplus_plan_t *plan) {
+  if (tree->bstar && (bplus_bstar_relieve(tree, node) ||
+                      bplus_bstar_split(tree, node, plan))) {
     return;
   }
   if (node->is_leaf) {
-    bplus_split_leaf(tree, node);
+    bplus_split_leaf(tree, node, plan);
   } else {
-    bplus_split_internal(tree, node);
+    bplus_split_internal(tree, node, plan);
   }
 }
 
 static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
                                      ds_bplus_tree_internal_node_t *left,
                                      ds_bplus_tree_node_t *key,
-                                     ds_bplus_tree_internal_node_t *right) {
+                                     ds_bplus_tree_internal_node_t *right,
+                                     bplus_plan_t *plan) {
   ds_bplus_tree_internal_node_t *parent = left->parent;
   int idx;
   if (parent == NULL) {
-    ds_bplus_tree_internal_node_t *new_root = bplus_create_node(tree, false);
+    ds_bplus_tree_internal_node_t *new_root = bplus_planned_node(plan);
     new_root->keys[0] = key;
     new_root->children[0] = left;
     new_root->children[1] = right;
@@ -482,17 +489,94 @@ static void bplus_insert_into_parent(ds_bplus_tree_t *tree,
   }
   bplus_internal_insert_at(parent, idx, key, right);
   if (parent->num_keys >= tree->order) {
-    bplus_overflow(tree, parent);
+    bplus_overflow(tree, parent, plan);
   }
 }
 
-bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data) {
+static bool bplus_sibling_room(ds_bplus_tree_t *tree,
+                               ds_bplus_tree_internal_node_t *node) {
+  ds_bplus_tree_internal_node_t *parent = node->parent;
+  int i;
+  if (parent == NULL)
+    return false;
+  for (i = 0; i <= parent->num_keys && parent->children[i] != node; i++) {
+  }
+  return (i > 0 && parent->children[i - 1]->num_keys < bplus_max_keys(tree)) ||
+         (i < parent->num_keys &&
+          parent->children[i + 1]->num_keys < bplus_max_keys(tree));
+}
+
+static void bplus_plan_free(ds_bplus_tree_t *tree, bplus_plan_t *plan) {
+  size_t i;
+  for (i = plan->used; i < plan->count; i++)
+    bplus_free_node(tree, plan->nodes[i]);
+  if (plan->keys != NULL)
+    tree->deallocator(plan->keys);
+  if (plan->kids != NULL)
+    tree->deallocator(plan->kids);
+}
+
+static ds_status_t bplus_prepare(ds_bplus_tree_t *tree,
+                                 ds_bplus_tree_internal_node_t *node,
+                                 bplus_plan_t *plan) {
+  bool scratch = false;
+  memset(plan, 0, sizeof(*plan));
+  while (node != NULL && node->num_keys == bplus_max_keys(tree)) {
+    ds_bplus_tree_internal_node_t *fresh;
+    if (tree->bstar && bplus_sibling_room(tree, node))
+      break;
+    if (plan->count >= BPLUS_PLAN_NODES - 1) {
+      bplus_plan_free(tree, plan);
+      return DS_ERR_OVERFLOW;
+    }
+    fresh = bplus_create_node(tree, node->is_leaf);
+    if (fresh == NULL) {
+      bplus_plan_free(tree, plan);
+      return DS_ERR_ALLOC;
+    }
+    plan->nodes[plan->count++] = fresh;
+    if (tree->bstar && node->parent != NULL)
+      scratch = true;
+    node = node->parent;
+    if (node == NULL) {
+      fresh = bplus_create_node(tree, false);
+      if (fresh == NULL) {
+        bplus_plan_free(tree, plan);
+        return DS_ERR_ALLOC;
+      }
+      plan->nodes[plan->count++] = fresh;
+    }
+  }
+  if (scratch) {
+    size_t n = (size_t)tree->order * 2;
+    if (n > (size_t)-1 / sizeof(*plan->keys) ||
+        n + 1 > (size_t)-1 / sizeof(*plan->kids)) {
+      bplus_plan_free(tree, plan);
+      return DS_ERR_OVERFLOW;
+    }
+    plan->keys =
+        (ds_bplus_tree_node_t **)tree->allocator(n * sizeof(*plan->keys));
+    plan->kids = (ds_bplus_tree_internal_node_t **)tree->allocator(
+        (n + 1) * sizeof(*plan->kids));
+    if (plan->keys == NULL || plan->kids == NULL) {
+      bplus_plan_free(tree, plan);
+      return DS_ERR_ALLOC;
+    }
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_bplus_tree_insert_ex(ds_bplus_tree_t *tree,
+                                    ds_bplus_tree_node_t *data) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
   int pos;
-  bool result = true;
+  bplus_plan_t plan;
+  ds_status_t st;
+  if (tree == NULL || data == NULL)
+    return DS_ERR_NULL;
   if (data == tree->nil) {
-    return false;
+    return DS_ERR_INVALID;
   }
   leaf = bplus_find_leaf(tree, data);
   /* find insertion position; reject duplicates */
@@ -501,8 +585,13 @@ bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data) {
     pos += 1;
   }
   if (pos < leaf->num_keys && tree->compare(data, leaf->keys[pos]) == 0) {
-    return false;
+    return DS_EXISTS;
   }
+  if (tree->size == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  st = bplus_prepare(tree, leaf, &plan);
+  if (st != DS_OK)
+    return st;
   for (i = leaf->num_keys; i > pos; i--) {
     leaf->keys[i] = leaf->keys[i - 1];
   }
@@ -527,9 +616,14 @@ bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data) {
     }
   }
   if (leaf->num_keys >= tree->order) {
-    bplus_overflow(tree, leaf);
+    bplus_overflow(tree, leaf, &plan);
   }
-  return result;
+  bplus_plan_free(tree, &plan);
+  return DS_OK;
+}
+
+bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data) {
+  return ds_bplus_tree_insert_ex(tree, data) == DS_OK;
 }
 
 void ds_bplus_tree_walk_forward(ds_bplus_tree_t *tree,
@@ -591,21 +685,27 @@ void ds_bplus_tree_destroy(ds_bplus_tree_t *tree,
 /* clones of the source's records, in order, inserted into new_tree;
  * false when clone_node returns NULL (the clones made so far are in
  * new_tree) */
-static bool bplus_clone_records(
-    const ds_bplus_tree_t *tree, ds_bplus_tree_t *new_tree,
-    ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *)) {
+static ds_status_t
+bplus_clone_records(const ds_bplus_tree_t *tree, ds_bplus_tree_t *new_tree,
+                    ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *),
+                    void (*destroy_clone)(ds_bplus_tree_node_t *)) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
   for (leaf = tree->head; leaf != NULL; leaf = leaf->next) {
     for (i = 0; i < leaf->num_keys; i++) {
       ds_bplus_tree_node_t *copy = clone_node(leaf->keys[i]);
-      if (copy == NULL) {
-        return false;
+      ds_status_t st;
+      if (copy == NULL)
+        return DS_ERR_CALLBACK;
+      st = ds_bplus_tree_insert_ex(new_tree, copy);
+      if (st != DS_OK) {
+        if (destroy_clone != NULL)
+          destroy_clone(copy);
+        return st == DS_EXISTS ? DS_ERR_CALLBACK : st;
       }
-      ds_bplus_tree_insert(new_tree, copy);
     }
   }
-  return true;
+  return DS_OK;
 }
 
 ds_bplus_tree_t *ds_bplus_tree_clone(
@@ -617,7 +717,8 @@ ds_bplus_tree_t *ds_bplus_tree_clone(
   }
   new_tree = ds_bplus_tree_create_alloc(tree->order, tree->bstar, tree->compare,
                                         tree->allocator, tree->deallocator);
-  if (new_tree != NULL && !bplus_clone_records(tree, new_tree, clone_node)) {
+  if (new_tree != NULL &&
+      bplus_clone_records(tree, new_tree, clone_node, NULL) != DS_OK) {
     ds_bplus_tree_destroy(new_tree, NULL); /* the clones are not released */
     new_tree = NULL;
   }
@@ -629,6 +730,7 @@ ds_status_t ds_bplus_tree_clone_ex(
     ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *),
     void (*destroy_clone)(ds_bplus_tree_node_t *), ds_bplus_tree_t **out) {
   ds_bplus_tree_t *new_tree;
+  ds_status_t st;
   if (out == NULL) {
     return DS_ERR_NULL;
   }
@@ -641,9 +743,10 @@ ds_status_t ds_bplus_tree_clone_ex(
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
-  if (!bplus_clone_records(tree, new_tree, clone_node)) {
+  st = bplus_clone_records(tree, new_tree, clone_node, destroy_clone);
+  if (st != DS_OK) {
     ds_bplus_tree_destroy(new_tree, destroy_clone);
-    return DS_ERR_CALLBACK;
+    return st;
   }
   *out = new_tree;
   return DS_OK;

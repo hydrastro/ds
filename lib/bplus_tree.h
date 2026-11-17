@@ -54,6 +54,12 @@ ds_bplus_tree_t *ds_bplus_tree_create_alloc(
     int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *),
     void *(*allocator)(size_t), void (*deallocator)(void *));
 bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data);
+/* DS_OK/new or DS_EXISTS/unchanged duplicate. All split nodes and B* scratch
+ * are reserved before modifying the tree, so allocation failure leaves
+ * records, separators and leaf links unchanged. Legacy insert returns false
+ * on duplicates and failures. Intrusive records remain caller-owned. */
+ds_status_t ds_bplus_tree_insert_ex(ds_bplus_tree_t *tree,
+                                    ds_bplus_tree_node_t *data);
 ds_bplus_tree_node_t *ds_bplus_tree_search(ds_bplus_tree_t *tree,
                                            ds_bplus_tree_node_t *key);
 bool ds_bplus_tree_remove(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *key,
@@ -79,8 +85,7 @@ ds_bplus_tree_t *ds_bplus_tree_clone(
  * made so far through destroy_clone and returns DS_ERR_CALLBACK;
  * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
  * are required. On any error *out is NULL and the source is unchanged.
- * The copy is built by insertion, whose node splits still assume memory,
- * as ds_bplus_tree_insert does. */
+ * Insertion failures also roll back every clone and return their status. */
 ds_status_t ds_bplus_tree_clone_ex(
     const ds_bplus_tree_t *tree,
     ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *),

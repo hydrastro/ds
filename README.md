@@ -289,7 +289,7 @@ GNU Make 4.3 or newer is required (the Unicode generator has grouped outputs).
 
 ```sh
 make
-make test
+make examples
 ```
 
 By default, `make` builds the library:
@@ -310,6 +310,19 @@ Headers go to their own directory, `$(PREFIX)/include/ds/` (with `lib/` and
 `algo/` below it), and a `ds.pc` pkg-config file is installed next to the
 libraries. `make uninstall` removes exactly the files it installed and only
 empty directories.
+
+The Result/i18n and repair demonstrations can be run directly:
+
+```sh
+./build/examples/result_i18n
+./build/examples/binary_key_maps
+./build/examples/text_editing
+./build/examples/filter_sizing
+make check-headers
+```
+
+See [the finalization notes](docs/finalization-notes.md) for this pass's
+validation and compatibility details. Building examples does not run tests.
 
 ## Testing and validation
 
@@ -450,11 +463,15 @@ if (status == DS_OK) {
 - `ds_status_t` is the cheap control-flow result.
 - `ds_error_t` is the primary failure object stored in a `ds_context_t`.
 - `ds_diagnostic_t` is a structured event emitted to a diagnostic sink.
+- `ds_result_t` holds an explicitly tagged domain outcome and immutable ordered
+  diagnostics, with `map`, `and_then`, `map_error` and `or_else`.
+- `lib/i18n` renders messages and diagnostics through locale/domain catalogs,
+  pluggable maps, external providers and application formatters.
 
 A successful operation may emit diagnostics. A failed operation returns a status
 and may set one primary error in the context.
 
-See `docs/diagnostics.md`.
+See [diagnostics](docs/diagnostics.md) and [Result/i18n](docs/result-i18n.md).
 
 ## Ownership
 
@@ -487,6 +504,8 @@ Additional docs:
 docs/api-overview.md
 docs/contracts.md
 docs/diagnostics.md
+docs/result-i18n.md
+docs/finalization-notes.md
 docs/history.md
 docs/ownership.md
 docs/roadmap.md

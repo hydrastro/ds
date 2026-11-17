@@ -2,6 +2,7 @@
 #define DS_AHO_CORASICK_H
 
 #include "common.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -38,7 +39,23 @@ ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
                                                 void (*deallocator)(void *));
 int ds_aho_corasick_add(ds_aho_corasick_t *ac, const void *pattern,
                         size_t length);
+/* DS_OK/new or DS_EXISTS/existing ID; a failed addition leaves the old
+ * patterns and compiled automaton unchanged. Empty patterns are invalid. */
+ds_status_t ds_aho_corasick_add_ex(ds_aho_corasick_t *ac, const void *pattern,
+                                   size_t length, int *out_id);
+/* Allocates the queue before changing failure/output links. */
+ds_status_t ds_aho_corasick_compile_ex(ds_aho_corasick_t *ac);
 void ds_aho_corasick_compile(ds_aho_corasick_t *ac);
+ds_status_t ds_aho_corasick_search_ex(
+    ds_aho_corasick_t *ac, const void *haystack, size_t length,
+    void (*callback)(const ds_aho_corasick_match_t *, void *), void *user,
+    size_t *out_count);
+ds_status_t ds_aho_corasick_contains_any_ex(ds_aho_corasick_t *ac,
+                                            const void *haystack, size_t length,
+                                            bool *out);
+/* Legacy wrappers return -1/0/false on failure. Use _ex to distinguish
+ * absence from allocation failure. Match-count overflow may follow callbacks
+ * already delivered; no callback may mutate/destroy the automaton. */
 size_t ds_aho_corasick_search(
     ds_aho_corasick_t *ac, const void *haystack, size_t length,
     void (*callback)(const ds_aho_corasick_match_t *, void *), void *user);

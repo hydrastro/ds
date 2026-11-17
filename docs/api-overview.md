@@ -25,6 +25,23 @@ if (status == DS_OK) {
 `DS_NOT_FOUND`, `DS_EXISTS`, `DS_EMPTY`, and `DS_STOP` are nonnegative
 conditions. `DS_ERR_*` values are failures.
 
+## Domain Results and localization
+
+`ds_result_t` adds an explicit domain success/error branch, a borrowed or owned
+payload and an immutable ordered diagnostic log. NULL is valid on either
+branch. Its operations return `ds_status_t` for failures to construct or compose
+the Result; use `ds_result_is_ok` / `is_err` to inspect the domain branch.
+Initialize handles before use, then use copy/move/destroy instead of struct
+assignment. `map` and `and_then` operate on success; `map_error` and `or_else`
+operate on failure. Binding preserves preceding diagnostics before the
+callback's diagnostics.
+
+`ds_i18n_t` renders messages and diagnostic IDs from locale/domain catalogs,
+with configurable map storage, providers and formatters. Translation happens at
+the presentation boundary and does not alter a Result's branch. See
+[result-i18n.md](result-i18n.md) and `examples/result_i18n.c` for ownership,
+configuration and the mapping from the supplied PHP design.
+
 ## Contexts
 
 A `ds_context_t` carries:
@@ -73,9 +90,10 @@ ds_hash_table_remove(table, key);
 ## Legacy APIs
 
 Legacy APIs remain available for compatibility. Many expose intrusive nodes and
-return a container-private sentinel for missing values. Those sentinels are not
-part of the public interface, so new code should prefer the `ds_status_t` APIs
-where available.
+return a container-specific sentinel for missing values. Compare against the
+documented `nil` field; the sentinel is not a user record and must not be
+inserted or freed by the application. New code should prefer the `ds_status_t`
+APIs where available.
 
 Examples of legacy functions that remain compatibility-oriented:
 

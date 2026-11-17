@@ -60,13 +60,8 @@ void ds_dlist_insert_before(ds_dlist_t *list, ds_dlist_node_t *node,
   next->prev->next = node;
   next->prev = node;
 
-  if (next == list->head) {
-    list->head = node;
-  }
-
-  if (list->tail == list->nil) {
-    list->tail = node;
-  }
+  list->head = list->nil->next;
+  list->tail = list->nil->prev;
   list->size += 1;
 }
 
@@ -77,13 +72,8 @@ void ds_dlist_insert_after(ds_dlist_t *list, ds_dlist_node_t *node,
   prev->next->prev = node;
   prev->next = node;
 
-  if (prev == list->tail) {
-    list->tail = node;
-  }
-
-  if (list->head == list->nil) {
-    list->head = node;
-  }
+  list->head = list->nil->next;
+  list->tail = list->nil->prev;
   list->size += 1;
 }
 
@@ -103,6 +93,8 @@ void ds_dlist_delete_node(ds_dlist_t *list, ds_dlist_node_t *node) {
 
 void ds_dlist_delete(ds_dlist_t *list) {
   list->head = list->tail = list->nil;
+  list->nil->next = list->nil;
+  list->nil->prev = list->nil;
   list->size = 0;
 }
 

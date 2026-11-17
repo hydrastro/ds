@@ -46,10 +46,12 @@
  * commit is as durable as the log store's sync, a checkpoint as the data
  * store's).
  *
- * Opening. A log store without a valid superblock and with at most its
- * two superblock pages is formatted: the data store's pages are taken as
- * they are, so an existing store can be put under a log. A log with
- * further pages but no valid superblock is DS_ERR_INVALID. Both stores
+ * Opening. An empty log is formatted; the data store's pages are taken
+ * as they are, so an existing store can be put under a log. Formatting
+ * first syncs a checksummed initialization marker. A log with that marker
+ * and at most two pages may retry an interrupted first format. Any other
+ * nonempty log without a valid superblock is DS_ERR_INVALID, including
+ * small foreign files and torn/unrecognizable markers. Both stores
  * need the same page size, at least 128 bytes and at most 2^32 - 1.
  *
  * Log format (little-endian, 8-byte counters):

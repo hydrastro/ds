@@ -168,6 +168,9 @@ unsigned long ds_hash_murmur3_32(const void *data, size_t length,
   unsigned long k;
   size_t blocks = length / 4;
   size_t i;
+  if (length == 0) {
+    return ds_hash_mix32(h);
+  }
   for (i = 0; i < blocks; i++) {
     k = hash_read32(p + 4 * i);
     k = hash_mul32(k, c1);

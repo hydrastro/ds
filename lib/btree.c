@@ -196,34 +196,40 @@ ds_btree_node_t *ds_btree_search(ds_btree_t *tree, ds_btree_node_t *key,
   return result;
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 void *ds_btree_local_minimum(ds_btree_t *tree, ds_btree_internal_node_t *node) {
+  if (tree == NULL) {
+    return NULL;
+  }
+  if (node == NULL) {
+    return tree->nil;
+  }
   while (!node->is_leaf) {
     node = node->children[0];
   }
 
-  return node->data[0];
+  return node->num_keys == 0 ? tree->nil : node->data[0];
 }
-#pragma GCC diagnostic pop
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 void *ds_btree_local_maximum(ds_btree_t *tree, ds_btree_internal_node_t *node) {
+  if (tree == NULL) {
+    return NULL;
+  }
+  if (node == NULL) {
+    return tree->nil;
+  }
   while (!node->is_leaf) {
     node = node->children[node->num_keys];
   }
 
-  return node->data[node->num_keys - 1];
+  return node->num_keys == 0 ? tree->nil : node->data[node->num_keys - 1];
 }
-#pragma GCC diagnostic pop
 
 void *ds_btree_minimum(ds_btree_t *tree) {
-  return ds_btree_local_minimum(tree, tree->root);
+  return tree == NULL ? NULL : ds_btree_local_minimum(tree, tree->root);
 }
 
 void *ds_btree_maximum(ds_btree_t *tree) {
-  return ds_btree_local_maximum(tree, tree->root);
+  return tree == NULL ? NULL : ds_btree_local_maximum(tree, tree->root);
 }
 
 /* node, not the root, has one key fewer than the minimum (degree - 1):

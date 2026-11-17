@@ -3,15 +3,15 @@
 
 /*
  * Superimposed coding and signature files (Mooers; Roberts; Faloutsos):
- * every word of a record is hashed to a codeword of m bits with k bits
- * set, and the record's signature is the OR (superimposition) of its
+ * every word of a record is hashed to k positions in a codeword of m bits
+ * (positions can repeat), and the record's signature is the OR of its
  * codewords. A query's signature is built the same way; a record can only
  * contain all the query words if its signature covers the query
  * signature, so the scan yields every match plus a few false drops, which
  * the caller verifies against the records.
  *
  * Words are byte strings; the k bit positions come from a seeded hash
- * (pluggable; double hashing over it). Signatures are stored row by
+ * (pluggable; one seed per position). Signatures are stored row by
  * row, m bits per record, and scanned sequentially.
  *
  * Concurrency: a signature file may be used by one thread at a time.
@@ -26,7 +26,8 @@
 extern "C" {
 #endif
 
-/* Hash of a word for the given seed. */
+/* Hash of a word for the given seed in 0..k-1; seeds should give independent
+ * probes. The built-in hash costs O(word length + k) per codeword. */
 typedef size_t (*ds_signature_hash_func_t)(const unsigned char *word,
                                            size_t len, size_t seed, void *user);
 
@@ -37,7 +38,8 @@ typedef struct ds_signature_file {
   size_t m;
   size_t k;
   size_t row_bytes;
-  ds_signature_hash_func_t hash; /* NULL: built-in */
+  ds_signature_hash_func_t
+      hash; /* init installs the built-in when passed NULL */
   void *user;
   ds_context_t *context;
 } ds_signature_file_t;

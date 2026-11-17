@@ -134,13 +134,24 @@ for instance, fall back to visiting children in place when they cannot
 take a snapshot. A release path that still allocates says what it does on
 failure.
 
-**Infallible profile** (older APIs that return a node pointer or `void` and
-whose header documents no failure value, such as the original intrusive
-containers' `*_create` helpers). These assume the allocator returns a valid,
-non-NULL pointer; the returned pointer is never a failure sentinel. Use them
-with an allocator that never returns NULL: one that aborts, `longjmp`s to a
-recovery point, or otherwise handles exhaustion itself. With such an
-allocator the two profiles behave the same.
+**Legacy interfaces.** A pointer, boolean or void return type alone does not
+imply an infallible allocator. The original constructors now return NULL on
+allocation failure. Checked insertion is available for the heap, skip list,
+B+ tree (including B*), HAMT, radix trie and ART; Aho-Corasick also has checked
+add, compile and query functions. Rope edits have checked variants. These
+prepare allocations before changing existing content. Their legacy wrappers
+preserve signatures but cannot distinguish all operational failures from
+ordinary conditions; use `_ex` to obtain the status.
+
+An older operation whose header explicitly assumes allocation success still
+requires an allocator that handles exhaustion itself. Do not infer a stronger
+failure guarantee for an adapter than its underlying operation provides.
+
+ART and radix-trie deletion may keep a larger layout or unary node when
+optional compression cannot allocate. The key is still removed. Rope edits
+share immutable AVL subtrees while preparing a replacement root; a failed edit
+leaves the old root intact. The rope's public node fields are read-only, and
+concatenation requires matching allocator/deallocator functions.
 
 **Allocator capability limits are not memory exhaustion.** A fixed pool
 running out of blocks and an arena refusing to `realloc` an existing

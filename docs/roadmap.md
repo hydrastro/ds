@@ -6,7 +6,11 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 ## Implemented foundation
 
 - `ds_status_t`, `ds_error_t`, `ds_diagnostic_t`, and `ds_context_t`
-- diagnostic sinks and diagnostic collectors
+- diagnostic sinks, owning immutable snapshots and checked collectors
+- `lib/result`: explicitly tagged domain outcomes, owned/borrowed payloads,
+  map/bind/recovery and persistent ordered diagnostic logs
+- `lib/i18n`: locale/domain catalogs on pluggable maps, provider and formatter
+  callbacks, typed substitutions, diagnostic rendering and viewer policies
 - context-aware arena, pool, and debug allocators
 - config-based hash table API
 - config-based trie API
@@ -31,7 +35,8 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - segment tree with lazy propagation (range add/assign, range sum/min/max)
 - hash array mapped trie (HAMT) with 32-way bitmap + popcount sparse nodes
 - intrusive Fibonacci heap with lazy insert, consolidation, and cascading cuts
-- rope (balanced tree of string chunks) with O(log n) insert/delete/concat/split
+- rope with immutable AVL subtrees and allocation-safe checked edits; see
+  `lib/rope.h` for the split-based edit and inserted-byte costs
 - adaptive radix tree (ART) with Node4/16/48/256 adaptive sizing and path
   compression (portable scalar implementation)
 - string map/string set convenience wrappers
@@ -335,6 +340,19 @@ The graph module supports:
 - strongly connected components
 - minimum spanning tree / forest over the graph's weak undirected view
 
+## Finalization pass after batch 23
+
+The HAMT collision loss, ART prefix/NUL ambiguity, Bloom/signature probe
+correlation, dlist sentinel endpoints and empty B-tree extrema are repaired.
+Checked allocation-safe edits now cover the B+ tree, HAMT, radix trie,
+Aho-Corasick, ART and rope. WAL recovery accepts an empty commit group, and
+WAL/LSM first-format recovery requires identifiable ownership of the store.
+
+The Result/i18n design supplied in the PHP repositories is implemented in C
+with explicit ownership and callback contracts. Existing result pairs remain
+available. See [finalization-notes.md](finalization-notes.md) for the change
+manifest, compatibility requirements and validation limits.
+
 ## Review-driven stabilization status
 
 The review-driven stabilization passes fixed the major correctness bugs found in
@@ -372,6 +390,16 @@ the remaining algorithm and data-structure families.
 ## Still open / future work
 
 High-value work that remains intentionally open:
+
+- out-of-core SSTable/LSM reads through a block-read capability; currently
+  opening an LSM tree loads its tables into memory
+- addressable min-max and shadow-heap backends for `pq_iface`
+- decide whether to deprecate the original unprefixed exported names; this
+  pass preserves them
+- audit individual DADS mappings for exact semantic and complexity equivalence;
+  a coverage classification is not a correctness or completeness proof
+- optional catalog-file adapters and language-data packages for i18n; the C
+  core provides providers/formatters rather than executing PHP or embedding CLDR
 
 - migrate every legacy sentinel-returning API to `ds_status_t` plus
   out-parameters while keeping compatibility wrappers

@@ -81,6 +81,9 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
   ds_hamt_node_t *node =
       (ds_hamt_node_t *)hamt->allocator(sizeof(ds_hamt_node_t));
   size_t i;
+  if (node == NULL) {
+    return NULL;
+  }
   node->is_leaf = true;
   node->bitmap = 0UL;
   node->children = NULL;
@@ -88,6 +91,10 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
   node->key_length = key_length;
   node->key =
       key_length > 0 ? (unsigned char *)hamt->allocator(key_length) : NULL;
+  if (key_length > 0 && node->key == NULL) {
+    hamt->deallocator(node);
+    return NULL;
+  }
   for (i = 0; i < key_length; i++) {
     node->key[i] = ((const unsigned char *)key)[i];
   }
@@ -128,12 +135,15 @@ static bool hamt_key_equal(ds_hamt_node_t *leaf, const void *key,
 }
 
 /* insert child pointer at slot, growing the compact array */
-static void hamt_branch_add(ds_hamt_t *hamt, ds_hamt_node_t *branch,
+static bool hamt_branch_add(ds_hamt_t *hamt, ds_hamt_node_t *branch,
                             size_t slot, ds_hamt_node_t *child) {
   size_t idx = hamt_child_index(branch->bitmap, slot);
   ds_hamt_node_t **grown = (ds_hamt_node_t **)hamt->allocator(
       (branch->num_children + 1) * sizeof(ds_hamt_node_t *));
   size_t i;
+  if (grown == NULL) {
+    return false;
+  }
   for (i = 0; i < idx; i++) {
     grown[i] = branch->children[i];
   }
@@ -147,6 +157,7 @@ static void hamt_branch_add(ds_hamt_t *hamt, ds_hamt_node_t *branch,
   branch->children = grown;
   branch->num_children += 1;
   branch->bitmap |= (1UL << slot);
+  return true;
 }
 
 static void hamt_branch_remove(ds_hamt_t *hamt, ds_hamt_node_t *branch,
@@ -172,43 +183,65 @@ static ds_hamt_node_t *hamt_split_leaf(ds_hamt_t *hamt,
                                        ds_hamt_node_t *existing,
                                        ds_hamt_node_t *fresh, int level) {
   ds_hamt_node_t *branch = hamt_new_branch(hamt);
-  if (level >= DS_HAMT_MAX_LEVEL) {
-    /* exhausted hash bits: chain as collision list under the branch */
-    existing->next = fresh;
-    /* park the chain at slot 0 */
-    hamt_branch_add(hamt, branch, 0, existing);
-    return branch;
+  size_t es = hamt_slot(existing->hash, level);
+  size_t fs = hamt_slot(fresh->hash, level);
+  if (branch == NULL) {
+    return NULL;
   }
-  {
-    size_t es = hamt_slot(existing->hash, level);
-    size_t fs = hamt_slot(fresh->hash, level);
-    if (es == fs) {
-      ds_hamt_node_t *child = hamt_split_leaf(hamt, existing, fresh, level + 1);
-      hamt_branch_add(hamt, branch, es, child);
-    } else {
-      hamt_branch_add(hamt, branch, es, existing);
-      hamt_branch_add(hamt, branch, fs, fresh);
+  branch->num_children = es == fs ? 1U : 2U;
+  branch->children = (ds_hamt_node_t **)hamt->allocator(
+      branch->num_children * sizeof(*branch->children));
+  if (branch->children == NULL) {
+    hamt->deallocator(branch);
+    return NULL;
+  }
+  branch->bitmap = (1UL << es) | (1UL << fs);
+  if (es == fs) {
+    /* Unequal 32-bit hashes diverge by level 6, including bits 30..31.
+     * Allocate the whole path before changing the existing leaf/chain. */
+    branch->children[0] = hamt_split_leaf(hamt, existing, fresh, level + 1);
+    if (branch->children[0] == NULL) {
+      hamt->deallocator(branch->children);
+      hamt->deallocator(branch);
+      return NULL;
     }
+  } else {
+    branch->children[es < fs ? 0 : 1] = existing;
+    branch->children[es < fs ? 1 : 0] = fresh;
   }
   return branch;
 }
 
-bool ds_hamt_insert(ds_hamt_t *hamt, const void *key, size_t key_length,
-                    void *value) {
+ds_status_t ds_hamt_insert_ex(ds_hamt_t *hamt, const void *key,
+                              size_t key_length, void *value) {
   unsigned long hash;
   ds_hamt_node_t *node;
   int level = 0;
-  bool added = false;
+  if (hamt == NULL || (key == NULL && key_length != 0)) {
+    return DS_ERR_NULL;
+  }
   hash = hamt_hash(key, key_length);
   node = hamt->root;
   for (;;) {
     size_t slot = hamt_slot(hash, level);
     if (!hamt_slot_occupied(node->bitmap, slot)) {
-      ds_hamt_node_t *leaf = hamt_new_leaf(hamt, key, key_length, value, hash);
-      hamt_branch_add(hamt, node, slot, leaf);
+      ds_hamt_node_t *leaf;
+      if (hamt->size == (size_t)-1) {
+        return DS_ERR_OVERFLOW;
+      }
+      leaf = hamt_new_leaf(hamt, key, key_length, value, hash);
+      if (leaf == NULL) {
+        return DS_ERR_ALLOC;
+      }
+      if (!hamt_branch_add(hamt, node, slot, leaf)) {
+        if (leaf->key != NULL) {
+          hamt->deallocator(leaf->key);
+        }
+        hamt->deallocator(leaf);
+        return DS_ERR_ALLOC;
+      }
       hamt->size += 1;
-      added = true;
-      break;
+      return DS_OK;
     } else {
       size_t idx = hamt_child_index(node->bitmap, slot);
       ds_hamt_node_t *child = node->children[idx];
@@ -219,35 +252,48 @@ bool ds_hamt_insert(ds_hamt_t *hamt, const void *key, size_t key_length,
         while (cur != NULL) {
           if (hamt_key_equal(cur, key, key_length)) {
             cur->value = value;
-            added = false;
-            goto done;
+            return DS_EXISTS;
           }
           tail = cur;
           cur = cur->next;
         }
-        if (level + 1 > DS_HAMT_MAX_LEVEL) {
-          /* append to collision chain */
-          tail->next = hamt_new_leaf(hamt, key, key_length, value, hash);
-          hamt->size += 1;
-          added = true;
-        } else {
+        if (hamt->size == (size_t)-1) {
+          return DS_ERR_OVERFLOW;
+        }
+        {
           ds_hamt_node_t *fresh =
               hamt_new_leaf(hamt, key, key_length, value, hash);
-          ds_hamt_node_t *split =
-              hamt_split_leaf(hamt, child, fresh, level + 1);
-          node->children[idx] = split;
+          if (fresh == NULL) {
+            return DS_ERR_ALLOC;
+          }
+          if (child->hash == hash) {
+            tail->next = fresh;
+          } else {
+            ds_hamt_node_t *split =
+                hamt_split_leaf(hamt, child, fresh, level + 1);
+            if (split == NULL) {
+              if (fresh->key != NULL) {
+                hamt->deallocator(fresh->key);
+              }
+              hamt->deallocator(fresh);
+              return DS_ERR_ALLOC;
+            }
+            node->children[idx] = split;
+          }
           hamt->size += 1;
-          added = true;
+          return DS_OK;
         }
-        break;
       } else {
         node = child;
         level += 1;
       }
     }
   }
-done:
-  return added;
+}
+
+bool ds_hamt_insert(ds_hamt_t *hamt, const void *key, size_t key_length,
+                    void *value) {
+  return ds_hamt_insert_ex(hamt, key, key_length, value) == DS_OK;
 }
 
 static ds_hamt_node_t *hamt_find_leaf(ds_hamt_t *hamt, const void *key,

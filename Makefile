@@ -68,6 +68,8 @@ LIB_SRC := \
   $(LIB_DIR)/list.c \
   $(LIB_DIR)/context.c \
   $(LIB_DIR)/diagnostic.c \
+  $(LIB_DIR)/result.c \
+  $(LIB_DIR)/i18n.c \
   $(LIB_DIR)/error.c \
   $(LIB_DIR)/graph.c \
   $(LIB_DIR)/iter.c \
@@ -322,6 +324,8 @@ GEN_SRC_H := $(BUILD_DIR)/unicode_tables.h
 # `make format-check` operate on these. The wider legacy tree can be formatted
 # explicitly with `make format-all` when desired.
 FORMAT_SRC := \
+  $(LIB_DIR)/result.c $(LIB_DIR)/result.h \
+  $(LIB_DIR)/i18n.c $(LIB_DIR)/i18n.h \
   $(LIB_DIR)/exact_sum.c $(LIB_DIR)/exact_sum.h \
   $(LIB_DIR)/wal_store.c $(LIB_DIR)/wal_store.h \
   $(LIB_DIR)/posix_store.c $(LIB_DIR)/posix_store.h \
@@ -771,8 +775,9 @@ summary:
 	echo "=========================================================="; \
 	exit $$status
 
-$(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(TEST_LIB_STATIC) | $(EXAMPLE_BUILD_DIR)
-	$(CC) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC) $(LDLIBS)
+# Examples exercise the same strict-C89 library that applications install.
+$(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(LIB_STATIC) Makefile | $(EXAMPLE_BUILD_DIR)
+	$(CC) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(LIB_STATIC) $(LDLIBS)
 
 examples: $(EXAMPLE_BIN)
 

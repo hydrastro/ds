@@ -6,6 +6,8 @@
 - `ds_error_t` is the primary machine-readable failure object.
 - `ds_diagnostic_t` is a structured reportable event that may be emitted on
   success or failure.
+- `ds_result_t` carries a domain success or error payload and an immutable,
+  ordered diagnostic sequence. Its branch is independent of severity and NULL.
 
 A function returns exactly one primary status. A failing function may set one
 primary error in its `ds_context_t`. A function may emit zero or more diagnostics
@@ -79,6 +81,43 @@ ds_context_set_diagnostic_sink(&ctx, ds_diagnostics_sink(&diagnostics));
 ```
 
 Modules can then emit structured diagnostics through the context.
+
+The collector now owns snapshots: it copies IDs, messages, source strings,
+argument names, and string argument values. A producer may pass stack-local
+arguments. `DS_ARG_PTR` copies the pointer only; its pointee remains borrowed.
+The public `items` array is a read-only view, valid until the collector changes.
+Use `ds_diagnostic_snapshot_create`, retain and release to keep an independent
+immutable event. Snapshot reference counts are not atomic.
+
+`ds_diagnostics_add`, `append` and `filter` report failures with a status and
+leave their destination sequence unchanged on failure. Check those returns.
+An emission through the legacy void sink cannot return a failure; the collector
+records the first failure in `diagnostics.status`. Clearing the collector resets
+that status. Result construction refuses a collector with a recorded failure
+instead of silently treating a partial sequence as complete.
+
+`ds_diagnostics_emit` and `ds_result_drain_to` emit without clearing the source.
+Sink callbacks borrow each record for the callback's duration and must not
+mutate or release the source during emission. Initialize owning handles before
+use, release them explicitly, and do not duplicate them with struct assignment.
+
+## Result and localization
+
+`ds_result_map` transforms a success payload. `ds_result_and_then` runs a
+success-producing callback and concatenates the old diagnostics before the
+callback's diagnostics, including when that callback returns a domain error.
+`map_error` and `or_else` provide the corresponding error operations. The
+functions' returned `ds_status_t` reports operational failure (for example an
+allocation failure); `is_ok` and `is_err` inspect the domain outcome.
+
+`lib/i18n` translates ordinary messages and renders diagnostic IDs through
+separate catalog domains. Missing ordinary translations emit a NOTICE; missing
+diagnostic translations use a quiet fallback to prevent recursive reporting.
+Severity is ordered DEBUG=0 through EMERGENCY=7. Neither a diagnostic nor a
+viewer's filtering or severity override changes the Result branch.
+
+See [Result and i18n](result-i18n.md) for ownership, configuration, the mapping
+from the PHP design, and a complete runnable example.
 
 ## Formatting
 
