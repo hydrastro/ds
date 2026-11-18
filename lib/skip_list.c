@@ -1,5 +1,13 @@
 #include "skip_list.h"
+#include "legacy_alloc.h"
 #include <stdlib.h>
+
+static int skip_list_compare(ds_skip_list_t *owner, ds_skip_list_node_t *a,
+                             ds_skip_list_node_t *b) {
+  return owner->compare_with != NULL
+             ? owner->compare_with(a, b, owner->compare_user)
+             : owner->compare(a, b);
+}
 
 static size_t skip_list_random_level(ds_skip_list_t *list) {
   size_t level = 1;
@@ -15,14 +23,15 @@ static ds_skip_list_node_t *skip_list_make_header(ds_skip_list_t *list,
                                                   size_t level) {
   ds_skip_list_node_t *header;
   size_t i;
-  header = (ds_skip_list_node_t *)list->allocator(sizeof(ds_skip_list_node_t));
+  header =
+      (ds_skip_list_node_t *)DS_LEGACY_ALLOC(list, sizeof(ds_skip_list_node_t));
   if (header == NULL) {
     return NULL;
   }
-  header->forward = (ds_skip_list_node_t **)list->allocator(
-      level * sizeof(ds_skip_list_node_t *));
+  header->forward = (ds_skip_list_node_t **)DS_LEGACY_ALLOC(
+      list, level * sizeof(ds_skip_list_node_t *));
   if (header->forward == NULL) {
-    list->deallocator(header);
+    DS_LEGACY_FREE(list, header);
     return NULL;
   }
   header->level = level;
@@ -38,19 +47,24 @@ ds_skip_list_t *ds_skip_list_create(int (*compare)(ds_skip_list_node_t *,
                                    free);
 }
 
-ds_skip_list_t *ds_skip_list_create_alloc(int (*compare)(ds_skip_list_node_t *,
-                                                         ds_skip_list_node_t *),
-                                          size_t max_level, unsigned long seed,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *)) {
+static ds_skip_list_t *skip_list_create_internal(
+    int (*compare)(ds_skip_list_node_t *, ds_skip_list_node_t *),
+    size_t max_level, unsigned long seed, void *(*allocator)(size_t),
+    void (*deallocator)(void *), ds_context_t *context,
+    ds_skip_list_compare_fn compare_with, void *compare_user) {
   ds_skip_list_t *list;
-  if (allocator == NULL || deallocator == NULL) {
+  if (allocator == NULL || deallocator == NULL ||
+      (compare == NULL && compare_with == NULL)) {
     return NULL;
   }
-  list = (ds_skip_list_t *)allocator(sizeof(ds_skip_list_t));
+  list = (ds_skip_list_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                              sizeof(ds_skip_list_t));
   if (list == NULL) {
     return NULL;
   }
+  list->context = context;
+  list->compare_with = compare_with;
+  list->compare_user = compare_user;
   list->allocator = allocator;
   list->deallocator = deallocator;
   list->compare = compare;
@@ -61,20 +75,45 @@ ds_skip_list_t *ds_skip_list_create_alloc(int (*compare)(ds_skip_list_node_t *,
   list->seed = seed != 0UL ? seed : 0x2545F491UL;
   list->level = 1;
   list->size = 0;
-  list->nil = (ds_skip_list_node_t *)allocator(sizeof(ds_skip_list_node_t));
+  list->nil = (ds_skip_list_node_t *)DS_LEGACY_ALLOCATE(
+      context, allocator, sizeof(ds_skip_list_node_t));
   if (list->nil == NULL) {
-    deallocator(list);
+    DS_LEGACY_RELEASE(context, deallocator, list);
     return NULL;
   }
   list->nil->forward = NULL;
   list->nil->level = 0;
   list->header = skip_list_make_header(list, list->max_level);
   if (list->header == NULL) {
-    deallocator(list->nil);
-    deallocator(list);
+    DS_LEGACY_RELEASE(context, deallocator, list->nil);
+    DS_LEGACY_RELEASE(context, deallocator, list);
     return NULL;
   }
   return list;
+}
+ds_skip_list_t *ds_skip_list_create_alloc(int (*compare)(ds_skip_list_node_t *,
+                                                         ds_skip_list_node_t *),
+                                          size_t max_level, unsigned long seed,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *)) {
+  return skip_list_create_internal(compare, max_level, seed, allocator,
+                                   deallocator, NULL, NULL, NULL);
+}
+ds_status_t ds_skip_list_create_context(size_t max_level, unsigned long seed,
+                                        ds_skip_list_compare_fn compare,
+                                        void *user, ds_context_t *context,
+                                        ds_skip_list_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (compare == NULL)
+    return DS_ERR_NULL;
+  if (max_level > DS_SKIP_LIST_MAX_LEVEL)
+    return DS_ERR_RANGE;
+  *out = skip_list_create_internal(
+      NULL, max_level, seed, malloc, free,
+      context != NULL ? context : ds_default_context(), compare, user);
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 void ds_skip_list_node_init(ds_skip_list_node_t *node) {
@@ -89,26 +128,31 @@ ds_status_t ds_skip_list_insert_ex(ds_skip_list_t *list,
   ds_skip_list_node_t *current;
   size_t i;
   size_t new_level;
+  unsigned long saved_seed;
   if (list == NULL || node == NULL) {
     return DS_ERR_NULL;
   }
   if (node == list->nil) {
     return DS_ERR_INVALID;
   }
+  if (list->size == (size_t)-1)
+    return DS_ERR_OVERFLOW;
   current = list->header;
   i = list->level;
   while (i > 0) {
     i -= 1;
     while (current->forward[i] != list->nil &&
-           list->compare(current->forward[i], node) < 0) {
+           skip_list_compare(list, current->forward[i], node) < 0) {
       current = current->forward[i];
     }
     update[i] = current;
   }
+  saved_seed = list->seed;
   new_level = skip_list_random_level(list);
-  forward = (ds_skip_list_node_t **)list->allocator(
-      new_level * sizeof(ds_skip_list_node_t *));
+  forward = (ds_skip_list_node_t **)DS_LEGACY_ALLOC(
+      list, new_level * sizeof(ds_skip_list_node_t *));
   if (forward == NULL) {
+    list->seed = saved_seed;
     return DS_ERR_ALLOC;
   }
   if (new_level > list->level) {
@@ -140,12 +184,12 @@ ds_skip_list_node_t *ds_skip_list_search(ds_skip_list_t *list,
   while (i > 0) {
     i -= 1;
     while (current->forward[i] != list->nil &&
-           list->compare(current->forward[i], node) < 0) {
+           skip_list_compare(list, current->forward[i], node) < 0) {
       current = current->forward[i];
     }
   }
   current = current->forward[0];
-  if (current != list->nil && list->compare(current, node) == 0) {
+  if (current != list->nil && skip_list_compare(list, current, node) == 0) {
     return current;
   }
   return list->nil;
@@ -161,13 +205,13 @@ ds_skip_list_node_t *ds_skip_list_remove(ds_skip_list_t *list,
   while (i > 0) {
     i -= 1;
     while (current->forward[i] != list->nil &&
-           list->compare(current->forward[i], node) < 0) {
+           skip_list_compare(list, current->forward[i], node) < 0) {
       current = current->forward[i];
     }
     update[i] = current;
   }
   current = current->forward[0];
-  if (current == list->nil || list->compare(current, node) != 0) {
+  if (current == list->nil || skip_list_compare(list, current, node) != 0) {
     return list->nil;
   }
   for (i = 0; i < list->level; i++) {
@@ -176,7 +220,7 @@ ds_skip_list_node_t *ds_skip_list_remove(ds_skip_list_t *list,
     }
     update[i]->forward[i] = current->forward[i];
   }
-  list->deallocator(current->forward);
+  DS_LEGACY_FREE(list, current->forward);
   current->forward = NULL;
   current->level = 0;
   while (list->level > 1 &&
@@ -235,22 +279,38 @@ void ds_skip_list_walk_forward(ds_skip_list_t *list,
   }
 }
 
-void ds_skip_list_destroy(ds_skip_list_t *list,
-                          void (*destroy)(ds_skip_list_node_t *)) {
+static void skip_list_destroy_internal(ds_skip_list_t *list,
+                                       ds_skip_list_destroy_fn destroy,
+                                       void *user) {
   ds_skip_list_node_t *current = list->header->forward[0];
   while (current != list->nil) {
     ds_skip_list_node_t *next = current->forward[0];
-    list->deallocator(current->forward);
+    DS_LEGACY_FREE(list, current->forward);
     current->forward = NULL;
     if (destroy != NULL) {
-      destroy(current);
+      destroy(current, user);
     }
     current = next;
   }
-  list->deallocator(list->header->forward);
-  list->deallocator(list->header);
-  list->deallocator(list->nil);
-  list->deallocator(list);
+  DS_LEGACY_FREE(list, list->header->forward);
+  DS_LEGACY_FREE(list, list->header);
+  DS_LEGACY_FREE(list, list->nil);
+  DS_LEGACY_FREE(list, list);
+}
+void ds_skip_list_destroy_with(ds_skip_list_t *container,
+                               ds_skip_list_destroy_fn destroy, void *user) {
+  if (container != NULL)
+    skip_list_destroy_internal(container, destroy, user);
+}
+static void skip_list_destroy_legacy(ds_skip_list_node_t *node, void *user) {
+  void (**destroy)(ds_skip_list_node_t *) =
+      (void (**)(ds_skip_list_node_t *))user;
+  (*destroy)(node);
+}
+void ds_skip_list_destroy(ds_skip_list_t *container,
+                          void (*destroy)(ds_skip_list_node_t *)) {
+  ds_skip_list_destroy_with(
+      container, destroy != NULL ? skip_list_destroy_legacy : NULL, &destroy);
 }
 
 /* clones of the source's nodes, in order, inserted into copy: DS_OK,
@@ -287,9 +347,9 @@ ds_skip_list_clone(ds_skip_list_t *list,
   if (list == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_list =
-      ds_skip_list_create_alloc(list->compare, list->max_level, list->seed,
-                                list->allocator, list->deallocator);
+  new_list = skip_list_create_internal(
+      list->compare, list->max_level, list->seed, list->allocator,
+      list->deallocator, list->context, list->compare_with, list->compare_user);
   if (new_list != NULL &&
       skip_list_clone_nodes(list, new_list, clone_node, NULL) != DS_OK) {
     ds_skip_list_destroy(new_list, NULL); /* the clones are not released */
@@ -312,9 +372,9 @@ ds_skip_list_clone_ex(const ds_skip_list_t *list,
   if (list == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_list =
-      ds_skip_list_create_alloc(list->compare, list->max_level, list->seed,
-                                list->allocator, list->deallocator);
+  new_list = skip_list_create_internal(
+      list->compare, list->max_level, list->seed, list->allocator,
+      list->deallocator, list->context, list->compare_with, list->compare_user);
   if (new_list == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -324,5 +384,101 @@ ds_skip_list_clone_ex(const ds_skip_list_t *list,
     return st;
   }
   *out = new_list;
+  return DS_OK;
+}
+
+ds_status_t ds_skip_list_walk_with(const ds_skip_list_t *container,
+                                   ds_skip_list_visit_fn visit, void *user) {
+  ds_skip_list_node_t *node;
+  ds_status_t st;
+  if (container == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  for (node = container->header->forward[0]; node != container->nil;
+       node = node->forward[0]) {
+    st = visit(node, user);
+    if (st != DS_OK)
+      return st;
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_skip_list_find_ex(ds_skip_list_t *container,
+                                 ds_skip_list_node_t *key,
+                                 ds_skip_list_node_t **out) {
+  ds_skip_list_node_t *node;
+  if (container == NULL || key == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (key == container->nil)
+    return DS_ERR_INVALID;
+  node = ds_skip_list_search(container, key);
+  if (node == container->nil)
+    return DS_NOT_FOUND;
+  *out = node;
+  return DS_OK;
+}
+
+ds_status_t ds_skip_list_remove_ex(ds_skip_list_t *container,
+                                   ds_skip_list_node_t *key,
+                                   ds_skip_list_node_t **out) {
+  ds_skip_list_node_t *node;
+  if (container == NULL || key == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (key == container->nil)
+    return DS_ERR_INVALID;
+  node = ds_skip_list_remove(container, key);
+  if (node == container->nil)
+    return DS_NOT_FOUND;
+  *out = node;
+  return DS_OK;
+}
+
+typedef struct skip_list_clone_policy {
+  ds_skip_list_t *copy;
+  ds_skip_list_clone_fn clone;
+  ds_skip_list_destroy_fn destroy;
+  void *user;
+} skip_list_clone_policy_t;
+static ds_status_t skip_list_clone_visit(ds_skip_list_node_t *source,
+                                         void *user) {
+  skip_list_clone_policy_t *policy = (skip_list_clone_policy_t *)user;
+  ds_skip_list_node_t *node = NULL;
+  ds_status_t st = policy->clone(source, &node, policy->user);
+  if (st != DS_OK || node == NULL)
+    return st < 0 ? st : DS_ERR_CALLBACK;
+  st = ds_skip_list_insert_ex(policy->copy, node);
+  if (st != DS_OK) {
+    policy->destroy(node, policy->user);
+    return st < 0 ? st : DS_ERR_CALLBACK;
+  }
+  return DS_OK;
+}
+ds_status_t ds_skip_list_clone_with(const ds_skip_list_t *container,
+                                    ds_skip_list_clone_fn clone,
+                                    ds_skip_list_destroy_fn destroy, void *user,
+                                    ds_context_t *context,
+                                    ds_skip_list_t **out) {
+  skip_list_clone_policy_t policy;
+  ds_status_t st;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (container == NULL || clone == NULL || destroy == NULL)
+    return DS_ERR_NULL;
+  policy.copy = skip_list_create_internal(
+      container->compare, container->max_level, container->seed,
+      container->allocator, container->deallocator,
+      context != NULL ? context : container->context, container->compare_with,
+      container->compare_user);
+  if (policy.copy == NULL)
+    return DS_ERR_ALLOC;
+  policy.clone = clone;
+  policy.destroy = destroy;
+  policy.user = user;
+  st = ds_skip_list_walk_with(container, skip_list_clone_visit, &policy);
+  if (st != DS_OK) {
+    ds_skip_list_destroy_with(policy.copy, destroy, user);
+    return st;
+  }
+  *out = policy.copy;
   return DS_OK;
 }

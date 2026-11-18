@@ -1,5 +1,6 @@
 #include "fusion_tree.h"
 #include "checked.h"
+#include "stage.h"
 #include <string.h>
 
 /*
@@ -511,20 +512,35 @@ static ds_status_t fz_insert(ds_fusion_tree_t *t, unsigned long key,
   return DS_OK;
 }
 
-ds_status_t ds_fusion_insert(ds_fusion_tree_t *t, unsigned long key,
-                             const void *value) {
+static ds_status_t fz_insert_staged(ds_fusion_tree_t *t, unsigned long key,
+                                    const void *value, bool overwrite) {
+  ds_stage_t staged;
+  ds_status_t st;
+  bool present;
   if (t == NULL) {
     return DS_ERR_NULL;
   }
-  return fz_insert(t, key, value, false);
+  present = ds_fusion_contains(t, key);
+  if (present && !overwrite)
+    return DS_EXISTS;
+  if (!present && ds_fusion_size(t) == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  st = ds_stage_copy(&staged, t->context, true, NULL, 0, value, t->value_size);
+  if (st != DS_OK)
+    return st;
+  st = fz_insert(t, key, staged.value, overwrite);
+  ds_stage_release(&staged);
+  return st;
+}
+
+ds_status_t ds_fusion_insert(ds_fusion_tree_t *t, unsigned long key,
+                             const void *value) {
+  return fz_insert_staged(t, key, value, false);
 }
 
 ds_status_t ds_fusion_put(ds_fusion_tree_t *t, unsigned long key,
                           const void *value) {
-  if (t == NULL) {
-    return DS_ERR_NULL;
-  }
-  return fz_insert(t, key, value, true);
+  return fz_insert_staged(t, key, value, true);
 }
 
 /* x (child ci of p) holds MIN - 1 keys: borrow from a sibling or merge

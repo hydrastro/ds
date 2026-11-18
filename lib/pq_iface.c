@@ -4,8 +4,10 @@
 #include "fibonacci_heap.h"
 #include "hollow_heap.h"
 #include "meldable_heap.h"
+#include "min_max_heap.h"
 #include "pairing_heap.h"
 #include "rank_pairing_heap.h"
+#include "shadow_heap.h"
 #include "strict_fibonacci_heap.h"
 #include <string.h>
 
@@ -1110,6 +1112,7 @@ static ds_status_t pqp_init(void *pq, size_t item_size,
   q->box->refs = 1;
   q->box->context = context;
   ds_pairing_heap_node_init(&q->nil);
+  memset(&q->h, 0, sizeof(q->h));
   q->h.root = NULL;
   q->h.nil = &q->nil;
   q->h.size = 0;
@@ -1437,6 +1440,184 @@ static void pqs_meld(void *pq, void *other) {
   ds_sf_heap_meld((ds_sf_heap_t *)pq, (ds_sf_heap_t *)other);
 }
 
+/* ---- addressable adapters over the min-max and shadow heaps ----
+ * Heap slots hold pointers to stable payload nodes. Their move callbacks
+ * maintain the inverse index, so update/remove never search the array. */
+typedef struct pqt_node {
+  size_t index;
+} pqt_node_t;
+typedef struct pqt {
+  pq_base_t b;
+  bool shadow;
+  union {
+    ds_min_max_heap_t minmax;
+    ds_shadow_heap_t shadow;
+  } heap;
+} pqt_t;
+
+static pqt_node_t *pqt_node(const void *slot) {
+  pqt_node_t *node = NULL;
+  if (slot != NULL)
+    memcpy(&node, slot, sizeof(node));
+  return node;
+}
+
+static int pqt_compare(const void *a, const void *b, void *user) {
+  const pqt_t *h = (const pqt_t *)user;
+  return h->b.compare(pq_citem(&h->b, pqt_node(a)),
+                      pq_citem(&h->b, pqt_node(b)), h->b.user);
+}
+
+static void pqt_moved(const void *elem, size_t index, void *user) {
+  pqt_node_t *node;
+  (void)user;
+  /* The core reports an occupied slot, never the nullable result of at(). */
+  memcpy(&node, elem, sizeof(node));
+  node->index = index;
+}
+
+static size_t pqt_size(const void *pq) {
+  const pqt_t *h = (const pqt_t *)pq;
+  return h->shadow ? ds_shadow_heap_size(&h->heap.shadow)
+                   : ds_min_max_heap_size(&h->heap.minmax);
+}
+
+static pqt_node_t *pqt_at(const pqt_t *h, size_t index) {
+  return pqt_node(h->shadow ? ds_shadow_heap_at(&h->heap.shadow, index)
+                            : ds_min_max_heap_at(&h->heap.minmax, index));
+}
+
+static ds_status_t pqt_init(void *pq, size_t size, ds_pq_compare_fn compare,
+                            void *user, ds_context_t *context, bool shadow) {
+  pqt_t *h = (pqt_t *)pq;
+  ds_status_t st;
+  memset(h, 0, sizeof(*h));
+  st = pq_base_init(&h->b, sizeof(pqt_node_t), size, compare, user, context);
+  if (st != DS_OK)
+    return st;
+  h->shadow = shadow;
+  if (shadow) {
+    st = ds_shadow_heap_init(&h->heap.shadow, sizeof(pqt_node_t *), pqt_compare,
+                             h, 0, context);
+    if (st == DS_OK)
+      ds_shadow_heap_set_move_callback(&h->heap.shadow, pqt_moved, h);
+  } else {
+    st = ds_min_max_heap_init(&h->heap.minmax, sizeof(pqt_node_t *),
+                              pqt_compare, h, context);
+    if (st == DS_OK)
+      ds_min_max_heap_set_move_callback(&h->heap.minmax, pqt_moved, h);
+  }
+  return st;
+}
+
+static ds_status_t pqt_init_minmax(void *pq, size_t size,
+                                   ds_pq_compare_fn compare, void *user,
+                                   ds_context_t *context) {
+  return pqt_init(pq, size, compare, user, context, false);
+}
+
+static ds_status_t pqt_init_shadow(void *pq, size_t size,
+                                   ds_pq_compare_fn compare, void *user,
+                                   ds_context_t *context) {
+  return pqt_init(pq, size, compare, user, context, true);
+}
+
+static void pqt_destroy(void *pq) {
+  pqt_t *h = (pqt_t *)pq;
+  size_t i, n = pqt_size(h);
+  if (h->shadow)
+    ds_shadow_heap_set_move_callback(&h->heap.shadow, NULL, NULL);
+  else
+    ds_min_max_heap_set_move_callback(&h->heap.minmax, NULL, NULL);
+  for (i = 0; i < n; i++)
+    ds_context_free(h->b.context, pqt_at(h, i));
+  if (h->shadow)
+    ds_shadow_heap_destroy(&h->heap.shadow);
+  else
+    ds_min_max_heap_destroy(&h->heap.minmax);
+}
+
+static ds_status_t pqt_reserve(void *pq, size_t extra) {
+  pqt_t *h = (pqt_t *)pq;
+  size_t need;
+  if (!ds_size_add(pqt_size(h), extra, &need))
+    return DS_ERR_OVERFLOW;
+  return h->shadow ? ds_shadow_heap_reserve(&h->heap.shadow, need)
+                   : ds_vec_reserve(&h->heap.minmax.items, need);
+}
+
+static ds_status_t pqt_push(void *pq, const void *item,
+                            ds_pq_handle_t *handle) {
+  pqt_t *h = (pqt_t *)pq;
+  pqt_node_t *node = (pqt_node_t *)pq_node_new(&h->b, item);
+  ds_status_t st;
+  if (node == NULL)
+    return DS_ERR_ALLOC;
+  st = h->shadow ? ds_shadow_heap_push(&h->heap.shadow, &node)
+                 : ds_min_max_heap_push(&h->heap.minmax, &node);
+  if (st != DS_OK) {
+    ds_context_free(h->b.context, node);
+    return st;
+  }
+  if (handle != NULL)
+    *handle = (ds_pq_handle_t)(void *)node;
+  return DS_OK;
+}
+
+static const void *pqt_top(const void *pq) {
+  const pqt_t *h = (const pqt_t *)pq;
+  pqt_node_t *node =
+      pqt_node(h->shadow ? ds_shadow_heap_top(&h->heap.shadow)
+                         : ds_min_max_heap_peek_min(&h->heap.minmax));
+  return node == NULL ? NULL : pq_citem(&h->b, node);
+}
+
+static ds_status_t pqt_pop(void *pq, void *out) {
+  pqt_t *h = (pqt_t *)pq;
+  pqt_node_t *node = NULL;
+  ds_status_t st = h->shadow ? ds_shadow_heap_pop(&h->heap.shadow, &node)
+                             : ds_min_max_heap_pop_min(&h->heap.minmax, &node);
+  if (st == DS_OK)
+    pq_take(&h->b, node, out);
+  return st;
+}
+
+static bool pqt_valid(const pqt_t *h, const pqt_node_t *node) {
+  return node != NULL && node->index < pqt_size(h) &&
+         pqt_at(h, node->index) == node;
+}
+
+static ds_status_t pqt_update(void *pq, ds_pq_handle_t handle,
+                              const void *item) {
+  pqt_t *h = (pqt_t *)pq;
+  pqt_node_t *node = (pqt_node_t *)(void *)handle;
+  if (!pqt_valid(h, node))
+    return DS_ERR_INVALID;
+  memmove(pq_item(&h->b, node), item, h->b.item_size);
+  return h->shadow ? ds_shadow_heap_repair_at(&h->heap.shadow, node->index)
+                   : ds_min_max_heap_repair_at(&h->heap.minmax, node->index);
+}
+
+static ds_status_t pqt_remove(void *pq, ds_pq_handle_t handle, void *out) {
+  pqt_t *h = (pqt_t *)pq;
+  pqt_node_t *node = (pqt_node_t *)(void *)handle;
+  ds_status_t st;
+  if (!pqt_valid(h, node))
+    return DS_ERR_INVALID;
+  st = h->shadow
+           ? ds_shadow_heap_remove_at(&h->heap.shadow, node->index, NULL)
+           : ds_min_max_heap_remove_at(&h->heap.minmax, node->index, NULL);
+  if (st == DS_OK)
+    pq_take(&h->b, node, out);
+  return st;
+}
+
+static const void *pqt_item(const void *pq, ds_pq_handle_t handle) {
+  const pqt_t *h = (const pqt_t *)pq;
+  const pqt_node_t *node = (const pqt_node_t *)(const void *)handle;
+  return pqt_valid(h, node) ? pq_citem(&h->b, node) : NULL;
+}
+
 /* ---- ops tables ---- */
 
 #define PQ_WL DS_PQ_WORST_LOG
@@ -1558,6 +1739,38 @@ static const ds_pq_ops_t pq_weak_ops = {
     pqw_item,      pqw_size,
     NULL,          pqw_reserve,
     PQ_COSTS_ARRAY};
+static const ds_pq_ops_t pq_minmax_ops = {
+    "min-max heap", PQ_WL | DS_PQ_IMPLICIT,
+    sizeof(pqt_t),  pqt_init_minmax,
+    pqt_destroy,    pqt_push,
+    pqt_top,        pqt_pop,
+    pqt_update,     pqt_remove,
+    pqt_item,       pqt_size,
+    NULL,           pqt_reserve,
+    PQ_COSTS_ARRAY};
+/* Conservative bounds for the automatic logarithmic shadow threshold.
+ * Folding a shadow visits O(log n) affected nodes per level. */
+static const ds_pq_ops_t pq_shadow_ops = {"shadow heap",
+                                          DS_PQ_IMPLICIT | DS_PQ_AMORTIZED |
+                                              DS_PQ_TOP_LOG,
+                                          sizeof(pqt_t),
+                                          pqt_init_shadow,
+                                          pqt_destroy,
+                                          pqt_push,
+                                          pqt_top,
+                                          pqt_pop,
+                                          pqt_update,
+                                          pqt_remove,
+                                          pqt_item,
+                                          pqt_size,
+                                          NULL,
+                                          pqt_reserve,
+                                          {{C_N, C_LOG},
+                                           {C_LOG2, C_LOG2},
+                                           {C_LOG, C_LOG},
+                                           {C_LOG, C_LOG},
+                                           {C_LOG2, C_LOG2},
+                                           {C_NONE, C_NONE}}};
 static const ds_pq_ops_t pq_binomial_ops = {
     "binomial", PQ_ML,    sizeof(pqb_t), pqb_init,   pqb_destroy,
     pqb_push,   pqb_top,  pqb_pop,       pqb_update, pqb_remove,
@@ -1627,6 +1840,8 @@ const ds_pq_ops_t *ds_pq_quaternary_ops(void) { return &pq_quaternary_ops; }
 
 const ds_pq_ops_t *ds_pq_packed_ops(void) { return &pq_packed_ops; }
 const ds_pq_ops_t *ds_pq_weak_ops(void) { return &pq_weak_ops; }
+const ds_pq_ops_t *ds_pq_min_max_ops(void) { return &pq_minmax_ops; }
+const ds_pq_ops_t *ds_pq_shadow_ops(void) { return &pq_shadow_ops; }
 const ds_pq_ops_t *ds_pq_binomial_ops(void) { return &pq_binomial_ops; }
 const ds_pq_ops_t *ds_pq_leftist_ops(void) { return &pq_leftist_ops; }
 const ds_pq_ops_t *ds_pq_weight_ops(void) { return &pq_weight_ops; }

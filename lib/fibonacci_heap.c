@@ -1,32 +1,47 @@
 #include "fibonacci_heap.h"
 #include "checked.h"
+#include "legacy_alloc.h"
 #include <stdlib.h>
 #include <string.h>
+
+static int fib_compare(ds_fibonacci_heap_t *heap, ds_fibonacci_heap_node_t *a,
+                       ds_fibonacci_heap_node_t *b) {
+  return heap->compare_with != NULL
+             ? heap->compare_with(a, b, heap->compare_user)
+             : heap->compare(a, b);
+}
 
 ds_fibonacci_heap_t *ds_fibonacci_heap_create(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *)) {
   return ds_fibonacci_heap_create_alloc(compare, malloc, free);
 }
 
-ds_fibonacci_heap_t *ds_fibonacci_heap_create_alloc(
+static ds_fibonacci_heap_t *fib_create_internal(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
+    void *(*allocator)(size_t), void (*deallocator)(void *),
+    ds_context_t *context, ds_fibonacci_heap_compare_fn compare_with,
+    void *compare_user) {
   ds_fibonacci_heap_t *heap;
-  if (allocator == NULL || deallocator == NULL) {
+  if (allocator == NULL || deallocator == NULL ||
+      (compare == NULL && compare_with == NULL)) {
     return NULL;
   }
-  heap = (ds_fibonacci_heap_t *)allocator(sizeof(ds_fibonacci_heap_t));
+  heap = (ds_fibonacci_heap_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                                   sizeof(ds_fibonacci_heap_t));
   if (heap == NULL) {
     return NULL;
   }
+  heap->context = context;
+  heap->compare_with = compare_with;
+  heap->compare_user = compare_user;
   heap->compare = compare;
   heap->allocator = allocator;
   heap->deallocator = deallocator;
   heap->size = 0;
-  heap->nil =
-      (ds_fibonacci_heap_node_t *)allocator(sizeof(ds_fibonacci_heap_node_t));
+  heap->nil = (ds_fibonacci_heap_node_t *)DS_LEGACY_ALLOCATE(
+      context, allocator, sizeof(ds_fibonacci_heap_node_t));
   if (heap->nil == NULL) {
-    deallocator(heap);
+    DS_LEGACY_RELEASE(context, deallocator, heap);
     return NULL;
   }
   heap->nil->parent = heap->nil;
@@ -37,6 +52,25 @@ ds_fibonacci_heap_t *ds_fibonacci_heap_create_alloc(
   heap->nil->mark = false;
   heap->min = heap->nil;
   return heap;
+}
+ds_fibonacci_heap_t *ds_fibonacci_heap_create_alloc(
+    int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
+    void *(*allocator)(size_t), void (*deallocator)(void *)) {
+  return fib_create_internal(compare, allocator, deallocator, NULL, NULL, NULL);
+}
+ds_status_t
+ds_fibonacci_heap_create_context(ds_fibonacci_heap_compare_fn compare,
+                                 void *user, ds_context_t *context,
+                                 ds_fibonacci_heap_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (compare == NULL)
+    return DS_ERR_NULL;
+  *out = fib_create_internal(NULL, malloc, free,
+                             context != NULL ? context : ds_default_context(),
+                             compare, user);
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 void ds_fibonacci_heap_node_init(ds_fibonacci_heap_node_t *node) {
@@ -77,7 +111,7 @@ void ds_fibonacci_heap_insert(ds_fibonacci_heap_t *heap,
     heap->min = node;
   } else {
     fib_list_insert(heap->min, node);
-    if (heap->compare(node, heap->min) < 0) {
+    if (fib_compare(heap, node, heap->min) < 0) {
       heap->min = node;
     }
   }
@@ -105,8 +139,8 @@ static void fib_link(ds_fibonacci_heap_node_t *child,
   child->mark = false;
 }
 
-/* a degree is at most log_phi(n) + 1 < 96 for any n a size_t can count */
-#define FIB_MAX_DEGREE 96
+/* log_phi(n)+1 is less than twice the bit width of n plus two. */
+#define FIB_MAX_DEGREE DS_FIB_MAX_DEGREE
 
 static void fib_consolidate(ds_fibonacci_heap_t *heap) {
   ds_fibonacci_heap_node_t *table[FIB_MAX_DEGREE];
@@ -128,7 +162,7 @@ static void fib_consolidate(ds_fibonacci_heap_t *heap) {
     d = x->degree;
     while (table[d] != NULL) {
       ds_fibonacci_heap_node_t *y = table[d];
-      if (heap->compare(x, y) > 0) {
+      if (fib_compare(heap, x, y) > 0) {
         ds_fibonacci_heap_node_t *tmp = x;
         x = y;
         y = tmp;
@@ -151,7 +185,7 @@ static void fib_consolidate(ds_fibonacci_heap_t *heap) {
         heap->min = node;
       } else {
         fib_list_insert(heap->min, node);
-        if (heap->compare(node, heap->min) < 0) {
+        if (fib_compare(heap, node, heap->min) < 0) {
           heap->min = node;
         }
       }
@@ -233,19 +267,30 @@ void ds_fibonacci_heap_decrease_key(ds_fibonacci_heap_t *heap,
                                     ds_fibonacci_heap_node_t *node) {
   ds_fibonacci_heap_node_t *parent;
   parent = node->parent;
-  if (parent != NULL && heap->compare(node, parent) < 0) {
+  if (parent != NULL && fib_compare(heap, node, parent) < 0) {
     fib_cut(heap, node, parent);
     fib_cascading_cut(heap, parent);
   }
-  if (heap->compare(node, heap->min) < 0) {
+  if (fib_compare(heap, node, heap->min) < 0) {
     heap->min = node;
   }
 }
 
-void ds_fibonacci_heap_merge(ds_fibonacci_heap_t *heap,
-                             ds_fibonacci_heap_t *other) {
+ds_status_t ds_fibonacci_heap_merge_ex(ds_fibonacci_heap_t *heap,
+                                       ds_fibonacci_heap_t *other) {
+  if (heap == NULL || other == NULL)
+    return DS_ERR_NULL;
+  if (heap == other)
+    return DS_ERR_INVALID;
+  if (heap->compare != other->compare ||
+      heap->compare_with != other->compare_with ||
+      heap->compare_user != other->compare_user)
+    return DS_ERR_INVALID;
+  if (other->size > (size_t)-1 - heap->size)
+    return DS_ERR_OVERFLOW;
+
   if (other->min == other->nil) {
-    return;
+    return DS_OK;
   }
   if (heap->min == heap->nil) {
     heap->min = other->min;
@@ -257,13 +302,19 @@ void ds_fibonacci_heap_merge(ds_fibonacci_heap_t *heap,
     other->min->left = heap->min;
     a_right->left = b_left;
     b_left->right = a_right;
-    if (heap->compare(other->min, heap->min) < 0) {
+    if (fib_compare(heap, other->min, heap->min) < 0) {
       heap->min = other->min;
     }
   }
   heap->size += other->size;
   other->min = other->nil;
   other->size = 0;
+  return DS_OK;
+}
+
+void ds_fibonacci_heap_merge(ds_fibonacci_heap_t *heap,
+                             ds_fibonacci_heap_t *other) {
+  (void)ds_fibonacci_heap_merge_ex(heap, other);
 }
 
 size_t ds_fibonacci_heap_size(ds_fibonacci_heap_t *heap) {
@@ -280,9 +331,12 @@ bool ds_fibonacci_heap_is_empty(ds_fibonacci_heap_t *heap) {
 
 /* every node once, without recursion: a node's children join the chain
  * of nodes still to visit before it is handed to destroy */
-void ds_fibonacci_heap_destroy(ds_fibonacci_heap_t *heap,
-                               void (*destroy)(ds_fibonacci_heap_node_t *)) {
+void ds_fibonacci_heap_destroy_with(ds_fibonacci_heap_t *heap,
+                                    ds_fibonacci_heap_destroy_fn destroy,
+                                    void *user) {
   ds_fibonacci_heap_node_t *chain = NULL;
+  if (heap == NULL)
+    return;
   if (heap->min != heap->nil) {
     chain = heap->min;
     chain->left->right = NULL;
@@ -297,11 +351,127 @@ void ds_fibonacci_heap_destroy(ds_fibonacci_heap_t *heap,
       x->child = NULL;
     }
     if (destroy != NULL) {
-      destroy(x);
+      destroy(x, user);
     }
   }
-  heap->deallocator(heap->nil);
-  heap->deallocator(heap);
+  DS_LEGACY_FREE(heap, heap->nil);
+  DS_LEGACY_FREE(heap, heap);
+}
+
+static void fib_destroy_legacy(ds_fibonacci_heap_node_t *node, void *user) {
+  void (**destroy)(ds_fibonacci_heap_node_t *) =
+      (void (**)(ds_fibonacci_heap_node_t *))user;
+  (*destroy)(node);
+}
+void ds_fibonacci_heap_destroy(ds_fibonacci_heap_t *heap,
+                               void (*destroy)(ds_fibonacci_heap_node_t *)) {
+  ds_fibonacci_heap_destroy_with(
+      heap, destroy != NULL ? fib_destroy_legacy : NULL, &destroy);
+}
+ds_status_t ds_fibonacci_heap_insert_ex(ds_fibonacci_heap_t *heap,
+                                        ds_fibonacci_heap_node_t *node) {
+  if (heap == NULL || node == NULL)
+    return DS_ERR_NULL;
+  if (node == heap->nil)
+    return DS_ERR_INVALID;
+  if (heap->size == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  ds_fibonacci_heap_insert(heap, node);
+  return DS_OK;
+}
+ds_status_t ds_fibonacci_heap_extract_ex(ds_fibonacci_heap_t *heap,
+                                         ds_fibonacci_heap_node_t **out) {
+  if (heap == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (heap->size == 0)
+    return DS_EMPTY;
+  *out = ds_fibonacci_heap_extract(heap);
+  return DS_OK;
+}
+ds_status_t ds_fibonacci_heap_decrease_key_ex(ds_fibonacci_heap_t *heap,
+                                              ds_fibonacci_heap_node_t *node) {
+  if (heap == NULL || node == NULL)
+    return DS_ERR_NULL;
+  if (node == heap->nil)
+    return DS_ERR_INVALID;
+  if (heap->size == 0)
+    return DS_ERR_STATE;
+  ds_fibonacci_heap_decrease_key(heap, node);
+  return DS_OK;
+}
+ds_status_t ds_fibonacci_heap_walk_with(const ds_fibonacci_heap_t *heap,
+                                        ds_fibonacci_heap_visit_fn visit,
+                                        void *user) {
+  ds_fibonacci_heap_node_t *node, *parent, *first;
+  ds_status_t status;
+  if (heap == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  if (heap->min == heap->nil)
+    return DS_OK;
+  node = heap->min;
+  while (node != NULL) {
+    status = visit(node, user);
+    if (status != DS_OK)
+      return status;
+    if (node->child != NULL) {
+      node = node->child;
+      continue;
+    }
+    while (node != NULL) {
+      parent = node->parent;
+      first = parent != NULL ? parent->child : heap->min;
+      if (node->right != first) {
+        node = node->right;
+        break;
+      }
+      node = parent;
+    }
+  }
+  return DS_OK;
+}
+typedef struct fib_clone_policy {
+  ds_fibonacci_heap_t *copy;
+  ds_fibonacci_heap_clone_fn clone;
+  void *user;
+} fib_clone_policy_t;
+static ds_status_t fib_clone_visit(ds_fibonacci_heap_node_t *source,
+                                   void *user) {
+  fib_clone_policy_t *policy = (fib_clone_policy_t *)user;
+  ds_fibonacci_heap_node_t *node = NULL;
+  ds_status_t status = policy->clone(source, &node, policy->user);
+  if (status != DS_OK || node == NULL)
+    return status < 0 ? status : DS_ERR_CALLBACK;
+  /* Source size already bounds the copy; no insertion allocation can fail. */
+  ds_fibonacci_heap_insert(policy->copy, node);
+  return DS_OK;
+}
+ds_status_t ds_fibonacci_heap_clone_with(const ds_fibonacci_heap_t *heap,
+                                         ds_fibonacci_heap_clone_fn clone,
+                                         ds_fibonacci_heap_destroy_fn destroy,
+                                         void *user, ds_context_t *context,
+                                         ds_fibonacci_heap_t **out) {
+  fib_clone_policy_t policy;
+  ds_status_t status;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (heap == NULL || clone == NULL || destroy == NULL)
+    return DS_ERR_NULL;
+  policy.copy =
+      fib_create_internal(heap->compare, heap->allocator, heap->deallocator,
+                          context != NULL ? context : heap->context,
+                          heap->compare_with, heap->compare_user);
+  if (policy.copy == NULL)
+    return DS_ERR_ALLOC;
+  policy.clone = clone;
+  policy.user = user;
+  status = ds_fibonacci_heap_walk_with(heap, fib_clone_visit, &policy);
+  if (status != DS_OK) {
+    ds_fibonacci_heap_destroy_with(policy.copy, destroy, user);
+    return status;
+  }
+  *out = policy.copy;
+  return DS_OK;
 }
 
 /* ---- the item heap ------------------------------------------------------ */
@@ -454,6 +624,8 @@ const void *ds_fib_heap_item(const ds_fib_heap_t *h,
 static void fh_consolidate(ds_fib_heap_t *h) {
   ds_fib_item_t *chain = h->min;
   size_t i;
+  if (chain == NULL)
+    return;
   chain->left->right = NULL;
   h->min = NULL;
   while (chain != NULL) {

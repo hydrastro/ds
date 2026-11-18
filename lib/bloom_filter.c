@@ -1,5 +1,6 @@
 #include "bloom_filter.h"
 #include "../algo/hash.h"
+#include "legacy_alloc.h"
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
@@ -19,12 +20,10 @@ ds_bloom_filter_t *ds_bloom_filter_create(size_t expected_items,
                                       malloc, free);
 }
 
-ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
-                                                double false_positive_rate,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
-  size_t num_bits;
-  size_t num_hashes;
+static ds_status_t bloom_dimensions(size_t expected_items,
+                                    double false_positive_rate,
+                                    size_t *num_bits, size_t *num_hashes) {
+
   double n;
   double p;
   double ln2;
@@ -38,26 +37,37 @@ ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
   /* m = -n ln(p) / (ln2)^2 */
   m = -(n * log(p)) / (ln2 * ln2);
   if (!(m < (double)((size_t)-1 / 2))) { /* no size_t holds the bits */
-    return NULL;
+    return DS_ERR_OVERFLOW;
   }
-  num_bits = (size_t)(m + 0.5);
-  if (num_bits < DS_BLOOM_BITS_PER_WORD) {
-    num_bits = DS_BLOOM_BITS_PER_WORD;
+  *num_bits = (size_t)(m + 0.5);
+  if (*num_bits < DS_BLOOM_BITS_PER_WORD) {
+    *num_bits = DS_BLOOM_BITS_PER_WORD;
   }
   /* k = (m/n) ln2 */
-  k = ((double)num_bits / n) * ln2;
-  num_hashes = (size_t)(k + 0.5);
-  if (num_hashes < 1) {
-    num_hashes = 1;
+  k = ((double)*num_bits / n) * ln2;
+  *num_hashes = (size_t)(k + 0.5);
+  if (*num_hashes < 1) {
+    *num_hashes = 1;
   }
-  return ds_bloom_filter_create_with_params(num_bits, num_hashes, allocator,
+  return DS_OK;
+}
+ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
+                                                double false_positive_rate,
+                                                void *(*allocator)(size_t),
+                                                void (*deallocator)(void *)) {
+  size_t bits, hashes;
+  if (bloom_dimensions(expected_items, false_positive_rate, &bits, &hashes) !=
+      DS_OK)
+    return NULL;
+  return ds_bloom_filter_create_with_params(bits, hashes, allocator,
                                             deallocator);
 }
 
-ds_bloom_filter_t *
-ds_bloom_filter_create_with_params(size_t num_bits, size_t num_hashes,
-                                   void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
+static ds_bloom_filter_t *bloom_create_internal(size_t num_bits,
+                                                size_t num_hashes,
+                                                void *(*allocator)(size_t),
+                                                void (*deallocator)(void *),
+                                                ds_context_t *context) {
   ds_bloom_filter_t *filter;
   size_t num_words;
   size_t i;
@@ -72,25 +82,64 @@ ds_bloom_filter_create_with_params(size_t num_bits, size_t num_hashes,
     return NULL;
   }
   num_words = bloom_compute_words(num_bits);
-  filter = (ds_bloom_filter_t *)allocator(sizeof(ds_bloom_filter_t));
+  filter = (ds_bloom_filter_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                                   sizeof(ds_bloom_filter_t));
   if (filter == NULL) {
     return NULL;
   }
+  filter->context = context;
   filter->allocator = allocator;
   filter->deallocator = deallocator;
   filter->num_bits = num_words * DS_BLOOM_BITS_PER_WORD;
   filter->num_words = num_words;
   filter->num_hashes = num_hashes;
   filter->num_items = 0;
-  filter->words = (unsigned long *)allocator(num_words * sizeof(unsigned long));
+  filter->words = (unsigned long *)DS_LEGACY_ALLOCATE(
+      context, allocator, num_words * sizeof(unsigned long));
   if (filter->words == NULL) {
-    deallocator(filter);
+    DS_LEGACY_RELEASE(context, deallocator, filter);
     return NULL;
   }
   for (i = 0; i < num_words; i++) {
     filter->words[i] = 0UL;
   }
   return filter;
+}
+ds_bloom_filter_t *
+ds_bloom_filter_create_with_params(size_t bits, size_t hashes,
+                                   void *(*allocator)(size_t),
+                                   void (*deallocator)(void *)) {
+  return bloom_create_internal(bits, hashes, allocator, deallocator, NULL);
+}
+ds_status_t ds_bloom_filter_create_params_context(size_t bits, size_t hashes,
+                                                  ds_context_t *context,
+                                                  ds_bloom_filter_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (bits == 0 || hashes == 0)
+    return DS_ERR_RANGE;
+  if (bits > (size_t)-1 - DS_BLOOM_BITS_PER_WORD)
+    return DS_ERR_OVERFLOW;
+  *out =
+      bloom_create_internal(bits, hashes, malloc, free,
+                            context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
+}
+ds_status_t ds_bloom_filter_create_context(size_t expected, double rate,
+                                           ds_context_t *context,
+                                           ds_bloom_filter_t **out) {
+  size_t bits, hashes;
+  ds_status_t st;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (expected == 0 || !(rate > 0.0 && rate < 1.0))
+    return DS_ERR_RANGE;
+  st = bloom_dimensions(expected, rate, &bits, &hashes);
+  if (st != DS_OK)
+    return st;
+  return ds_bloom_filter_create_params_context(bits, hashes, context, out);
 }
 
 /* Hash the bytes twice, then avalanche each probe separately. Two nearby
@@ -194,9 +243,9 @@ ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter) {
   if (filter == NULL) {
     return NULL;
   }
-  new_filter = ds_bloom_filter_create_with_params(
-      filter->num_bits, filter->num_hashes, filter->allocator,
-      filter->deallocator);
+  new_filter = bloom_create_internal(filter->num_bits, filter->num_hashes,
+                                     filter->allocator, filter->deallocator,
+                                     filter->context);
   if (new_filter == NULL) {
     return NULL;
   }
@@ -208,6 +257,61 @@ ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter) {
 }
 
 void ds_bloom_filter_destroy(ds_bloom_filter_t *filter) {
-  filter->deallocator(filter->words);
-  filter->deallocator(filter);
+  if (filter == NULL)
+    return;
+  DS_LEGACY_FREE(filter, filter->words);
+  DS_LEGACY_FREE(filter, filter);
+}
+
+ds_status_t ds_bloom_filter_add_ex(ds_bloom_filter_t *filter, const void *key,
+                                   size_t length) {
+  if (filter == NULL || (key == NULL && length != 0))
+    return DS_ERR_NULL;
+  if (filter->num_items == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  ds_bloom_filter_add(filter, key, length);
+  return DS_OK;
+}
+ds_status_t ds_bloom_filter_contains_ex(ds_bloom_filter_t *filter,
+                                        const void *key, size_t length,
+                                        bool *out) {
+  if (filter == NULL || out == NULL || (key == NULL && length != 0))
+    return DS_ERR_NULL;
+  *out = ds_bloom_filter_maybe_contains(filter, key, length);
+  return DS_OK;
+}
+ds_status_t ds_bloom_filter_union_ex(ds_bloom_filter_t *filter,
+                                     ds_bloom_filter_t *other) {
+  if (filter == NULL || other == NULL)
+    return DS_ERR_NULL;
+  if (filter == other)
+    return DS_OK;
+  if (filter->num_bits != other->num_bits ||
+      filter->num_hashes != other->num_hashes)
+    return DS_ERR_INVALID;
+  if (other->num_items > (size_t)-1 - filter->num_items)
+    return DS_ERR_OVERFLOW;
+  (void)ds_bloom_filter_union(filter, other);
+  return DS_OK;
+}
+ds_status_t ds_bloom_filter_clone_with(const ds_bloom_filter_t *filter,
+                                       ds_context_t *context,
+                                       ds_bloom_filter_t **out) {
+  ds_bloom_filter_t *copy;
+  size_t i;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (filter == NULL)
+    return DS_ERR_NULL;
+  copy = bloom_create_internal(filter->num_bits, filter->num_hashes,
+                               filter->allocator, filter->deallocator,
+                               context != NULL ? context : filter->context);
+  if (copy == NULL)
+    return DS_ERR_ALLOC;
+  for (i = 0; i < filter->num_words; ++i)
+    copy->words[i] = filter->words[i];
+  copy->num_items = filter->num_items;
+  *out = copy;
+  return DS_OK;
 }

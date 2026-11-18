@@ -82,7 +82,9 @@ void ds_fusion_clear(ds_fusion_tree_t *t);
 ds_status_t ds_fusion_build(ds_fusion_tree_t *t, const unsigned long *keys,
                             const void *values, size_t n);
 
-/* DS_OK, DS_EXISTS (value unchanged) or DS_ERR_ALLOC */
+/* Values may be borrowed from this tree: input bytes are staged before
+ * relocation. NULL zero-initializes the value. Allocation/overflow failures
+ * leave the tree unchanged; DS_EXISTS leaves an existing value unchanged. */
 ds_status_t ds_fusion_insert(ds_fusion_tree_t *t, unsigned long key,
                              const void *value);
 /* insert or overwrite the value */

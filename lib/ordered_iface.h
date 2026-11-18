@@ -7,7 +7,9 @@
  * (Y-fast trie buckets, B-tree-like leaves, run-length segments), so the
  * caller chooses the trade-off.
  *
- * Values are stored by value (value_size bytes, may be 0). Besides the
+ * Values are stored by value (value_size bytes, may be 0). In the built-in
+ * backends a NULL insertion value zero-initializes those bytes, and values
+ * may come from this same map: inputs are staged before relocation. Besides the
  * point operations, floor/ceiling, select by rank and in-order cursors,
  * a backend must split (keys >= k move to another instance) and join
  * (append an instance whose keys are all greater). Traits:
@@ -121,9 +123,9 @@ ds_status_t ds_ordered_split(ds_ordered_t *s, unsigned long key,
 ds_status_t ds_ordered_join(ds_ordered_t *s, ds_ordered_t *upper);
 bool ds_ordered_next(const ds_ordered_t *s, size_t *cursor, unsigned long *key,
                      void **value);
-/* every entry in key order, O(n) for both backends (the treap walks with
- * an explicit stack; if the stack cannot grow it continues by rank, so the
- * walk never fails for lack of memory); returns the visitor's first
+/* Every entry in key order; the treap uses parent links in O(n) with no
+ * allocation. Treap updates/split/join also use constant C-stack space.
+ * Returns the visitor's first
  * non-DS_OK status, else DS_OK */
 ds_status_t ds_ordered_for_each(const ds_ordered_t *s,
                                 ds_ordered_visit_fn visit, void *user);

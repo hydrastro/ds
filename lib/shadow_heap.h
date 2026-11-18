@@ -8,8 +8,8 @@
  *   push   appends to the shadow; when the shadow outgrows its threshold
  *          the shadow merge insert reorganises only the table's nodes and
  *          their ancestors (a bottom-up heapify over contiguous index
- *          ranges, level by level), O(log log n) amortized per insertion
- *          with the default threshold of about log2 n
+ *          ranges, level by level). The adapter advertises a conservative
+ *          O(log n) amortized bound with the default threshold of log2 n
  *   merge  shadow merge: the smaller heap is attached behind the larger
  *          one and only the attached nodes and their ancestors are
  *          re-heapified
@@ -45,6 +45,8 @@ typedef struct ds_shadow_heap {
   void *user;
   bool fixed;
   ds_context_t *context;
+  void (*moved)(const void *elem, size_t index, void *user);
+  void *moved_user;
 } ds_shadow_heap_t;
 
 ds_status_t ds_shadow_heap_init(ds_shadow_heap_t *heap, size_t elem_size,
@@ -70,6 +72,26 @@ void ds_shadow_heap_flush(ds_shadow_heap_t *heap);
 /* Shadow merge: dst receives every element of src (same elem_size and
  * order), src becomes empty. */
 ds_status_t ds_shadow_heap_merge(ds_shadow_heap_t *dst, ds_shadow_heap_t *src);
+/* Address tracking: placement/movement reports the new index, removal and
+ * clear report (size_t)-1. Installing the callback reports existing items.
+ * Callbacks update external metadata only. Merge reports source removals
+ * before destination placements. */
+void ds_shadow_heap_set_move_callback(ds_shadow_heap_t *heap,
+                                      void (*moved)(const void *, size_t,
+                                                    void *),
+                                      void *user);
+ds_status_t ds_shadow_heap_reserve(ds_shadow_heap_t *heap, size_t capacity);
+const void *ds_shadow_heap_top(const ds_shadow_heap_t *heap);
+const void *ds_shadow_heap_at(const ds_shadow_heap_t *heap, size_t index);
+/* Update/repair is O(log n) in the ordered portion and O(1) in the shadow.
+ * Removal may fold the shadow when its threshold changes: O(log^2 n) with
+ * the default threshold. No allocation. elem may alias existing storage;
+ * removal output must be outside it. Indices are tracked through moved. */
+ds_status_t ds_shadow_heap_update_at(ds_shadow_heap_t *heap, size_t index,
+                                     const void *elem);
+ds_status_t ds_shadow_heap_repair_at(ds_shadow_heap_t *heap, size_t index);
+ds_status_t ds_shadow_heap_remove_at(ds_shadow_heap_t *heap, size_t index,
+                                     void *out);
 
 #ifdef __cplusplus
 }

@@ -22,8 +22,9 @@ by the listed module), `alias` (another name for an entry), `concept`
 - `missing`: implementable but not provided.
 - `n/a`: nothing to implement (definitions and other concepts).
 
-The tail of the index (after "shaker sort"), which the A-Z page cuts
-off, was checked against DADS's second-level index pages (t42 to t53).
+The complete 1,306-entry A-Z index was reconciled against this table during
+the completion pass, including the formerly truncated tail. Alias labels now
+follow the index. See `coverage-review.md` for semantic corrections and limits.
 Topics that are not DADS index entries but belong next to them are listed
 under "Supplemental entries" with the same columns.
 
@@ -31,12 +32,12 @@ under "Supplemental entries" with the same columns.
 
 | state | entries |
 |---|---|
-| implemented | 763 |
-| restricted | 0 |
-| variant | 0 |
-| reference | 0 |
+| implemented | 771 |
+| restricted | 7 |
+| variant | 1 |
+| reference | 5 |
 | missing | 0 |
-| n/a | 543 |
+| n/a | 522 |
 | total | 1306 |
 
 Every indexed term has a classification; implementation scope and known
@@ -47,15 +48,16 @@ the term covers is provided.
 
 | kind | entries |
 |---|---|
-| structure | 277 |
-| algorithm | 443 |
-| problem | 30 |
-| alias | 10 |
-| concept | 546 |
+| structure | 241 |
+| algorithm | 381 |
+| problem | 27 |
+| alias | 184 |
+| concept | 473 |
 
 ## Missing
 
-No row is classified missing.
+No currently identified indexed capability remains classified missing.
+Scope restrictions, references and variants remain explicit; this is not a correctness proof.
 
 ## Index A-Z
 
@@ -63,7 +65,7 @@ No row is classified missing.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| α | concept | n/a |  |  |
+| α | alias | implemented | algo/number_theory | alias of inverse Ackermann function |
 | ω | concept | n/a |  |  |
 | Ω | concept | n/a |  |  |
 | ρ-approximation algorithm | concept | n/a |  |  |
@@ -78,7 +80,7 @@ No row is classified missing.
 | 2-3 tree | structure | implemented | lib/mway_btree |  |
 | 0-ary function | concept | n/a |  |  |
 | 0-based indexing | concept | n/a |  |  |
-| 0-1 knapsack problem | problem | implemented | algo/knapsack |  |
+| 0-1 knapsack problem | alias | implemented | algo/knapsack | alias of knapsack problem |
 
 ### A
 
@@ -89,7 +91,7 @@ No row is classified missing.
 | accepting state | concept | n/a |  |  |
 | Ackermann's function | algorithm | implemented | algo/number_theory |  |
 | active data structure | concept | n/a |  |  |
-| acyclic directed graph | concept | n/a |  |  |
+| acyclic directed graph | alias | n/a |  | alias of directed acyclic graph |
 | acyclic graph | concept | n/a |  |  |
 | adaptive heap sort | algorithm | implemented | algo/sort_heap |  |
 | adaptive Huffman coding | algorithm | implemented | algo/adaptive_huffman |  |
@@ -100,13 +102,13 @@ No row is classified missing.
 | adjacency-matrix representation | structure | implemented | lib/adj_matrix |  |
 | adjacent | concept | n/a |  |  |
 | admissible vertex | concept | n/a |  |  |
-| ADT | concept | n/a |  |  |
+| ADT | alias | n/a |  | alias of abstract data type |
 | adversary | concept | n/a |  |  |
 | Aho-Corasick | structure | implemented | lib/aho_corasick |  |
 | algorithm | concept | n/a |  |  |
 | algorithm BSTW | algorithm | implemented | algo/compress |  |
 | algorithm FGK | algorithm | implemented | algo/adaptive_huffman |  |
-| algorithmically solvable | concept | n/a |  |  |
+| algorithmically solvable | alias | n/a |  | alias of decidable problem |
 | all pairs shortest path | algorithm | implemented | algo/graph_view | Floyd-Warshall |
 | all simple paths | algorithm | implemented | algo/graph_path |  |
 | alphabet | concept | n/a |  |  |
@@ -123,25 +125,25 @@ No row is classified missing.
 | antisymmetric | concept | n/a |  |  |
 | Apostolico-Crochemore | algorithm | implemented | algo/string_search |  |
 | Apostolico-Giancarlo algorithm | algorithm | implemented | algo/string_search |  |
-| approximate string matching | algorithm | implemented | algo/string_approx |  |
+| approximate string matching | alias | implemented | algo/string_approx | alias of string matching with errors |
 | approximation algorithm | concept | n/a |  |  |
 | arborescence | algorithm | implemented | algo/graph_path |  |
-| arc | concept | n/a |  |  |
+| arc | alias | n/a |  | alias of edge |
 | arithmetic coding | algorithm | implemented | algo/compress |  |
 | array | structure | implemented | lib/vec |  |
 | array index | concept | n/a |  |  |
 | array merging | algorithm | implemented | algo/sequence | ds_merge |
 | array search | algorithm | implemented | algo/search |  |
-| articulation point | algorithm | implemented | algo/graph_struct |  |
+| articulation point | alias | implemented | algo/graph_struct | alias of cut vertex |
 | assignment problem | problem | implemented | algo/matching |  |
-| association list | structure | implemented | lib/association_list |  |
+| association list | alias | implemented | lib/hash_table, lib/rh_map, lib/avl, ... | alias of dictionary |
 | associative | concept | n/a |  |  |
 | associative array | structure | implemented | lib/hash_table, lib/rh_map, lib/string_map |  |
-| asymptotically tight bound | concept | n/a |  |  |
+| asymptotically tight bound | alias | n/a |  | alias of Θ |
 | asymptotic bound | concept | n/a |  |  |
 | asymptotic space complexity | concept | n/a |  |  |
 | asymptotic time complexity | concept | n/a |  |  |
-| asymptotic upper bound | concept | n/a |  |  |
+| asymptotic upper bound | alias | n/a |  | alias of big-O notation |
 | augmenting path | algorithm | implemented | algo/flow |  |
 | automaton | concept | n/a |  |  |
 | average case | concept | n/a |  |  |
@@ -161,12 +163,12 @@ No row is classified missing.
 | balanced k-way merge sort | algorithm | implemented | algo/external_sort |  |
 | balanced merge sort | algorithm | implemented | algo/external_sort |  |
 | balanced multiway merge | algorithm | implemented | algo/external_sort |  |
-| balanced multiway tree | structure | implemented | lib/btree |  |
+| balanced multiway tree | alias | implemented | lib/btree | alias of B-tree |
 | balanced quicksort | algorithm | implemented | algo/sort_misc |  |
 | balanced tree | structure | implemented | lib/avl, lib/rbt, lib/btree |  |
 | balanced two-way merge sort | algorithm | implemented | algo/external_sort |  |
 | BANG file | structure | implemented | lib/bang_file |  |
-| Batcher sort | algorithm | implemented | algo/sort_classic | bitonic |
+| Batcher sort | alias | implemented | algo/sort_classic | alias of bitonic sort |
 | Baum Welch algorithm | algorithm | implemented | algo/hmm |  |
 | BB(α) tree | structure | implemented | lib/wb_tree |  |
 | BBP algorithm | algorithm | implemented | algo/numerical |  |
@@ -185,7 +187,7 @@ No row is classified missing.
 | binary GCD | algorithm | implemented | algo/numeric | ds_binary_gcd |
 | binary heap | structure | implemented | lib/heap |  |
 | binary insertion sort | algorithm | implemented | algo/sort_classic |  |
-| binary knapsack problem | problem | implemented | algo/knapsack |  |
+| binary knapsack problem | alias | implemented | algo/knapsack | alias of knapsack problem |
 | binary priority queue | structure | implemented | lib/heap |  |
 | binary relation | concept | n/a |  |  |
 | binary search | algorithm | implemented | algo/search |  |
@@ -196,7 +198,7 @@ No row is classified missing.
 | binomial heap | structure | implemented | lib/binomial_heap |  |
 | binomial tree | structure | implemented | lib/binomial_heap |  |
 | bin packing problem | problem | implemented | algo/knapsack |  |
-| bin sort | algorithm | implemented | algo/sort_dist |  |
+| bin sort | alias | implemented | algo/sort_dist | alias of bucket sort |
 | bintree | structure | implemented | lib/quadtree |  |
 | bipartite graph | algorithm | implemented | algo/graph_view | ds_gview_bipartite |
 | bipartite matching | algorithm | implemented | algo/matching |  |
@@ -209,7 +211,7 @@ No row is classified missing.
 | block | concept | n/a |  |  |
 | block addressing index | structure | implemented | lib/inverted_index |  |
 | blocking flow | algorithm | implemented | algo/flow |  |
-| block search | algorithm | implemented | algo/search |  |
+| block search | alias | implemented | algo/search | alias of jump search |
 | Bloom filter | structure | implemented | lib/bloom_filter |  |
 | blossom | algorithm | implemented | algo/matching |  |
 | bogosort | algorithm | implemented | algo/sort_misc |  |
@@ -221,7 +223,7 @@ No row is classified missing.
 | Boruvka's algorithm | algorithm | implemented | algo/graph_path |  |
 | bottleneck traveling salesman | algorithm | implemented | algo/tsp |  |
 | boundary-based representation | concept | n/a |  |  |
-| bounded error probability in polynomial time | concept | n/a |  |  |
+| bounded error probability in polynomial time | alias | n/a |  | alias of BPP |
 | bounded queue | structure | implemented | lib/circular_buffer, lib/array_deque | fixed buffer |
 | bounded stack | structure | implemented | lib/vec | fixed buffer |
 | Boyer-Moore | algorithm | implemented | algo/string_search |  |
@@ -253,7 +255,7 @@ No row is classified missing.
 | Burrows-Wheeler transform | structure | implemented | lib/suffix_tree |  |
 | busy beaver | structure | implemented | lib/turing_machine |  |
 | BV-tree | structure | implemented | lib/hb_tree |  |
-| BWT | structure | implemented | lib/suffix_tree |  |
+| BWT | alias | implemented | lib/suffix_tree | alias of Burrows-Wheeler transform |
 | Byzantine generals | concept | n/a |  |  |
 
 ### C
@@ -269,7 +271,7 @@ No row is classified missing.
 | capacitated facility location | algorithm | implemented | algo/facility |  |
 | capacity | concept | n/a |  |  |
 | capacity constraint | concept | n/a |  |  |
-| cartesian tree | algorithm | implemented | algo/cartesian_tree |  |
+| cartesian tree | alias | implemented | lib/rbst | alias of randomized binary search tree |
 | Caverphone | algorithm | implemented | algo/phonetic |  |
 | CCS | concept | n/a |  |  |
 | cell probe model | concept | n/a |  |  |
@@ -287,7 +289,7 @@ No row is classified missing.
 | chromatic number | algorithm | implemented | algo/graph_np |  |
 | circuit | concept | n/a |  |  |
 | circuit complexity | concept | n/a |  |  |
-| circuit value problem | concept | n/a |  |  |
+| circuit value problem | problem | implemented | algo/logic_graph | Boolean DAG evaluation through graph views; standard/custom gates |
 | circular list | structure | implemented | lib/ring_list |  |
 | circular queue | structure | implemented | lib/circular_buffer |  |
 | clique | algorithm | implemented | algo/graph_np |  |
@@ -296,7 +298,7 @@ No row is classified missing.
 | clustering free | concept | n/a |  |  |
 | coalesced chaining | structure | implemented | lib/coalesced_map |  |
 | coarsening | concept | n/a |  |  |
-| cocktail shaker sort | algorithm | implemented | algo/sort_classic |  |
+| cocktail shaker sort | alias | implemented | algo/sort_classic | alias of bidirectional bubble sort; cocktail |
 | codeword | concept | n/a |  |  |
 | coding tree | algorithm | implemented | algo/prefix_code |  |
 | Collatz problem | problem | implemented | algo/combinatorics |  |
@@ -334,15 +336,15 @@ No row is classified missing.
 | connected components | structure | implemented | lib/graph | weak components |
 | connected graph | concept | n/a |  |  |
 | constant function | concept | n/a |  |  |
-| continuous knapsack problem | problem | implemented | algo/knapsack |  |
+| continuous knapsack problem | alias | implemented | algo/knapsack | alias of fractional knapsack problem |
 | Cook reduction | concept | n/a |  |  |
 | Cook's theorem | concept | n/a |  |  |
 | CORDIC | algorithm | implemented | algo/numerical |  |
 | counting sort | algorithm | implemented | algo/sort_classic | ds_counting_sort_keyed |
 | covering | concept | n/a |  |  |
-| CRC | algorithm | implemented | algo/hash | CRC-32, CRC-32C |
-| CRCW | concept | n/a |  |  |
-| CREW | concept | n/a |  |  |
+| CRC | alias | implemented | algo/hash | alias of cyclic redundancy check |
+| CRCW | alias | n/a |  | alias of concurrent read, concurrent write |
+| CREW | alias | n/a |  | alias of concurrent read, exclusive write |
 | critical path problem | problem | implemented | algo/graph_path |  |
 | CSP | concept | n/a |  |  |
 | CTL | algorithm | implemented | algo/model_check |  |
@@ -362,13 +364,13 @@ No row is classified missing.
 | entry | kind | state | module | note |
 |---|---|---|---|---|
 | D-adjacent | concept | n/a |  |  |
-| DAG | concept | n/a |  |  |
+| DAG | alias | n/a |  | alias of directed acyclic graph |
 | DAG shortest paths | algorithm | implemented | algo/graph_path |  |
 | data structure | concept | n/a |  |  |
-| DAWG | structure | implemented | lib/suffix_automaton |  |
+| DAWG | alias | implemented | lib/suffix_automaton | alias of directed acyclic word graph |
 | decidable language | concept | n/a |  |  |
 | decidable problem | concept | n/a |  |  |
-| decimation | concept | n/a |  |  |
+| decimation | alias | n/a |  | alias of prune and search |
 | decision problem | concept | n/a |  |  |
 | decomposable searching problem | concept | n/a |  |  |
 | degree | concept | n/a |  |  |
@@ -382,15 +384,15 @@ No row is classified missing.
 | deterministic | concept | n/a |  |  |
 | deterministic algorithm | concept | n/a |  |  |
 | deterministic finite automata string search | algorithm | implemented | algo/string_search |  |
-| deterministic finite automaton | structure | implemented | lib/automaton |  |
+| deterministic finite automaton | alias | n/a |  | alias of deterministic finite state machine |
 | deterministic finite state machine | concept | n/a |  |  |
 | deterministic finite tree automaton | structure | implemented | lib/tree_automaton |  |
 | deterministic pushdown automaton | structure | implemented | lib/pushdown |  |
-| deterministic random bit generator | algorithm | implemented | algo/random | xoshiro, not cryptographic |
+| deterministic random bit generator | alias | implemented | algo/random | alias of pseudo-random number generator |
 | deterministic tree automaton | structure | implemented | lib/tree_automaton |  |
-| Deutsch-Jozsa algorithm | concept | n/a |  |  |
-| DFA | structure | implemented | lib/automaton |  |
-| DFS | structure | implemented | lib/graph |  |
+| Deutsch-Jozsa algorithm | algorithm | reference | algo/quantum_reference | phase-oracle amplitude simulation; constant/balanced promise |
+| DFA | alias | n/a |  | alias of deterministic finite state machine |
+| DFS | alias | implemented | lib/graph | alias of depth-first search |
 | DFS forest | algorithm | implemented | algo/graph_struct |  |
 | DFTA | alias | implemented | lib/tree_automaton | alias of deterministic finite tree automaton |
 | diagonalization | concept | n/a |  |  |
@@ -398,11 +400,11 @@ No row is classified missing.
 | Dianna | concept | n/a |  |  |
 | dichotomic search | algorithm | implemented | algo/search |  |
 | dictionary | structure | implemented | lib/hash_table, lib/rh_map, lib/avl, ... |  |
-| diet | structure | implemented | lib/diet |  |
+| diet | alias | implemented | lib/diet | alias of discrete interval encoding tree |
 | difference | algorithm | implemented | algo/sequence | ds_set_difference |
 | digital search tree | structure | implemented | lib/trie |  |
 | digital tree | structure | implemented | lib/trie |  |
-| digraph | concept | n/a |  |  |
+| digraph | alias | implemented | lib/graph | alias of directed graph |
 | Dijkstra's algorithm | algorithm | implemented | algo/graph_view, lib/graph |  |
 | diminishing increment sort | algorithm | implemented | algo/sort | Shell sort |
 | dining philosophers | concept | n/a |  |  |
@@ -423,27 +425,27 @@ No row is classified missing.
 | dominance tree sort | algorithm | implemented | algo/sort_heap |  |
 | don't care | concept | n/a |  |  |
 | Doomsday rule | algorithm | implemented | algo/number_theory |  |
-| double-direction bubble sort | algorithm | implemented | algo/sort_classic | cocktail |
+| double-direction bubble sort | alias | implemented | algo/sort_classic | alias of bidirectional bubble sort; cocktail |
 | double-ended priority queue | structure | implemented | lib/min_max_heap |  |
 | double hashing | structure | implemented | lib/open_map |  |
 | double left rotation | structure | implemented | lib/avl |  |
 | double metaphone | algorithm | implemented | algo/phonetic |  |
 | double right rotation | structure | implemented | lib/avl |  |
-| doubly-chained tree | structure | implemented | lib/binary_tree_repr |  |
-| doubly-ended queue | structure | implemented | lib/deque |  |
+| doubly-chained tree | alias | implemented | lib/binary_tree_repr | alias of binary tree representation of trees |
+| doubly-ended queue | alias | implemented | lib/deque, lib/array_deque | alias of deque |
 | doubly linked list | structure | implemented | lib/dlist |  |
 | DPDA | alias | implemented | lib/pushdown | alias of deterministic pushdown automaton |
-| DRBG | algorithm | implemented | algo/random |  |
+| DRBG | alias | implemented | algo/random | alias of pseudo-random number generator |
 | D-tree | structure | implemented | lib/d_tree |  |
 | dual | concept | n/a |  |  |
 | dual linear program | algorithm | implemented | algo/lp |  |
 | dual-pivot quicksort | algorithm | implemented | algo/sort_misc |  |
 | Dutch national flag | algorithm | implemented | algo/sort_misc |  |
-| dyadic tree | concept | n/a |  |  |
+| dyadic tree | alias | implemented | lib/bst | alias of binary tree |
 | dynamic | concept | n/a |  |  |
 | dynamic array | structure | implemented | lib/vec |  |
 | dynamic hashing | structure | implemented | lib/linear_hash_map |  |
-| dynamic Huffman coding | algorithm | implemented | algo/adaptive_huffman |  |
+| dynamic Huffman coding | alias | implemented | algo/adaptive_huffman | alias of adaptive Huffman coding |
 | dynamic programming | concept | n/a |  |  |
 | dynamization transformation | algorithm | implemented | algo/dynamization |  |
 
@@ -456,8 +458,8 @@ No row is classified missing.
 | edge coloring | algorithm | implemented | algo/graph_np |  |
 | edge connectivity | algorithm | implemented | algo/flow |  |
 | edge crossing | concept | n/a |  |  |
-| edge-weighted graph | concept | n/a |  |  |
-| edit distance | algorithm | implemented | algo/stringology | Levenshtein, OSA |
+| edge-weighted graph | alias | n/a |  | alias of weighted graph |
+| edit distance | alias | implemented | algo/stringology | alias of Levenshtein distance |
 | edit operation | algorithm | implemented | algo/string_approx |  |
 | edit script | algorithm | implemented | algo/string_approx |  |
 | efficiency | concept | n/a |  |  |
@@ -465,21 +467,21 @@ No row is classified missing.
 | element uniqueness | algorithm | implemented | algo/sequence | ds_unique after sort |
 | end-of-string | concept | n/a |  |  |
 | enfilade | structure | implemented | lib/enfilade |  |
-| ERCW | concept | n/a |  |  |
-| EREW | concept | n/a |  |  |
-| Euclidean algorithm | algorithm | implemented | algo/numeric | ds_gcd |
+| ERCW | alias | n/a |  | alias of exclusive read, concurrent write |
+| EREW | alias | n/a |  | alias of exclusive read, exclusive write |
+| Euclidean algorithm | alias | implemented | algo/numeric | alias of Euclid's algorithm |
 | Euclidean distance | algorithm | implemented | algo/geometry |  |
 | Euclidean Steiner tree | algorithm | implemented | algo/steiner |  |
 | Euclidean traveling salesman problem | problem | implemented | algo/tsp |  |
 | Euclid's algorithm | algorithm | implemented | algo/numeric |  |
 | Euler cycle | algorithm | implemented | algo/graph_struct |  |
 | Eulerian graph | algorithm | implemented | algo/graph_struct |  |
-| Eulerian path | algorithm | implemented | algo/graph_struct |  |
+| Eulerian path | alias | implemented | algo/graph_struct | alias of Euler cycle |
 | Euler's formula | concept | n/a |  |  |
-| exact string matching | algorithm | implemented | algo/string_search |  |
+| exact string matching | alias | implemented | algo/string_search | alias of string matching |
 | EXCELL | structure | implemented | lib/bang_file |  |
-| exchange sort | algorithm | implemented | algo/sort_classic | bubble |
-| exclusive or | concept | n/a |  |  |
+| exchange sort | alias | implemented | algo/sort_classic | alias of bubble sort |
+| exclusive or | alias | n/a |  | alias of xor |
 | exclusive read, concurrent write | concept | n/a |  |  |
 | exclusive read, exclusive write | concept | n/a |  |  |
 | exhaustive search | concept | n/a |  |  |
@@ -491,16 +493,16 @@ No row is classified missing.
 | extended Euclid's algorithm | algorithm | implemented | algo/numeric | ds_ext_gcd |
 | extended k-d tree | structure | implemented | lib/kdb_tree |  |
 | extendible hashing | structure | implemented | lib/extendible_hash |  |
-| external chaining | structure | implemented | lib/hash_table |  |
+| external chaining | alias | implemented | lib/hash_table | alias of separate chaining |
 | external index | concept | n/a |  |  |
 | external memory algorithm | concept | n/a |  |  |
 | external memory data structure | concept | n/a |  |  |
 | external merge | algorithm | implemented | algo/external_sort |  |
-| external node | concept | n/a |  |  |
+| external node | alias | n/a |  | alias of leaf |
 | external quicksort | algorithm | implemented | algo/external_sort |  |
 | external radix sort | algorithm | implemented | algo/external_sort |  |
 | external sort | algorithm | implemented | algo/external_sort |  |
-| extrapolation search | algorithm | implemented | algo/search | interpolation |
+| extrapolation search | alias | implemented | algo/search | alias of interpolation search |
 | extremal | concept | n/a |  |  |
 | extreme point | algorithm | implemented | algo/geometry |  |
 
@@ -509,7 +511,7 @@ No row is classified missing.
 | entry | kind | state | module | note |
 |---|---|---|---|---|
 | facility location | algorithm | implemented | algo/facility |  |
-| factor | concept | n/a |  |  |
+| factor | alias | n/a |  | alias of substring |
 | factorial | algorithm | implemented | algo/combinatorics |  |
 | fast fourier transform | algorithm | implemented | algo/fft |  |
 | fathoming | concept | n/a |  |  |
@@ -518,22 +520,22 @@ No row is classified missing.
 | feedback edge set | algorithm | implemented | algo/graph_struct |  |
 | feedback vertex set | algorithm | implemented | algo/graph_np |  |
 | Ferguson-Forcade algorithm | algorithm | implemented | algo/lattice |  |
-| FFT | algorithm | implemented | algo/fft |  |
+| FFT | alias | implemented | algo/fft | alias of fast fourier transform |
 | Fibonaccian search | algorithm | implemented | algo/search |  |
 | Fibonacci heap | structure | implemented | lib/fibonacci_heap, lib/strict_fibonacci_heap | amortized bounds; lib/strict_fibonacci_heap has them in the worst case |
 | Fibonacci number | algorithm | implemented | algo/number_theory |  |
 | Fibonacci tree | concept | n/a |  |  |
-| FIFO | structure | implemented | lib/queue |  |
-| filial-heir chain | structure | implemented | lib/binary_tree_repr |  |
+| FIFO | alias | implemented | lib/queue | alias of queue |
+| filial-heir chain | alias | implemented | lib/binary_tree_repr | alias of binary tree representation of trees |
 | Find | algorithm | implemented | algo/select |  |
-| find kth least element | algorithm | implemented | algo/sort | nth_element |
+| find kth least element | alias | implemented | algo/sort | alias of select kth element; nth_element |
 | finitary tree | concept | n/a |  |  |
 | finite Fourier transform | algorithm | implemented | algo/fft |  |
-| finite state automaton | structure | implemented | lib/automaton |  |
+| finite state automaton | alias | implemented | lib/automaton | alias of finite state machine |
 | finite state machine | structure | implemented | lib/automaton |  |
 | finite state machine minimization | structure | implemented | lib/automaton |  |
 | finite state transducer | structure | implemented | lib/automaton |  |
-| first child-next sibling binary tree | structure | implemented | lib/binary_tree_repr |  |
+| first child-next sibling binary tree | alias | implemented | lib/binary_tree_repr | alias of binary tree representation of trees |
 | first come, first served | concept | n/a |  |  |
 | first-in, first-out | structure | implemented | lib/queue |  |
 | Fisher-Yates shuffle | algorithm | implemented | algo/sequence | ds_shuffle |
@@ -544,11 +546,11 @@ No row is classified missing.
 | flow function | concept | n/a |  |  |
 | flow network | algorithm | implemented | algo/flow |  |
 | Floyd-Warshall algorithm | algorithm | implemented | algo/graph_view |  |
-| Ford-Bellman | algorithm | implemented | algo/graph_view |  |
+| Ford-Bellman | alias | implemented | algo/graph_view, lib/graph | alias of Bellman-Ford algorithm |
 | Ford-Fulkerson method | algorithm | implemented | algo/flow |  |
 | forest | concept | n/a |  |  |
 | forest editing problem | problem | implemented | algo/tree_edit |  |
-| formal language | concept | n/a |  |  |
+| formal language | alias | n/a |  | alias of language |
 | formal methods | concept | n/a |  |  |
 | formal verification | concept | n/a |  |  |
 | forward index | structure | implemented | lib/inverted_index |  |
@@ -565,7 +567,7 @@ No row is classified missing.
 | fully persistent data structure | structure | implemented | lib/history | branching timelines |
 | fully polynomial approximation scheme | concept | n/a |  |  |
 | function | concept | n/a |  |  |
-| functional data structure | concept | n/a |  |  |
+| functional data structure | alias | n/a |  | alias of active data structure |
 
 ### G
 
@@ -575,14 +577,14 @@ No row is classified missing.
 | Galil-Seiferas | algorithm | implemented | algo/string_search |  |
 | gamma function | algorithm | implemented | algo/numerical |  |
 | GBD-tree | structure | implemented | lib/hb_tree |  |
-| GCD | algorithm | implemented | algo/numeric |  |
+| GCD | alias | implemented | algo/numeric | alias of greatest common divisor |
 | geometric optimization problem | problem | implemented | algo/geo_opt |  |
 | global optimum | concept | n/a |  |  |
 | gnome sort | algorithm | implemented | algo/sort_classic |  |
 | graph | concept | n/a |  |  |
 | graph coloring | algorithm | implemented | algo/graph_np |  |
 | graph concentration | concept | n/a |  |  |
-| graph drawing | concept | n/a |  |  |
+| graph drawing | problem | restricted | algo/planarity | straight-line grid drawing from a planar embedding; no general layout optimizer |
 | graph isomorphism | algorithm | implemented | algo/graph_np |  |
 | graph partition | algorithm | implemented | algo/graph_np |  |
 | Gray code | algorithm | implemented | algo/bits |  |
@@ -591,7 +593,7 @@ No row is classified missing.
 | greedy heuristic | concept | n/a |  |  |
 | grid drawing | concept | n/a |  |  |
 | grid file | structure | implemented | lib/grid_file |  |
-| Grover's algorithm | concept | n/a |  |  |
+| Grover's algorithm | algorithm | reference | algo/quantum_reference | amplitude amplification and sampling; bounded iterations |
 
 ### H
 
@@ -602,13 +604,13 @@ No row is classified missing.
 | Hamiltonian path | algorithm | implemented | algo/graph_np |  |
 | Hamming distance | algorithm | implemented | algo/stringology |  |
 | hard split, easy merge | concept | n/a |  |  |
-| hash | algorithm | implemented | algo/hash |  |
+| hash | alias | implemented | algo/hash | alias of hash function |
 | hashbelt | structure | implemented | lib/dynamic_hash |  |
 | hash function | algorithm | implemented | algo/hash |  |
 | hash heap | structure | implemented | lib/hash_heap |  |
 | hash table | structure | implemented | lib/hash_table, lib/rh_map |  |
 | hash table delete | structure | implemented | lib/hash_table, lib/rh_map | backward shift |
-| hash tree | structure | implemented | lib/merkle_tree |  |
+| hash tree | alias | implemented | lib/merkle_tree | alias of Merkle tree |
 | Hausdorff distance | algorithm | implemented | algo/geometry |  |
 | hB-tree | structure | implemented | lib/hb_tree |  |
 | head | concept | n/a |  |  |
@@ -616,41 +618,41 @@ No row is classified missing.
 | heapify | structure | implemented | lib/heap |  |
 | heap property | concept | n/a |  |  |
 | heapsort | algorithm | implemented | algo/sort |  |
-| heaviest common subsequence | algorithm | implemented | algo/string_approx |  |
+| heaviest common subsequence | alias | implemented | algo/stringology | alias of longest common subsequence |
 | height | concept | n/a |  |  |
 | height-balanced binary search tree | structure | implemented | lib/avl |  |
 | height-balanced tree | structure | implemented | lib/avl |  |
 | heuristic | concept | n/a |  |  |
 | hidden Markov model | algorithm | implemented | algo/hmm |  |
-| highest common factor | algorithm | implemented | algo/numeric |  |
+| highest common factor | alias | implemented | algo/numeric | alias of greatest common divisor |
 | histogram sort | algorithm | implemented | algo/sort_dist |  |
-| HMM | algorithm | implemented | algo/hmm |  |
+| HMM | alias | implemented | algo/hmm | alias of hidden Markov model |
 | homeomorphic | concept | n/a |  |  |
 | horizontal visibility map | algorithm | implemented | algo/visibility |  |
 | Horner's rule | algorithm | implemented | algo/numerical |  |
-| Horspool | algorithm | implemented | algo/string_search |  |
-| hsadelta | concept | n/a |  |  |
+| Horspool | alias | implemented | algo/string_search | alias of Boyer-Moore-Horspool |
+| hsadelta | algorithm | implemented | algo/hsadelta | block hashes, suffix array, quick filter and selected lookup backend; verified COPY/INSERT commands |
 | Huffman coding | algorithm | implemented | algo/prefix_code |  |
 | huge sparse array | structure | implemented | lib/sparse_matrix |  |
-| Hungarian algorithm | algorithm | implemented | algo/matching |  |
+| Hungarian algorithm | alias | implemented | algo/matching | alias of Munkres' assignment algorithm |
 | hybrid algorithm | concept | n/a |  |  |
 | hyperedge | concept | n/a |  |  |
-| hypergraph | concept | n/a |  |  |
+| hypergraph | structure | implemented | lib/hypergraph, algo/graph_view | stable hyperedge handles, selectable edge map, atomic memberships, incidence graph view |
 | HyperLogLog | structure | implemented | lib/hyperloglog |  |
 
 ### I
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| IBLT | structure | implemented | lib/iblt |  |
+| IBLT | alias | implemented | lib/iblt | alias of invertible Bloom lookup table |
 | ideal merge | algorithm | implemented | algo/kway_merge |  |
 | ideal random shuffle | algorithm | implemented | algo/sequence | ds_shuffle |
 | implication | concept | n/a |  |  |
 | implies | concept | n/a |  |  |
 | inclusion-exclusion principle | concept | n/a |  |  |
-| inclusive or | concept | n/a |  |  |
+| inclusive or | alias | n/a |  | alias of or |
 | incompressible string | concept | n/a |  |  |
-| incremental hashing | algorithm | implemented | algo/hash_family |  |
+| incremental hashing | alias | implemented | lib/linear_hash_map | alias of linear hashing |
 | in-degree | concept | n/a |  |  |
 | independent set | algorithm | implemented | algo/graph_np |  |
 | index file | concept | n/a |  |  |
@@ -659,7 +661,7 @@ No row is classified missing.
 | in-place sort | algorithm | implemented | algo/sort |  |
 | insertion sort | algorithm | implemented | algo/sort |  |
 | integer linear program | algorithm | implemented | algo/lp |  |
-| integer multi-commodity flow | concept | n/a |  |  |
+| integer multi-commodity flow | problem | implemented | algo/multiflow | per-commodity integer edge flows through MILP; not unsplittable-demand routing |
 | integer polyhedron | concept | n/a |  |  |
 | interactive proof system | concept | n/a |  |  |
 | interior-based representation | concept | n/a |  |  |
@@ -667,11 +669,11 @@ No row is classified missing.
 | internal sort | concept | n/a |  |  |
 | interpolation search | algorithm | implemented | algo/search |  |
 | interpolation-sequential search | algorithm | implemented | algo/search |  |
-| interpolation sort | algorithm | implemented | algo/sort_dist |  |
+| interpolation sort | alias | implemented | algo/sort_dist | alias of histogram sort |
 | intersection | algorithm | implemented | algo/sequence | ds_set_intersection |
 | interval tree | structure | implemented | lib/interval_tree |  |
 | intractable | concept | n/a |  |  |
-| introsort | algorithm | implemented | algo/sort |  |
+| introsort | alias | implemented | algo/sort | alias of introspective sort |
 | introspective sort | algorithm | implemented | algo/sort |  |
 | inverse Ackermann function | algorithm | implemented | algo/number_theory |  |
 | inverse suffix array | structure | implemented | lib/suffix_tree |  |
@@ -688,7 +690,7 @@ No row is classified missing.
 | entry | kind | state | module | note |
 |---|---|---|---|---|
 | Jaro-Winkler | algorithm | implemented | algo/string_approx |  |
-| jelly-fish | concept | n/a |  |  |
+| jelly-fish | structure | reference | lib/jellyfish | balanced binary body with linked tentacles; rebuilds on insert/delete; optional ordered body backend |
 | Johnson's algorithm | algorithm | implemented | algo/graph_path |  |
 | Johnson-Trotter | algorithm | implemented | algo/combinatorics |  |
 | JSort | algorithm | implemented | algo/sort_heap |  |
@@ -700,7 +702,7 @@ No row is classified missing.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| Karnaugh map | concept | n/a |  |  |
+| Karnaugh map | algorithm | restricted | algo/karnaugh | 0..6 variables, Gray layout, prime/custom-cost cube covers; exact search with budgeted best-so-far output |
 | Karp-Rabin | algorithm | implemented | algo/stringology |  |
 | Karp reduction | concept | n/a |  |  |
 | k-ary heap | structure | implemented | lib/indexed_heap | d-ary |
@@ -714,24 +716,24 @@ No row is classified missing.
 | K-dominant match | algorithm | implemented | algo/string_approx |  |
 | k-d tree | structure | implemented | lib/kd_tree |  |
 | key | concept | n/a |  |  |
-| KMP | algorithm | implemented | algo/stringology |  |
+| KMP | alias | implemented | algo/stringology | alias of Knuth-Morris-Pratt algorithm |
 | KmpSkip Search | algorithm | implemented | algo/string_search |  |
 | knapsack problem | problem | implemented | algo/knapsack |  |
 | knight's tour | algorithm | implemented | algo/combinatorics |  |
 | Knuth-Morris-Pratt algorithm | algorithm | implemented | algo/stringology |  |
-| Königsberg bridges problem | problem | implemented | algo/graph_struct |  |
+| Königsberg bridges problem | alias | implemented | algo/graph_struct | alias of Euler cycle |
 | Kolmogorov complexity | concept | n/a |  |  |
 | Kraft's inequality | concept | n/a |  |  |
 | Kripke structure | algorithm | implemented | algo/model_check |  |
 | Kruskal's algorithm | algorithm | implemented | algo/graph_path |  |
 | kth order Fibonacci numbers | algorithm | implemented | algo/number_theory |  |
 | kth shortest path | algorithm | implemented | algo/graph_path |  |
-| kth smallest element | algorithm | implemented | algo/sort | nth_element |
+| kth smallest element | alias | implemented | algo/sort | alias of select kth element; nth_element |
 | k²-tree | structure | implemented | lib/k2_tree |  |
-| KV diagram | concept | n/a |  |  |
+| KV diagram | alias | restricted | algo/karnaugh | alias of Karnaugh map; 0..6 variables, Gray layout, prime/custom-cost cube covers; exact search with budgeted best-so-far output |
 | k-way merge | algorithm | implemented | algo/kway_merge |  |
 | k-way merge sort | algorithm | implemented | algo/sort_misc |  |
-| k-way tree | concept | n/a |  |  |
+| k-way tree | alias | n/a |  | alias of k-ary tree |
 
 ### L
 
@@ -744,25 +746,25 @@ No row is classified missing.
 | lattice | concept | n/a |  |  |
 | layered graph | algorithm | implemented | algo/flow |  |
 | LCFS hashing | structure | implemented | lib/open_map |  |
-| LCM | algorithm | implemented | algo/numeric |  |
+| LCM | alias | implemented | algo/numeric | alias of least common multiple |
 | LCS | algorithm | implemented | algo/stringology |  |
-| LDS | concept | n/a |  |  |
+| LDS | alias | implemented | lib/ld_signature | alias of linked data signature; RDFC-1.0 through lib/rdf_canon; the Data Integrity hash data with any lib/sha2 digest; pluggable suites, HMAC-SHA256 by default, Ed25519 for eddsa-rdfc-2022 (multibase proof values, Multikeys) |
 | leaf | concept | n/a |  |  |
 | least common multiple | algorithm | implemented | algo/numeric |  |
 | leftist tree | structure | implemented | lib/meldable_heap |  |
 | left rotation | structure | implemented | lib/avl, lib/rbt |  |
 | Lempel-Ziv-Welch | algorithm | implemented | algo/compress |  |
 | level | concept | n/a |  |  |
-| level-order traversal | concept | n/a |  |  |
+| level-order traversal | algorithm | implemented | lib/graph, algo/graph_view | breadth-first traversal when the input graph represents a tree |
 | Levenshtein distance | algorithm | implemented | algo/stringology |  |
 | lexicographical order | algorithm | implemented | algo/sequence | ds_lexicographic_compare |
-| LIFO | structure | implemented | lib/stack |  |
+| LIFO | alias | implemented | lib/stack | alias of stack |
 | linear | concept | n/a |  |  |
 | linear congruential generator | algorithm | implemented | algo/random |  |
 | linear hash | algorithm | implemented | algo/hash_family |  |
 | linear hashing | structure | implemented | lib/linear_hash_map |  |
-| linear insertion sort | algorithm | implemented | algo/sort |  |
-| linear order | concept | n/a |  |  |
+| linear insertion sort | alias | implemented | algo/sort | alias of insertion sort |
+| linear order | alias | n/a |  | alias of total order |
 | linear probing | structure | implemented | lib/hash_table, lib/rh_map |  |
 | linear probing sort | algorithm | implemented | algo/sort_dist |  |
 | linear product | concept | n/a |  |  |
@@ -789,7 +791,7 @@ No row is classified missing.
 | lowest common ancestor | algorithm | implemented | algo/lca |  |
 | l-reduction | concept | n/a |  |  |
 | lucky sort | algorithm | implemented | algo/sort_misc |  |
-| LZW compression | algorithm | implemented | algo/compress |  |
+| LZW compression | alias | implemented | algo/compress | alias of Lempel-Ziv-Welch |
 
 ### M
 
@@ -798,10 +800,10 @@ No row is classified missing.
 | Malhotra-Kumar-Maheshwari blocking flow | algorithm | implemented | algo/flow |  |
 | Manhattan distance | algorithm | implemented | algo/geometry |  |
 | many-one reduction | concept | n/a |  |  |
-| map | structure | implemented | lib/hash_table, lib/rh_map, lib/avl, ... |  |
+| map | alias | implemented | lib/hash_table, lib/rh_map, lib/avl, ... | alias of dictionary |
 | Markov chain | algorithm | implemented | algo/markov |  |
 | Marlena | concept | n/a |  |  |
-| marriage problem | problem | implemented | algo/matching |  |
+| marriage problem | alias | implemented | algo/matching | alias of assignment problem |
 | Master theorem | concept | n/a |  |  |
 | matched edge | concept | n/a |  |  |
 | matched vertex | concept | n/a |  |  |
@@ -813,9 +815,9 @@ No row is classified missing.
 | maximal independent set | algorithm | implemented | algo/graph_np |  |
 | maximally connected component | concept | n/a |  |  |
 | Maximal Shift | algorithm | implemented | algo/string_search |  |
-| maximum bipartite matching | algorithm | implemented | algo/matching |  |
+| maximum bipartite matching | alias | implemented | algo/matching | alias of bipartite matching |
 | maximum-flow problem | problem | implemented | algo/flow |  |
-| MBB | algorithm | implemented | algo/geometry |  |
+| MBB | alias | implemented | algo/geometry | alias of minimum bounding box |
 | Mealy machine | structure | implemented | lib/automaton |  |
 | mean | algorithm | implemented | algo/numeric | Welford |
 | median | algorithm | implemented | algo/sort | nth_element |
@@ -835,7 +837,7 @@ No row is classified missing.
 | minimum cut | algorithm | implemented | algo/flow |  |
 | minimum spanning tree | algorithm | implemented | algo/graph_view (Prim), lib/graph |  |
 | minimum vertex cut | algorithm | implemented | algo/flow |  |
-| Minkowski distance | algorithm | implemented | algo/geometry |  |
+| Minkowski distance | alias | implemented | algo/geometry | alias of Lm distance |
 | mixed integer linear program | algorithm | implemented | algo/lp |  |
 | mode | algorithm | implemented | algo/numerical |  |
 | model checking | algorithm | implemented | algo/model_check |  |
@@ -848,18 +850,18 @@ No row is classified missing.
 | Monte Carlo algorithm | concept | n/a |  |  |
 | Moore machine | structure | implemented | lib/automaton |  |
 | Morris-Pratt algorithm | algorithm | implemented | algo/string_search |  |
-| move | algorithm | implemented | algo/compress |  |
+| move | alias | n/a |  | alias of transition |
 | move-to-front heuristic | structure | implemented | lib/self_org_list |  |
 | move-to-root heuristic | structure | implemented | lib/self_org_list |  |
-| MST | algorithm | implemented | algo/graph_view, lib/graph |  |
-| multi-commodity flow | concept | n/a |  |  |
+| MST | alias | implemented | algo/graph_view (Prim), lib/graph | alias of minimum spanning tree |
+| multi-commodity flow | problem | implemented | algo/multiflow | dense shared-capacity LP; delivery bounds, costs and solver callback |
 | multigraph | concept | n/a |  |  |
 | multikey Quicksort | algorithm | implemented | algo/sort_dist |  |
 | multilayer grid file | structure | implemented | lib/grid_file |  |
 | multiplication method | algorithm | implemented | algo/hash_family |  |
 | multiprefix | algorithm | implemented | algo/scan |  |
 | multiprocessor model | concept | n/a |  |  |
-| multi-set | structure | implemented | lib/multiset |  |
+| multi-set | alias | implemented | lib/multiset | alias of bag |
 | multi suffix tree | structure | implemented | lib/suffix_tree |  |
 | multiway decision | concept | n/a |  |  |
 | multiway merge | algorithm | implemented | algo/kway_merge |  |
@@ -871,16 +873,16 @@ No row is classified missing.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| naive string search | algorithm | implemented | algo/string_search |  |
+| naive string search | alias | implemented | algo/string_search | alias of brute force string search |
 | nand | concept | n/a |  |  |
 | n-ary function | concept | n/a |  |  |
 | NC many-one reducibility | concept | n/a |  |  |
 | nearest neighbor | algorithm | implemented | algo/geometry |  |
 | negation | concept | n/a |  |  |
-| network flow | algorithm | implemented | algo/flow |  |
-| network flow problem | problem | implemented | algo/flow |  |
+| network flow | alias | n/a |  | alias of flow function |
+| network flow problem | alias | implemented | algo/flow | alias of maximum-flow problem |
 | next state | concept | n/a |  |  |
-| NFA | structure | implemented | lib/automaton |  |
+| NFA | alias | n/a |  | alias of nondeterministic finite state machine |
 | NFTA | alias | implemented | lib/tree_automaton | alias of nondeterministic finite tree automaton |
 | NIST | concept | n/a |  |  |
 | node | concept | n/a |  |  |
@@ -888,13 +890,13 @@ No row is classified missing.
 | nonbalanced merge sort | algorithm | implemented | algo/external_sort |  |
 | nondeterministic | concept | n/a |  |  |
 | nondeterministic algorithm | concept | n/a |  |  |
-| nondeterministic finite automaton | structure | implemented | lib/automaton |  |
+| nondeterministic finite automaton | alias | n/a |  | alias of nondeterministic finite state machine |
 | nondeterministic finite state machine | concept | n/a |  |  |
 | nondeterministic finite tree automaton | structure | implemented | lib/tree_automaton |  |
-| nondeterministic polynomial time | concept | n/a |  |  |
+| nondeterministic polynomial time | alias | n/a |  | alias of NP |
 | nondeterministic tree automaton | structure | implemented | lib/tree_automaton |  |
 | nondeterministic Turing machine | structure | implemented | lib/turing_machine |  |
-| nonterminal node | concept | n/a |  |  |
+| nonterminal node | alias | n/a |  | alias of internal node |
 | nor | concept | n/a |  |  |
 | not | concept | n/a |  |  |
 | Not So Naive | algorithm | implemented | algo/string_search |  |
@@ -903,7 +905,7 @@ No row is classified missing.
 | NP-complete language | concept | n/a |  |  |
 | NP-hard | concept | n/a |  |  |
 | n queens | algorithm | implemented | algo/combinatorics |  |
-| nullary function | concept | n/a |  |  |
+| nullary function | alias | n/a |  | alias of 0-ary function |
 | null tree | concept | n/a |  |  |
 | NYSIIS | algorithm | implemented | algo/phonetic |  |
 
@@ -911,7 +913,7 @@ No row is classified missing.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| O | concept | n/a |  |  |
+| O | alias | n/a |  | alias of big-O notation |
 | OBDD | structure | implemented | lib/bdd |  |
 | objective function | concept | n/a |  |  |
 | oblivious algorithm | concept | n/a |  |  |
@@ -925,8 +927,8 @@ No row is classified missing.
 | on-line algorithm | concept | n/a |  |  |
 | open addressing | structure | implemented | lib/hash_table, lib/rh_map |  |
 | optimal | concept | n/a |  |  |
-| optimal cost | concept | n/a |  |  |
-| optimal hashing | algorithm | implemented | algo/perfect_hash |  |
+| optimal cost | alias | n/a |  | alias of best-case cost |
+| optimal hashing | alias | implemented | algo/perfect_hash | alias of perfect hashing |
 | optimal merge | algorithm | implemented | algo/kway_merge |  |
 | optimal mismatch | algorithm | implemented | algo/string_search |  |
 | optimal polygon triangulation problem | problem | implemented | algo/geometry |  |
@@ -942,15 +944,15 @@ No row is classified missing.
 | oracle Turing machine | concept | n/a |  |  |
 | order | concept | n/a |  |  |
 | ordered array | structure | implemented | lib/vec | sort, binary search |
-| ordered binary decision diagram | structure | implemented | lib/bdd |  |
+| ordered binary decision diagram | alias | implemented | lib/bdd | alias of OBDD |
 | ordered linked list | structure | implemented | lib/sorted_list |  |
 | ordered tree | concept | n/a |  |  |
-| order-preserving hash | algorithm | implemented | algo/hash_family |  |
+| order-preserving hash | alias | implemented | algo/hash_family | alias of linear hash |
 | order-preserving Huffman coding | algorithm | implemented | algo/prefix_code |  |
 | order-preserving minimal perfect hashing | algorithm | implemented | algo/perfect_hash |  |
-| oriented acyclic graph | concept | n/a |  |  |
-| oriented graph | concept | n/a |  |  |
-| oriented tree | concept | n/a |  |  |
+| oriented acyclic graph | alias | n/a |  | alias of directed acyclic graph |
+| oriented graph | alias | implemented | lib/graph | alias of directed graph |
+| oriented tree | alias | n/a |  | alias of rooted tree |
 | orthogonal drawing | concept | n/a |  |  |
 | orthogonal lists | structure | implemented | lib/sparse_matrix |  |
 | orthogonally convex rectilinear polygon | algorithm | implemented | algo/geometry |  |
@@ -966,16 +968,16 @@ No row is classified missing.
 | padding argument | concept | n/a |  |  |
 | pagoda | structure | implemented | lib/pagoda |  |
 | pairing heap | structure | implemented | lib/pairing_heap |  |
-| PAM | structure | implemented | lib/quadtree |  |
+| PAM | alias | implemented | lib/quadtree | alias of point access method |
 | parallel computation thesis | concept | n/a |  |  |
-| parallel prefix computation | algorithm | implemented | algo/scan |  |
+| parallel prefix computation | algorithm | implemented | algo/scan, lib/executor | Hillis-Steele and Blelloch rounds on a caller-selected executor |
 | parallel random-access machine | concept | n/a |  |  |
 | parametric searching | concept | n/a |  |  |
 | parent | concept | n/a |  |  |
 | partial function | concept | n/a |  |  |
 | partially decidable problem | concept | n/a |  |  |
 | partially dynamic graph problem | concept | n/a |  |  |
-| partially ordered set | concept | n/a |  |  |
+| partially ordered set | alias | n/a |  | alias of poset |
 | partially persistent data structure | structure | implemented | lib/persistent_rbt, lib/persistent_trie |  |
 | partial order | concept | n/a |  |  |
 | partial recursive function | concept | n/a |  |  |
@@ -983,12 +985,12 @@ No row is classified missing.
 | passive data structure | concept | n/a |  |  |
 | path | concept | n/a |  |  |
 | path cover | algorithm | implemented | algo/graph_np |  |
-| path system problem | concept | n/a |  |  |
+| path system problem | problem | implemented | algo/logic_graph | binary-premise wrapper over least-fixed-point Horn closure |
 | Patricia tree | structure | implemented | lib/radix_trie, lib/critbit_tree |  |
 | pattern | concept | n/a |  |  |
 | pattern element | concept | n/a |  |  |
 | P-complete | concept | n/a |  |  |
-| PCP | concept | n/a |  |  |
+| PCP | alias | n/a |  | alias of Post's correspondence problem |
 | PDA | alias | implemented | lib/pushdown | alias of pushdown automaton |
 | Pearson's hash | algorithm | implemented | algo/hash_family |  |
 | perfect binary tree | concept | n/a |  |  |
@@ -997,18 +999,18 @@ No row is classified missing.
 | perfect matching | algorithm | implemented | algo/matching |  |
 | perfect shuffle | algorithm | implemented | algo/sequence |  |
 | performance guarantee | concept | n/a |  |  |
-| performance ratio | concept | n/a |  |  |
+| performance ratio | alias | n/a |  | alias of relative performance guarantee |
 | permutation | algorithm | implemented | algo/sequence | next/prev permutation |
 | permutation sort | algorithm | implemented | algo/sort_misc |  |
 | persistent data structure | structure | implemented | lib/persistent_rbt, lib/persistent_trie |  |
 | phonetic coding | algorithm | implemented | algo/phonetic |  |
 | pigeonhole sort | algorithm | implemented | algo/sort_dist |  |
-| pile | concept | n/a |  |  |
+| pile | structure | restricted | algo/sort_dist | internal ordered deques in UnShuffle sort; no standalone container API |
 | pipelined divide and conquer | concept | n/a |  |  |
 | planar graph | concept | implemented | algo/planarity | decided by the left-right test, with embeddings and Kuratowski certificates |
-| planarization | algorithm | implemented | algo/planarity | by edge deletion: a maximal planar subgraph; no crossing vertices |
+| planarization | algorithm | variant | algo/planarity | greedy maximal planar subgraph; no minimum-deletion guarantee or crossing-vertex insertion |
 | planar straight-line graph | concept | implemented | algo/planarity | a straight-line grid drawing of any planar graph by the shift method |
-| PLOP-hashing | structure | implemented | lib/plop_hash |  |
+| PLOP-hashing | structure | implemented | lib/plop_hash | piecewise linear spatial hashing, <=16 dimensions; in-memory modeled bucket pages |
 | point access method | structure | implemented | lib/quadtree |  |
 | pointer jumping | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
 | pointer machine | concept | n/a |  |  |
@@ -1025,18 +1027,18 @@ No row is classified missing.
 | polyphase merge sort | algorithm | implemented | algo/external_sort |  |
 | polytope | concept | n/a |  |  |
 | poset | concept | n/a |  |  |
-| postfix traversal | concept | n/a |  |  |
+| postfix traversal | alias | implemented | lib/avl, lib/bst walks | alias of postorder traversal |
 | Post machine | concept | n/a |  |  |
 | postman's sort | algorithm | implemented | algo/sort_dist |  |
 | postorder traversal | structure | implemented | lib/avl, lib/bst walks |  |
 | Post's correspondence problem | concept | n/a |  |  |
 | potential function | concept | n/a |  |  |
-| PRAM | concept | n/a |  |  |
+| PRAM | alias | n/a |  | alias of parallel random-access machine |
 | predicate | concept | n/a |  |  |
 | prefix | concept | n/a |  |  |
 | prefix code | algorithm | implemented | algo/prefix_code |  |
-| prefix sums | algorithm | implemented | algo/scan |  |
-| prefix traversal | concept | n/a |  |  |
+| prefix sums | alias | implemented | algo/scan | alias of scan |
+| prefix traversal | alias | implemented | lib/avl, lib/bst walks | alias of preorder traversal |
 | preorder traversal | structure | implemented | lib/avl, lib/bst walks |  |
 | primary clustering | concept | n/a |  |  |
 | primitive algorithm | concept | n/a |  |  |
@@ -1045,7 +1047,7 @@ No row is classified missing.
 | principle of optimality | concept | n/a |  |  |
 | priority queue | structure | implemented | lib/heap, lib/indexed_heap, ... |  |
 | prisoner's dilemma | concept | n/a |  |  |
-| PRNG | algorithm | implemented | algo/random |  |
+| PRNG | alias | implemented | algo/random | alias of pseudo-random number generator |
 | probabilistic algorithm | concept | n/a |  |  |
 | probabilistically checkable proof | concept | n/a |  |  |
 | probabilistic Turing machine | concept | n/a |  |  |
@@ -1053,25 +1055,25 @@ No row is classified missing.
 | procedure | concept | n/a |  |  |
 | process algebra | concept | n/a |  |  |
 | proper | concept | n/a |  |  |
-| proper binary tree | concept | n/a |  |  |
+| proper binary tree | alias | n/a |  | alias of full binary tree |
 | proper coloring | concept | n/a |  |  |
 | proper subset | concept | n/a |  |  |
-| property list | structure | implemented | lib/association_list |  |
+| property list | alias | implemented | lib/hash_table, lib/rh_map, lib/avl, ... | alias of dictionary |
 | prune and search | concept | n/a |  |  |
 | pseudo-random number generator | algorithm | implemented | algo/random |  |
-| PTAS | concept | n/a |  |  |
-| pth order Fibonacci numbers | algorithm | implemented | algo/number_theory |  |
+| PTAS | alias | n/a |  | alias of polynomial approximation scheme |
+| pth order Fibonacci numbers | alias | implemented | algo/number_theory | alias of kth order Fibonacci numbers |
 | P-tree | structure | implemented | lib/p_tree |  |
 | purely functional language | concept | n/a |  |  |
 | pushdown automaton | structure | implemented | lib/pushdown |  |
 | pushdown transducer | structure | implemented | lib/pushdown |  |
-| p-way merge sort | algorithm | implemented | algo/sort_misc |  |
+| p-way merge sort | alias | implemented | algo/sort_misc | alias of k-way merge sort |
 
 ### Q
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| qm sort | algorithm | implemented | algo/sort_misc |  |
+| qm sort | algorithm | implemented | algo/sort_misc | random pair compare/exchange until sorted; separate from qsort; small-input and work-budget guards |
 | q sort | algorithm | implemented | algo/sort_misc | Bentley-McIlroy qsort: ds_q_sort, and ds_qsort with the C library signature |
 | quadratic probing | structure | implemented | lib/hash_table |  |
 | quadtree | structure | implemented | lib/quadtree |  |
@@ -1086,9 +1088,9 @@ No row is classified missing.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| Rabin-Karp | algorithm | implemented | algo/stringology |  |
+| Rabin-Karp | alias | implemented | algo/stringology | alias of Karp-Rabin |
 | radix sort | algorithm | implemented | algo/sort | LSD radix |
-| radix tree | structure | implemented | lib/radix_trie |  |
+| radix tree | alias | implemented | lib/radix_trie, lib/critbit_tree | alias of Patricia tree |
 | ragged matrix | structure | implemented | lib/sparse_matrix |  |
 | Raita | algorithm | implemented | algo/string_search |  |
 | random access machine | concept | n/a |  |  |
@@ -1096,7 +1098,7 @@ No row is classified missing.
 | randomized algorithm | concept | n/a |  |  |
 | randomized binary search tree | structure | implemented | lib/rbst |  |
 | randomized complexity | concept | n/a |  |  |
-| randomized polynomial time | concept | n/a |  |  |
+| randomized polynomial time | alias | n/a |  | alias of RP |
 | randomized rounding | concept | n/a |  |  |
 | randomized search tree | structure | implemented | lib/treap |  |
 | Randomized-Select | algorithm | implemented | algo/select |  |
@@ -1108,25 +1110,25 @@ No row is classified missing.
 | rank | structure | implemented | lib/order_statistic_tree, lib/bitvector |  |
 | rapid sort | algorithm | implemented | algo/sort_dist |  |
 | Ratcliff/Obershelp pattern recognition | algorithm | implemented | algo/string_approx |  |
-| RBST | structure | implemented | lib/rbst |  |
-| reachability | algorithm | implemented | algo/graph_view | BFS |
+| RBST | alias | implemented | lib/rbst | alias of randomized binary search tree |
+| reachability | alias | implemented | algo/graph_view | alias of reachable; BFS |
 | reachable | algorithm | implemented | algo/graph_view | BFS |
 | rebalance | structure | implemented | lib/avl, lib/rbt |  |
 | recognizer | concept | n/a |  |  |
 | rectangular matrix | concept | n/a |  |  |
 | rectilinear | concept | n/a |  |  |
 | rectilinear Steiner tree | algorithm | implemented | algo/steiner |  |
-| recurrence equations | concept | n/a |  |  |
+| recurrence equations | alias | n/a |  | alias of recurrence relation |
 | recurrence relation | concept | n/a |  |  |
 | recursion | concept | n/a |  |  |
 | recursion termination | concept | n/a |  |  |
 | recursion tree | concept | n/a |  |  |
 | recursive | concept | n/a |  |  |
 | recursive data structure | concept | n/a |  |  |
-| recursive doubling | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
-| recursive language | concept | n/a |  |  |
+| recursive doubling | alias | implemented | algo/parallel_sim | alias of pointer jumping; rounds of independent tasks on any lib/executor |
+| recursive language | alias | n/a |  | alias of decidable language |
 | recursively enumerable language | concept | n/a |  |  |
-| recursively solvable | concept | n/a |  |  |
+| recursively solvable | alias | n/a |  | alias of decidable problem |
 | red-black tree | structure | implemented | lib/rbt, lib/persistent_rbt |  |
 | reduced basis | algorithm | implemented | algo/lattice |  |
 | reduced digraph | algorithm | implemented | algo/graph_struct |  |
@@ -1134,7 +1136,7 @@ No row is classified missing.
 | reduction | concept | n/a |  |  |
 | reflexive | concept | n/a |  |  |
 | regular decomposition | structure | implemented | lib/quadtree |  |
-| rehashing | structure | implemented | lib/open_map |  |
+| rehashing | alias | implemented | lib/open_map | alias of double hashing |
 | relation | concept | n/a |  |  |
 | relational structure | concept | n/a |  |  |
 | relative performance guarantee | concept | n/a |  |  |
@@ -1150,14 +1152,14 @@ No row is classified missing.
 | Rice's method | algorithm | implemented | algo/rice_integral |  |
 | right rotation | structure | implemented | lib/avl, lib/rbt |  |
 | right-threaded tree | structure | implemented | lib/threaded_tree |  |
-| RNG | algorithm | implemented | algo/random |  |
-| ROBDD | structure | implemented | lib/bdd |  |
+| RNG | alias | implemented | algo/random | alias of random number generator; xoshiro128** |
+| ROBDD | alias | implemented | lib/bdd | alias of reduced ordered binary decision diagram |
 | Robin Hood hashing | structure | implemented | lib/rh_map |  |
 | root | concept | n/a |  |  |
-| root balance | structure | implemented | lib/wb_tree |  |
+| root balance | alias | n/a |  | alias of balance |
 | rooted tree | concept | n/a |  |  |
-| rotate left | structure | implemented | lib/avl, lib/rbt |  |
-| rotate right | structure | implemented | lib/avl, lib/rbt |  |
+| rotate left | alias | implemented | lib/avl, lib/rbt | alias of left rotation |
+| rotate right | alias | implemented | lib/avl, lib/rbt | alias of right rotation |
 | rotation | structure | implemented | lib/avl, lib/rbt, lib/treap |  |
 | rough graph | concept | n/a |  |  |
 | RP | concept | n/a |  |  |
@@ -1170,13 +1172,13 @@ No row is classified missing.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| saguaro stack | structure | implemented | lib/cactus_stack |  |
-| SAM | concept | n/a |  |  |
+| saguaro stack | alias | implemented | lib/cactus_stack | alias of cactus stack |
+| SAM | alias | implemented | lib/rtree | alias of spatial access method |
 | saturated edge | concept | n/a |  |  |
 | SBB tree | structure | implemented | lib/rbt | symmetric binary B-tree = red-black tree |
 | scan | algorithm | implemented | algo/scan |  |
 | scapegoat tree | structure | implemented | lib/scapegoat_tree |  |
-| scatter storage | concept | n/a |  |  |
+| scatter storage | alias | implemented | lib/hash_table, lib/rh_map | alias of hash table |
 | Schorr-Waite graph marking algorithm | algorithm | implemented | algo/schorr_waite |  |
 | search | concept | n/a |  |  |
 | search tree | concept | n/a |  |  |
@@ -1186,41 +1188,41 @@ No row is classified missing.
 | segment | concept | n/a |  |  |
 | Select | algorithm | implemented | algo/sort (nth_element), lib/order_statistic_tree |  |
 | select and partition | algorithm | implemented | algo/select |  |
-| selection problem | problem | implemented | algo/sort | nth_element |
+| selection problem | alias | implemented | algo/sort | alias of select kth element; nth_element |
 | selection sort | algorithm | implemented | algo/sort_classic |  |
 | select kth element | algorithm | implemented | algo/sort | nth_element |
 | select mode | algorithm | implemented | algo/select |  |
 | self-loop | concept | n/a |  |  |
 | self-organizing list | structure | implemented | lib/self_org_list |  |
-| self-organizing sequential search | structure | implemented | lib/self_org_list |  |
+| self-organizing sequential search | alias | implemented | lib/self_org_list | alias of transpose sequential search |
 | semidefinite programming | concept | implemented | algo/sdp | block-diagonal SDPs with dense and diagonal blocks; infeasible primal-dual interior point, HKM direction, Mehrotra predictor-corrector; certificates of infeasibility; SDPA format |
 | separate chaining | structure | implemented | lib/hash_table |  |
 | separation theorem | concept | n/a |  |  |
-| sequential search | algorithm | implemented | algo/search |  |
+| sequential search | alias | implemented | algo/search | alias of linear search; ds_find |
 | set | structure | implemented | lib/bitset, lib/sparse_set, lib/string_map | string set |
 | set cover | algorithm | implemented | algo/facility |  |
 | set packing | algorithm | implemented | algo/facility |  |
 | shadow heap | structure | implemented | lib/shadow_heap |  |
 | shadow merge | structure | implemented | lib/shadow_heap |  |
 | shadow merge insert | structure | implemented | lib/shadow_heap |  |
-| shaker sort | algorithm | implemented | algo/sort_classic | cocktail |
+| shaker sort | alias | implemented | algo/sort_classic | alias of bidirectional bubble sort; cocktail |
 | Shannon-Fano coding | algorithm | implemented | algo/prefix_code |  |
 | shared memory | concept | n/a |  |  |
 | Shell sort | algorithm | implemented | algo/sort |  |
 | Shift-Or | algorithm | implemented | algo/string_search |  |
-| Shor's algorithm | concept | n/a |  |  |
-| shortcutting | algorithm | implemented | algo/parallel_sim | rounds of independent tasks on any lib/executor |
+| Shor's algorithm | algorithm | reference | algo/quantum_reference | Fourier order finding and factoring; bounded amplitudes/shots; no discrete-logarithm branch |
+| shortcutting | alias | implemented | algo/parallel_sim | alias of pointer jumping; rounds of independent tasks on any lib/executor |
 | shortest common supersequence | algorithm | implemented | algo/string_approx |  |
 | shortest common superstring | algorithm | implemented | algo/string_approx |  |
 | shortest path | algorithm | implemented | algo/graph_path |  |
-| shortest spanning tree | algorithm | implemented | algo/graph_path |  |
-| shuffle | algorithm | implemented | algo/sequence |  |
+| shortest spanning tree | alias | implemented | algo/graph_view (Prim), lib/graph | alias of minimum spanning tree |
+| shuffle | alias | implemented | algo/sequence | alias of permutation; next/prev permutation |
 | shuffle sort | algorithm | implemented | algo/sort_dist |  |
 | sibling | concept | n/a |  |  |
 | sieve of Eratosthenes | algorithm | implemented | algo/numeric |  |
 | sift up | structure | implemented | lib/heap |  |
 | signature | concept | n/a |  |  |
-| Simon's algorithm | concept | n/a |  |  |
+| Simon's algorithm | algorithm | reference | algo/quantum_reference | output collapse, Hadamard sampling and GF(2) recovery |
 | simple merge | algorithm | implemented | algo/sequence |  |
 | simple path | concept | n/a |  |  |
 | simple uniform hashing | concept | n/a |  |  |
@@ -1228,13 +1230,13 @@ No row is classified missing.
 | simulated annealing | algorithm | implemented | algo/anneal |  |
 | simulation theorem | concept | n/a |  |  |
 | single-destination shortest-path problem | problem | implemented | algo/graph_conn |  |
-| single-pair shortest-path problem | problem | implemented | algo/graph_path |  |
+| single-pair shortest-path problem | alias | implemented | algo/graph_path | alias of shortest path |
 | single program multiple data | concept | n/a |  |  |
 | single-source shortest-path problem | problem | implemented | algo/graph_path |  |
-| singly linked list | structure | implemented | lib/list |  |
+| singly linked list | alias | implemented | lib/list, lib/dlist | alias of linked list |
 | singularity analysis | concept | n/a |  |  |
 | sink | concept | n/a |  |  |
-| sinking sort | algorithm | implemented | algo/sort_classic |  |
+| sinking sort | alias | implemented | algo/sort_classic | alias of bubble sort |
 | skd-tree | structure | implemented | lib/kdb_tree |  |
 | skew symmetry | concept | n/a |  |  |
 | skip list | structure | implemented | lib/skip_list |  |
@@ -1248,7 +1250,7 @@ No row is classified missing.
 | sorted array | structure | implemented | lib/sorted_list |  |
 | sorted list | structure | implemented | lib/sorted_list |  |
 | sorted-string table | alias | implemented | lib/sstable | alias of SSTable |
-| sort in place | concept | n/a |  |  |
+| sort in place | alias | implemented | algo/sort | alias of in-place sort |
 | soundex | algorithm | implemented | algo/phonetic |  |
 | source | concept | n/a |  |  |
 | space-constructible function | concept | n/a |  |  |
@@ -1261,10 +1263,10 @@ No row is classified missing.
 | spatial access method | structure | implemented | lib/rtree |  |
 | spiral storage | structure | implemented | lib/spiral_storage |  |
 | splay tree | structure | implemented | lib/splay_tree |  |
-| SPMD | concept | n/a |  |  |
+| SPMD | alias | n/a |  | alias of single program multiple data |
 | square matrix | concept | n/a |  |  |
 | square root | algorithm | implemented | algo/numerical |  |
-| SST | algorithm | implemented | algo/graph_path |  |
+| SST | alias | implemented | algo/graph_view (Prim), lib/graph | alias of minimum spanning tree |
 | SSTable | structure | implemented | lib/sstable |  |
 | stable | concept | n/a |  |  |
 | stack | structure | implemented | lib/stack |  |
@@ -1274,16 +1276,16 @@ No row is classified missing.
 | start state | concept | n/a |  |  |
 | state | concept | n/a |  |  |
 | state machine | concept | n/a |  |  |
-| state transition | concept | n/a |  |  |
+| state transition | alias | n/a |  | alias of transition |
 | static | concept | n/a |  |  |
-| static Huffman coding | algorithm | implemented | algo/prefix_code |  |
+| static Huffman coding | alias | implemented | algo/prefix_code | alias of Huffman coding |
 | s-t cut | algorithm | implemented | algo/flow |  |
 | st-digraph | concept | n/a |  |  |
 | Steiner point | concept | n/a |  |  |
 | Steiner ratio | concept | n/a |  |  |
 | Steiner tree | algorithm | implemented | algo/steiner |  |
 | Steiner vertex | concept | n/a |  |  |
-| Steinhaus-Johnson-Trotter | algorithm | implemented | algo/combinatorics |  |
+| Steinhaus-Johnson-Trotter | alias | implemented | algo/combinatorics | alias of Johnson-Trotter |
 | Stirling's approximation | algorithm | implemented | algo/numerical |  |
 | Stirling's formula | algorithm | implemented | algo/numerical |  |
 | stooge sort | algorithm | implemented | algo/sort_classic |  |
@@ -1299,7 +1301,7 @@ No row is classified missing.
 | string matching on ordered alphabets | algorithm | implemented | algo/string_search |  |
 | string matching with errors | algorithm | implemented | algo/string_approx |  |
 | string matching with mismatches | algorithm | implemented | algo/string_search |  |
-| string searching | algorithm | implemented | algo/string_search |  |
+| string searching | alias | implemented | algo/string_search | alias of string matching |
 | strip packing | algorithm | implemented | algo/knapsack |  |
 | strongly connected component | algorithm | implemented | algo/graph_view (Tarjan), lib/graph |  |
 | strongly connected graph | concept | n/a |  |  |
@@ -1323,10 +1325,10 @@ No row is classified missing.
 | supersink | concept | n/a |  |  |
 | supersource | concept | n/a |  |  |
 | symmetric | concept | n/a |  |  |
-| symmetrically linked list | structure | implemented | lib/dlist |  |
-| symmetric binary B-tree | structure | implemented | lib/rbt |  |
+| symmetrically linked list | alias | implemented | lib/dlist | alias of doubly linked list |
+| symmetric binary B-tree | alias | implemented | lib/rbt, lib/persistent_rbt | alias of red-black tree |
 | symmetric set difference | algorithm | implemented | algo/sequence | ds_set_symmetric_difference |
-| symmetric traversal | alias | implemented | lib/bst | alias of in-order traversal; in-order traversal |
+| symmetric traversal | alias | implemented | lib/avl, lib/rbt, lib/bst walks | alias of in-order traversal |
 | symmetry breaking | concept | n/a |  |  |
 
 ### T
@@ -1340,29 +1342,29 @@ No row is classified missing.
 | target | concept | n/a |  |  |
 | temporal logic | concept | n/a |  |  |
 | terminal | concept | n/a |  |  |
-| terminal node | concept | n/a |  |  |
+| terminal node | alias | n/a |  | alias of leaf |
 | ternary search tree | structure | implemented | lib/tst |  |
 | text | structure | implemented | lib/str, lib/rope, lib/gap_buffer |  |
-| text searching | algorithm | implemented | algo/string_search |  |
-| theta | concept | n/a |  |  |
+| text searching | alias | implemented | algo/string_search | alias of string matching |
+| theta | alias | n/a |  | alias of Θ |
 | threaded binary tree | structure | implemented | lib/threaded_tree |  |
 | threaded tree | structure | implemented | lib/threaded_tree |  |
 | three-dimensional | concept | n/a |  |  |
 | three-way merge sort | algorithm | implemented | algo/sort_misc |  |
-| three-way radix quicksort | algorithm | implemented | algo/sort_dist |  |
+| three-way radix quicksort | alias | implemented | algo/sort_dist | alias of multikey Quicksort |
 | time-constructible function | concept | n/a |  |  |
 | time/space complexity | concept | n/a |  |  |
 | top-down radix sort | algorithm | implemented | algo/sort_dist |  |
 | top-down tree automaton | structure | implemented | lib/tree_automaton |  |
 | topological order | algorithm | implemented | algo/graph_view |  |
 | topological sort | algorithm | implemented | algo/graph_view, lib/graph |  |
-| topology tree | structure | implemented | lib/topology_tree | same-level neighbour links: O(log n) worst-case link and cut; path and component aggregates |
+| topology tree | structure | implemented | lib/topology_tree | maximum-degree-3 forests; same-level neighbour links, path/component aggregates |
 | total function | concept | n/a |  |  |
-| totally decidable language | concept | n/a |  |  |
-| totally decidable problem | concept | n/a |  |  |
+| totally decidable language | alias | n/a |  | alias of decidable language |
+| totally decidable problem | alias | n/a |  | alias of decidable problem |
 | totally undecidable problem | concept | n/a |  |  |
 | total order | concept | n/a |  |  |
-| tour | concept | n/a |  |  |
+| tour | alias | implemented | algo/graph_np | alias of Hamiltonian cycle |
 | tournament | algorithm | implemented | algo/kway_merge |  |
 | tournament sort | algorithm | implemented | algo/sort_heap |  |
 | towers of Hanoi | algorithm | implemented | algo/combinatorics |  |
@@ -1387,8 +1389,8 @@ No row is classified missing.
 | trie | structure | implemented | lib/trie |  |
 | trinary function | concept | n/a |  |  |
 | tripartition | algorithm | implemented | algo/sort_misc | Dutch national flag |
-| Trotter-Johnson | algorithm | implemented | algo/combinatorics |  |
-| TSP | algorithm | implemented | algo/tsp |  |
+| Trotter-Johnson | alias | implemented | algo/combinatorics | alias of Johnson-Trotter |
+| TSP | alias | implemented | algo/tsp | alias of traveling salesman |
 | TST | alias | implemented | lib/tst | alias of ternary search tree |
 | Turbo-BM | algorithm | implemented | algo/string_search |  |
 | Turbo Reverse Factor | algorithm | implemented | algo/string_search |  |
@@ -1400,14 +1402,14 @@ No row is classified missing.
 | two-dimensional | concept | n/a |  |  |
 | two-level grid file | structure | implemented | lib/grid_file |  |
 | Two Way algorithm | algorithm | implemented | algo/string_search |  |
-| two-way linked list | structure | implemented | lib/dlist |  |
+| two-way linked list | alias | implemented | lib/dlist | alias of doubly linked list |
 | two-way merge sort | algorithm | implemented | algo/sort_misc |  |
 
 ### U
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| UB-tree | structure | implemented | lib/ub_tree |  |
+| UB-tree | structure | restricted | lib/ub_tree | Morton-indexed points: <=8 dimensions, <=32 bits per coordinate; underfull nodes may remain after deletion |
 | UKP | alias | implemented | algo/knapsack | alias of unbounded knapsack problem |
 | unary function | concept | n/a |  |  |
 | unbiased coin flipping algorithm | algorithm | implemented | algo/random |  |
@@ -1423,7 +1425,7 @@ No row is classified missing.
 | uniform matrix | concept | n/a |  |  |
 | union | algorithm | implemented | algo/sequence | ds_set_union |
 | union of automata | structure | implemented | lib/automaton |  |
-| universal B-tree | structure | implemented | lib/ub_tree |  |
+| universal B-tree | structure | restricted | lib/ub_tree | Morton-indexed points: <=8 dimensions, <=32 bits per coordinate; underfull nodes may remain after deletion |
 | universal hashing | algorithm | implemented | algo/hash_family |  |
 | universal state | concept | n/a |  |  |
 | universal Turing machine | concept | n/a |  |  |
@@ -1441,7 +1443,7 @@ No row is classified missing.
 |---|---|---|---|---|
 | van Emde-Boas priority queue | structure | implemented | lib/veb_tree |  |
 | vehicle routing problem | problem | implemented | algo/tsp |  |
-| Veitch diagram | concept | n/a |  |  |
+| Veitch diagram | alias | restricted | algo/karnaugh | alias of Karnaugh map; 0..6 variables, Gray layout, prime/custom-cost cube covers; exact search with budgeted best-so-far output |
 | Venn diagram | concept | n/a |  |  |
 | vertex | concept | n/a |  |  |
 | vertex coloring | algorithm | implemented | algo/graph_np |  |
@@ -1453,7 +1455,7 @@ No row is classified missing.
 | visible | concept | n/a |  |  |
 | Viterbi algorithm | algorithm | implemented | algo/hmm |  |
 | Vitter's algorithm | algorithm | implemented | algo/adaptive_huffman |  |
-| VRP | algorithm | implemented | algo/tsp |  |
+| VRP | alias | implemented | algo/tsp | alias of vehicle routing problem |
 
 ### W
 
@@ -1463,7 +1465,7 @@ No row is classified missing.
 | WCET | alias | n/a |  | alias of worst-case execution time |
 | weak-heap | structure | implemented | lib/weak_heap, lib/pq_iface | also an addressable queue backend (handles, update, remove) |
 | weak-heap sort | structure | implemented | lib/weak_heap |  |
-| weight-balanced tree | structure | implemented | lib/wb_tree |  |
+| weight-balanced tree | alias | implemented | lib/wb_tree | alias of BB(α) tree |
 | weighted, directed graph | concept | n/a |  |  |
 | weighted graph | concept | n/a |  |  |
 | window | concept | n/a |  |  |
@@ -1487,7 +1489,7 @@ No row is classified missing.
 
 | entry | kind | state | module | note |
 |---|---|---|---|---|
-| Yule distribution | algorithm | implemented | algo/random |  |
+| Yule distribution | alias | implemented | algo/random | alias of Zipfian distribution |
 
 ### Z
 
@@ -1511,7 +1513,7 @@ No row is classified missing.
 | Jacobi eigenvalue algorithm | algorithm | implemented | `algo/matrix` | cyclic Jacobi rotations for symmetric matrices: ascending eigenvalues, orthonormal eigenvectors, relative drop test |
 | Lovasz theta function | algorithm | implemented | `algo/sdp` | by its semidefinite program; between the independence number and the clique cover number |
 | Goemans-Williamson max-cut | algorithm | implemented | `algo/sdp` | the SDP relaxation and random-hyperplane rounding of its Gram vectors (0.878 approximation in expectation for nonnegative weights) |
-| spectral test | algorithm | implemented | `algo/lattice`, `algo/random` | 2 <= t <= 8 dimensions, m < 2^26 (algo/lattice); 2-D in algo/random |
+| spectral test | algorithm | restricted | `algo/lattice`, `algo/random` | 2 <= t <= 8 dimensions, m < 2^26 (algo/lattice); 2-D in algo/random |
 | stable marriage problem | problem | implemented | `algo/matching` | Gale-Shapley (the DADS entry is "marriage problem") |
 | ternary search | algorithm | implemented | `algo/search` | extremum search on unimodal functions/arrays |
 | tree sort | algorithm | implemented | `algo/sort_heap` | BST-insertion tree sort; see treesort (1) and (2) |

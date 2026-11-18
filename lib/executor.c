@@ -28,7 +28,7 @@ void ds_executor_chunk(size_t n, size_t tasks, size_t index, size_t *lo,
 
 size_t ds_executor_tasks(const ds_executor_t *ex, size_t n) {
   size_t w = ex != NULL && ex->workers > 0 ? ex->workers : 1;
-  size_t t = w > 1 ? 4 * w : 1; /* a few per worker, for balance */
+  size_t t = w > 1 ? (w > (size_t)-1 / 4 ? (size_t)-1 : 4 * w) : 1;
   if (t > n) {
     t = n;
   }

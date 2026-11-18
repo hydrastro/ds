@@ -2,6 +2,7 @@
 #define DS_ROPE_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -37,11 +38,17 @@ typedef struct rope_node {
 
 typedef struct rope {
   ds_rope_node_t *root;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_rope_t;
 
 /* NULL when memory runs out, or without an allocator and a deallocator */
+/* Context owns all internal storage and must outlive the container. NULL
+ * context selects the default. On failure *out is NULL. Existing constructors
+ * retain their allocator behavior. Public layouts require recompilation. */
+ds_status_t ds_rope_create_context(ds_context_t *context, ds_rope_t **out);
+
 ds_rope_t *ds_rope_create(void);
 ds_rope_t *ds_rope_create_alloc(void *(*allocator)(size_t),
                                 void (*deallocator)(void *));
@@ -69,12 +76,21 @@ void ds_rope_delete(ds_rope_t *rope, size_t index, size_t count);
 size_t ds_rope_substring(ds_rope_t *rope, size_t index, size_t count,
                          char *out);
 /* materialize the whole rope into a freshly allocated NUL-terminated buffer */
+/* Release returned text through rope->context when non-NULL, otherwise through
+ * the legacy deallocator. Do not use the legacy function pair for context-owned
+ * storage. The rope retains no ownership of the returned text. */
 char *ds_rope_to_string(ds_rope_t *rope);
 /* concatenate other onto the end of rope; other is emptied on success.
- * Self-concatenation and different allocator pairs are DS_ERR_INVALID. */
+ * Self-concatenation, incompatible contexts, mixed legacy/context ownership,
+ * or different legacy allocator pairs are DS_ERR_INVALID. */
 void ds_rope_concat(ds_rope_t *rope, ds_rope_t *other);
 void ds_rope_rebalance(ds_rope_t *rope);
 void ds_rope_destroy(ds_rope_t *rope);
+
+/* Checked lookup distinguishes a stored NUL byte from an invalid index.
+ * char_at preserves out on error; to_string clears out on failure. */
+ds_status_t ds_rope_char_at_ex(ds_rope_t *rope, size_t index, char *out);
+ds_status_t ds_rope_to_string_ex(ds_rope_t *rope, char **out);
 
 #ifdef __cplusplus
 }

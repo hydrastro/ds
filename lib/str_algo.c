@@ -1,4 +1,5 @@
 #include "str_algo.h"
+#include "legacy_alloc.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -392,7 +393,11 @@ int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
   if (!s || !from || nfrom == 0u)
     return -1;
 
-  out = ds_str_create_alloc(s->allocator, s->deallocator);
+  if (s->context != NULL) {
+    if (ds_str_create_context(s->context, &out) != DS_OK)
+      return -1;
+  } else
+    out = ds_str_create_alloc(s->allocator, s->deallocator);
   if (!out) {
     return -1;
   }
@@ -437,7 +442,7 @@ int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
   }
 
   if (s->buf)
-    s->deallocator(s->buf);
+    DS_LEGACY_FREE(s, s->buf);
   s->buf = out->buf;
   s->len = out->len;
   s->cap = out->cap;

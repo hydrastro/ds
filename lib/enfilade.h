@@ -12,7 +12,8 @@
  *
  * Built on a treap keyed implicitly by position (split and join), with
  * subtree counts and width sums; items are stored by value. The random
- * priorities come from an internal generator.
+ * priorities come from an internal generator. All traversals and edits are
+ * iterative; worst-case time is O(height) but C-stack use stays constant.
  *
  * Concurrency: an enfilade may be used by one thread at a time.
  */
@@ -33,6 +34,7 @@ typedef struct ds_enfilade {
   size_t *cnt; /* subtree items */
   size_t *left;
   size_t *right;
+  size_t *parent;
   unsigned long *prio;
   size_t root;
   size_t slots;
@@ -52,7 +54,8 @@ void ds_enfilade_destroy(ds_enfilade_t *e);
 size_t ds_enfilade_count(const ds_enfilade_t *e);
 /* Sum of all widths (saturating). */
 size_t ds_enfilade_width(const ds_enfilade_t *e);
-/* Inserts before item `index` (index = count appends). */
+/* Inserts before item `index` (index = count appends). elem may point into
+ * this enfilade; it is staged before growth. */
 ds_status_t ds_enfilade_insert(ds_enfilade_t *e, size_t index, const void *elem,
                                size_t wid);
 ds_status_t ds_enfilade_remove(ds_enfilade_t *e, size_t index, void *out);

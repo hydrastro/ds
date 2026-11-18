@@ -4,6 +4,7 @@
 #include "common.h"
 #include "context.h"
 #include "status.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -30,11 +31,24 @@ typedef struct fibonacci_heap_node {
   bool mark;
 } ds_fibonacci_heap_node_t;
 
+typedef int (*ds_fibonacci_heap_compare_fn)(ds_fibonacci_heap_node_t *,
+                                            ds_fibonacci_heap_node_t *, void *);
+typedef ds_status_t (*ds_fibonacci_heap_visit_fn)(ds_fibonacci_heap_node_t *,
+                                                  void *);
+typedef ds_status_t (*ds_fibonacci_heap_clone_fn)(ds_fibonacci_heap_node_t *,
+                                                  ds_fibonacci_heap_node_t **,
+                                                  void *);
+typedef void (*ds_fibonacci_heap_destroy_fn)(ds_fibonacci_heap_node_t *,
+                                             void *);
+
 typedef struct fibonacci_heap {
   ds_fibonacci_heap_node_t *min;
   ds_fibonacci_heap_node_t *nil;
   size_t size;
   int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *);
+  ds_context_t *context; /* NULL for legacy allocators */
+  ds_fibonacci_heap_compare_fn compare_with;
+  void *compare_user;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_fibonacci_heap_t;
@@ -72,7 +86,7 @@ void ds_fibonacci_heap_destroy(ds_fibonacci_heap_t *heap,
  * teardown walk them iteratively). Item pointers stay valid while the item
  * is queued, an increase reuses the item's node.
  */
-#define DS_FIB_MAX_DEGREE 96 /* above log_phi of any size_t count */
+#define DS_FIB_MAX_DEGREE (2 * sizeof(size_t) * CHAR_BIT + 2)
 
 typedef int (*ds_fib_compare_fn)(const void *a, const void *b, void *user);
 typedef struct ds_fib_item ds_fib_item_t; /* a handle */
@@ -114,6 +128,43 @@ void ds_fib_heap_meld(ds_fib_heap_t *h, ds_fib_heap_t *other);
 /* links, heap order, degrees, marks only below the roots, the minimum and
  * the size, in O(n) */
 bool ds_fib_heap_check(const ds_fib_heap_t *h);
+
+/* Intrusive checked/context APIs. The context and comparator user state must
+ * outlive the heap; NULL context selects the default on creation and inherits
+ * the source on clone. Meld requires identical compare/user pointers and
+ * rejects self-meld; only caller-owned nodes move, so contexts may differ.
+ * Failures are atomic. Insert requires a detached node; decrease requires a
+ * member whose key was lowered. Membership is a caller precondition. Extract
+ * preserves out on DS_EMPTY/error. Walk is iterative and stops on the first
+ * non-DS_OK status; its callbacks may not mutate the heap. Clone returns fresh
+ * equivalent nodes, rolls back completed clones on failure, and leaves an
+ * unfinished node with the failing callback. Positive clone statuses become
+ * DS_ERR_CALLBACK. Output is NULL on failed creation/clone. Destroy may free
+ * payloads but not inspect or mutate the heap. Public layouts require
+ * recompilation. */
+ds_status_t
+ds_fibonacci_heap_create_context(ds_fibonacci_heap_compare_fn compare,
+                                 void *user, ds_context_t *context,
+                                 ds_fibonacci_heap_t **out);
+ds_status_t ds_fibonacci_heap_insert_ex(ds_fibonacci_heap_t *heap,
+                                        ds_fibonacci_heap_node_t *node);
+ds_status_t ds_fibonacci_heap_extract_ex(ds_fibonacci_heap_t *heap,
+                                         ds_fibonacci_heap_node_t **out);
+ds_status_t ds_fibonacci_heap_decrease_key_ex(ds_fibonacci_heap_t *heap,
+                                              ds_fibonacci_heap_node_t *node);
+ds_status_t ds_fibonacci_heap_merge_ex(ds_fibonacci_heap_t *heap,
+                                       ds_fibonacci_heap_t *other);
+ds_status_t ds_fibonacci_heap_walk_with(const ds_fibonacci_heap_t *heap,
+                                        ds_fibonacci_heap_visit_fn visit,
+                                        void *user);
+ds_status_t ds_fibonacci_heap_clone_with(const ds_fibonacci_heap_t *heap,
+                                         ds_fibonacci_heap_clone_fn clone,
+                                         ds_fibonacci_heap_destroy_fn destroy,
+                                         void *user, ds_context_t *context,
+                                         ds_fibonacci_heap_t **out);
+void ds_fibonacci_heap_destroy_with(ds_fibonacci_heap_t *heap,
+                                    ds_fibonacci_heap_destroy_fn destroy,
+                                    void *user);
 
 #ifdef __cplusplus
 }

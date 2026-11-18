@@ -1,10 +1,11 @@
 #include "aho_corasick.h"
+#include "legacy_alloc.h"
 #include <limits.h>
 #include <stdlib.h>
 
 static ds_aho_corasick_node_t *aho_corasick_new_node(ds_aho_corasick_t *ac) {
-  ds_aho_corasick_node_t *node =
-      (ds_aho_corasick_node_t *)ac->allocator(sizeof(ds_aho_corasick_node_t));
+  ds_aho_corasick_node_t *node = (ds_aho_corasick_node_t *)DS_LEGACY_ALLOC(
+      ac, sizeof(ds_aho_corasick_node_t));
   int i;
   if (node == NULL) {
     return NULL;
@@ -24,16 +25,20 @@ ds_aho_corasick_t *ds_aho_corasick_create(void) {
   return ds_aho_corasick_create_alloc(malloc, free);
 }
 
-ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
+static ds_aho_corasick_t *
+aho_corasick_create_internal(void *(*allocator)(size_t),
+                             void (*deallocator)(void *),
+                             ds_context_t *context) {
   ds_aho_corasick_t *ac;
   if (allocator == NULL || deallocator == NULL) {
     return NULL;
   }
-  ac = (ds_aho_corasick_t *)allocator(sizeof(ds_aho_corasick_t));
+  ac = (ds_aho_corasick_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                               sizeof(ds_aho_corasick_t));
   if (ac == NULL) {
     return NULL;
   }
+  ac->context = context;
   ac->allocator = allocator;
   ac->deallocator = deallocator;
   ac->num_patterns = 0;
@@ -41,10 +46,23 @@ ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
   ac->compiled = false;
   ac->root = aho_corasick_new_node(ac);
   if (ac->root == NULL) {
-    deallocator(ac);
+    DS_LEGACY_RELEASE(context, deallocator, ac);
     return NULL;
   }
   return ac;
+}
+
+ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
+                                                void (*deallocator)(void *)) {
+  return aho_corasick_create_internal(allocator, deallocator, NULL);
+}
+ds_status_t ds_aho_corasick_create_context(ds_context_t *context,
+                                           ds_aho_corasick_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = aho_corasick_create_internal(
+      malloc, free, context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 ds_status_t ds_aho_corasick_add_ex(ds_aho_corasick_t *ac, const void *pattern,
@@ -72,7 +90,7 @@ ds_status_t ds_aho_corasick_add_ex(ds_aho_corasick_t *ac, const void *pattern,
     if (fresh == NULL) {
       while (pending != NULL) {
         ds_aho_corasick_node_t *next = pending->fail;
-        ac->deallocator(pending);
+        DS_LEGACY_FREE(ac, pending);
         pending = next;
       }
       ac->num_nodes = old_nodes;
@@ -113,8 +131,8 @@ ds_status_t ds_aho_corasick_compile_ex(ds_aho_corasick_t *ac) {
     return DS_ERR_NULL;
   if (ac->num_nodes > (size_t)-1 / sizeof(*queue))
     return DS_ERR_OVERFLOW;
-  queue = (ds_aho_corasick_node_t **)ac->allocator(
-      ac->num_nodes * sizeof(ds_aho_corasick_node_t *));
+  queue = (ds_aho_corasick_node_t **)DS_LEGACY_ALLOC(
+      ac, ac->num_nodes * sizeof(ds_aho_corasick_node_t *));
   if (queue == NULL)
     return DS_ERR_ALLOC;
   /* depth-1 nodes fail to root */
@@ -155,7 +173,7 @@ ds_status_t ds_aho_corasick_compile_ex(ds_aho_corasick_t *ac) {
       tail += 1;
     }
   }
-  ac->deallocator(queue);
+  DS_LEGACY_FREE(ac, queue);
   ac->compiled = true;
   return DS_OK;
 }
@@ -176,10 +194,10 @@ static ds_aho_corasick_node_t *aho_corasick_step(ds_aho_corasick_t *ac,
   return node;
 }
 
-ds_status_t ds_aho_corasick_search_ex(
-    ds_aho_corasick_t *ac, const void *haystack, size_t length,
-    void (*callback)(const ds_aho_corasick_match_t *, void *), void *user,
-    size_t *out_count) {
+ds_status_t ds_aho_corasick_search_with(ds_aho_corasick_t *ac,
+                                        const void *haystack, size_t length,
+                                        ds_aho_corasick_visit_fn callback,
+                                        void *user, size_t *out_count) {
   const unsigned char *bytes = (const unsigned char *)haystack;
   ds_aho_corasick_node_t *node;
   size_t count = 0;
@@ -201,11 +219,17 @@ ds_status_t ds_aho_corasick_search_ex(
       match.pattern_id = node->pattern_id;
       match.end = i + 1;
       match.start = i + 1 - node->pattern_length;
-      if (count == (size_t)-1)
+      if (count == (size_t)-1) {
+        *out_count = count;
         return DS_ERR_OVERFLOW;
+      }
       count += 1;
       if (callback != NULL) {
-        callback(&match, user);
+        st = callback(&match, user);
+        if (st != DS_OK) {
+          *out_count = count;
+          return st;
+        }
       }
     }
     for (out = node->output; out != NULL; out = out->output) {
@@ -213,16 +237,51 @@ ds_status_t ds_aho_corasick_search_ex(
       match.pattern_id = out->pattern_id;
       match.end = i + 1;
       match.start = i + 1 - out->pattern_length;
-      if (count == (size_t)-1)
+      if (count == (size_t)-1) {
+        *out_count = count;
         return DS_ERR_OVERFLOW;
+      }
       count += 1;
       if (callback != NULL) {
-        callback(&match, user);
+        st = callback(&match, user);
+        if (st != DS_OK) {
+          *out_count = count;
+          return st;
+        }
       }
     }
   }
   *out_count = count;
   return DS_OK;
+}
+
+typedef struct aho_legacy_visit {
+  void (*callback)(const ds_aho_corasick_match_t *, void *);
+  void *user;
+} aho_legacy_visit_t;
+static ds_status_t aho_visit_legacy(const ds_aho_corasick_match_t *match,
+                                    void *user) {
+  aho_legacy_visit_t *policy = (aho_legacy_visit_t *)user;
+  policy->callback(match, policy->user);
+  return DS_OK;
+}
+ds_status_t ds_aho_corasick_search_ex(
+    ds_aho_corasick_t *ac, const void *haystack, size_t length,
+    void (*callback)(const ds_aho_corasick_match_t *, void *), void *user,
+    size_t *out_count) {
+  aho_legacy_visit_t policy;
+  ds_status_t st;
+  size_t count;
+  if (out_count == NULL)
+    return DS_ERR_NULL;
+  policy.callback = callback;
+  policy.user = user;
+  st = ds_aho_corasick_search_with(ac, haystack, length,
+                                   callback != NULL ? aho_visit_legacy : NULL,
+                                   &policy, &count);
+  if (st == DS_OK)
+    *out_count = count;
+  return st;
 }
 
 size_t ds_aho_corasick_search(
@@ -291,7 +350,7 @@ void ds_aho_corasick_destroy(ds_aho_corasick_t *ac) {
         list = node->children[c];
       }
     }
-    ac->deallocator(node);
+    DS_LEGACY_FREE(ac, node);
   }
-  ac->deallocator(ac);
+  DS_LEGACY_FREE(ac, ac);
 }

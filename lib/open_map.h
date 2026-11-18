@@ -35,8 +35,8 @@
  * capacity a power of two (ds_open_map_init_buffer): never allocates,
  * DS_ERR_OVERFLOW once 7/8 full of live entries.
  *
- * Pointers returned by get/emplace stay valid until the next insertion or
- * removal. Complexity: expected O(1) get, put, remove at bounded load.
+ * Pointers and slot cursors expire on insertion, removal, clear, reserve,
+ * compaction or destruction (conservative rule, including failed mutations). Complexity: expected O(1) get, put, remove at bounded load.
  * Concurrency: a map may be used by one thread at a time.
  */
 

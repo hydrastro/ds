@@ -136,7 +136,7 @@ failure.
 
 **Legacy interfaces.** A pointer, boolean or void return type alone does not
 imply an infallible allocator. The original constructors now return NULL on
-allocation failure. Checked insertion is available for the heap, skip list,
+allocation failure. Checked insertion is available for the heap, skip list, B-tree, treap,
 B+ tree (including B*), HAMT, radix trie and ART; Aho-Corasick also has checked
 add, compile and query functions. Rope edits have checked variants. These
 prepare allocations before changing existing content. Their legacy wrappers

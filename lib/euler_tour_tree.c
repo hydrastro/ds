@@ -105,63 +105,66 @@ static void ett_update(ds_ett_t *t, node_t *x) {
   }
 }
 
-/* treap merge/split: recursion follows one root-to-leaf path, expected
- * O(log n) deep */
+/* Iterative treap spines. Parent links carry the metadata-repair walk;
+ * lazy actions are pushed before a node's children are changed. */
 static node_t *ett_merge(ds_ett_t *t, node_t *a, node_t *b) {
-  if (a == NULL) {
-    return b;
-  }
-  if (b == NULL) {
-    return a;
-  }
-  if (a->priority > b->priority) {
-    ett_push(t, a);
-    a->right = ett_merge(t, a->right, b);
-    a->right->parent = a;
-    ett_update(t, a);
-    return a;
-  }
-  ett_push(t, b);
-  b->left = ett_merge(t, a, b->left);
-  b->left->parent = b;
-  ett_update(t, b);
-  return b;
-}
-
-static void ett_split_rec(ds_ett_t *t, node_t *x, size_t k, node_t **l,
-                          node_t **r) {
-  if (x == NULL) {
-    *l = NULL;
-    *r = NULL;
-    return;
-  }
-  ett_push(t, x);
-  if (ett_size(x->left) >= k) {
-    ett_split_rec(t, x->left, k, l, &x->left);
-    if (x->left != NULL) {
-      x->left->parent = x;
+  node_t *root = NULL, *tail = NULL, **slot = &root;
+  while (a != NULL && b != NULL) {
+    node_t *chosen;
+    if (a->priority > b->priority) {
+      ett_push(t, a);
+      chosen = a;
+      a = a->right;
+      *slot = chosen;
+      slot = &chosen->right;
+    } else {
+      ett_push(t, b);
+      chosen = b;
+      b = b->left;
+      *slot = chosen;
+      slot = &chosen->left;
     }
-    ett_update(t, x);
-    *r = x;
-  } else {
-    ett_split_rec(t, x->right, k - ett_size(x->left) - 1, &x->right, r);
-    if (x->right != NULL) {
-      x->right->parent = x;
-    }
-    ett_update(t, x);
-    *l = x;
+    chosen->parent = tail;
+    tail = chosen;
   }
+  *slot = a == NULL ? b : a;
+  if (*slot != NULL)
+    (*slot)->parent = tail;
+  for (; tail != NULL; tail = tail->parent)
+    ett_update(t, tail);
+  return root;
 }
 
 static void ett_split(ds_ett_t *t, node_t *x, size_t k, node_t **l,
                       node_t **r) {
-  ett_split_rec(t, x, k, l, r);
-  if (*l != NULL) {
-    (*l)->parent = NULL;
+  node_t *left = NULL, *right = NULL, **ls = l, **rs = r;
+  while (x != NULL) {
+    node_t *next;
+    size_t count;
+    ett_push(t, x);
+    count = ett_size(x->left);
+    if (k > count) {
+      k -= count + 1;
+      next = x->right;
+      *ls = x;
+      x->parent = left;
+      left = x;
+      ls = &x->right;
+    } else {
+      next = x->left;
+      *rs = x;
+      x->parent = right;
+      right = x;
+      rs = &x->left;
+    }
+    x = next;
   }
-  if (*r != NULL) {
-    (*r)->parent = NULL;
-  }
+  *ls = NULL;
+  *rs = NULL;
+  for (; left != NULL; left = left->parent)
+    ett_update(t, left);
+  for (; right != NULL; right = right->parent)
+    ett_update(t, right);
 }
 
 static node_t *ett_root(node_t *x) {

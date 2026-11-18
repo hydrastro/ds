@@ -207,6 +207,21 @@ ds_status_t ds_sstable_builder_add_tombstone(ds_sstable_builder_t *b,
 ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
                                       unsigned char **out, size_t *out_len);
 
+/* Immutable byte source. read must fill the complete requested range or
+ * return an error. Positive statuses become DS_ERR_CALLBACK. The source and
+ * its user state must outlive the table. Limits of zero mean no additional
+ * limit beyond the format's 2 GiB bound. */
+typedef struct ds_sstable_source {
+  ds_status_t (*read)(void *user, size_t offset, void *buffer, size_t count);
+  void *user;
+  size_t length;
+  size_t max_metadata_bytes;
+  size_t max_block_bytes;
+} ds_sstable_source_t;
+
+void ds_sstable_source_init(ds_sstable_source_t *source);
+struct ds_sstable_reader;
+
 typedef struct ds_sstable {
   const unsigned char *data;
   size_t len;
@@ -220,8 +235,9 @@ typedef struct ds_sstable {
   unsigned filter_id;   /* the AMQ backend id, for DS_SSTABLE_FILTER_AMQ */
   ds_amq_t amq;         /* the loaded AMQ filter (ops NULL when not loaded) */
   ds_sstable_comparator_t cmp;
-  bool keyed;                     /* the filter hashes with a key hash */
-  ds_sstable_key_hash_t key_hash; /* attached by ds_sstable_set_key_hash */
+  bool keyed;                       /* the filter hashes with a key hash */
+  ds_sstable_key_hash_t key_hash;   /* attached by ds_sstable_set_key_hash */
+  struct ds_sstable_reader *reader; /* owned callback-reader state, or NULL */
 } ds_sstable_t;
 
 /* Checks the footer, checksum and region layout (bytewise order); the
@@ -243,7 +259,17 @@ ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
                                const ds_sstable_comparator_t *cmp,
                                const ds_amq_ops_t *filter,
                                ds_context_t *context);
-/* frees a loaded filter; harmless for any opened table */
+/* Streams checksum verification with bounded scratch space, then retains
+ * index/filter metadata. Data blocks are read on demand. Allocation limits
+ * above yield DS_ERR_OVERFLOW; source failures propagate. Close on success;
+ * failure leaves a zeroed table. Do not open over an already open table.
+ * Opening still reads all bytes for integrity, but never retains all data. */
+ds_status_t ds_sstable_open_reader(ds_sstable_t *t,
+                                   const ds_sstable_source_t *source,
+                                   const ds_sstable_comparator_t *cmp,
+                                   const ds_amq_ops_t *filter,
+                                   ds_context_t *context);
+/* frees a loaded filter and callback-reader state; not the byte source */
 void ds_sstable_close(ds_sstable_t *t);
 /* attaches the key hash a keyed filter was built with (NULL detaches it);
  * it must be the builder's, or lookups may miss keys */
@@ -251,8 +277,9 @@ ds_status_t ds_sstable_set_key_hash(ds_sstable_t *t,
                                     const ds_sstable_key_hash_t *hash);
 /* true when may_contain can rule keys out */
 bool ds_sstable_has_filter(const ds_sstable_t *t);
-/* full structural check in O(len) plus O(longest key) memory: DS_OK,
- * DS_ERR_INVALID, or DS_ERR_ALLOC; check_filter also probes every key */
+/* full structural check in O(len) plus O(longest key) memory (and one data
+ * block for a callback reader); check_filter also probes every key. Source
+ * errors propagate; DS_ERR_INVALID means malformed structure. */
 ds_status_t ds_sstable_verify(const ds_sstable_t *t, bool check_filter,
                               ds_context_t *context);
 size_t ds_sstable_entries(const ds_sstable_t *t);
@@ -261,8 +288,11 @@ size_t ds_sstable_blocks(const ds_sstable_t *t);
  * filter). */
 bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
                             size_t key_len);
-/* DS_OK with the value (pointing into the table) or DS_NOT_FOUND; a
- * tombstone is found with *out_tombstone set. */
+/* DS_OK with the value or DS_NOT_FOUND; a tombstone sets *out_tombstone.
+ * Memory tables borrow the image. Callback tables cache one lookup iterator:
+ * the value lasts until their next get or close, using the opening context
+ * (the context argument here is for memory-table key decoding). Synchronize
+ * gets on the same callback table. Separate iterators have separate buffers. */
 ds_status_t ds_sstable_get(const ds_sstable_t *t, const void *key,
                            size_t key_len, const unsigned char **out_value,
                            size_t *out_value_len, bool *out_tombstone,
@@ -283,11 +313,15 @@ typedef struct ds_sstable_iter {
   bool valid;
   ds_status_t error;
   ds_context_t *context;
+  unsigned char *block_data; /* callback reader's owned current block */
+  size_t block_cap;
 } ds_sstable_iter_t;
 
 ds_status_t ds_sstable_iter_init(ds_sstable_iter_t *it, const ds_sstable_t *t,
                                  ds_context_t *context);
 void ds_sstable_iter_destroy(ds_sstable_iter_t *it);
+/* Iterator key/value views last until its next positioning call or destroy.
+ * The table and immutable source must outlive it. No concurrent table close. */
 ds_status_t ds_sstable_iter_first(ds_sstable_iter_t *it);
 /* The first entry with key >= the given key. */
 ds_status_t ds_sstable_iter_seek(ds_sstable_iter_t *it, const void *key,

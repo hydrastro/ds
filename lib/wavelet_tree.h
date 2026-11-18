@@ -3,6 +3,7 @@
 
 #include "bitvector.h"
 #include "common.h"
+#include "context.h"
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -30,8 +31,9 @@ typedef struct wavelet_node {
 
 typedef struct wavelet_tree {
   ds_wavelet_node_t *root;
-  size_t length; /* sequence length */
-  size_t sigma;  /* alphabet size (symbols are in [0, sigma)) */
+  size_t length;         /* sequence length */
+  size_t sigma;          /* alphabet size (symbols are in [0, sigma)) */
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_wavelet_tree_t;
@@ -52,6 +54,25 @@ size_t ds_wavelet_tree_quantile(ds_wavelet_tree_t *wt, size_t left,
                                 size_t right, size_t k);
 size_t ds_wavelet_tree_length(ds_wavelet_tree_t *wt);
 void ds_wavelet_tree_destroy(ds_wavelet_tree_t *wt);
+
+/* Context-owned internal storage; NULL context chooses the default.
+ * The context must outlive the container. On failure *out is NULL. */
+ds_status_t ds_wavelet_tree_create_context(const size_t *sequence,
+                                           size_t length, size_t sigma,
+                                           ds_context_t *context,
+                                           ds_wavelet_tree_t **out);
+
+/* Checked queries preserve out on absence/error. Rank uses [0,count),
+ * quantile uses [left,right); ordinals are zero-based. */
+ds_status_t ds_wavelet_tree_access_ex(ds_wavelet_tree_t *tree, size_t index,
+                                      size_t *out);
+ds_status_t ds_wavelet_tree_rank_ex(ds_wavelet_tree_t *tree, size_t symbol,
+                                    size_t count, size_t *out);
+ds_status_t ds_wavelet_tree_select_ex(ds_wavelet_tree_t *tree, size_t symbol,
+                                      size_t ordinal, size_t *out);
+ds_status_t ds_wavelet_tree_quantile_ex(ds_wavelet_tree_t *tree, size_t left,
+                                        size_t right, size_t ordinal,
+                                        size_t *out);
 
 #ifdef __cplusplus
 }

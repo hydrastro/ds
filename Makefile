@@ -64,14 +64,20 @@ LIB_SRC := \
   $(LIB_DIR)/fenwick_tree.c \
   $(LIB_DIR)/hash_table.c \
   $(LIB_DIR)/heap.c \
+  $(LIB_DIR)/legacy_names.c \
   $(LIB_DIR)/history.c \
+  $(LIB_DIR)/history_adapters.c \
   $(LIB_DIR)/list.c \
   $(LIB_DIR)/context.c \
   $(LIB_DIR)/diagnostic.c \
   $(LIB_DIR)/result.c \
   $(LIB_DIR)/i18n.c \
+  $(LIB_DIR)/i18n_catalog.c \
+  $(LIB_DIR)/i18n_locale.c \
   $(LIB_DIR)/error.c \
   $(LIB_DIR)/graph.c \
+  $(LIB_DIR)/hypergraph.c \
+  $(LIB_DIR)/jellyfish.c \
   $(LIB_DIR)/iter.c \
   $(LIB_DIR)/pairing_heap.c \
   $(LIB_DIR)/persistent_rbt.c \
@@ -256,6 +262,8 @@ ALGO_SRC := \
   $(ALGO_DIR)/random.c \
   $(ALGO_DIR)/numeric.c \
   $(ALGO_DIR)/graph_view.c \
+  $(ALGO_DIR)/logic_graph.c \
+  $(ALGO_DIR)/quantum_reference.c \
   $(ALGO_DIR)/sort_classic.c \
   $(ALGO_DIR)/stringology.c \
   $(ALGO_DIR)/hash_family.c \
@@ -297,6 +305,9 @@ ALGO_SRC := \
   $(ALGO_DIR)/facility.c \
   $(ALGO_DIR)/steiner.c \
   $(ALGO_DIR)/lp.c \
+  $(ALGO_DIR)/multiflow.c \
+  $(ALGO_DIR)/karnaugh.c \
+  $(ALGO_DIR)/hsadelta.c \
   $(ALGO_DIR)/lattice.c \
   $(ALGO_DIR)/rice_integral.c \
   $(ALGO_DIR)/geo_opt.c \
@@ -614,18 +625,18 @@ $(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H) $(TEST_GEN_STAMP) &: $(GEN_BIN) $(TEST_UCD_F
 	@touch $(TEST_GEN_STAMP)
 
 %.o: %.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<
 
 $(ALGO_DIR)/robust_predicates.o: $(ALGO_DIR)/robust_predicates.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(FP_STRICT_CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(FP_STRICT_CFLAGS) $(DEPFLAGS) $(INCLUDES) -c -o $@ $<
 
 -include $(LIB_OBJ:.o=.d)
 
 $(GEN_OBJ): $(GEN_SRC_C) $(GEN_SRC_H)
-	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $(GEN_SRC_C)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c -o $@ $(GEN_SRC_C)
 
 $(TEST_GEN_OBJ): $(TEST_GEN_SRC_C) $(TEST_GEN_SRC_H)
-	$(CC) $(CFLAGS) $(INCLUDES) -c -o $@ $(TEST_GEN_SRC_C)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) -c -o $@ $(TEST_GEN_SRC_C)
 
 $(LIB_STATIC): $(LIB_OBJ) $(GEN_OBJ)
 	$(AR) $(ARFLAGS) $@ $^
@@ -637,7 +648,7 @@ $(TEST_LIB_STATIC): $(LIB_OBJ) $(TEST_GEN_OBJ) | $(TEST_BUILD_DIR)
 	$(AR) $(ARFLAGS) $@ $^
 
 $(TEST_BUILD_DIR)/%: $(TEST_DIR)/%.c $(TEST_LIB_STATIC) | $(TEST_BUILD_DIR)
-	$(CC) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC) $(LDLIBS)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(TEST_LIB_STATIC) $(LDLIBS)
 
 test-build: $(TEST_BIN)
 
@@ -651,7 +662,7 @@ test: $(TEST_BIN)
 check: test
 
 $(TEST_BUILD_DIR)/cpp_smoke: $(TEST_DIR)/cpp_smoke.cpp $(LIB_STATIC) | $(TEST_BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $< $(LIB_STATIC) $(LDLIBS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) -o $@ $< $(LIB_STATIC) $(LDLIBS)
 
 check-cpp: $(TEST_BUILD_DIR)/cpp_smoke
 	$(TEST_BUILD_DIR)/cpp_smoke
@@ -677,7 +688,7 @@ check-headers: all
 # warnings, so such helpers are caught too.
 check-noinline: all
 	@fail=0; for src in $(LIB_SRC); do \
-	  $(CC) $(filter-out -O2,$(CFLAGS)) -O0 $(INCLUDES) -c $$src \
+	  $(CC) $(CPPFLAGS) $(filter-out -O2,$(CFLAGS)) -O0 $(INCLUDES) -c $$src \
 	    -o $(BUILD_DIR)/noinline.o || { echo "source $$src"; fail=1; }; \
 	done; rm -f $(BUILD_DIR)/noinline.o; \
 	test $$fail = 0 && echo "every source compiles under the strict warnings without inlining"
@@ -686,7 +697,7 @@ check-noinline: all
 # sees uninitialized reads that -O2 misses (one was a real bug).
 check-o3: all
 	@fail=0; for src in $(LIB_SRC); do \
-	  $(CC) $(filter-out -O2,$(CFLAGS)) -O3 $(INCLUDES) -c $$src \
+	  $(CC) $(CPPFLAGS) $(filter-out -O2,$(CFLAGS)) -O3 $(INCLUDES) -c $$src \
 	    -o $(BUILD_DIR)/o3.o || { echo "source $$src"; fail=1; }; \
 	done; rm -f $(BUILD_DIR)/o3.o; \
 	test $$fail = 0 && echo "every source compiles under the strict warnings at -O3"
@@ -777,7 +788,7 @@ summary:
 
 # Examples exercise the same strict-C89 library that applications install.
 $(EXAMPLE_BUILD_DIR)/%: $(EXAMPLE_DIR)/%.c $(LIB_STATIC) Makefile | $(EXAMPLE_BUILD_DIR)
-	$(CC) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(LIB_STATIC) $(LDLIBS)
+	$(CC) $(CPPFLAGS) $(TEST_CFLAGS) $(INCLUDES) -o $@ $< $(LIB_STATIC) $(LDLIBS)
 
 examples: $(EXAMPLE_BIN)
 

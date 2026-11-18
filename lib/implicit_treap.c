@@ -12,6 +12,7 @@ typedef union it_align {
 struct ds_itreap_node {
   ds_itreap_node_t *left;
   ds_itreap_node_t *right;
+  ds_itreap_node_t *parent;
   size_t count;
   unsigned long priority;
   unsigned char reversed; /* children still need swapping */
@@ -143,52 +144,82 @@ static void it_pull(ds_itreap_t *t, ds_itreap_node_t *n) {
   }
 }
 
-/* First k elements to *a, the rest to *b. */
+/* Split and merge walk changed spines; parent links repair summaries. */
 static void it_split(ds_itreap_t *t, ds_itreap_node_t *n, size_t k,
                      ds_itreap_node_t **a, ds_itreap_node_t **b) {
-  if (n == NULL) {
-    *a = NULL;
-    *b = NULL;
-    return;
+  ds_itreap_node_t *left = NULL, *right = NULL, **ls = a, **rs = b;
+  while (n != NULL) {
+    ds_itreap_node_t *next;
+    size_t count;
+    it_push(t, n);
+    count = it_count(n->left);
+    if (k > count) {
+      k -= count + 1;
+      next = n->right;
+      *ls = n;
+      n->parent = left;
+      left = n;
+      ls = &n->right;
+    } else {
+      next = n->left;
+      *rs = n;
+      n->parent = right;
+      right = n;
+      rs = &n->left;
+    }
+    n = next;
   }
-  it_push(t, n);
-  if (it_count(n->left) >= k) {
-    it_split(t, n->left, k, a, &n->left);
-    *b = n;
-  } else {
-    it_split(t, n->right, k - it_count(n->left) - 1, &n->right, b);
-    *a = n;
-  }
-  it_pull(t, n);
+  *ls = NULL;
+  *rs = NULL;
+  for (; left != NULL; left = left->parent)
+    it_pull(t, left);
+  for (; right != NULL; right = right->parent)
+    it_pull(t, right);
 }
 
 static ds_itreap_node_t *it_merge(ds_itreap_t *t, ds_itreap_node_t *a,
                                   ds_itreap_node_t *b) {
-  if (a == NULL) {
-    return b;
+  ds_itreap_node_t *root = NULL, *tail = NULL, **slot = &root;
+  while (a != NULL && b != NULL) {
+    ds_itreap_node_t *chosen;
+    if (a->priority > b->priority) {
+      it_push(t, a);
+      chosen = a;
+      a = a->right;
+      *slot = chosen;
+      slot = &chosen->right;
+    } else {
+      it_push(t, b);
+      chosen = b;
+      b = b->left;
+      *slot = chosen;
+      slot = &chosen->left;
+    }
+    chosen->parent = tail;
+    tail = chosen;
   }
-  if (b == NULL) {
-    return a;
-  }
-  if (a->priority > b->priority) {
-    it_push(t, a);
-    a->right = it_merge(t, a->right, b);
-    it_pull(t, a);
-    return a;
-  }
-  it_push(t, b);
-  b->left = it_merge(t, a, b->left);
-  it_pull(t, b);
-  return b;
+  *slot = a == NULL ? b : a;
+  if (*slot != NULL)
+    (*slot)->parent = tail;
+  for (; tail != NULL; tail = tail->parent)
+    it_pull(t, tail);
+  return root;
 }
 
 static void it_free(ds_itreap_t *t, ds_itreap_node_t *n) {
-  if (n == NULL) {
-    return;
+  /* Tags need not be evaluated to release storage. */
+  while (n != NULL) {
+    ds_itreap_node_t *next;
+    if (n->left != NULL) {
+      next = n->left;
+      n->left = next->right;
+      next->right = n;
+    } else {
+      next = n->right;
+      ds_context_free(t->config.context, n);
+    }
+    n = next;
   }
-  it_free(t, n->left);
-  it_free(t, n->right);
-  ds_context_free(t->config.context, n);
 }
 
 void ds_itreap_config_init(ds_itreap_config_t *config) {
@@ -275,9 +306,11 @@ ds_status_t ds_itreap_insert(ds_itreap_t *treap, size_t index,
   ds_itreap_node_t *n;
   ds_itreap_node_t *left;
   ds_itreap_node_t *right;
-  if (elem == NULL) {
+  if (treap == NULL || elem == NULL) {
     return DS_ERR_NULL;
   }
+  if (ds_itreap_size(treap) == (size_t)-1)
+    return DS_ERR_OVERFLOW;
   if (index > ds_itreap_size(treap)) {
     return DS_ERR_RANGE;
   }
@@ -288,6 +321,7 @@ ds_status_t ds_itreap_insert(ds_itreap_t *treap, size_t index,
   }
   n->left = NULL;
   n->right = NULL;
+  n->parent = NULL;
   n->reversed = 0;
   n->tagged = 0;
   n->priority = it_random(treap);
@@ -524,31 +558,42 @@ ds_status_t ds_itreap_append(ds_itreap_t *treap, ds_itreap_t *other) {
   if (treap == other || !ds_itreap_compatible(treap, other)) {
     return DS_ERR_INVALID;
   }
+  if (ds_itreap_size(other) > (size_t)-1 - ds_itreap_size(treap))
+    return DS_ERR_OVERFLOW;
   treap->root = it_merge(treap, treap->root, other->root);
   other->root = NULL;
   return DS_OK;
 }
 
-static bool it_visit(ds_itreap_t *t, ds_itreap_node_t *n,
-                     ds_itreap_visit_func_t visit, void *user, size_t *index) {
-  if (n == NULL) {
-    return true;
-  }
-  it_push(t, n);
-  if (!it_visit(t, n->left, visit, user, index)) {
-    return false;
-  }
-  if (!visit(IT_AT(n, t->elem_offset), (*index)++, user)) {
-    return false;
-  }
-  return it_visit(t, n->right, visit, user, index);
-}
-
 ds_status_t ds_itreap_visit(ds_itreap_t *treap, ds_itreap_visit_func_t visit,
                             void *user) {
+  ds_itreap_node_t *n;
   size_t index = 0;
-  if (treap == NULL || visit == NULL) {
+  if (treap == NULL || visit == NULL)
     return DS_ERR_NULL;
+  n = treap->root;
+  while (n != NULL) {
+    it_push(treap, n);
+    if (n->left == NULL)
+      break;
+    n = n->left;
   }
-  return it_visit(treap, treap->root, visit, user, &index) ? DS_OK : DS_STOP;
+  while (n != NULL) {
+    if (!visit(IT_AT(n, treap->elem_offset), index++, user))
+      return DS_STOP;
+    if (n->right != NULL) {
+      n = n->right;
+      for (;;) {
+        it_push(treap, n);
+        if (n->left == NULL)
+          break;
+        n = n->left;
+      }
+    } else {
+      while (n->parent != NULL && n == n->parent->right)
+        n = n->parent;
+      n = n->parent;
+    }
+  }
+  return DS_OK;
 }

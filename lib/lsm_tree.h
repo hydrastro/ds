@@ -83,12 +83,15 @@
  * with neither is DS_ERR_INVALID, never overwritten. A torn marker whose
  * complete magic did not land, including an all-zero page, is unidentifiable
  * and is refused; recovery cannot distinguish it from a foreign file.
- * Tables are read back into memory when the tree opens:
- * the store gives durability, not out-of-core lookups. Updates since the
- * last sync are lost at ds_lsm_destroy unless synced first.
+ * By default tables are loaded into memory. With out_of_core, opening
+ * streams checksum verification and retains only metadata; lookups and
+ * iterators read blocks through per-table pagers. Flush/compaction output
+ * is still built in memory. Updates since the last sync are lost at
+ * ds_lsm_destroy unless synced first.
  *
- * Values returned by get and by iterators stay valid until the next
- * modification. Memory comes from the context.
+ * Values returned by get last until mutation, and in out_of_core mode until
+ * the next get. Iterator views last until that iterator moves or the tree is
+ * modified. Memory comes from the context.
  */
 
 #include "context.h"
@@ -132,7 +135,19 @@ typedef struct ds_lsm_config {
    * flushes) */
   ds_page_store_t *store;
   size_t sync_every;
+  /* Opt-in bounded data reads. Requires store. Retains table metadata and
+   * reads blocks through a per-table pager; zero frames means two. The
+   * map/replacement capabilities default to Robin Hood/LRU. Per-table caches
+   * cannot retain stale pages after a retired extent is reused. */
+  bool out_of_core;
+  size_t read_cache_frames;
+  const ds_map_ops_t *read_cache_map;
+  const ds_replacement_ops_t *read_cache_policy;
+  size_t max_table_metadata_bytes; /* zero: format limit */
+  size_t max_table_block_bytes;    /* zero: format limit */
 } ds_lsm_config_t;
+
+struct ds_lsm_table_reader;
 
 typedef struct ds_lsm_table {
   unsigned char *data;
@@ -140,6 +155,7 @@ typedef struct ds_lsm_table {
   ds_sstable_t table;
   unsigned long page; /* where the store keeps it (pages > 0) */
   unsigned long pages;
+  struct ds_lsm_table_reader *reader; /* owned pager and source state */
 } ds_lsm_table_t;
 
 /* pages of the store in use, and the newest manifest referencing them */
@@ -218,6 +234,9 @@ void ds_lsm_destroy(ds_lsm_t *lsm);
 ds_status_t ds_lsm_put(ds_lsm_t *lsm, const void *key, size_t key_len,
                        const void *value, size_t value_len);
 ds_status_t ds_lsm_delete(ds_lsm_t *lsm, const void *key, size_t key_len);
+/* Returned bytes are borrowed. With out_of_core, valid until the next get
+ * or any mutation/destroy; otherwise until mutation/destroy. Reads and writes
+ * on the same tree require external synchronization. */
 ds_status_t ds_lsm_get(ds_lsm_t *lsm, const void *key, size_t key_len,
                        const unsigned char **out_value, size_t *out_len);
 /* move the memtable into level 0 (and compact as needed); with a store,

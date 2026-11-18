@@ -26,6 +26,53 @@ void ds_gview_from_csr(const ds_gview_csr_t *csr, ds_gview_t *out_view) {
   out_view->graph = csr;
 }
 
+static size_t hg_view_degree(const void *graph, size_t v) {
+  const ds_hypergraph_t *g = (const ds_hypergraph_t *)graph;
+  size_t count = 0;
+  if (v < g->vertex_count) {
+    const ds_hyperedge_handle_t *edges;
+    (void)ds_hypergraph_incident(g, v, &edges, &count);
+  } else {
+    ds_hyperedge_handle_t id;
+    const size_t *members;
+    if (ds_hypergraph_edge_at(g, v - g->vertex_count, &id) == DS_OK)
+      (void)ds_hypergraph_members(g, id, &members, &count);
+  }
+  return count;
+}
+static void hg_view_edge(const void *graph, size_t v, size_t i, size_t *to,
+                         double *weight) {
+  const ds_hypergraph_t *g = (const ds_hypergraph_t *)graph;
+  size_t count;
+  *to = DS_GVIEW_NONE;
+  *weight = 1.0;
+  if (v < g->vertex_count) {
+    const ds_hyperedge_handle_t *edges;
+    size_t index;
+    if (ds_hypergraph_incident(g, v, &edges, &count) == DS_OK && i < count &&
+        ds_hypergraph_edge_index(g, edges[i], &index) == DS_OK)
+      *to = g->vertex_count + index;
+  } else {
+    ds_hyperedge_handle_t id;
+    const size_t *members;
+    if (ds_hypergraph_edge_at(g, v - g->vertex_count, &id) == DS_OK &&
+        ds_hypergraph_members(g, id, &members, &count) == DS_OK && i < count)
+      *to = members[i];
+  }
+}
+ds_status_t ds_gview_from_hypergraph(const ds_hypergraph_t *g,
+                                     ds_gview_t *out) {
+  if (g == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (ds_hypergraph_edge_count(g) > (size_t)-1 - g->vertex_count)
+    return DS_ERR_OVERFLOW;
+  out->vertex_count = g->vertex_count + ds_hypergraph_edge_count(g);
+  out->degree = hg_view_degree;
+  out->edge = hg_view_edge;
+  out->graph = g;
+  return DS_OK;
+}
+
 static size_t am_view_degree(const void *graph, size_t v) {
   return ds_adj_matrix_degree((const ds_adj_matrix_t *)graph, v);
 }

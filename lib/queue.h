@@ -2,6 +2,7 @@
 #define DS_QUEUE_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,11 +20,17 @@ typedef struct queue {
   ds_queue_node_t *tail;
   ds_queue_node_t *nil;
   size_t size;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_queue_t;
 
 /* NULL when memory runs out, or without an allocator and a deallocator */
+/* Context owns all internal storage and must outlive the container. NULL
+ * context selects the default. On failure *out is NULL. Existing constructors
+ * retain their allocator behavior. Public layouts require recompilation. */
+ds_status_t ds_queue_create_context(ds_context_t *context, ds_queue_t **out);
+
 ds_queue_t *ds_queue_create(void);
 ds_queue_t *ds_queue_create_alloc(void *(*allocator)(size_t),
                                   void (*deallocator)(void *));
@@ -63,6 +70,43 @@ ds_status_t ds_queue_clone_ex(const ds_queue_t *queue,
                               ds_queue_node_t *(*clone_node)(ds_queue_node_t *),
                               void (*destroy_clone)(ds_queue_node_t *),
                               ds_queue_t **out);
+
+/* Callback policies require stable topology during calls. Views are borrowed.
+ * Walk stops on the first non-DS_OK result; find leaves out unchanged on
+ * absence/error. Intrusive insertions require a detached non-sentinel node.
+ * Checked pop returns DS_EMPTY without changing out. */
+typedef ds_status_t (*ds_queue_visit_fn)(ds_queue_node_t *, void *);
+typedef int (*ds_queue_compare_fn)(ds_queue_node_t *, ds_queue_node_t *,
+                                   void *);
+typedef ds_status_t (*ds_queue_clone_fn)(ds_queue_node_t *, ds_queue_node_t **,
+                                         void *);
+typedef void (*ds_queue_destroy_fn)(ds_queue_node_t *, void *);
+ds_status_t ds_queue_walk_with(ds_queue_t *container, ds_queue_visit_fn visit,
+                               void *user);
+ds_status_t ds_queue_find_with(ds_queue_t *container, ds_queue_node_t *key,
+                               ds_queue_compare_fn compare, void *user,
+                               ds_queue_node_t **out);
+/* NULL context inherits the source owner. Clone must return a fresh equivalent
+ * node on DS_OK. A failing callback owns its unfinished node. Completed nodes
+ * are rolled back via destroy; positive clone statuses map to DS_ERR_CALLBACK.
+ * Output is NULL on failure. Destroy callbacks may release payloads but may
+ * not inspect or mutate the container during destruction. */
+ds_status_t ds_queue_clone_with(const ds_queue_t *container,
+                                ds_queue_clone_fn clone,
+                                ds_queue_destroy_fn destroy, void *user,
+                                ds_context_t *context, ds_queue_t **out);
+void ds_queue_destroy_with(ds_queue_t *container, ds_queue_destroy_fn destroy,
+                           void *user);
+ds_status_t ds_queue_enqueue_ex(ds_queue_t *container, ds_queue_node_t *node);
+ds_status_t ds_queue_dequeue_ex(ds_queue_t *container, ds_queue_node_t **out);
+/* Identity-based O(n) membership check before unlinking. */
+ds_status_t ds_queue_remove_ex(ds_queue_t *container, ds_queue_node_t *target);
+
+/* Reverse walk temporarily reverses links in O(1) extra space. Visitors
+ * must not inspect/traverse/change the container or free nodes; all links are
+ * restored even on a visitor stop/error. */
+ds_status_t ds_queue_walk_reverse_with(ds_queue_t *container,
+                                       ds_queue_visit_fn visit, void *user);
 
 #ifdef __cplusplus
 }

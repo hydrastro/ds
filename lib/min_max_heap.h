@@ -13,7 +13,8 @@
  * Storage comes from a ds_vec_t: dynamic through a ds_context_t, or a fixed
  * caller buffer with no allocation (DS_ERR_OVERFLOW when full).
  *
- * Complexity: push, pop_min, pop_max O(log n); peek_min, peek_max O(1).
+ * Complexity: push O(log n) amortized (O(n) when the array grows),
+ * pop_min/pop_max/update/remove O(log n); peek_min/peek_max O(1).
  * Concurrency: a heap may be used by one thread at a time.
  */
 
@@ -35,6 +36,8 @@ typedef struct ds_min_max_heap {
   ds_vec_t items;
   ds_min_max_heap_compare_func_t compare;
   void *user;
+  void (*moved)(const void *elem, size_t index, void *user);
+  void *moved_user;
 } ds_min_max_heap_t;
 
 ds_status_t ds_min_max_heap_init(ds_min_max_heap_t *heap, size_t elem_size,
@@ -55,6 +58,23 @@ ds_status_t ds_min_max_heap_pop_max(ds_min_max_heap_t *heap, void *out);
 size_t ds_min_max_heap_size(const ds_min_max_heap_t *heap);
 bool ds_min_max_heap_is_empty(const ds_min_max_heap_t *heap);
 void ds_min_max_heap_clear(ds_min_max_heap_t *heap);
+/* Optional address tracking. Called after placement/movement, and with
+ * index == (size_t)-1 before removal, clear or destroy. Installing it reports
+ * every existing element. The callback may update external metadata only. */
+void ds_min_max_heap_set_move_callback(ds_min_max_heap_t *heap,
+                                       void (*moved)(const void *, size_t,
+                                                     void *),
+                                       void *user);
+/* Indices change on mutation; use the movement callback for stable handles.
+ * Updates/removal repair in O(log n) without allocation. elem may alias heap
+ * storage; removal output must be outside that storage. */
+const void *ds_min_max_heap_at(const ds_min_max_heap_t *heap, size_t index);
+ds_status_t ds_min_max_heap_update_at(ds_min_max_heap_t *heap, size_t index,
+                                      const void *elem);
+ds_status_t ds_min_max_heap_remove_at(ds_min_max_heap_t *heap, size_t index,
+                                      void *out);
+/* Repair after a pointer-backed item's external priority changed. */
+ds_status_t ds_min_max_heap_repair_at(ds_min_max_heap_t *heap, size_t index);
 
 #ifdef __cplusplus
 }

@@ -125,7 +125,7 @@ ds_status_t ds_result_and_then(const ds_result_t *source, ds_result_bind_fn f,
                                void *user, ds_result_t *out);
 ds_status_t ds_result_or_else(const ds_result_t *source, ds_result_bind_fn f,
                               void *user, ds_result_t *out);
-/* As in the PHP API, drain emits without clearing/mutating the result. A
+/* Drain emits without clearing/mutating the result. A
  * sink must snapshot a record if it keeps it beyond the callback. */
 void ds_result_drain_to(const ds_result_t *result, ds_diagnostic_sink_t *sink);
 

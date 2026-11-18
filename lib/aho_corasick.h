@@ -2,6 +2,7 @@
 #define DS_AHO_CORASICK_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -29,11 +30,18 @@ typedef struct aho_corasick {
   size_t num_patterns;
   size_t num_nodes;
   bool compiled;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_aho_corasick_t;
 
 /* NULL when memory runs out, or without an allocator and a deallocator */
+/* Context owns all internal storage and must outlive the container. NULL
+ * context selects the default. On failure *out is NULL. Existing constructors
+ * retain their allocator behavior. Public layouts require recompilation. */
+ds_status_t ds_aho_corasick_create_context(ds_context_t *context,
+                                           ds_aho_corasick_t **out);
+
 ds_aho_corasick_t *ds_aho_corasick_create(void);
 ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
                                                 void (*deallocator)(void *));
@@ -46,6 +54,16 @@ ds_status_t ds_aho_corasick_add_ex(ds_aho_corasick_t *ac, const void *pattern,
 /* Allocates the queue before changing failure/output links. */
 ds_status_t ds_aho_corasick_compile_ex(ds_aho_corasick_t *ac);
 void ds_aho_corasick_compile(ds_aho_corasick_t *ac);
+/* Stoppable streaming search. NULL visit counts only. On callback stop/error,
+ * out_count includes the stopping match. An overflow reports the delivered
+ * count. Invalid arguments/compile failure leave out_count unchanged. Visitors
+ * may not mutate the automaton or haystack, or retain the borrowed match. */
+typedef ds_status_t (*ds_aho_corasick_visit_fn)(
+    const ds_aho_corasick_match_t *match, void *user);
+ds_status_t ds_aho_corasick_search_with(ds_aho_corasick_t *ac,
+                                        const void *haystack, size_t length,
+                                        ds_aho_corasick_visit_fn visit,
+                                        void *user, size_t *out_count);
 ds_status_t ds_aho_corasick_search_ex(
     ds_aho_corasick_t *ac, const void *haystack, size_t length,
     void (*callback)(const ds_aho_corasick_match_t *, void *), void *user,

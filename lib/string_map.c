@@ -13,7 +13,7 @@ static void *string_map_key_ptr(const char *key);
 
 static size_t string_map_hash(void *key, void *user) {
   (void)user;
-  return hash_func_string_djb2(key);
+  return ds_hash_func_string_djb2(key);
 }
 
 static int string_map_compare(void *a, void *b, void *user) {

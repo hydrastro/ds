@@ -40,7 +40,7 @@ callback's diagnostics.
 with configurable map storage, providers and formatters. Translation happens at
 the presentation boundary and does not alter a Result's branch. See
 [result-i18n.md](result-i18n.md) and `examples/result_i18n.c` for ownership,
-configuration and the mapping from the supplied PHP design.
+configuration and composition contracts.
 
 ## Contexts
 

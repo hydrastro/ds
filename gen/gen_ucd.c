@@ -513,38 +513,73 @@ int write_header(const char *out_h) {
     "#define DS_UNICODE_TABLES_H\n"
     "#include <stddef.h>\n\n"
     "typedef struct { unsigned long start, end, prop; } ucd_range_t;\n"
-    "extern const unsigned long U_CCC_KEYS[];\n"
-    "extern const unsigned long U_CCC_VALS[];\n"
-    "extern const size_t U_CCC_LEN;\n\n"
-    "extern const unsigned long U_DECOMP_KEYS[];\n"
-    "extern const unsigned int  U_DECOMP_CNT[];\n"
-    "extern const unsigned int  U_DECOMP_OFF[];\n"
-    "extern const unsigned int  U_DECOMP_ISCOMPAT[];\n"
-    "extern const unsigned long U_DECOMP_POOL[];\n"
-    "extern const size_t        U_DECOMP_LEN;\n"
-    "extern const size_t        U_DECOMP_POOL_LEN;\n\n"
-    "extern const unsigned long U_COMP_KEYS_A[];\n"
-    "extern const unsigned long U_COMP_KEYS_B[];\n"
-    "extern const unsigned long U_COMP_VALS[];\n"
-    "extern const size_t        U_COMP_LEN;\n\n"
-    "extern const unsigned long U_TOLOWER_KEYS[];\n"
-    "extern const unsigned long U_TOLOWER_VALS[];\n"
-    "extern const size_t        U_TOLOWER_LEN;\n"
-    "extern const unsigned long U_TOUPPER_KEYS[];\n"
-    "extern const unsigned long U_TOUPPER_VALS[];\n"
-    "extern const size_t        U_TOUPPER_LEN;\n\n"
-    "extern const unsigned long U_FOLD_KEYS[];\n"
-    "extern const unsigned int  U_FOLD_CNT[];\n"
-    "extern const unsigned int  U_FOLD_OFF[];\n"
-    "extern const unsigned long U_FOLD_POOL[];\n"
-    "extern const size_t        U_FOLD_LEN;\n"
-    "extern const size_t        U_FOLD_POOL_LEN;\n\n"
-    "extern const ucd_range_t   U_GB_RANGES[];\n"
-    "extern const size_t        U_GB_LEN;\n"
-    "extern const ucd_range_t   U_EP_RANGES[];\n"
-    "extern const size_t        U_EP_LEN;\n\n"
-    "extern const ucd_range_t   U_INCB_RANGES[];\n"
-    "extern const size_t        U_INCB_LEN;\n\n"
+    "extern const unsigned long ds_ucd_ccc_keys[];\n"
+    "extern const unsigned long ds_ucd_ccc_vals[];\n"
+    "extern const size_t ds_ucd_ccc_len;\n\n"
+    "extern const unsigned long ds_ucd_decomp_keys[];\n"
+    "extern const unsigned int  ds_ucd_decomp_cnt[];\n"
+    "extern const unsigned int  ds_ucd_decomp_off[];\n"
+    "extern const unsigned int  ds_ucd_decomp_iscompat[];\n"
+    "extern const unsigned long ds_ucd_decomp_pool[];\n"
+    "extern const size_t        ds_ucd_decomp_len;\n"
+    "extern const size_t        ds_ucd_decomp_pool_len;\n\n"
+    "extern const unsigned long ds_ucd_comp_keys_a[];\n"
+    "extern const unsigned long ds_ucd_comp_keys_b[];\n"
+    "extern const unsigned long ds_ucd_comp_vals[];\n"
+    "extern const size_t        ds_ucd_comp_len;\n\n"
+    "extern const unsigned long ds_ucd_tolower_keys[];\n"
+    "extern const unsigned long ds_ucd_tolower_vals[];\n"
+    "extern const size_t        ds_ucd_tolower_len;\n"
+    "extern const unsigned long ds_ucd_toupper_keys[];\n"
+    "extern const unsigned long ds_ucd_toupper_vals[];\n"
+    "extern const size_t        ds_ucd_toupper_len;\n\n"
+    "extern const unsigned long ds_ucd_fold_keys[];\n"
+    "extern const unsigned int  ds_ucd_fold_cnt[];\n"
+    "extern const unsigned int  ds_ucd_fold_off[];\n"
+    "extern const unsigned long ds_ucd_fold_pool[];\n"
+    "extern const size_t        ds_ucd_fold_len;\n"
+    "extern const size_t        ds_ucd_fold_pool_len;\n\n"
+    "extern const ucd_range_t   ds_ucd_gb_ranges[];\n"
+    "extern const size_t        ds_ucd_gb_len;\n"
+    "extern const ucd_range_t   ds_ucd_ep_ranges[];\n"
+    "extern const size_t        ds_ucd_ep_len;\n\n"
+    "extern const ucd_range_t   ds_ucd_incb_ranges[];\n"
+    "extern const size_t        ds_ucd_incb_len;\n\n"
+    "\n"
+    "#ifndef DS_NO_LEGACY_NAMES\n"
+    "#define U_CCC_KEYS ds_ucd_ccc_keys\n"
+    "#define U_CCC_VALS ds_ucd_ccc_vals\n"
+    "#define U_CCC_LEN ds_ucd_ccc_len\n"
+    "#define U_DECOMP_KEYS ds_ucd_decomp_keys\n"
+    "#define U_DECOMP_CNT ds_ucd_decomp_cnt\n"
+    "#define U_DECOMP_OFF ds_ucd_decomp_off\n"
+    "#define U_DECOMP_ISCOMPAT ds_ucd_decomp_iscompat\n"
+    "#define U_DECOMP_POOL ds_ucd_decomp_pool\n"
+    "#define U_DECOMP_LEN ds_ucd_decomp_len\n"
+    "#define U_DECOMP_POOL_LEN ds_ucd_decomp_pool_len\n"
+    "#define U_COMP_KEYS_A ds_ucd_comp_keys_a\n"
+    "#define U_COMP_KEYS_B ds_ucd_comp_keys_b\n"
+    "#define U_COMP_VALS ds_ucd_comp_vals\n"
+    "#define U_COMP_LEN ds_ucd_comp_len\n"
+    "#define U_TOLOWER_KEYS ds_ucd_tolower_keys\n"
+    "#define U_TOLOWER_VALS ds_ucd_tolower_vals\n"
+    "#define U_TOLOWER_LEN ds_ucd_tolower_len\n"
+    "#define U_TOUPPER_KEYS ds_ucd_toupper_keys\n"
+    "#define U_TOUPPER_VALS ds_ucd_toupper_vals\n"
+    "#define U_TOUPPER_LEN ds_ucd_toupper_len\n"
+    "#define U_FOLD_KEYS ds_ucd_fold_keys\n"
+    "#define U_FOLD_CNT ds_ucd_fold_cnt\n"
+    "#define U_FOLD_OFF ds_ucd_fold_off\n"
+    "#define U_FOLD_POOL ds_ucd_fold_pool\n"
+    "#define U_FOLD_LEN ds_ucd_fold_len\n"
+    "#define U_FOLD_POOL_LEN ds_ucd_fold_pool_len\n"
+    "#define U_GB_RANGES ds_ucd_gb_ranges\n"
+    "#define U_GB_LEN ds_ucd_gb_len\n"
+    "#define U_EP_RANGES ds_ucd_ep_ranges\n"
+    "#define U_EP_LEN ds_ucd_ep_len\n"
+    "#define U_INCB_RANGES ds_ucd_incb_ranges\n"
+    "#define U_INCB_LEN ds_ucd_incb_len\n"
+    "#endif\n"
     "#endif/* DS_UNICODE_TABLES_H */\n");
   fclose(h);
   return 0;
@@ -557,98 +592,98 @@ int write_source(const char *out_c) {
 
   fprintf(c, "#include <stddef.h>\n#include \"unicode_tables.h\"\n\n");
 
-  fprintf(c, "const unsigned long U_CCC_KEYS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_ccc_keys[] = {");
   for (i=0;i<CCC_KEYS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul",(unsigned long)CCC_KEYS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_CCC_VALS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_ccc_vals[] = {");
   for (i=0;i<CCC_VALS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul",(unsigned long)CCC_VALS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_CCC_LEN = %luu;\n\n", (unsigned long)CCC_KEYS.n);
+  fprintf(c, "const size_t ds_ucd_ccc_len = %luu;\n\n", (unsigned long)CCC_KEYS.n);
 
-  fprintf(c, "const unsigned long U_DECOMP_KEYS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_decomp_keys[] = {");
   for (i=0;i<DECOMP_KEYS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", DECOMP_KEYS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned int U_DECOMP_CNT[] = {");
+  fprintf(c, "const unsigned int ds_ucd_decomp_cnt[] = {");
   for (i=0;i<DECOMP_CNT.n;++i) { if (i) fprintf(c,","); fprintf(c,"%u", DECOMP_CNT.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned int U_DECOMP_OFF[] = {");
+  fprintf(c, "const unsigned int ds_ucd_decomp_off[] = {");
   for (i=0;i<DECOMP_OFF.n;++i) { if (i) fprintf(c,","); fprintf(c,"%u", DECOMP_OFF.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned int U_DECOMP_ISCOMPAT[] = {");
+  fprintf(c, "const unsigned int ds_ucd_decomp_iscompat[] = {");
   for (i=0;i<DECOMP_ISCOMPAT.n;++i) { if (i) fprintf(c,","); fprintf(c,"%u", DECOMP_ISCOMPAT.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_DECOMP_POOL[] = {");
+  fprintf(c, "const unsigned long ds_ucd_decomp_pool[] = {");
   for (i=0;i<DECOMP_POOL.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", DECOMP_POOL.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_DECOMP_LEN = %luu;\n", (unsigned long)DECOMP_KEYS.n);
-  fprintf(c, "const size_t U_DECOMP_POOL_LEN = %luu;\n\n", (unsigned long)DECOMP_POOL.n);
+  fprintf(c, "const size_t ds_ucd_decomp_len = %luu;\n", (unsigned long)DECOMP_KEYS.n);
+  fprintf(c, "const size_t ds_ucd_decomp_pool_len = %luu;\n\n", (unsigned long)DECOMP_POOL.n);
 
-  fprintf(c, "const unsigned long U_COMP_KEYS_A[] = {");
+  fprintf(c, "const unsigned long ds_ucd_comp_keys_a[] = {");
   for (i=0;i<COMP_N;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", COMP[i].a); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_COMP_KEYS_B[] = {");
+  fprintf(c, "const unsigned long ds_ucd_comp_keys_b[] = {");
   for (i=0;i<COMP_N;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", COMP[i].b); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_COMP_VALS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_comp_vals[] = {");
   for (i=0;i<COMP_N;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", COMP[i].v); }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_COMP_LEN = %luu;\n\n", (unsigned long)COMP_N);
+  fprintf(c, "const size_t ds_ucd_comp_len = %luu;\n\n", (unsigned long)COMP_N);
 
-  fprintf(c, "const unsigned long U_TOLOWER_KEYS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_tolower_keys[] = {");
   for (i=0;i<TOLOWER_KEYS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", TOLOWER_KEYS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_TOLOWER_VALS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_tolower_vals[] = {");
   for (i=0;i<TOLOWER_VALS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", TOLOWER_VALS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_TOLOWER_LEN = %luu;\n\n", (unsigned long)TOLOWER_KEYS.n);
+  fprintf(c, "const size_t ds_ucd_tolower_len = %luu;\n\n", (unsigned long)TOLOWER_KEYS.n);
 
-  fprintf(c, "const unsigned long U_TOUPPER_KEYS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_toupper_keys[] = {");
   for (i=0;i<TOUPPER_KEYS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", TOUPPER_KEYS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_TOUPPER_VALS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_toupper_vals[] = {");
   for (i=0;i<TOUPPER_VALS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", TOUPPER_VALS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_TOUPPER_LEN = %luu;\n\n", (unsigned long)TOUPPER_KEYS.n);
+  fprintf(c, "const size_t ds_ucd_toupper_len = %luu;\n\n", (unsigned long)TOUPPER_KEYS.n);
 
-  fprintf(c, "const unsigned long U_FOLD_KEYS[] = {");
+  fprintf(c, "const unsigned long ds_ucd_fold_keys[] = {");
   for (i=0;i<FOLD_KEYS.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", FOLD_KEYS.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned int U_FOLD_CNT[] = {");
+  fprintf(c, "const unsigned int ds_ucd_fold_cnt[] = {");
   for (i=0;i<FOLD_CNT.n;++i) { if (i) fprintf(c,","); fprintf(c,"%u", FOLD_CNT.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned int U_FOLD_OFF[] = {");
+  fprintf(c, "const unsigned int ds_ucd_fold_off[] = {");
   for (i=0;i<FOLD_OFF.n;++i) { if (i) fprintf(c,","); fprintf(c,"%u", FOLD_OFF.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const unsigned long U_FOLD_POOL[] = {");
+  fprintf(c, "const unsigned long ds_ucd_fold_pool[] = {");
   for (i=0;i<FOLD_POOL.n;++i) { if (i) fprintf(c,","); fprintf(c,"0x%lXul", FOLD_POOL.a[i]); }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_FOLD_LEN = %luu;\n", (unsigned long)FOLD_KEYS.n);
-  fprintf(c, "const size_t U_FOLD_POOL_LEN = %luu;\n\n", (unsigned long)FOLD_POOL.n);
+  fprintf(c, "const size_t ds_ucd_fold_len = %luu;\n", (unsigned long)FOLD_KEYS.n);
+  fprintf(c, "const size_t ds_ucd_fold_pool_len = %luu;\n\n", (unsigned long)FOLD_POOL.n);
 
-  fprintf(c, "const ucd_range_t U_GB_RANGES[] = {");
+  fprintf(c, "const ucd_range_t ds_ucd_gb_ranges[] = {");
   for (i=0;i<GB_N;++i) {
     if (i) fprintf(c,",");
     fprintf(c,"{0x%lXul,0x%lXul,%luul}", GB[i].start, GB[i].end, (unsigned long)GB[i].prop);
   }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_GB_LEN = %luu;\n\n", (unsigned long)GB_N);
+  fprintf(c, "const size_t ds_ucd_gb_len = %luu;\n\n", (unsigned long)GB_N);
 
-  fprintf(c, "const ucd_range_t U_EP_RANGES[] = {");
+  fprintf(c, "const ucd_range_t ds_ucd_ep_ranges[] = {");
   for (i=0;i<EP_N;++i) {
     if (i) fprintf(c,",");
     fprintf(c,"{0x%lXul,0x%lXul,%luul}", EP[i].start, EP[i].end, (unsigned long)EP[i].prop);
   }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_EP_LEN = %luu;\n\n", (unsigned long)EP_N);
+  fprintf(c, "const size_t ds_ucd_ep_len = %luu;\n\n", (unsigned long)EP_N);
 
-  fprintf(c, "const ucd_range_t U_INCB_RANGES[] = {");
+  fprintf(c, "const ucd_range_t ds_ucd_incb_ranges[] = {");
   for (i=0;i<INCB_N;++i) {
     if (i) fprintf(c,",");
     fprintf(c,"{0x%lXul,0x%lXul,%luul}", INCB[i].start, INCB[i].end, (unsigned long)INCB[i].prop);
   }
   if (INCB_N == 0) fprintf(c,"{0ul,0ul,0ul}");
   fprintf(c, "};\n");
-  fprintf(c, "const size_t U_INCB_LEN = %luu;\n", (unsigned long)INCB_N);
+  fprintf(c, "const size_t ds_ucd_incb_len = %luu;\n", (unsigned long)INCB_N);
 
   fclose(c);
   return 0;

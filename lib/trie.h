@@ -120,7 +120,6 @@ ds_trie_node_t *ds_trie_create_node(ds_trie_t *trie);
 void *ds_trie_alloc(ds_trie_t *trie, size_t size);
 void ds_trie_free(ds_trie_t *trie, void *ptr);
 
-ds_trie_t *trie_create_hash(size_t num_splits);
 ds_trie_t *ds_trie_create_hash_alloc(size_t num_splits,
                                      void *(*allocator)(size_t),
                                      void (*deallocator)(void *));
@@ -165,9 +164,7 @@ ds_trie_t *ds_trie_create_alloc(
     void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
                          void *(*clone_data)(void *)),
     void *(*allocator)(size_t), void (*deallocator)(void *));
-void trie_insert(ds_trie_t *trie, void *data,
-                 size_t (*get_slice)(void *, size_t),
-                 bool (*has_slice)(void *, size_t));
+
 ds_trie_node_t *ds_trie_search(ds_trie_t *trie, void *data,
                                size_t (*get_slice)(void *, size_t),
                                bool (*has_slice)(void *, size_t));
@@ -205,6 +202,60 @@ void ds_trie_walk(ds_trie_t *trie, ds_trie_node_t *node, ds_trie_next_fn next,
 void *ds_trie_clone_store(ds_trie_t *trie, void *store,
                           ds_trie_node_t *parent_node,
                           void *(*clone_data)(void *), ds_trie_next_fn next);
+
+/* Typed key extraction: DS_OK produces one slice, DS_STOP ends the key;
+ * negative errors abort, other positive statuses are callback errors.
+ * Extraction must be deterministic for one call. NULL data is passed through to
+ * the policy. Insert borrows data and rolls back newly created nodes on
+ * failure; updates return DS_EXISTS. out_previous (optional) is set only on
+ * success, NULL for a new key. Get leaves out unchanged on absence/error.
+ * Remove returns borrowed payload through optional out_data and never destroys
+ * it. */
+typedef ds_status_t (*ds_trie_slice_fn)(void *data, size_t index, size_t *slice,
+                                        void *user);
+typedef ds_status_t (*ds_trie_visit_fn)(ds_trie_t *, ds_trie_node_t *,
+                                        void *user);
+typedef ds_status_t (*ds_trie_clone_fn)(void *data, void **out, void *user);
+typedef void (*ds_trie_data_destroy_fn)(void *data, void *user);
+ds_status_t ds_trie_create_config_ex(const ds_trie_config_t *config,
+                                     ds_trie_t **out);
+ds_status_t ds_trie_insert_with(ds_trie_t *trie, void *data,
+                                ds_trie_slice_fn slice, void *user,
+                                void **out_previous);
+ds_status_t ds_trie_get_with(ds_trie_t *trie, void *data,
+                             ds_trie_slice_fn slice, void *user,
+                             ds_trie_node_t **out);
+ds_status_t ds_trie_remove_with(ds_trie_t *trie, void *data,
+                                ds_trie_slice_fn slice, void *user,
+                                void **out_data);
+/* Checked walk includes top; preorder when postorder is false. Visitors must
+ * not mutate/destroy the trie. Requires store.next; returns DS_ERR_UNSUPPORTED
+ * otherwise. Destroy invokes the callback on terminal payloads (including a
+ * stored NULL), then releases the tree; it likewise requires next. */
+ds_status_t ds_trie_walk_with(ds_trie_t *trie, ds_trie_node_t *top,
+                              bool postorder, ds_trie_visit_fn visit,
+                              void *user);
+ds_status_t ds_trie_destroy_with(ds_trie_t *trie,
+                                 ds_trie_data_destroy_fn destroy, void *user);
+/* Config NULL inherits store/owner; an explicit config may select a different
+ * child store and owner. Both stores must provide next. clone/destroy are both
+ * NULL for a borrowed copy, or both non-NULL for an owning copy. DS_OK may
+ * clone a NULL payload. Failed callbacks own unfinished outputs; completed
+ * payloads are rolled back. Positive callback statuses map to DS_ERR_CALLBACK.
+ * Output is NULL on failure; source is unchanged. Release owning results
+ * through destroy_with using the matching payload policy. */
+ds_status_t ds_trie_clone_with(ds_trie_t *trie, ds_trie_clone_fn clone,
+                               ds_trie_data_destroy_fn destroy, void *user,
+                               const ds_trie_config_t *config, ds_trie_t **out);
+
+/* Compatibility entry points. Define DS_NO_LEGACY_NAMES to omit these
+ * declarations and rebuild the library with that macro to omit exports. */
+#ifndef DS_NO_LEGACY_NAMES
+ds_trie_t *trie_create_hash(size_t num_splits);
+void trie_insert(ds_trie_t *trie, void *data,
+                 size_t (*get_slice)(void *, size_t),
+                 bool (*has_slice)(void *, size_t));
+#endif
 
 #ifdef __cplusplus
 }

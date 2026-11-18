@@ -1,4 +1,5 @@
 #include "rbt.h"
+#include "legacy_alloc.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,21 +15,24 @@ void ds_rbt_set_parent_color(ds_rbt_node_t *node, ds_rbt_node_t *parent,
 
 ds_rbt_t *ds_rbt_create(void) { return ds_rbt_create_alloc(malloc, free); }
 
-ds_rbt_t *ds_rbt_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
+static ds_rbt_t *rbt_create_internal(void *(*allocator)(size_t),
+                                     void (*deallocator)(void *),
+                                     ds_context_t *context) {
   ds_rbt_t *tree;
   if (allocator == NULL || deallocator == NULL) {
     return NULL;
   }
-  tree = (ds_rbt_t *)allocator(sizeof(ds_rbt_t));
+  tree = (ds_rbt_t *)DS_LEGACY_ALLOCATE(context, allocator, sizeof(ds_rbt_t));
   if (tree == NULL) {
     return NULL;
   }
+  tree->context = context;
   tree->allocator = allocator;
   tree->deallocator = deallocator;
-  tree->nil = (ds_rbt_node_t *)allocator(sizeof(ds_rbt_node_t));
+  tree->nil = (ds_rbt_node_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                                  sizeof(ds_rbt_node_t));
   if (tree->nil == NULL) {
-    deallocator(tree);
+    DS_LEGACY_RELEASE(context, deallocator, tree);
     return NULL;
   }
   tree->nil->parent_color = RBT_BLACK;
@@ -39,6 +43,18 @@ ds_rbt_t *ds_rbt_create_alloc(void *(*allocator)(size_t),
   tree->size = 0;
 
   return tree;
+}
+
+ds_rbt_t *ds_rbt_create_alloc(void *(*allocator)(size_t),
+                              void (*deallocator)(void *)) {
+  return rbt_create_internal(allocator, deallocator, NULL);
+}
+ds_status_t ds_rbt_create_context(ds_context_t *context, ds_rbt_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = rbt_create_internal(malloc, free,
+                             context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 ds_rbt_node_t *ds_rbt_minimum(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
@@ -223,15 +239,15 @@ void ds_rbt_insert_fixup(ds_rbt_t *tree, ds_rbt_node_t *node_z) {
   RBT_SET_BLACK_FROM_NODE(tree->root);
 }
 
-void ds_rbt_insert(ds_rbt_t *tree, ds_rbt_node_t *node_z,
-                   int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
+static ds_status_t rbt_insert_core(ds_rbt_t *tree, ds_rbt_node_t *node_z,
+                                   ds_rbt_compare_fn compare, void *user) {
   ds_rbt_node_t *node_y;
   ds_rbt_node_t *node_x;
   node_y = tree->nil;
   node_x = tree->root;
   while (node_x != tree->nil) {
     node_y = node_x;
-    if (compare(node_z, node_x) < 0) {
+    if (compare(node_z, node_x, user) < 0) {
       node_x = node_x->left;
     } else {
       node_x = node_x->right;
@@ -240,7 +256,7 @@ void ds_rbt_insert(ds_rbt_t *tree, ds_rbt_node_t *node_z,
   ds_rbt_set_parent(node_z, node_y);
   if (node_y == tree->nil) {
     tree->root = node_z;
-  } else if (compare(node_z, node_y) < 0) {
+  } else if (compare(node_z, node_y, user) < 0) {
     node_y->left = node_z;
   } else {
     node_y->right = node_z;
@@ -250,6 +266,26 @@ void ds_rbt_insert(ds_rbt_t *tree, ds_rbt_node_t *node_z,
   RBT_SET_RED_FROM_NODE(node_z);
   ds_rbt_insert_fixup(tree, node_z);
   tree->size += 1;
+  return DS_OK;
+}
+static int rbt_compare_legacy(ds_rbt_node_t *a, ds_rbt_node_t *b, void *user) {
+  int (**compare)(ds_rbt_node_t *, ds_rbt_node_t *) =
+      (int (**)(ds_rbt_node_t *, ds_rbt_node_t *))user;
+  return (*compare)(a, b);
+}
+ds_status_t ds_rbt_insert_with(ds_rbt_t *tree, ds_rbt_node_t *node,
+                               ds_rbt_compare_fn compare, void *user) {
+  if (tree == NULL || node == NULL || compare == NULL)
+    return DS_ERR_NULL;
+  if (node == tree->nil)
+    return DS_ERR_INVALID;
+  if (tree->size == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  return rbt_insert_core(tree, node, compare, user);
+}
+void ds_rbt_insert(ds_rbt_t *tree, ds_rbt_node_t *node_z,
+                   int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
+  (void)ds_rbt_insert_with(tree, node_z, rbt_compare_legacy, &compare);
 }
 
 void ds_rbt_inorder_walk_helper(ds_rbt_t *tree, ds_rbt_node_t *node,
@@ -440,8 +476,8 @@ void ds_rbt_destroy_recursive(ds_rbt_t *tree, ds_rbt_node_t *node,
 
 void ds_rbt_destroy_tree(ds_rbt_t *tree, void (*destroy)(ds_rbt_node_t *)) {
   ds_rbt_destroy_recursive(tree, tree->root, destroy);
-  tree->deallocator(tree->nil);
-  tree->deallocator(tree);
+  DS_LEGACY_FREE(tree, tree->nil);
+  DS_LEGACY_FREE(tree, tree);
 }
 
 /* a copy of the subtree at node, colors included, whose root has
@@ -449,9 +485,31 @@ void ds_rbt_destroy_tree(ds_rbt_t *tree, void (*destroy)(ds_rbt_node_t *)) {
  * empty subtree). Each clone is linked in before the next is made, so
  * when clone_node returns NULL (false) *out is still a tree holding every
  * clone made. The recursion is as deep as the tree: O(log n). */
+
+typedef struct rbt_clone_policy {
+  ds_rbt_node_t *(*legacy)(ds_rbt_node_t *);
+  ds_rbt_clone_fn checked;
+  void *user;
+  ds_status_t status;
+} rbt_clone_policy_t;
+static ds_rbt_node_t *rbt_clone_one(rbt_clone_policy_t *p,
+                                    ds_rbt_node_t *node) {
+  ds_rbt_node_t *copy = NULL;
+  if (p->checked != NULL) {
+    p->status = p->checked(node, p->user, &copy);
+    if (p->status != DS_OK) {
+      if (p->status > DS_OK)
+        p->status = DS_ERR_CALLBACK;
+      return NULL;
+    }
+  } else
+    copy = p->legacy(node);
+  if (copy == NULL)
+    p->status = DS_ERR_CALLBACK;
+  return copy;
+}
 static bool rbt_clone_subtree(const ds_rbt_t *tree, ds_rbt_t *new_tree,
-                              ds_rbt_node_t *node,
-                              ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *),
+                              ds_rbt_node_t *node, rbt_clone_policy_t *policy,
                               ds_rbt_node_t **out) {
   ds_rbt_node_t *copy;
   bool ok;
@@ -459,7 +517,7 @@ static bool rbt_clone_subtree(const ds_rbt_t *tree, ds_rbt_t *new_tree,
   if (node == tree->nil) {
     return true;
   }
-  copy = clone_node(node);
+  copy = rbt_clone_one(policy, node);
   if (copy == NULL) {
     return false;
   }
@@ -468,13 +526,12 @@ static bool rbt_clone_subtree(const ds_rbt_t *tree, ds_rbt_t *new_tree,
   copy->left = new_tree->nil;
   copy->right = new_tree->nil;
   *out = copy;
-  ok = rbt_clone_subtree(tree, new_tree, node->left, clone_node, &copy->left);
+  ok = rbt_clone_subtree(tree, new_tree, node->left, policy, &copy->left);
   if (copy->left != new_tree->nil) {
     ds_rbt_set_parent(copy->left, copy);
   }
   if (ok) {
-    ok = rbt_clone_subtree(tree, new_tree, node->right, clone_node,
-                           &copy->right);
+    ok = rbt_clone_subtree(tree, new_tree, node->right, policy, &copy->right);
     if (copy->right != new_tree->nil) {
       ds_rbt_set_parent(copy->right, copy);
     }
@@ -486,21 +543,32 @@ ds_rbt_node_t *
 ds_rbt_clone_recursive(ds_rbt_t *tree, ds_rbt_t *new_tree, ds_rbt_node_t *node,
                        ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *)) {
   ds_rbt_node_t *copy;
-  (void)rbt_clone_subtree(tree, new_tree, node, clone_node, &copy);
+  rbt_clone_policy_t policy;
+  policy.legacy = clone_node;
+  policy.checked = NULL;
+  policy.user = NULL;
+  policy.status = DS_OK;
+  (void)rbt_clone_subtree(tree, new_tree, node, &policy, &copy);
   return copy;
 }
 
 ds_rbt_t *ds_rbt_clone(ds_rbt_t *tree,
                        ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *)) {
   ds_rbt_t *new_tree;
+  rbt_clone_policy_t policy;
+  policy.legacy = clone_node;
+  policy.checked = NULL;
+  policy.user = NULL;
+  policy.status = DS_OK;
   if (tree == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_tree = ds_rbt_create_alloc(tree->allocator, tree->deallocator);
+  new_tree =
+      rbt_create_internal(tree->allocator, tree->deallocator, tree->context);
   if (new_tree == NULL) {
     return NULL;
   }
-  if (!rbt_clone_subtree(tree, new_tree, tree->root, clone_node,
+  if (!rbt_clone_subtree(tree, new_tree, tree->root, &policy,
                          &new_tree->root)) {
     ds_rbt_destroy_tree(new_tree, NULL); /* the clones are not released */
     return NULL;
@@ -515,6 +583,11 @@ ds_status_t ds_rbt_clone_ex(const ds_rbt_t *tree,
                             void (*destroy_clone)(ds_rbt_node_t *),
                             ds_rbt_t **out) {
   ds_rbt_t *new_tree;
+  rbt_clone_policy_t policy;
+  policy.legacy = clone_node;
+  policy.checked = NULL;
+  policy.user = NULL;
+  policy.status = DS_OK;
   if (out == NULL) {
     return DS_ERR_NULL;
   }
@@ -522,16 +595,146 @@ ds_status_t ds_rbt_clone_ex(const ds_rbt_t *tree,
   if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_tree = ds_rbt_create_alloc(tree->allocator, tree->deallocator);
+  new_tree =
+      rbt_create_internal(tree->allocator, tree->deallocator, tree->context);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
-  if (!rbt_clone_subtree(tree, new_tree, tree->root, clone_node,
+  if (!rbt_clone_subtree(tree, new_tree, tree->root, &policy,
                          &new_tree->root)) {
     ds_rbt_destroy_tree(new_tree, destroy_clone);
     return DS_ERR_CALLBACK;
   }
   new_tree->size = tree->size;
   *out = new_tree;
+  return DS_OK;
+}
+
+ds_status_t ds_rbt_find_with(const ds_rbt_t *tree, ds_rbt_node_t *key,
+                             ds_rbt_compare_fn compare, void *user,
+                             ds_rbt_node_t **out) {
+  ds_rbt_node_t *node;
+  if (tree == NULL || key == NULL || compare == NULL || out == NULL)
+    return DS_ERR_NULL;
+  node = tree->root;
+  while (node != tree->nil) {
+    int cmp = compare(key, node, user);
+    if (cmp == 0) {
+      *out = node;
+      return DS_OK;
+    }
+    node = cmp < 0 ? node->left : node->right;
+  }
+  return DS_NOT_FOUND;
+}
+ds_status_t ds_rbt_traverse_with(const ds_rbt_t *tree, ds_rbt_node_t *root,
+                                 ds_tree_walk_order_t order,
+                                 ds_rbt_visit_fn visit, void *user) {
+  ds_rbt_node_t *node, *parent;
+  int state = 0;
+  ds_status_t st;
+  if (tree == NULL || root == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  if (order != DS_TREE_PREORDER && order != DS_TREE_INORDER &&
+      order != DS_TREE_POSTORDER)
+    return DS_ERR_INVALID;
+  node = root;
+  while (node != tree->nil) {
+    if (state == 0) {
+      if (order == DS_TREE_PREORDER) {
+        st = visit(node, user);
+        if (st != DS_OK)
+          return st;
+      }
+      if (node->left != tree->nil) {
+        node = node->left;
+        continue;
+      }
+      state = 1;
+    }
+    if (state == 1) {
+      if (order == DS_TREE_INORDER) {
+        st = visit(node, user);
+        if (st != DS_OK)
+          return st;
+      }
+      if (node->right != tree->nil) {
+        node = node->right;
+        state = 0;
+        continue;
+      }
+    }
+    if (order == DS_TREE_POSTORDER) {
+      st = visit(node, user);
+      if (st != DS_OK)
+        return st;
+    }
+    if (node == root)
+      break;
+    parent = RBT_GET_PARENT_FROM_NODE(node);
+    state = node == parent->left ? 1 : 2;
+    node = parent;
+  }
+  return DS_OK;
+}
+ds_status_t ds_rbt_walk_with(const ds_rbt_t *tree, ds_rbt_visit_fn visit,
+                             void *user) {
+  if (tree == NULL)
+    return DS_ERR_NULL;
+  return ds_rbt_traverse_with(tree, tree->root, DS_TREE_INORDER, visit, user);
+}
+void ds_rbt_destroy_with(ds_rbt_t *tree, ds_rbt_destroy_fn destroy,
+                         void *user) {
+  ds_rbt_node_t *node, *parent;
+  if (tree == NULL)
+    return;
+  node = tree->root;
+  while (node != tree->nil) {
+    if (node->left != tree->nil) {
+      node = node->left;
+      continue;
+    }
+    if (node->right != tree->nil) {
+      node = node->right;
+      continue;
+    }
+    parent = RBT_GET_PARENT_FROM_NODE(node);
+    if (parent != tree->nil) {
+      if (parent->left == node)
+        parent->left = tree->nil;
+      else
+        parent->right = tree->nil;
+    }
+    if (destroy != NULL)
+      destroy(node, user);
+    node = parent;
+  }
+  DS_LEGACY_FREE(tree, tree->nil);
+  DS_LEGACY_FREE(tree, tree);
+}
+ds_status_t ds_rbt_clone_with(const ds_rbt_t *tree, ds_rbt_clone_fn clone,
+                              ds_rbt_destroy_fn destroy, void *user,
+                              ds_context_t *context, ds_rbt_t **out) {
+  ds_rbt_t *copy;
+  rbt_clone_policy_t policy;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (tree == NULL || clone == NULL || destroy == NULL)
+    return DS_ERR_NULL;
+  copy = rbt_create_internal(tree->allocator, tree->deallocator,
+                             context != NULL ? context : tree->context);
+  if (copy == NULL)
+    return DS_ERR_ALLOC;
+  policy.legacy = NULL;
+  policy.checked = clone;
+  policy.user = user;
+  policy.status = DS_OK;
+  if (!rbt_clone_subtree(tree, copy, tree->root, &policy, &copy->root)) {
+    ds_rbt_destroy_with(copy, destroy, user);
+    return policy.status;
+  }
+  copy->size = tree->size;
+  *out = copy;
   return DS_OK;
 }

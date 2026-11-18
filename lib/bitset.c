@@ -1,4 +1,5 @@
 #include "bitset.h"
+#include "legacy_alloc.h"
 #include <limits.h>
 #include <stdlib.h>
 
@@ -25,8 +26,10 @@ ds_bitset_t *ds_bitset_create(size_t num_bits) {
   return ds_bitset_create_alloc(num_bits, malloc, free);
 }
 
-ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
-                                    void (*deallocator)(void *)) {
+static ds_bitset_t *bitset_create_internal(size_t num_bits,
+                                           void *(*allocator)(size_t),
+                                           void (*deallocator)(void *),
+                                           ds_context_t *context) {
   ds_bitset_t *bitset;
   size_t num_words;
   size_t i;
@@ -36,26 +39,45 @@ ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
       num_words > ((size_t)-1) / sizeof(unsigned long)) {
     return NULL;
   }
-  bitset = (ds_bitset_t *)allocator(sizeof(ds_bitset_t));
+  bitset = (ds_bitset_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                             sizeof(ds_bitset_t));
   if (bitset == NULL) {
     return NULL;
   }
+  bitset->context = context;
   bitset->allocator = allocator;
   bitset->deallocator = deallocator;
   bitset->num_bits = num_bits;
   bitset->num_words = num_words;
-  bitset->words =
-      num_words == 0
-          ? NULL
-          : (unsigned long *)allocator(num_words * sizeof(unsigned long));
+  bitset->words = num_words == 0 ? NULL
+                                 : (unsigned long *)DS_LEGACY_ALLOCATE(
+                                       context, allocator,
+                                       num_words * sizeof(unsigned long));
   if (num_words > 0 && bitset->words == NULL) {
-    deallocator(bitset);
+    DS_LEGACY_RELEASE(context, deallocator, bitset);
     return NULL;
   }
   for (i = 0; i < num_words; i++) {
     bitset->words[i] = 0UL;
   }
   return bitset;
+}
+ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
+                                    void (*deallocator)(void *)) {
+  return bitset_create_internal(num_bits, allocator, deallocator, NULL);
+}
+ds_status_t ds_bitset_create_context(size_t num_bits, ds_context_t *context,
+                                     ds_bitset_t **out) {
+  size_t words = num_bits / (sizeof(unsigned long) * CHAR_BIT) +
+                 (num_bits % (sizeof(unsigned long) * CHAR_BIT) != 0);
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (words > (size_t)-1 / sizeof(unsigned long))
+    return DS_ERR_OVERFLOW;
+  *out = bitset_create_internal(
+      num_bits, malloc, free, context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 void ds_bitset_set(ds_bitset_t *bitset, size_t index) {
@@ -93,6 +115,25 @@ bool ds_bitset_test(ds_bitset_t *bitset, size_t index) {
               bitset_bit_mask(index)) != 0UL;
   }
   return result;
+}
+
+ds_status_t ds_bitset_set_ex(ds_bitset_t *bitset, size_t index, bool value) {
+  if (bitset == NULL)
+    return DS_ERR_NULL;
+  if (index >= bitset->num_bits)
+    return DS_ERR_RANGE;
+  ds_bitset_set_value(bitset, index, value);
+  return DS_OK;
+}
+ds_status_t ds_bitset_get_ex(const ds_bitset_t *bitset, size_t index,
+                             bool *out) {
+  if (bitset == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (index >= bitset->num_bits)
+    return DS_ERR_RANGE;
+  *out =
+      (bitset->words[bitset_word_index(index)] & bitset_bit_mask(index)) != 0UL;
+  return DS_OK;
 }
 
 static void bitset_trim_tail(ds_bitset_t *bitset) {
@@ -270,8 +311,8 @@ bool ds_bitset_equals(ds_bitset_t *bitset, ds_bitset_t *other) {
 ds_bitset_t *ds_bitset_clone(ds_bitset_t *bitset) {
   ds_bitset_t *new_bitset;
   size_t i;
-  new_bitset = ds_bitset_create_alloc(bitset->num_bits, bitset->allocator,
-                                      bitset->deallocator);
+  new_bitset = bitset_create_internal(bitset->num_bits, bitset->allocator,
+                                      bitset->deallocator, bitset->context);
   if (new_bitset == NULL) {
     return NULL;
   }
@@ -283,7 +324,7 @@ ds_bitset_t *ds_bitset_clone(ds_bitset_t *bitset) {
 
 void ds_bitset_destroy(ds_bitset_t *bitset) {
   if (bitset->words != NULL) {
-    bitset->deallocator(bitset->words);
+    DS_LEGACY_FREE(bitset, bitset->words);
   }
-  bitset->deallocator(bitset);
+  DS_LEGACY_FREE(bitset, bitset);
 }

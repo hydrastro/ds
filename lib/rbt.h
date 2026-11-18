@@ -2,7 +2,9 @@
 #define DS_RBT_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
+#include "tree_walk.h"
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -57,6 +59,7 @@ typedef struct rbt {
   ds_rbt_node_t *root;
   ds_rbt_node_t *nil;
   size_t size;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } DS_RBT_ALIGNED ds_rbt_t;
@@ -65,6 +68,11 @@ void ds_rbt_set_parent(ds_rbt_node_t *node, ds_rbt_node_t *parent);
 void ds_rbt_set_parent_color(ds_rbt_node_t *node, ds_rbt_node_t *parent,
                              int color);
 /* NULL when memory runs out, or without an allocator and a deallocator */
+/* Context owns all internal storage and must outlive the container. NULL
+ * context selects the default. On failure *out is NULL. Existing constructors
+ * retain their allocator behavior. Public layouts require recompilation. */
+ds_status_t ds_rbt_create_context(ds_context_t *context, ds_rbt_t **out);
+
 ds_rbt_t *ds_rbt_create(void);
 ds_rbt_t *ds_rbt_create_alloc(void *(*allocator)(size_t),
                               void (*deallocator)(void *));
@@ -128,6 +136,40 @@ ds_status_t ds_rbt_clone_ex(const ds_rbt_t *tree,
                             ds_rbt_node_t *(*clone_node)(ds_rbt_node_t *),
                             void (*destroy_clone)(ds_rbt_node_t *),
                             ds_rbt_t **out);
+
+typedef int (*ds_rbt_compare_fn)(ds_rbt_node_t *a, ds_rbt_node_t *b,
+                                 void *user);
+typedef ds_status_t (*ds_rbt_visit_fn)(ds_rbt_node_t *node, void *user);
+typedef ds_status_t (*ds_rbt_clone_fn)(ds_rbt_node_t *source, void *user,
+                                       ds_rbt_node_t **out_node);
+typedef void (*ds_rbt_destroy_fn)(ds_rbt_node_t *node, void *user);
+/* Comparators/visitors must not mutate the tree. Insertion nodes must be
+ * detached; this API does not perform an O(n) membership scan.
+ * Equal keys are permitted, as in the original insertion API.
+ * Find preserves *out on DS_NOT_FOUND. Walks are iterative and propagate the
+ * first non-DS_OK visitor status. root must belong to tree (or be its nil). */
+ds_status_t ds_rbt_insert_with(ds_rbt_t *tree, ds_rbt_node_t *node,
+                               ds_rbt_compare_fn compare, void *user);
+ds_status_t ds_rbt_find_with(const ds_rbt_t *tree, ds_rbt_node_t *key,
+                             ds_rbt_compare_fn compare, void *user,
+                             ds_rbt_node_t **out);
+ds_status_t ds_rbt_traverse_with(const ds_rbt_t *tree, ds_rbt_node_t *root,
+                                 ds_tree_walk_order_t order,
+                                 ds_rbt_visit_fn visit, void *user);
+ds_status_t ds_rbt_walk_with(const ds_rbt_t *tree, ds_rbt_visit_fn visit,
+                             void *user);
+/* Destroys container storage; optional destroy releases each intrusive payload.
+ * The callback must not inspect/traverse/mutate the tree during destruction. */
+void ds_rbt_destroy_with(ds_rbt_t *tree, ds_rbt_destroy_fn destroy, void *user);
+/* clone must return DS_OK and a fresh non-NULL node with equivalent key/data.
+ * On callback failure it owns any unfinished node. Completed nodes roll back
+ * through destroy. Negative callback statuses propagate; positive statuses or
+ * DS_OK with NULL become DS_ERR_CALLBACK. NULL context inherits source storage
+ * policy; an explicit context selects destination internal storage. Callbacks
+ * control payload allocation. On failure *out is NULL, source unchanged. */
+ds_status_t ds_rbt_clone_with(const ds_rbt_t *tree, ds_rbt_clone_fn clone,
+                              ds_rbt_destroy_fn destroy, void *user,
+                              ds_context_t *context, ds_rbt_t **out);
 
 #ifdef __cplusplus
 }

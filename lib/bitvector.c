@@ -1,4 +1,5 @@
 #include "bitvector.h"
+#include "legacy_alloc.h"
 #include <limits.h>
 #include <stdlib.h>
 
@@ -21,32 +22,35 @@ ds_bitvector_t *ds_bitvector_create(size_t num_bits) {
   return ds_bitvector_create_alloc(num_bits, malloc, free);
 }
 
-ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *)) {
+static ds_bitvector_t *bitvector_create_internal(size_t num_bits,
+                                                 void *(*allocator)(size_t),
+                                                 void (*deallocator)(void *),
+                                                 ds_context_t *context) {
   ds_bitvector_t *bv;
   size_t num_words;
   size_t i;
-  num_words = num_bits == 0
-                  ? 0
-                  : (num_bits + DS_BV_BITS_PER_WORD - 1) / DS_BV_BITS_PER_WORD;
-  if (allocator == NULL || deallocator == NULL) {
+  num_words = num_bits / DS_BV_BITS_PER_WORD +
+              (num_bits % DS_BV_BITS_PER_WORD != 0 ? 1 : 0);
+  if (allocator == NULL || deallocator == NULL ||
+      num_words > (size_t)-1 / sizeof(unsigned long)) {
     return NULL;
   }
-  bv = (ds_bitvector_t *)allocator(sizeof(ds_bitvector_t));
+  bv = (ds_bitvector_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                            sizeof(ds_bitvector_t));
   if (bv == NULL) {
     return NULL;
   }
+  bv->context = context;
   bv->allocator = allocator;
   bv->deallocator = deallocator;
   bv->num_bits = num_bits;
   bv->num_words = num_words;
-  bv->words =
-      num_words == 0
-          ? NULL
-          : (unsigned long *)allocator(num_words * sizeof(unsigned long));
+  bv->words = num_words == 0
+                  ? NULL
+                  : (unsigned long *)DS_LEGACY_ALLOCATE(
+                        context, allocator, num_words * sizeof(unsigned long));
   if (num_words != 0 && bv->words == NULL) {
-    deallocator(bv);
+    DS_LEGACY_RELEASE(context, deallocator, bv);
     return NULL;
   }
   for (i = 0; i < num_words; i++) {
@@ -59,6 +63,24 @@ ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
   bv->total_ones = 0;
   bv->built = false;
   return bv;
+}
+ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
+                                          void *(*allocator)(size_t),
+                                          void (*deallocator)(void *)) {
+  return bitvector_create_internal(num_bits, allocator, deallocator, NULL);
+}
+ds_status_t ds_bitvector_create_context(size_t num_bits, ds_context_t *context,
+                                        ds_bitvector_t **out) {
+  size_t words = num_bits / (sizeof(unsigned long) * CHAR_BIT) +
+                 (num_bits % (sizeof(unsigned long) * CHAR_BIT) != 0);
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (words > (size_t)-1 / sizeof(unsigned long))
+    return DS_ERR_OVERFLOW;
+  *out = bitvector_create_internal(
+      num_bits, malloc, free, context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 void ds_bitvector_set(ds_bitvector_t *bv, size_t index, bool value) {
@@ -82,6 +104,17 @@ bool ds_bitvector_get(ds_bitvector_t *bv, size_t index) {
   return result;
 }
 
+ds_status_t ds_bitvector_set_ex(ds_bitvector_t *bv, size_t index, bool value) {
+  if (bv == NULL)
+    return DS_ERR_NULL;
+  if (index >= bv->num_bits)
+    return DS_ERR_RANGE;
+  if (bv->built)
+    return DS_ERR_STATE;
+  ds_bitvector_set(bv, index, value);
+  return DS_OK;
+}
+
 ds_status_t ds_bitvector_build_ex(ds_bitvector_t *bv) {
   size_t i;
   size_t cumulative = 0;
@@ -94,27 +127,29 @@ ds_status_t ds_bitvector_build_ex(ds_bitvector_t *bv) {
     return DS_ERR_NULL;
   }
   blocks = bv->num_words;
-  superblocks =
-      (blocks + DS_BV_BLOCKS_PER_SUPERBLOCK - 1) / DS_BV_BLOCKS_PER_SUPERBLOCK +
-      1;
+  superblocks = blocks / DS_BV_BLOCKS_PER_SUPERBLOCK +
+                (blocks % DS_BV_BLOCKS_PER_SUPERBLOCK != 0 ? 1 : 0) + 1;
+  if (superblocks > (size_t)-1 / sizeof(size_t) ||
+      blocks >= (size_t)-1 / sizeof(unsigned short))
+    return DS_ERR_OVERFLOW;
   /* the new directory first: a failure leaves the old one in place */
-  superblock_rank = (size_t *)bv->allocator(superblocks * sizeof(size_t));
-  block_rank =
-      (unsigned short *)bv->allocator((blocks + 1) * sizeof(unsigned short));
+  superblock_rank = (size_t *)DS_LEGACY_ALLOC(bv, superblocks * sizeof(size_t));
+  block_rank = (unsigned short *)DS_LEGACY_ALLOC(
+      bv, (blocks + 1) * sizeof(unsigned short));
   if (superblock_rank == NULL || block_rank == NULL) {
     if (superblock_rank != NULL) {
-      bv->deallocator(superblock_rank);
+      DS_LEGACY_FREE(bv, superblock_rank);
     }
     if (block_rank != NULL) {
-      bv->deallocator(block_rank);
+      DS_LEGACY_FREE(bv, block_rank);
     }
     return DS_ERR_ALLOC;
   }
   if (bv->superblock_rank != NULL) {
-    bv->deallocator(bv->superblock_rank);
+    DS_LEGACY_FREE(bv, bv->superblock_rank);
   }
   if (bv->block_rank != NULL) {
-    bv->deallocator(bv->block_rank);
+    DS_LEGACY_FREE(bv, bv->block_rank);
   }
   bv->num_blocks = blocks;
   bv->num_superblocks = superblocks;
@@ -244,13 +279,48 @@ size_t ds_bitvector_select0(ds_bitvector_t *bv, size_t k) {
 
 void ds_bitvector_destroy(ds_bitvector_t *bv) {
   if (bv->words != NULL) {
-    bv->deallocator(bv->words);
+    DS_LEGACY_FREE(bv, bv->words);
   }
   if (bv->superblock_rank != NULL) {
-    bv->deallocator(bv->superblock_rank);
+    DS_LEGACY_FREE(bv, bv->superblock_rank);
   }
   if (bv->block_rank != NULL) {
-    bv->deallocator(bv->block_rank);
+    DS_LEGACY_FREE(bv, bv->block_rank);
   }
-  bv->deallocator(bv);
+  DS_LEGACY_FREE(bv, bv);
+}
+
+static ds_status_t bv_query_checked(ds_bitvector_t *bv, size_t index, bool ones,
+                                    bool select, size_t *out) {
+  size_t value;
+  if (bv == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (!bv->built)
+    return DS_ERR_STATE;
+  if (!select && index > bv->num_bits)
+    return DS_ERR_RANGE;
+  if (select) {
+    value = ones ? ds_bitvector_select1(bv, index)
+                 : ds_bitvector_select0(bv, index);
+    if (value == DS_BITVECTOR_NPOS)
+      return DS_NOT_FOUND;
+  } else
+    value =
+        ones ? ds_bitvector_rank1(bv, index) : ds_bitvector_rank0(bv, index);
+  *out = value;
+  return DS_OK;
+}
+ds_status_t ds_bitvector_rank1_ex(ds_bitvector_t *bv, size_t index,
+                                  size_t *out) {
+  return bv_query_checked(bv, index, true, false, out);
+}
+ds_status_t ds_bitvector_rank0_ex(ds_bitvector_t *bv, size_t index,
+                                  size_t *out) {
+  return bv_query_checked(bv, index, false, false, out);
+}
+ds_status_t ds_bitvector_select1_ex(ds_bitvector_t *bv, size_t k, size_t *out) {
+  return bv_query_checked(bv, k, true, true, out);
+}
+ds_status_t ds_bitvector_select0_ex(ds_bitvector_t *bv, size_t k, size_t *out) {
+  return bv_query_checked(bv, k, false, true, out);
 }

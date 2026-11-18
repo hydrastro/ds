@@ -21,38 +21,38 @@
 #include "gb_ranges.inc"
 #include "ep_ranges.inc"
 
-const unsigned long *U_CCC_KEYS = (const unsigned long*)ccc_keys_bin;
-const unsigned long *U_CCC_VALS = (const unsigned long*)ccc_vals_bin;
-const size_t         U_CCC_LEN  = sizeof(ccc_keys_bin)/sizeof(unsigned long);
+const unsigned long *ds_ucd_ccc_keys = (const unsigned long*)ccc_keys_bin;
+const unsigned long *ds_ucd_ccc_vals = (const unsigned long*)ccc_vals_bin;
+const size_t         ds_ucd_ccc_len  = sizeof(ccc_keys_bin)/sizeof(unsigned long);
 
-const unsigned long *U_DECOMP_KEYS     = (const unsigned long*)decomp_keys_bin;
-const unsigned int  *U_DECOMP_CNT      = (const unsigned int*)decomp_cnt_bin;
-const unsigned int  *U_DECOMP_ISCOMPAT = (const unsigned int*)decomp_compat_bin;
-const unsigned int  *U_DECOMP_OFF      = (const unsigned int*)decomp_off_bin;
-const unsigned long *U_DECOMP_POOL     = (const unsigned long*)decomp_pool_bin;
-const size_t         U_DECOMP_LEN      = sizeof(decomp_keys_bin)/sizeof(unsigned long);
+const unsigned long *ds_ucd_decomp_keys     = (const unsigned long*)decomp_keys_bin;
+const unsigned int  *ds_ucd_decomp_cnt      = (const unsigned int*)decomp_cnt_bin;
+const unsigned int  *ds_ucd_decomp_iscompat = (const unsigned int*)decomp_compat_bin;
+const unsigned int  *ds_ucd_decomp_off      = (const unsigned int*)decomp_off_bin;
+const unsigned long *ds_ucd_decomp_pool     = (const unsigned long*)decomp_pool_bin;
+const size_t         ds_ucd_decomp_len      = sizeof(decomp_keys_bin)/sizeof(unsigned long);
 
-const unsigned long *U_COMP_KEYS_A = (const unsigned long*)comp_keys_a_bin;
-const unsigned long *U_COMP_KEYS_B = (const unsigned long*)comp_keys_b_bin;
-const unsigned long *U_COMP_VALS   = (const unsigned long*)comp_vals_bin;
-const size_t         U_COMP_LEN    = sizeof(comp_vals_bin)/sizeof(unsigned long);
+const unsigned long *ds_ucd_comp_keys_a = (const unsigned long*)comp_keys_a_bin;
+const unsigned long *ds_ucd_comp_keys_b = (const unsigned long*)comp_keys_b_bin;
+const unsigned long *ds_ucd_comp_vals   = (const unsigned long*)comp_vals_bin;
+const size_t         ds_ucd_comp_len    = sizeof(comp_vals_bin)/sizeof(unsigned long);
 
-const unsigned long *U_FOLD_KEYS = (const unsigned long*)fold_keys_bin;
-const unsigned int  *U_FOLD_OFF  = (const unsigned int*)fold_off_bin;
-const unsigned int  *U_FOLD_CNT  = (const unsigned int*)fold_cnt_bin;
-const unsigned long *U_FOLD_POOL = (const unsigned long*)fold_pool_bin;
-const size_t         U_FOLD_LEN  = sizeof(fold_keys_bin)/sizeof(unsigned long);
+const unsigned long *ds_ucd_fold_keys = (const unsigned long*)fold_keys_bin;
+const unsigned int  *ds_ucd_fold_off  = (const unsigned int*)fold_off_bin;
+const unsigned int  *ds_ucd_fold_cnt  = (const unsigned int*)fold_cnt_bin;
+const unsigned long *ds_ucd_fold_pool = (const unsigned long*)fold_pool_bin;
+const size_t         ds_ucd_fold_len  = sizeof(fold_keys_bin)/sizeof(unsigned long);
 
-const unsigned long *U_TOLOWER_KEYS = (const unsigned long*)tolower_keys_bin;
-const unsigned long *U_TOLOWER_VALS = (const unsigned long*)tolower_vals_bin;
-const size_t         U_TOLOWER_LEN  = sizeof(tolower_keys_bin)/sizeof(unsigned long);
+const unsigned long *ds_ucd_tolower_keys = (const unsigned long*)tolower_keys_bin;
+const unsigned long *ds_ucd_tolower_vals = (const unsigned long*)tolower_vals_bin;
+const size_t         ds_ucd_tolower_len  = sizeof(tolower_keys_bin)/sizeof(unsigned long);
 
-const unsigned long *U_TOUPPER_KEYS = (const unsigned long*)toupper_keys_bin;
-const unsigned long *U_TOUPPER_VALS = (const unsigned long*)toupper_vals_bin;
-const size_t         U_TOUPPER_LEN  = sizeof(toupper_keys_bin)/sizeof(unsigned long);
+const unsigned long *ds_ucd_toupper_keys = (const unsigned long*)toupper_keys_bin;
+const unsigned long *ds_ucd_toupper_vals = (const unsigned long*)toupper_vals_bin;
+const size_t         ds_ucd_toupper_len  = sizeof(toupper_keys_bin)/sizeof(unsigned long);
 
-const struct U_GB_Range3 *U_GB_RANGES = (const struct U_GB_Range3*)gb_ranges_bin;
-const size_t              U_GB_LEN    = sizeof(gb_ranges_bin)/sizeof(struct U_GB_Range3);
+const struct U_GB_Range3 *ds_ucd_gb_ranges = (const struct U_GB_Range3*)gb_ranges_bin;
+const size_t              ds_ucd_gb_len    = sizeof(gb_ranges_bin)/sizeof(struct U_GB_Range3);
 
-const struct U_EP_Range2 *U_EP_RANGES = (const struct U_EP_Range2*)ep_ranges_bin;
-const size_t              U_EP_LEN    = sizeof(ep_ranges_bin)/sizeof(struct U_EP_Range2);
+const struct U_EP_Range2 *ds_ucd_ep_ranges = (const struct U_EP_Range2*)ep_ranges_bin;
+const size_t              ds_ucd_ep_len    = sizeof(ep_ranges_bin)/sizeof(struct U_EP_Range2);

@@ -1,23 +1,27 @@
 #include "bst.h"
+#include "legacy_alloc.h"
 #include <stdlib.h>
 
 ds_bst_t *ds_bst_create(void) { return ds_bst_create_alloc(malloc, free); }
 
-ds_bst_t *ds_bst_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
+static ds_bst_t *bst_create_internal(void *(*allocator)(size_t),
+                                     void (*deallocator)(void *),
+                                     ds_context_t *context) {
   ds_bst_t *tree;
   if (allocator == NULL || deallocator == NULL) {
     return NULL;
   }
-  tree = (ds_bst_t *)allocator(sizeof(ds_bst_t));
+  tree = (ds_bst_t *)DS_LEGACY_ALLOCATE(context, allocator, sizeof(ds_bst_t));
   if (tree == NULL) {
     return NULL;
   }
+  tree->context = context;
   tree->allocator = allocator;
   tree->deallocator = deallocator;
-  tree->nil = (ds_bst_node_t *)allocator(sizeof(ds_bst_node_t));
+  tree->nil = (ds_bst_node_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                                  sizeof(ds_bst_node_t));
   if (tree->nil == NULL) {
-    deallocator(tree);
+    DS_LEGACY_RELEASE(context, deallocator, tree);
     return NULL;
   }
   tree->nil->left = tree->nil;
@@ -29,8 +33,20 @@ ds_bst_t *ds_bst_create_alloc(void *(*allocator)(size_t),
   return tree;
 }
 
-void ds_bst_insert(ds_bst_t *tree, ds_bst_node_t *node,
-                   int (*compare)(ds_bst_node_t *, ds_bst_node_t *)) {
+ds_bst_t *ds_bst_create_alloc(void *(*allocator)(size_t),
+                              void (*deallocator)(void *)) {
+  return bst_create_internal(allocator, deallocator, NULL);
+}
+ds_status_t ds_bst_create_context(ds_context_t *context, ds_bst_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = bst_create_internal(malloc, free,
+                             context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
+}
+
+static ds_status_t bst_insert_core(ds_bst_t *tree, ds_bst_node_t *node,
+                                   ds_bst_compare_fn compare, void *user) {
   if (tree->root == tree->nil) {
     tree->root = node;
     node->parent = node->left = node->right = tree->nil;
@@ -39,13 +55,13 @@ void ds_bst_insert(ds_bst_t *tree, ds_bst_node_t *node,
     ds_bst_node_t *parent = tree->nil;
     while (current != tree->nil) {
       parent = current;
-      if (compare(node, current) < 0) {
+      if (compare(node, current, user) < 0) {
         current = current->left;
       } else {
         current = current->right;
       }
     }
-    if (compare(node, parent) < 0) {
+    if (compare(node, parent, user) < 0) {
       parent->left = node;
     } else {
       parent->right = node;
@@ -54,6 +70,26 @@ void ds_bst_insert(ds_bst_t *tree, ds_bst_node_t *node,
     node->left = node->right = tree->nil;
   }
   tree->size += 1;
+  return DS_OK;
+}
+static int bst_compare_legacy(ds_bst_node_t *a, ds_bst_node_t *b, void *user) {
+  int (**compare)(ds_bst_node_t *, ds_bst_node_t *) =
+      (int (**)(ds_bst_node_t *, ds_bst_node_t *))user;
+  return (*compare)(a, b);
+}
+ds_status_t ds_bst_insert_with(ds_bst_t *tree, ds_bst_node_t *node,
+                               ds_bst_compare_fn compare, void *user) {
+  if (tree == NULL || node == NULL || compare == NULL)
+    return DS_ERR_NULL;
+  if (node == tree->nil)
+    return DS_ERR_INVALID;
+  if (tree->size == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  return bst_insert_core(tree, node, compare, user);
+}
+void ds_bst_insert(ds_bst_t *tree, ds_bst_node_t *node,
+                   int (*compare)(ds_bst_node_t *, ds_bst_node_t *)) {
+  (void)ds_bst_insert_with(tree, node, bst_compare_legacy, &compare);
 }
 
 ds_bst_node_t *ds_bst_search(ds_bst_t *tree, ds_bst_node_t *data,
@@ -222,9 +258,9 @@ void ds_bst_destroy_recursive(ds_bst_t *tree, ds_bst_node_t *node,
 void ds_bst_destroy_tree(ds_bst_t *tree, void (*destroy)(ds_bst_node_t *)) {
   ds_bst_destroy_recursive(tree, tree->root, destroy);
 
-  tree->deallocator(tree->nil);
+  DS_LEGACY_FREE(tree, tree->nil);
 
-  tree->deallocator(tree);
+  DS_LEGACY_FREE(tree, tree);
 }
 
 void ds_bst_inorder_walk_helper(ds_bst_t *tree, ds_bst_node_t *node,
@@ -298,9 +334,31 @@ ds_bst_node_t *ds_bst_predecessor(ds_bst_t *tree, ds_bst_node_t *node_x) {
  * *out gets the copy's root (new_tree->nil for an empty subtree). Every
  * clone is linked in before the next is made, so when clone_node returns
  * NULL (false) *out is still a valid tree holding every clone made. */
+
+typedef struct bst_clone_policy {
+  ds_bst_node_t *(*legacy)(ds_bst_node_t *);
+  ds_bst_clone_fn checked;
+  void *user;
+  ds_status_t status;
+} bst_clone_policy_t;
+static ds_bst_node_t *bst_clone_one(bst_clone_policy_t *p,
+                                    ds_bst_node_t *node) {
+  ds_bst_node_t *copy = NULL;
+  if (p->checked != NULL) {
+    p->status = p->checked(node, p->user, &copy);
+    if (p->status != DS_OK) {
+      if (p->status > DS_OK)
+        p->status = DS_ERR_CALLBACK;
+      return NULL;
+    }
+  } else
+    copy = p->legacy(node);
+  if (copy == NULL)
+    p->status = DS_ERR_CALLBACK;
+  return copy;
+}
 static bool bst_clone_subtree(const ds_bst_t *tree, ds_bst_t *new_tree,
-                              ds_bst_node_t *node,
-                              ds_bst_node_t *(*clone_node)(ds_bst_node_t *),
+                              ds_bst_node_t *node, bst_clone_policy_t *policy,
                               ds_bst_node_t **out) {
   ds_bst_node_t *x = node;
   ds_bst_node_t *copy;
@@ -310,7 +368,7 @@ static bool bst_clone_subtree(const ds_bst_t *tree, ds_bst_t *new_tree,
   if (node == tree->nil) {
     return true;
   }
-  copy = clone_node(node);
+  copy = bst_clone_one(policy, node);
   if (copy == NULL) {
     return false;
   }
@@ -322,7 +380,7 @@ static bool bst_clone_subtree(const ds_bst_t *tree, ds_bst_t *new_tree,
   for (;;) {
     ds_bst_node_t *c;
     if (from == BST_FROM_ABOVE && x->left != tree->nil) {
-      c = clone_node(x->left);
+      c = bst_clone_one(policy, x->left);
       if (c == NULL) {
         return false;
       }
@@ -335,7 +393,7 @@ static bool bst_clone_subtree(const ds_bst_t *tree, ds_bst_t *new_tree,
       continue;
     }
     if (from != BST_FROM_RIGHT && x->right != tree->nil) {
-      c = clone_node(x->right);
+      c = bst_clone_one(policy, x->right);
       if (c == NULL) {
         return false;
       }
@@ -361,21 +419,32 @@ ds_bst_node_t *
 ds_bst_clone_recursive(ds_bst_t *tree, ds_bst_t *new_tree, ds_bst_node_t *node,
                        ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
   ds_bst_node_t *copy;
-  (void)bst_clone_subtree(tree, new_tree, node, clone_node, &copy);
+  bst_clone_policy_t policy;
+  policy.legacy = clone_node;
+  policy.checked = NULL;
+  policy.user = NULL;
+  policy.status = DS_OK;
+  (void)bst_clone_subtree(tree, new_tree, node, &policy, &copy);
   return copy;
 }
 
 ds_bst_t *ds_bst_clone(ds_bst_t *tree,
                        ds_bst_node_t *(*clone_node)(ds_bst_node_t *)) {
   ds_bst_t *new_tree;
+  bst_clone_policy_t policy;
+  policy.legacy = clone_node;
+  policy.checked = NULL;
+  policy.user = NULL;
+  policy.status = DS_OK;
   if (tree == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_tree = ds_bst_create_alloc(tree->allocator, tree->deallocator);
+  new_tree =
+      bst_create_internal(tree->allocator, tree->deallocator, tree->context);
   if (new_tree == NULL) {
     return NULL;
   }
-  if (!bst_clone_subtree(tree, new_tree, tree->root, clone_node,
+  if (!bst_clone_subtree(tree, new_tree, tree->root, &policy,
                          &new_tree->root)) {
     ds_bst_destroy_tree(new_tree, NULL); /* the clones are not released */
     return NULL;
@@ -390,6 +459,11 @@ ds_status_t ds_bst_clone_ex(const ds_bst_t *tree,
                             void (*destroy_clone)(ds_bst_node_t *),
                             ds_bst_t **out) {
   ds_bst_t *new_tree;
+  bst_clone_policy_t policy;
+  policy.legacy = clone_node;
+  policy.checked = NULL;
+  policy.user = NULL;
+  policy.status = DS_OK;
   if (out == NULL) {
     return DS_ERR_NULL;
   }
@@ -397,16 +471,146 @@ ds_status_t ds_bst_clone_ex(const ds_bst_t *tree,
   if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_tree = ds_bst_create_alloc(tree->allocator, tree->deallocator);
+  new_tree =
+      bst_create_internal(tree->allocator, tree->deallocator, tree->context);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
-  if (!bst_clone_subtree(tree, new_tree, tree->root, clone_node,
+  if (!bst_clone_subtree(tree, new_tree, tree->root, &policy,
                          &new_tree->root)) {
     ds_bst_destroy_tree(new_tree, destroy_clone);
     return DS_ERR_CALLBACK;
   }
   new_tree->size = tree->size;
   *out = new_tree;
+  return DS_OK;
+}
+
+ds_status_t ds_bst_find_with(const ds_bst_t *tree, ds_bst_node_t *key,
+                             ds_bst_compare_fn compare, void *user,
+                             ds_bst_node_t **out) {
+  ds_bst_node_t *node;
+  if (tree == NULL || key == NULL || compare == NULL || out == NULL)
+    return DS_ERR_NULL;
+  node = tree->root;
+  while (node != tree->nil) {
+    int cmp = compare(key, node, user);
+    if (cmp == 0) {
+      *out = node;
+      return DS_OK;
+    }
+    node = cmp < 0 ? node->left : node->right;
+  }
+  return DS_NOT_FOUND;
+}
+ds_status_t ds_bst_traverse_with(const ds_bst_t *tree, ds_bst_node_t *root,
+                                 ds_tree_walk_order_t order,
+                                 ds_bst_visit_fn visit, void *user) {
+  ds_bst_node_t *node, *parent;
+  int state = 0;
+  ds_status_t st;
+  if (tree == NULL || root == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  if (order != DS_TREE_PREORDER && order != DS_TREE_INORDER &&
+      order != DS_TREE_POSTORDER)
+    return DS_ERR_INVALID;
+  node = root;
+  while (node != tree->nil) {
+    if (state == 0) {
+      if (order == DS_TREE_PREORDER) {
+        st = visit(node, user);
+        if (st != DS_OK)
+          return st;
+      }
+      if (node->left != tree->nil) {
+        node = node->left;
+        continue;
+      }
+      state = 1;
+    }
+    if (state == 1) {
+      if (order == DS_TREE_INORDER) {
+        st = visit(node, user);
+        if (st != DS_OK)
+          return st;
+      }
+      if (node->right != tree->nil) {
+        node = node->right;
+        state = 0;
+        continue;
+      }
+    }
+    if (order == DS_TREE_POSTORDER) {
+      st = visit(node, user);
+      if (st != DS_OK)
+        return st;
+    }
+    if (node == root)
+      break;
+    parent = node->parent;
+    state = node == parent->left ? 1 : 2;
+    node = parent;
+  }
+  return DS_OK;
+}
+ds_status_t ds_bst_walk_with(const ds_bst_t *tree, ds_bst_visit_fn visit,
+                             void *user) {
+  if (tree == NULL)
+    return DS_ERR_NULL;
+  return ds_bst_traverse_with(tree, tree->root, DS_TREE_INORDER, visit, user);
+}
+void ds_bst_destroy_with(ds_bst_t *tree, ds_bst_destroy_fn destroy,
+                         void *user) {
+  ds_bst_node_t *node, *parent;
+  if (tree == NULL)
+    return;
+  node = tree->root;
+  while (node != tree->nil) {
+    if (node->left != tree->nil) {
+      node = node->left;
+      continue;
+    }
+    if (node->right != tree->nil) {
+      node = node->right;
+      continue;
+    }
+    parent = node->parent;
+    if (parent != tree->nil) {
+      if (parent->left == node)
+        parent->left = tree->nil;
+      else
+        parent->right = tree->nil;
+    }
+    if (destroy != NULL)
+      destroy(node, user);
+    node = parent;
+  }
+  DS_LEGACY_FREE(tree, tree->nil);
+  DS_LEGACY_FREE(tree, tree);
+}
+ds_status_t ds_bst_clone_with(const ds_bst_t *tree, ds_bst_clone_fn clone,
+                              ds_bst_destroy_fn destroy, void *user,
+                              ds_context_t *context, ds_bst_t **out) {
+  ds_bst_t *copy;
+  bst_clone_policy_t policy;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (tree == NULL || clone == NULL || destroy == NULL)
+    return DS_ERR_NULL;
+  copy = bst_create_internal(tree->allocator, tree->deallocator,
+                             context != NULL ? context : tree->context);
+  if (copy == NULL)
+    return DS_ERR_ALLOC;
+  policy.legacy = NULL;
+  policy.checked = clone;
+  policy.user = user;
+  policy.status = DS_OK;
+  if (!bst_clone_subtree(tree, copy, tree->root, &policy, &copy->root)) {
+    ds_bst_destroy_with(copy, destroy, user);
+    return policy.status;
+  }
+  copy->size = tree->size;
+  *out = copy;
   return DS_OK;
 }

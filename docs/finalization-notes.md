@@ -1,3 +1,6 @@
+> Historical notes for the preceding repair pass. For the current work and
+> remaining items, read `completion-notes.md` and `completion-plan.md`.
+
 # Finalization pass after batch 23
 
 Base: `f5d42b3a84882d374472415b4bb9c33326065e24` on `hydrastro/ds`.
@@ -52,10 +55,8 @@ remain borrowed. Void-sink collection failures are recorded rather than hidden.
 
 Localization uses locale/domain/key catalogs on the map capability, an optional
 external provider, formatter callbacks, single-pass substitution, quiet
-diagnostic fallbacks and viewer filtering/severity overrides. It implements the
-concepts from the supplied PHP repositories without requiring an interpreter.
-[result-i18n.md](result-i18n.md) gives the pinned references, API mapping,
-lifetimes and deliberate differences from PHP.
+diagnostic fallbacks and viewer filtering/severity overrides. [result-i18n.md](result-i18n.md) describes the APIs, ownership,
+composition and presentation contracts.
 
 ## Compatibility
 
@@ -141,7 +142,7 @@ random model, fault-injection or regression tests were run.
   operations listed above; not every old mutation now tolerates exhaustion.
 - Detailed DADS mapping audits and further correctness review of other modules.
 - Optional catalog-file adapters and locale-data packages. Pluralization,
-  number/date rules and PHP catalog editing are not built into the C core.
+  number/date rules and catalog editing are separate extension policies.
 
 The coverage map remains an inventory of claimed implementations, not evidence
 that every mapped term has identical semantics or complexity to its reference.

@@ -1,5 +1,12 @@
 #include "order_statistic_tree.h"
+#include "legacy_alloc.h"
 #include <stdlib.h>
+
+static int ost_compare(ds_ost_t *owner, ds_ost_node_t *a, ds_ost_node_t *b) {
+  return owner->compare_with != NULL
+             ? owner->compare_with(a, b, owner->compare_user)
+             : owner->compare(a, b);
+}
 
 static int ost_height(ds_ost_t *tree, ds_ost_node_t *node) {
   return node == tree->nil ? 0 : node->height;
@@ -32,24 +39,31 @@ ds_ost_t *ds_ost_create(int (*compare)(ds_ost_node_t *, ds_ost_node_t *)) {
   return ds_ost_create_alloc(compare, malloc, free);
 }
 
-ds_ost_t *ds_ost_create_alloc(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
-                              void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
+static ds_ost_t *
+ost_create_internal(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
+                    void *(*allocator)(size_t), void (*deallocator)(void *),
+                    ds_context_t *context, ds_ost_compare_fn compare_with,
+                    void *compare_user) {
   ds_ost_t *tree;
-  if (allocator == NULL || deallocator == NULL) {
+  if (allocator == NULL || deallocator == NULL ||
+      (compare == NULL && compare_with == NULL)) {
     return NULL;
   }
-  tree = (ds_ost_t *)allocator(sizeof(ds_ost_t));
+  tree = (ds_ost_t *)DS_LEGACY_ALLOCATE(context, allocator, sizeof(ds_ost_t));
   if (tree == NULL) {
     return NULL;
   }
   tree->compare = compare;
+  tree->context = context;
+  tree->compare_with = compare_with;
+  tree->compare_user = compare_user;
   tree->allocator = allocator;
   tree->deallocator = deallocator;
   tree->size = 0;
-  tree->nil = (ds_ost_node_t *)allocator(sizeof(ds_ost_node_t));
+  tree->nil = (ds_ost_node_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                                  sizeof(ds_ost_node_t));
   if (tree->nil == NULL) {
-    deallocator(tree);
+    DS_LEGACY_RELEASE(context, deallocator, tree);
     return NULL;
   }
   tree->nil->left = tree->nil;
@@ -59,6 +73,24 @@ ds_ost_t *ds_ost_create_alloc(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
   tree->nil->height = 0;
   tree->root = tree->nil;
   return tree;
+}
+ds_ost_t *ds_ost_create_alloc(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
+                              void *(*allocator)(size_t),
+                              void (*deallocator)(void *)) {
+  return ost_create_internal(compare, allocator, deallocator, NULL, NULL, NULL);
+}
+ds_status_t ds_ost_create_context(ds_ost_compare_fn compare, void *user,
+                                  ds_context_t *context, ds_ost_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (compare == NULL)
+    return DS_ERR_NULL;
+
+  *out = ost_create_internal(NULL, malloc, free,
+                             context != NULL ? context : ds_default_context(),
+                             compare, user);
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 static void ost_rotate_left(ds_ost_t *tree, ds_ost_node_t *x) {
@@ -133,7 +165,7 @@ bool ds_ost_insert(ds_ost_t *tree, ds_ost_node_t *node) {
   parent = tree->nil;
   while (current != tree->nil) {
     parent = current;
-    cmp = tree->compare(node, current);
+    cmp = ost_compare(tree, node, current);
     if (cmp == 0) {
       return false;
     }
@@ -167,7 +199,7 @@ ds_ost_node_t *ds_ost_search(ds_ost_t *tree, ds_ost_node_t *key) {
   ds_ost_node_t *current;
   current = tree->root;
   while (current != tree->nil) {
-    int cmp = tree->compare(key, current);
+    int cmp = ost_compare(tree, key, current);
     if (cmp == 0) {
       break;
     }
@@ -197,7 +229,7 @@ bool ds_ost_remove(ds_ost_t *tree, ds_ost_node_t *key,
   bool result = false;
   z = tree->root;
   while (z != tree->nil) {
-    int cmp = tree->compare(key, z);
+    int cmp = ost_compare(tree, key, z);
     if (cmp == 0) {
       break;
     }
@@ -262,7 +294,7 @@ size_t ds_ost_rank(ds_ost_t *tree, ds_ost_node_t *key) {
   size_t rank = 0;
   current = tree->root;
   while (current != tree->nil) {
-    int cmp = tree->compare(key, current);
+    int cmp = ost_compare(tree, key, current);
     if (cmp <= 0) {
       current = current->left;
     } else {
@@ -317,19 +349,163 @@ void ds_ost_inorder_walk(ds_ost_t *tree, void (*callback)(ds_ost_node_t *)) {
 }
 
 static void ost_destroy_recursive(ds_ost_t *tree, ds_ost_node_t *node,
-                                  void (*destroy)(ds_ost_node_t *)) {
+                                  ds_ost_destroy_fn destroy, void *user) {
   if (node == tree->nil) {
     return;
   }
-  ost_destroy_recursive(tree, node->left, destroy);
-  ost_destroy_recursive(tree, node->right, destroy);
+  ost_destroy_recursive(tree, node->left, destroy, user);
+  ost_destroy_recursive(tree, node->right, destroy, user);
   if (destroy != NULL) {
-    destroy(node);
+    destroy(node, user);
   }
 }
 
-void ds_ost_destroy(ds_ost_t *tree, void (*destroy)(ds_ost_node_t *)) {
-  ost_destroy_recursive(tree, tree->root, destroy);
-  tree->deallocator(tree->nil);
-  tree->deallocator(tree);
+static void ost_destroy_internal(ds_ost_t *tree, ds_ost_destroy_fn destroy,
+                                 void *user) {
+  ost_destroy_recursive(tree, tree->root, destroy, user);
+  DS_LEGACY_FREE(tree, tree->nil);
+  DS_LEGACY_FREE(tree, tree);
+}
+void ds_ost_destroy_with(ds_ost_t *container, ds_ost_destroy_fn destroy,
+                         void *user) {
+  if (container != NULL)
+    ost_destroy_internal(container, destroy, user);
+}
+static void ost_destroy_legacy(ds_ost_node_t *node, void *user) {
+  void (**destroy)(ds_ost_node_t *) = (void (**)(ds_ost_node_t *))user;
+  (*destroy)(node);
+}
+void ds_ost_destroy(ds_ost_t *container, void (*destroy)(ds_ost_node_t *)) {
+  ds_ost_destroy_with(container, destroy != NULL ? ost_destroy_legacy : NULL,
+                      &destroy);
+}
+
+ds_status_t ds_ost_walk_with(const ds_ost_t *container, ds_ost_visit_fn visit,
+                             void *user) {
+  ds_ost_node_t *node;
+  ds_status_t st;
+  if (container == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  node = container->root;
+  if (node == container->nil)
+    return DS_OK;
+  while (node->left != container->nil)
+    node = node->left;
+  while (node != container->nil) {
+    st = visit(node, user);
+    if (st != DS_OK)
+      return st;
+    if (node->right != container->nil) {
+      node = node->right;
+      while (node->left != container->nil)
+        node = node->left;
+    } else {
+      while (node->parent != container->nil && node == node->parent->right)
+        node = node->parent;
+      node = node->parent;
+    }
+  }
+  return DS_OK;
+}
+
+ds_status_t ds_ost_insert_ex(ds_ost_t *container, ds_ost_node_t *node) {
+
+  if (container == NULL || node == NULL)
+    return DS_ERR_NULL;
+  if (node == container->nil)
+    return DS_ERR_INVALID;
+  if (container->size == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  return ds_ost_insert(container, node) ? DS_OK : DS_EXISTS;
+}
+
+ds_status_t ds_ost_find_ex(ds_ost_t *container, ds_ost_node_t *key,
+                           ds_ost_node_t **out) {
+  ds_ost_node_t *node;
+  if (container == NULL || key == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (key == container->nil)
+    return DS_ERR_INVALID;
+  node = ds_ost_search(container, key);
+  if (node == container->nil)
+    return DS_NOT_FOUND;
+  *out = node;
+  return DS_OK;
+}
+
+ds_status_t ds_ost_remove_ex(ds_ost_t *container, ds_ost_node_t *key,
+                             ds_ost_node_t **out) {
+  ds_ost_node_t *node;
+  if (container == NULL || key == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (key == container->nil)
+    return DS_ERR_INVALID;
+  if (!ds_ost_remove(container, key, &node))
+    return DS_NOT_FOUND;
+  *out = node;
+  return DS_OK;
+}
+
+typedef struct ost_clone_policy {
+  ds_ost_t *copy;
+  ds_ost_clone_fn clone;
+  ds_ost_destroy_fn destroy;
+  void *user;
+} ost_clone_policy_t;
+static ds_status_t ost_clone_visit(ds_ost_node_t *source, void *user) {
+  ost_clone_policy_t *policy = (ost_clone_policy_t *)user;
+  ds_ost_node_t *node = NULL;
+  ds_status_t st = policy->clone(source, &node, policy->user);
+  if (st != DS_OK || node == NULL)
+    return st < 0 ? st : DS_ERR_CALLBACK;
+  st = ds_ost_insert_ex(policy->copy, node);
+  if (st != DS_OK) {
+    policy->destroy(node, policy->user);
+    return st < 0 ? st : DS_ERR_CALLBACK;
+  }
+  return DS_OK;
+}
+ds_status_t ds_ost_clone_with(const ds_ost_t *container, ds_ost_clone_fn clone,
+                              ds_ost_destroy_fn destroy, void *user,
+                              ds_context_t *context, ds_ost_t **out) {
+  ost_clone_policy_t policy;
+  ds_status_t st;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (container == NULL || clone == NULL || destroy == NULL)
+    return DS_ERR_NULL;
+  policy.copy = ost_create_internal(
+      container->compare, container->allocator, container->deallocator,
+      context != NULL ? context : container->context, container->compare_with,
+      container->compare_user);
+  if (policy.copy == NULL)
+    return DS_ERR_ALLOC;
+  policy.clone = clone;
+  policy.destroy = destroy;
+  policy.user = user;
+  st = ds_ost_walk_with(container, ost_clone_visit, &policy);
+  if (st != DS_OK) {
+    ds_ost_destroy_with(policy.copy, destroy, user);
+    return st;
+  }
+  *out = policy.copy;
+  return DS_OK;
+}
+
+ds_status_t ds_ost_select_ex(ds_ost_t *tree, size_t rank, ds_ost_node_t **out) {
+  if (tree == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (rank >= tree->size)
+    return DS_ERR_RANGE;
+  *out = ds_ost_select(tree, rank);
+  return DS_OK;
+}
+ds_status_t ds_ost_rank_ex(ds_ost_t *tree, ds_ost_node_t *key, size_t *out) {
+  if (tree == NULL || key == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (key == tree->nil)
+    return DS_ERR_INVALID;
+  *out = ds_ost_rank(tree, key);
+  return DS_OK;
 }

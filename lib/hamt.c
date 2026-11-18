@@ -1,4 +1,5 @@
 #include "hamt.h"
+#include "legacy_alloc.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -59,7 +60,7 @@ ds_hamt_t *ds_hamt_create(void) { return ds_hamt_create_alloc(malloc, free); }
 
 static ds_hamt_node_t *hamt_new_branch(ds_hamt_t *hamt) {
   ds_hamt_node_t *node =
-      (ds_hamt_node_t *)hamt->allocator(sizeof(ds_hamt_node_t));
+      (ds_hamt_node_t *)DS_LEGACY_ALLOC(hamt, sizeof(ds_hamt_node_t));
   if (node == NULL) {
     return NULL;
   }
@@ -79,7 +80,7 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
                                      size_t key_length, void *value,
                                      unsigned long hash) {
   ds_hamt_node_t *node =
-      (ds_hamt_node_t *)hamt->allocator(sizeof(ds_hamt_node_t));
+      (ds_hamt_node_t *)DS_LEGACY_ALLOC(hamt, sizeof(ds_hamt_node_t));
   size_t i;
   if (node == NULL) {
     return NULL;
@@ -89,10 +90,11 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
   node->children = NULL;
   node->num_children = 0;
   node->key_length = key_length;
-  node->key =
-      key_length > 0 ? (unsigned char *)hamt->allocator(key_length) : NULL;
+  node->key = key_length > 0
+                  ? (unsigned char *)DS_LEGACY_ALLOC(hamt, key_length)
+                  : NULL;
   if (key_length > 0 && node->key == NULL) {
-    hamt->deallocator(node);
+    DS_LEGACY_FREE(hamt, node);
     return NULL;
   }
   for (i = 0; i < key_length; i++) {
@@ -104,25 +106,39 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
   return node;
 }
 
-ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
-                                void (*deallocator)(void *)) {
+static ds_hamt_t *hamt_create_internal(void *(*allocator)(size_t),
+                                       void (*deallocator)(void *),
+                                       ds_context_t *context) {
   ds_hamt_t *hamt;
   if (allocator == NULL || deallocator == NULL) {
     return NULL;
   }
-  hamt = (ds_hamt_t *)allocator(sizeof(ds_hamt_t));
+  hamt = (ds_hamt_t *)DS_LEGACY_ALLOCATE(context, allocator, sizeof(ds_hamt_t));
   if (hamt == NULL) {
     return NULL;
   }
+  hamt->context = context;
   hamt->allocator = allocator;
   hamt->deallocator = deallocator;
   hamt->size = 0;
   hamt->root = hamt_new_branch(hamt);
   if (hamt->root == NULL) {
-    deallocator(hamt);
+    DS_LEGACY_RELEASE(context, deallocator, hamt);
     return NULL;
   }
   return hamt;
+}
+
+ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
+                                void (*deallocator)(void *)) {
+  return hamt_create_internal(allocator, deallocator, NULL);
+}
+ds_status_t ds_hamt_create_context(ds_context_t *context, ds_hamt_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = hamt_create_internal(malloc, free,
+                              context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 static bool hamt_key_equal(ds_hamt_node_t *leaf, const void *key,
@@ -138,8 +154,8 @@ static bool hamt_key_equal(ds_hamt_node_t *leaf, const void *key,
 static bool hamt_branch_add(ds_hamt_t *hamt, ds_hamt_node_t *branch,
                             size_t slot, ds_hamt_node_t *child) {
   size_t idx = hamt_child_index(branch->bitmap, slot);
-  ds_hamt_node_t **grown = (ds_hamt_node_t **)hamt->allocator(
-      (branch->num_children + 1) * sizeof(ds_hamt_node_t *));
+  ds_hamt_node_t **grown = (ds_hamt_node_t **)DS_LEGACY_ALLOC(
+      hamt, (branch->num_children + 1) * sizeof(ds_hamt_node_t *));
   size_t i;
   if (grown == NULL) {
     return false;
@@ -152,7 +168,7 @@ static bool hamt_branch_add(ds_hamt_t *hamt, ds_hamt_node_t *branch,
     grown[i + 1] = branch->children[i];
   }
   if (branch->children != NULL) {
-    hamt->deallocator(branch->children);
+    DS_LEGACY_FREE(hamt, branch->children);
   }
   branch->children = grown;
   branch->num_children += 1;
@@ -165,7 +181,7 @@ static void hamt_branch_remove(ds_hamt_t *hamt, ds_hamt_node_t *branch,
   size_t idx = hamt_child_index(branch->bitmap, slot);
   size_t i;
   if (branch->num_children == 1) {
-    hamt->deallocator(branch->children);
+    DS_LEGACY_FREE(hamt, branch->children);
     branch->children = NULL;
     branch->num_children = 0;
     branch->bitmap = 0UL;
@@ -189,10 +205,10 @@ static ds_hamt_node_t *hamt_split_leaf(ds_hamt_t *hamt,
     return NULL;
   }
   branch->num_children = es == fs ? 1U : 2U;
-  branch->children = (ds_hamt_node_t **)hamt->allocator(
-      branch->num_children * sizeof(*branch->children));
+  branch->children = (ds_hamt_node_t **)DS_LEGACY_ALLOC(
+      hamt, branch->num_children * sizeof(*branch->children));
   if (branch->children == NULL) {
-    hamt->deallocator(branch);
+    DS_LEGACY_FREE(hamt, branch);
     return NULL;
   }
   branch->bitmap = (1UL << es) | (1UL << fs);
@@ -201,8 +217,8 @@ static ds_hamt_node_t *hamt_split_leaf(ds_hamt_t *hamt,
      * Allocate the whole path before changing the existing leaf/chain. */
     branch->children[0] = hamt_split_leaf(hamt, existing, fresh, level + 1);
     if (branch->children[0] == NULL) {
-      hamt->deallocator(branch->children);
-      hamt->deallocator(branch);
+      DS_LEGACY_FREE(hamt, branch->children);
+      DS_LEGACY_FREE(hamt, branch);
       return NULL;
     }
   } else {
@@ -235,9 +251,9 @@ ds_status_t ds_hamt_insert_ex(ds_hamt_t *hamt, const void *key,
       }
       if (!hamt_branch_add(hamt, node, slot, leaf)) {
         if (leaf->key != NULL) {
-          hamt->deallocator(leaf->key);
+          DS_LEGACY_FREE(hamt, leaf->key);
         }
-        hamt->deallocator(leaf);
+        DS_LEGACY_FREE(hamt, leaf);
         return DS_ERR_ALLOC;
       }
       hamt->size += 1;
@@ -273,9 +289,9 @@ ds_status_t ds_hamt_insert_ex(ds_hamt_t *hamt, const void *key,
                 hamt_split_leaf(hamt, child, fresh, level + 1);
             if (split == NULL) {
               if (fresh->key != NULL) {
-                hamt->deallocator(fresh->key);
+                DS_LEGACY_FREE(hamt, fresh->key);
               }
-              hamt->deallocator(fresh);
+              DS_LEGACY_FREE(hamt, fresh);
               return DS_ERR_ALLOC;
             }
             node->children[idx] = split;
@@ -379,16 +395,16 @@ bool ds_hamt_remove(ds_hamt_t *hamt, const void *key, size_t key_length,
             while (depth > 0 && node->num_children == 0 && node != hamt->root) {
               ds_hamt_node_t *parent = parents[depth - 1];
               size_t pslot = parent_slots[depth - 1];
-              hamt->deallocator(node);
+              DS_LEGACY_FREE(hamt, node);
               hamt_branch_remove(hamt, parent, pslot);
               node = parent;
               depth -= 1;
             }
           }
           if (cur->key != NULL) {
-            hamt->deallocator(cur->key);
+            DS_LEGACY_FREE(hamt, cur->key);
           }
-          hamt->deallocator(cur);
+          DS_LEGACY_FREE(hamt, cur);
           hamt->size -= 1;
           removed = true;
           break;
@@ -419,43 +435,68 @@ bool ds_hamt_is_empty(ds_hamt_t *hamt) {
   return result;
 }
 
-static void hamt_walk_node(ds_hamt_node_t *node,
-                           void (*callback)(const void *, size_t, void *,
-                                            void *),
-                           void *user) {
+static ds_status_t hamt_walk_node(ds_hamt_node_t *node,
+                                  ds_hamt_visit_fn callback, void *user) {
   size_t i;
   if (node->is_leaf) {
     ds_hamt_node_t *cur = node;
     while (cur != NULL) {
-      callback(cur->key, cur->key_length, cur->value, user);
+      ds_status_t st = callback(cur->key, cur->key_length, cur->value, user);
+      if (st != DS_OK)
+        return st;
       cur = cur->next;
     }
-    return;
+    return DS_OK;
   }
   for (i = 0; i < node->num_children; i++) {
-    hamt_walk_node(node->children[i], callback, user);
+    ds_status_t st = hamt_walk_node(node->children[i], callback, user);
+    if (st != DS_OK)
+      return st;
   }
+  return DS_OK;
 }
 
+ds_status_t ds_hamt_walk_with(ds_hamt_t *hamt, ds_hamt_visit_fn callback,
+                              void *user) {
+  if (hamt == NULL || callback == NULL)
+    return DS_ERR_NULL;
+  return hamt_walk_node(hamt->root, callback, user);
+}
+typedef struct hamt_legacy_visit {
+  void (*callback)(const void *, size_t, void *, void *);
+  void *user;
+} hamt_legacy_visit_t;
+static ds_status_t hamt_visit_legacy(const void *key, size_t length,
+                                     void *value, void *user) {
+  hamt_legacy_visit_t *p = (hamt_legacy_visit_t *)user;
+  p->callback(key, length, value, p->user);
+  return DS_OK;
+}
 void ds_hamt_walk(ds_hamt_t *hamt,
                   void (*callback)(const void *, size_t, void *, void *),
                   void *user) {
-  hamt_walk_node(hamt->root, callback, user);
+  hamt_legacy_visit_t policy;
+  if (callback == NULL)
+    return;
+  policy.callback = callback;
+  policy.user = user;
+  (void)ds_hamt_walk_with(hamt, hamt_visit_legacy, &policy);
 }
 
 static void hamt_destroy_node(ds_hamt_t *hamt, ds_hamt_node_t *node,
-                              void (*destroy_value)(void *)) {
+                              void (*destroy_value)(void *, void *),
+                              void *user) {
   if (node->is_leaf) {
     ds_hamt_node_t *cur = node;
     while (cur != NULL) {
       ds_hamt_node_t *next = cur->next;
       if (destroy_value != NULL) {
-        destroy_value(cur->value);
+        destroy_value(cur->value, user);
       }
       if (cur->key != NULL) {
-        hamt->deallocator(cur->key);
+        DS_LEGACY_FREE(hamt, cur->key);
       }
-      hamt->deallocator(cur);
+      DS_LEGACY_FREE(hamt, cur);
       cur = next;
     }
     return;
@@ -463,16 +504,39 @@ static void hamt_destroy_node(ds_hamt_t *hamt, ds_hamt_node_t *node,
   {
     size_t i;
     for (i = 0; i < node->num_children; i++) {
-      hamt_destroy_node(hamt, node->children[i], destroy_value);
+      hamt_destroy_node(hamt, node->children[i], destroy_value, user);
     }
     if (node->children != NULL) {
-      hamt->deallocator(node->children);
+      DS_LEGACY_FREE(hamt, node->children);
     }
-    hamt->deallocator(node);
+    DS_LEGACY_FREE(hamt, node);
   }
 }
 
-void ds_hamt_destroy(ds_hamt_t *hamt, void (*destroy_value)(void *)) {
-  hamt_destroy_node(hamt, hamt->root, destroy_value);
-  hamt->deallocator(hamt);
+void ds_hamt_destroy_with(ds_hamt_t *hamt,
+                          void (*destroy_value)(void *, void *), void *user) {
+  if (hamt == NULL)
+    return;
+  hamt_destroy_node(hamt, hamt->root, destroy_value, user);
+  DS_LEGACY_FREE(hamt, hamt);
+}
+static void hamt_destroy_legacy(void *value, void *user) {
+  void (**destroy)(void *) = (void (**)(void *))user;
+  (*destroy)(value);
+}
+void ds_hamt_destroy(ds_hamt_t *tree, void (*destroy_value)(void *)) {
+  ds_hamt_destroy_with(tree, destroy_value != NULL ? hamt_destroy_legacy : NULL,
+                       &destroy_value);
+}
+
+ds_status_t ds_hamt_find_ex(ds_hamt_t *tree, const void *key, size_t length,
+                            void **out) {
+  ds_hamt_node_t *leaf;
+  if (tree == NULL || out == NULL || (length > 0 && key == NULL))
+    return DS_ERR_NULL;
+  leaf = hamt_find_leaf(tree, key, length, hamt_hash(key, length));
+  if (leaf == NULL)
+    return DS_NOT_FOUND;
+  *out = leaf->value;
+  return DS_OK;
 }

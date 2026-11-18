@@ -117,7 +117,7 @@ Severity is ordered DEBUG=0 through EMERGENCY=7. Neither a diagnostic nor a
 viewer's filtering or severity override changes the Result branch.
 
 See [Result and i18n](result-i18n.md) for ownership, configuration, the mapping
-from the PHP design, and a complete runnable example.
+between operations, and a complete runnable example.
 
 ## Formatting
 

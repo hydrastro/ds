@@ -21,7 +21,10 @@
  * entry is removed (nodes never move).
  *
  * Complexity: insert, remove, get, rank, select, range summary O(log n)
- * expected. Concurrency: one thread at a time.
+ * expected, O(height) worst case. All operations are iterative; parent links
+ * repair summaries. Pruned descent uses an explicit stack of pending right
+ * subtrees and may return DS_ERR_ALLOC after partial callback progress.
+ * Concurrency: one thread at a time. Callbacks must not mutate the treap.
  */
 
 #include "common.h"

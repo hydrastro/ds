@@ -1,9 +1,13 @@
 #include "lp.h"
+#include "../lib/checked.h"
+#include <float.h>
 #include <math.h>
 #include <string.h>
 
 #define LP_NONE (~(size_t)0)
 #define LP_EPS 1e-9
+
+static bool lp_finite(double v) { return v >= -DBL_MAX && v <= DBL_MAX; }
 
 /* A working copy of a problem whose rows can grow (cuts, bounds). */
 typedef struct lp_work {
@@ -18,15 +22,18 @@ typedef struct lp_work {
 
 static ds_status_t lw_init(lp_work_t *w, const ds_lp_t *lp,
                            ds_context_t *context) {
-  size_t cap = lp->rows + lp->cols + 16;
+  size_t cap, cells, bytes;
   memset(w, 0, sizeof(*w));
   w->cols = lp->cols;
   w->context = context;
-  if (cap > ((size_t)-1) / (lp->cols + 1) / sizeof(double)) {
+  if (!ds_size_add(lp->rows, lp->cols, &cap) || !ds_size_add(cap, 16, &cap) ||
+      !ds_size_mul(cap, lp->cols, &cells) ||
+      !ds_size_mul(cells > 0 ? cells : 1, sizeof(double), &bytes) ||
+      cap > (size_t)-1 / sizeof(ds_lp_sense_t) ||
+      cap > (size_t)-1 / sizeof(double)) {
     return DS_ERR_OVERFLOW;
   }
-  w->a = (double *)ds_context_alloc(context,
-                                    cap * (lp->cols + 1) * sizeof(double));
+  w->a = (double *)ds_context_alloc(context, bytes);
   w->sense =
       (ds_lp_sense_t *)ds_context_alloc(context, cap * sizeof(ds_lp_sense_t));
   w->b = (double *)ds_context_alloc(context, cap * sizeof(double));
@@ -56,13 +63,15 @@ static ds_status_t lw_add(lp_work_t *w, const double *row, ds_lp_sense_t s,
                           double rhs) {
   void *p;
   size_t cap;
+  size_t cells, bytes;
   if (w->rows == w->cap) {
-    cap = w->cap * 2;
-    if (cap > ((size_t)-1) / (w->cols + 1) / sizeof(double)) {
+    if (!ds_size_mul(w->cap, 2, &cap) || !ds_size_mul(cap, w->cols, &cells) ||
+        !ds_size_mul(cells > 0 ? cells : 1, sizeof(double), &bytes) ||
+        cap > (size_t)-1 / sizeof(ds_lp_sense_t) ||
+        cap > (size_t)-1 / sizeof(double)) {
       return DS_ERR_OVERFLOW;
     }
-    p = ds_context_realloc(w->context, w->a,
-                           cap * w->cols * sizeof(double) + sizeof(double));
+    p = ds_context_realloc(w->context, w->a, bytes);
     if (p == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -147,7 +156,7 @@ static void tb_price(lp_tab_t *t) {
 }
 
 /* Maximise the current costs; returns DS_LP_OPTIMAL or DS_LP_UNBOUNDED. */
-static ds_lp_result_t tb_run(lp_tab_t *t, bool allow_art) {
+static ds_status_t tb_run(lp_tab_t *t, bool allow_art, ds_lp_result_t *result) {
   size_t e;
   size_t r;
   size_t i;
@@ -155,6 +164,10 @@ static ds_lp_result_t tb_run(lp_tab_t *t, bool allow_art) {
   double best;
   double ratio;
   for (;;) {
+    for (i = 0; i <= t->m; i++)
+      for (j = 0; j < t->w; j++)
+        if (!lp_finite(*tb_at(t, i, j)))
+          return DS_ERR_STATE;
     e = LP_NONE;
     for (j = 0; j < t->nc; j++) {
       if ((allow_art || t->kind[j] != 3) && *tb_at(t, t->m, j) < -LP_EPS) {
@@ -163,7 +176,8 @@ static ds_lp_result_t tb_run(lp_tab_t *t, bool allow_art) {
       }
     }
     if (e == LP_NONE) {
-      return DS_LP_OPTIMAL;
+      *result = DS_LP_OPTIMAL;
+      return DS_OK;
     }
     r = LP_NONE;
     best = HUGE_VAL;
@@ -171,6 +185,8 @@ static ds_lp_result_t tb_run(lp_tab_t *t, bool allow_art) {
       double a = *tb_at(t, i, e);
       if (a > LP_EPS) {
         ratio = *tb_at(t, i, t->nc) / a;
+        if (!lp_finite(ratio))
+          return DS_ERR_STATE;
         if (ratio < best - 1e-12 || (ratio < best + 1e-12 && r != LP_NONE &&
                                      t->basis[i] < t->basis[r])) {
           best = ratio;
@@ -179,7 +195,8 @@ static ds_lp_result_t tb_run(lp_tab_t *t, bool allow_art) {
       }
     }
     if (r == LP_NONE) {
-      return DS_LP_UNBOUNDED;
+      *result = DS_LP_UNBOUNDED;
+      return DS_OK;
     }
     tb_pivot(t, r, e);
   }
@@ -189,6 +206,7 @@ static void tb_free(lp_tab_t *t, ds_context_t *context) {
   ds_context_free(context, t->t);
   ds_context_free(context, t->basis);
   ds_context_free(context, t->kind);
+  ds_context_free(context, t->flip);
 }
 
 /* Two-phase simplex on (m x n rows, max c). On DS_LP_OPTIMAL the tableau
@@ -201,7 +219,9 @@ static ds_status_t tb_solve(const double *a, const ds_lp_sense_t *sense,
   size_t i;
   size_t j;
   size_t col;
+  size_t cells, index_count, numeric_count, rows_plus_one;
   ds_lp_result_t r;
+  ds_status_t st;
   memset(t, 0, sizeof(*t));
   for (i = 0; i < m; i++) {
     double s = b[i] < 0.0 ? -1.0 : 1.0;
@@ -209,26 +229,33 @@ static ds_status_t tb_solve(const double *a, const ds_lp_sense_t *sense,
     if (s < 0.0 && sn != DS_LP_EQ) {
       sn = sn == DS_LP_LE ? DS_LP_GE : DS_LP_LE;
     }
-    extra += sn == DS_LP_LE ? 1 : (sn == DS_LP_GE ? 2 : 1);
+    if (!ds_size_add(extra, sn == DS_LP_GE ? 2 : 1, &extra))
+      return DS_ERR_OVERFLOW;
   }
   t->m = m;
   t->n = n;
-  t->nc = n + extra;
-  t->w = t->nc + 1;
-  if (t->w > ((size_t)-1) / (m + 1) / sizeof(double)) {
+  if (!ds_size_add(n, extra, &t->nc) || !ds_size_add(t->nc, 1, &t->w) ||
+      !ds_size_add(m, 1, &rows_plus_one) ||
+      !ds_size_mul(rows_plus_one, t->w, &cells) ||
+      cells > (size_t)-1 / sizeof(double) || !ds_size_mul(m, 2, &index_count) ||
+      !ds_size_add(index_count, t->nc, &index_count) ||
+      index_count > (size_t)-1 / sizeof(size_t) ||
+      !ds_size_add(m, t->nc, &numeric_count) ||
+      numeric_count > (size_t)-1 / sizeof(double)) {
     return DS_ERR_OVERFLOW;
   }
-  t->t = (double *)ds_context_calloc(context, (m + 1) * t->w, sizeof(double));
-  t->basis = (size_t *)ds_context_alloc(context, (3 * m + 2 * t->nc + 1) *
-                                                     sizeof(size_t));
+  t->t = (double *)ds_context_calloc(context, cells, sizeof(double));
+  t->basis = (size_t *)ds_context_alloc(
+      context, (index_count > 0 ? index_count : 1) * sizeof(size_t));
+  t->flip = (double *)ds_context_alloc(
+      context, (numeric_count > 0 ? numeric_count : 1) * sizeof(double));
   t->kind = (unsigned char *)ds_context_calloc(context, t->nc + 1, 1);
-  if (t->t == NULL || t->basis == NULL || t->kind == NULL) {
+  if (t->t == NULL || t->basis == NULL || t->kind == NULL || t->flip == NULL) {
     tb_free(t, context);
     return DS_ERR_ALLOC;
   }
   t->unit = t->basis + m;
   t->rowof = t->unit + m;
-  t->flip = (double *)(void *)(t->rowof + t->nc);
   t->cost = t->flip + m;
   /* build: flip rows with negative right-hand sides */
   col = n;
@@ -267,7 +294,11 @@ static ds_status_t tb_solve(const double *a, const ds_lp_sense_t *sense,
     t->cost[j] = t->kind[j] == 3 ? -1.0 : 0.0;
   }
   tb_price(t);
-  (void)tb_run(t, true);
+  st = tb_run(t, true, &r);
+  if (st != DS_OK || r != DS_LP_OPTIMAL) {
+    tb_free(t, context);
+    return st != DS_OK ? st : DS_ERR_STATE;
+  }
   if (*tb_at(t, m, t->nc) < -1e-7) {
     *res = DS_LP_INFEASIBLE;
     return DS_OK;
@@ -289,16 +320,37 @@ static ds_status_t tb_solve(const double *a, const ds_lp_sense_t *sense,
     t->cost[j] = j < n ? c[j] : 0.0;
   }
   tb_price(t);
-  r = tb_run(t, false);
+  st = tb_run(t, false, &r);
+  if (st != DS_OK) {
+    tb_free(t, context);
+    return st;
+  }
   *res = r;
   return DS_OK;
 }
 
 static ds_status_t lp_check(const ds_lp_t *lp) {
+  size_t cells, i;
   if (lp == NULL || (lp->cols > 0 && lp->c == NULL) ||
       (lp->rows > 0 && (lp->a == NULL || lp->b == NULL || lp->sense == NULL))) {
     return DS_ERR_NULL;
   }
+  if (!ds_size_mul(lp->rows, lp->cols, &cells) ||
+      cells > (size_t)-1 / sizeof(double) ||
+      lp->rows > ((size_t)-1 / sizeof(double)) - 1 ||
+      lp->cols > ((size_t)-1 / sizeof(double)) - 1)
+    return DS_ERR_OVERFLOW;
+  for (i = 0; i < cells; i++)
+    if (!(lp->a[i] >= -DBL_MAX && lp->a[i] <= DBL_MAX))
+      return DS_ERR_INVALID;
+  for (i = 0; i < lp->cols; i++)
+    if (!(lp->c[i] >= -DBL_MAX && lp->c[i] <= DBL_MAX))
+      return DS_ERR_INVALID;
+  for (i = 0; i < lp->rows; i++)
+    if (!(lp->b[i] >= -DBL_MAX && lp->b[i] <= DBL_MAX) ||
+        (lp->sense[i] != DS_LP_LE && lp->sense[i] != DS_LP_GE &&
+         lp->sense[i] != DS_LP_EQ))
+      return DS_ERR_INVALID;
   return DS_OK;
 }
 
@@ -379,6 +431,7 @@ ds_status_t ds_lp_dual_build(const ds_lp_t *lp, ds_lp_owned_t *d,
   size_t i;
   size_t j;
   size_t v;
+  size_t cells, bytes;
   ds_status_t st = lp_check(lp);
   if (st != DS_OK) {
     return st;
@@ -392,12 +445,16 @@ ds_status_t ds_lp_dual_build(const ds_lp_t *lp, ds_lp_owned_t *d,
   n = lp->cols;
   /* one dual variable per row, two for an equality (free variable) */
   for (i = 0; i < m; i++) {
-    nv += lp->sense[i] == DS_LP_EQ ? 2 : 1;
+    if (!ds_size_add(nv, lp->sense[i] == DS_LP_EQ ? 2 : 1, &nv))
+      return DS_ERR_OVERFLOW;
   }
-  if (nv > 0 && n > ((size_t)-1) / nv / sizeof(double)) {
+  if (!ds_size_mul(n, nv, &cells) ||
+      !ds_size_mul(cells > 0 ? cells : 1, sizeof(double), &bytes) ||
+      nv >= (size_t)-1 / sizeof(double) || nv >= (size_t)-1 / sizeof(size_t) ||
+      n >= (size_t)-1 / sizeof(ds_lp_sense_t)) {
     return DS_ERR_OVERFLOW;
   }
-  d->a = (double *)ds_context_alloc(context, (n * nv + 1) * sizeof(double));
+  d->a = (double *)ds_context_alloc(context, bytes);
   d->sense = (ds_lp_sense_t *)ds_context_alloc(context,
                                                (n + 1) * sizeof(ds_lp_sense_t));
   d->b = (double *)ds_context_alloc(context, (n + 1) * sizeof(double));
@@ -468,6 +525,38 @@ void ds_lp_owned_destroy(ds_lp_owned_t *o) {
  */
 
 static bool lp_is_int(double v) { return fabs(v - floor(v + 0.5)) < 1e-6; }
+
+static bool lp_exact_int(double v) { return fabs(v - floor(v)) <= 0.0; }
+
+/* Check a rounded incumbent before publishing it. */
+static bool lp_candidate(const ds_lp_t *lp, const unsigned char *integer,
+                         double *x, double *objective) {
+  size_t i, j;
+  double obj = 0.0;
+  for (j = 0; j < lp->cols; j++) {
+    if (!lp_finite(x[j]) || x[j] < -1e-6)
+      return false;
+    if (integer == NULL || integer[j])
+      x[j] = floor(x[j] + 0.5);
+    if (x[j] < 0.0)
+      x[j] = 0.0;
+    obj += lp->c[j] * x[j];
+  }
+  if (!lp_finite(obj))
+    return false;
+  for (i = 0; i < lp->rows; i++) {
+    double lhs = 0.0;
+    for (j = 0; j < lp->cols; j++)
+      lhs += lp->a[i * lp->cols + j] * x[j];
+    if (!lp_finite(lhs) ||
+        (lp->sense[i] == DS_LP_LE && lhs > lp->b[i] + 1e-6) ||
+        (lp->sense[i] == DS_LP_GE && lhs < lp->b[i] - 1e-6) ||
+        (lp->sense[i] == DS_LP_EQ && fabs(lhs - lp->b[i]) > 1e-6))
+      return false;
+  }
+  *objective = obj;
+  return true;
+}
 
 /* Gomory fractional cut from the optimal tableau, written over the
  * original variables into row/rhs (>=). False when no row qualifies. */
@@ -544,6 +633,7 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
   size_t n;
   size_t top = 0;
   size_t cap;
+  size_t work = 0, cells, bytes;
   size_t base_rows;
   size_t j;
   double best = -HUGE_VAL; /* in maximisation terms */
@@ -567,7 +657,12 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
   if (st != DS_OK) {
     return st;
   }
-  row = (double *)ds_context_alloc(context, (3 * n + 1) * sizeof(double));
+  if (!ds_size_mul(n, 3, &cells) || !ds_size_add(cells, 1, &cells) ||
+      !ds_size_mul(cells, sizeof(double), &bytes)) {
+    lw_destroy(&w);
+    return DS_ERR_OVERFLOW;
+  }
+  row = (double *)ds_context_alloc(context, bytes);
   if (row == NULL) {
     lw_destroy(&w);
     return DS_ERR_ALLOC;
@@ -585,12 +680,12 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
       method = DS_MILP_BRANCH_AND_BOUND;
     }
     for (q = 0; q < lp->rows * n && method == DS_MILP_CUTTING_PLANE; q++) {
-      if (!lp_is_int(lp->a[q])) {
+      if (!lp_exact_int(lp->a[q])) {
         method = DS_MILP_BRANCH_AND_BOUND;
       }
     }
     for (q = 0; q < lp->rows && method == DS_MILP_CUTTING_PLANE; q++) {
-      if (!lp_is_int(lp->b[q])) {
+      if (!lp_exact_int(lp->b[q])) {
         method = DS_MILP_BRANCH_AND_BOUND;
       }
     }
@@ -609,7 +704,7 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
       }
       if (r != DS_LP_OPTIMAL) {
         if (cuts == 0) {
-          *out_result = r;
+          *out_result = r == DS_LP_UNBOUNDED ? DS_LP_RELAXATION_UNBOUNDED : r;
           ds_context_free(context, row);
           lw_destroy(&w);
           return DS_OK;
@@ -623,29 +718,13 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
            j++) {
       }
       if (j == n) {
-        size_t q;
-        bool feasible = true;
-        memcpy(x, xs, n * sizeof(double));
-        for (j = 0; j < n; j++) {
-          if (integer == NULL || integer[j]) {
-            x[j] = floor(x[j] + 0.5);
-          }
-        }
-        /* check the rounded point against the original rows */
-        for (q = 0; q < lp->rows && feasible; q++) {
-          double lhs = 0.0;
-          for (j = 0; j < n; j++) {
-            lhs += lp->a[q * n + j] * x[j];
-          }
-          feasible = lp->sense[q] == DS_LP_LE   ? lhs <= lp->b[q] + 1e-6
-                     : lp->sense[q] == DS_LP_GE ? lhs >= lp->b[q] - 1e-6
-                                                : fabs(lhs - lp->b[q]) < 1e-6;
-        }
-        if (!feasible) {
+        if (!lp_candidate(lp, integer, xs, &obj)) {
           tb_free(&t, context);
           w.rows = lp->rows;
           break;
         }
+        if (n > 0)
+          memcpy(x, xs, n * sizeof(double));
         *out_objective = obj;
         *out_result = DS_LP_OPTIMAL;
         tb_free(&t, context);
@@ -653,7 +732,7 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
         lw_destroy(&w);
         return DS_OK;
       }
-      if ((budget != 0 && cuts >= budget) || cuts >= 64 * (n + 1) ||
+      if ((budget != 0 && cuts >= budget) || cuts / 64 >= n + 1 ||
           !lp_gomory(&t, &w, integer, row, &rhs)) {
         tb_free(&t, context);
         break; /* fall back to branch and bound on the cut problem */
@@ -664,12 +743,25 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
         goto done;
       }
       cuts++;
+      /* A fractional cut's slack is not integral. Do not use the pure-integer
+       * Gomory formula on a tableau containing such a slack. */
+      if (!lp_exact_int(rhs))
+        break;
+      for (j = 0; j < n && lp_exact_int(row[j]); j++) {
+      }
+      if (j < n)
+        break;
     }
   }
   /* depth-first branch and bound: nodes are (lo, hi) bound vectors */
   base_rows = w.rows;
-  cap = 2 * n + 4;
-  lo = (double *)ds_context_alloc(context, cap * 2 * n * sizeof(double) + 1);
+  if (!ds_size_mul(n, 2, &cap) || !ds_size_add(cap, 4, &cap) ||
+      !ds_size_mul(cap, n, &cells) || !ds_size_mul(cells, 2, &cells) ||
+      !ds_size_mul(cells > 0 ? cells : 1, sizeof(double), &bytes)) {
+    st = DS_ERR_OVERFLOW;
+    goto done;
+  }
+  lo = (double *)ds_context_alloc(context, bytes);
   if (lo == NULL) {
     st = DS_ERR_ALLOC;
     goto done;
@@ -688,10 +780,12 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
     top--;
     node = lo + top * 2 * n;
     hi = node + n;
-    if (budget != 0 && budget-- == 1) {
+    if (budget != 0 && work == budget) {
       limited = true;
       break;
     }
+    if (budget != 0)
+      work++;
     /* the node's bounds as extra rows */
     w.rows = base_rows;
     for (j = 0; j < n && st == DS_OK; j++) {
@@ -714,11 +808,11 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
       ds_context_free(context, lo);
       goto done;
     }
-    if (r == DS_LP_UNBOUNDED && !have) {
-      /* an unbounded relaxation: report it (integer optimum may be
-       * unbounded too) */
+    if (r == DS_LP_UNBOUNDED) {
       ds_context_free(context, lo);
-      *out_result = DS_LP_UNBOUNDED;
+      *out_result = DS_LP_RELAXATION_UNBOUNDED;
+      if (have)
+        *out_objective = sgn * best;
       ds_context_free(context, row);
       lw_destroy(&w);
       return DS_OK;
@@ -736,27 +830,38 @@ ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
       }
     }
     if (bj == LP_NONE) {
+      if (!lp_candidate(lp, integer, xs, &obj)) {
+        ds_context_free(context, lo);
+        st = DS_ERR_STATE;
+        goto done;
+      }
+      if (have && sgn * obj <= best + 1e-9)
+        continue;
       have = true;
       best = sgn * obj;
-      memcpy(x, xs, n * sizeof(double));
-      for (j = 0; j < n; j++) {
-        if (integer == NULL || integer[j]) {
-          x[j] = floor(x[j] + 0.5);
-        }
-      }
+      if (n > 0)
+        memcpy(x, xs, n * sizeof(double));
       continue;
     }
     /* two children replace the node: x_j <= floor, x_j >= ceil */
     if (top + 2 > cap) {
-      void *p =
-          ds_context_realloc(context, lo, 2 * cap * 2 * n * sizeof(double) + 1);
+      void *p;
+      size_t grown;
+      if (!ds_size_mul(cap, 2, &grown) || !ds_size_mul(grown, n, &cells) ||
+          !ds_size_mul(cells, 2, &cells) ||
+          !ds_size_mul(cells > 0 ? cells : 1, sizeof(double), &bytes)) {
+        ds_context_free(context, lo);
+        st = DS_ERR_OVERFLOW;
+        goto done;
+      }
+      p = ds_context_realloc(context, lo, bytes);
       if (p == NULL) {
         ds_context_free(context, lo);
         st = DS_ERR_ALLOC;
         goto done;
       }
       lo = (double *)p;
-      cap *= 2;
+      cap = grown;
     }
     {
       double *a1 = lo + top * 2 * n;

@@ -2,6 +2,8 @@
 #define DS_HISTORY_H
 
 #include "common.h"
+#include "context.h"
+#include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -44,6 +46,11 @@ typedef void *(*ds_history_payload_read_func_t)(unsigned long id,
                                                 ds_history_read_func_t read,
                                                 void *io_user,
                                                 void *payload_user);
+/* Checked reader: DS_OK can publish a NULL payload. Failure must release any
+ * partial payload; positive statuses other than DS_OK are callback errors. */
+typedef ds_status_t (*ds_history_payload_read_ex_func_t)(
+    unsigned long id, unsigned long time, int kind, ds_history_read_func_t read,
+    void *io_user, void *payload_user, void **out);
 typedef unsigned int (*ds_history_merge_policy_func_t)(
     ds_history_branch_t *target, ds_history_branch_t *source,
     const ds_history_operation_t *source_operation, unsigned long *in_out_time,
@@ -56,6 +63,10 @@ typedef struct ds_history_archive {
   size_t offset;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
+  ds_context_t *context;
+  bool use_context;
+  ds_status_t status; /* sticky until clear/rewind; invalid allocator pair stays
+                         invalid */
 } ds_history_archive_t;
 
 #define DS_HISTORY_MERGE_PRESERVE_TIME 0U
@@ -90,11 +101,18 @@ ds_history_t *ds_history_create(const ds_history_ops_t *ops, void *config);
 ds_history_t *ds_history_create_alloc(const ds_history_ops_t *ops, void *config,
                                       void *(*allocator)(size_t),
                                       void (*deallocator)(void *));
+/* Context-backed storage, including branch paths, names and operation nodes.
+ * State/payload storage remains the responsibility of the supplied callbacks.
+ */
+ds_status_t ds_history_create_context(const ds_history_ops_t *ops, void *config,
+                                      ds_context_t *context,
+                                      ds_history_t **out);
 void ds_history_destroy(ds_history_t *history);
 
 void ds_history_set_clone_data(ds_history_t *history, void *clone_data);
 void ds_history_set_checkpoint_interval(ds_history_t *history, size_t interval);
 void ds_history_transaction_begin(ds_history_t *history);
+ds_status_t ds_history_transaction_begin_ex(ds_history_t *history);
 void ds_history_transaction_commit(ds_history_t *history);
 bool ds_history_in_transaction(ds_history_t *history);
 
@@ -106,6 +124,11 @@ ds_history_branch_t *ds_history_branch_create(ds_history_t *history,
                                               ds_history_branch_t *parent,
                                               unsigned long fork_time,
                                               const char *name);
+ds_status_t ds_history_branch_create_ex(ds_history_t *history,
+                                        ds_history_branch_t *parent,
+                                        unsigned long fork_time,
+                                        const char *name,
+                                        ds_history_branch_t **out);
 
 const char *ds_history_branch_name(ds_history_branch_t *branch);
 unsigned long ds_history_branch_id(ds_history_branch_t *branch);
@@ -123,6 +146,14 @@ unsigned long ds_history_branch_insert_at(ds_history_branch_t *branch,
                                           void *payload);
 unsigned long ds_history_branch_append(ds_history_branch_t *branch, int kind,
                                        void *payload);
+/* Payload ownership transfers only on success. Identifiers and appended times
+ * never wrap. The original functions return zero on these failures. */
+ds_status_t ds_history_branch_insert_at_ex(ds_history_branch_t *branch,
+                                           unsigned long time, int kind,
+                                           void *payload,
+                                           unsigned long *out_id);
+ds_status_t ds_history_branch_append_ex(ds_history_branch_t *branch, int kind,
+                                        void *payload, unsigned long *out_id);
 bool ds_history_branch_delete_op(ds_history_branch_t *branch,
                                  unsigned long op_id);
 size_t ds_history_branch_merge(ds_history_branch_t *target,
@@ -133,6 +164,15 @@ size_t ds_history_branch_merge_with(
     ds_history_branch_t *target, ds_history_branch_t *source,
     unsigned long from_time, unsigned long through_time, unsigned int flags,
     ds_history_merge_policy_func_t policy, void *policy_user);
+/* Checked streaming merge: *out_merged reports committed operations even on
+ * failure or DS_STOP. It is not a transaction. Policy may replace a cloned
+ * payload; it then owns disposal of the displaced clone. Skipped/stopped or
+ * failed-insertion payloads are destroyed by the configured callback. */
+ds_status_t ds_history_branch_merge_with_ex(
+    ds_history_branch_t *target, ds_history_branch_t *source,
+    unsigned long from_time, unsigned long through_time, unsigned int flags,
+    ds_history_merge_policy_func_t policy, void *policy_user,
+    size_t *out_merged);
 
 void *ds_history_branch_snapshot_at(ds_history_branch_t *branch,
                                     unsigned long time);
@@ -180,6 +220,12 @@ void ds_history_archive_init(ds_history_archive_t *archive);
 void ds_history_archive_init_alloc(ds_history_archive_t *archive,
                                    void *(*allocator)(size_t),
                                    void (*deallocator)(void *));
+ds_status_t ds_history_archive_init_ex(ds_history_archive_t *archive,
+                                       void *(*allocator)(size_t),
+                                       void (*deallocator)(void *));
+ds_status_t ds_history_archive_init_context(ds_history_archive_t *archive,
+                                            ds_context_t *context);
+ds_status_t ds_history_archive_status(const ds_history_archive_t *archive);
 void ds_history_archive_destroy(ds_history_archive_t *archive);
 void ds_history_archive_clear(ds_history_archive_t *archive);
 void ds_history_archive_rewind(ds_history_archive_t *archive);
@@ -198,6 +244,28 @@ ds_history_deserialize_portable(const ds_history_ops_t *ops, void *config,
                                 ds_history_read_func_t read,
                                 ds_history_payload_read_func_t read_payload,
                                 void *io_user, void *payload_user);
+
+struct ds_ordered_ops;
+
+typedef struct ds_history_load_options {
+  ds_context_t *context;
+  size_t max_branches;   /* zero: no explicit limit */
+  size_t max_operations; /* across all branches */
+  size_t max_name_bytes; /* per branch, excluding its terminating NUL */
+  const struct ds_ordered_ops *index_ops; /* NULL: (a,b)-tree ID indexes */
+} ds_history_load_options_t;
+void ds_history_load_options_init(ds_history_load_options_t *options);
+/* All-or-nothing import of the portable format, with checked payload decoding,
+ * unique identifiers, parent validation and resource limits. Input callbacks
+ * own their I/O status (the FILE adapter retains it). Failed boolean reads
+ * report DS_ERR_INVALID; checked payload errors retain their negative status.
+ * On failure *out is NULL. The legacy loader treats a NULL payload as failure.
+ */
+ds_status_t ds_history_deserialize_portable_ex(
+    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
+    ds_history_payload_read_ex_func_t read_payload, void *io_user,
+    void *payload_user, const ds_history_load_options_t *options,
+    ds_history_t **out);
 
 #ifdef __cplusplus
 }

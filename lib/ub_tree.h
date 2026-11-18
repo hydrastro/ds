@@ -10,8 +10,9 @@
  * each leaf covers a Z-region of space. Box queries walk the Z-curve
  * between the box corners and jump over the parts outside the box with
  * the Tropf-Herzog BIGMIN computation, seeking the next leaf by key.
- * Exact match, insertion and removal take O(log n); a removal that empties
- * a leaf drops it (leaves may run underfull otherwise).
+ * Exact match, insertion and removal follow tree height. Without deletions
+ * this is O(log n); removal drops empty leaves but can leave other nodes
+ * underfull, so a bound in terms of current live n alone does not hold.
  *
  * ds_ubranch_tree_t, the unlimited branching tree: a forest of ordered
  * trees holding sorted lists (sets) of size_t; each root is a distinct

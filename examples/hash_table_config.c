@@ -4,7 +4,7 @@
 
 static size_t hash_str(void *key, void *user) {
   (void)user;
-  return hash_func_string_djb2(key);
+  return ds_hash_func_string_djb2(key);
 }
 
 static int cmp_str(void *a, void *b, void *user) {

@@ -2,6 +2,7 @@
 #define DS_SKIP_LIST_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,6 +20,9 @@ typedef struct skip_list_node {
   size_t level;
 } ds_skip_list_node_t;
 
+typedef int (*ds_skip_list_compare_fn)(ds_skip_list_node_t *,
+                                       ds_skip_list_node_t *, void *);
+
 typedef struct skip_list {
   ds_skip_list_node_t *header;
   ds_skip_list_node_t *nil;
@@ -27,6 +31,9 @@ typedef struct skip_list {
   size_t size;
   unsigned long seed;
   int (*compare)(ds_skip_list_node_t *, ds_skip_list_node_t *);
+  ds_context_t *context; /* NULL for legacy allocators */
+  ds_skip_list_compare_fn compare_with;
+  void *compare_user;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_skip_list_t;
@@ -79,6 +86,46 @@ ds_skip_list_clone_ex(const ds_skip_list_t *list,
                       ds_skip_list_node_t *(*clone_node)(ds_skip_list_node_t *),
                       void (*destroy_clone)(ds_skip_list_node_t *),
                       ds_skip_list_t **out);
+
+/* Context owns internal allocations and must outlive the container; NULL
+ * selects the default. Comparison/user state must remain stable and alive.
+ * Output is NULL on failure. Legacy constructors retain allocator behavior;
+ * public layout changes require recompilation. */
+ds_status_t ds_skip_list_create_context(size_t max_level, unsigned long seed,
+                                        ds_skip_list_compare_fn compare,
+                                        void *user, ds_context_t *context,
+                                        ds_skip_list_t **out);
+
+typedef ds_status_t (*ds_skip_list_visit_fn)(ds_skip_list_node_t *, void *);
+typedef ds_status_t (*ds_skip_list_clone_fn)(ds_skip_list_node_t *,
+                                             ds_skip_list_node_t **, void *);
+typedef void (*ds_skip_list_destroy_fn)(ds_skip_list_node_t *, void *);
+/* Checked access preserves out on absence/error. Splay lookup/insertion can
+ * change shape even on absence/DS_EXISTS. Insertions require detached records.
+ * Walk propagates the first non-DS_OK visitor status. Callbacks may not mutate
+ * or destroy the container or retain borrowed views. */
+ds_status_t ds_skip_list_find_ex(ds_skip_list_t *container,
+                                 ds_skip_list_node_t *key,
+                                 ds_skip_list_node_t **out);
+ds_status_t ds_skip_list_remove_ex(ds_skip_list_t *container,
+                                   ds_skip_list_node_t *key,
+                                   ds_skip_list_node_t **out);
+
+ds_status_t ds_skip_list_walk_with(const ds_skip_list_t *container,
+                                   ds_skip_list_visit_fn visit, void *user);
+/* Clone copies records and the comparison policy, not necessarily the shape.
+ * NULL context inherits storage ownership. Each successful callback returns a
+ * fresh, equivalent record. Failure leaves out NULL, rolls back completed
+ * clones, and leaves the unfinished allocation with its callback. Negative
+ * errors propagate; positive clone results map to DS_ERR_CALLBACK. Destroy
+ * may free payloads but must not inspect or mutate the container. */
+ds_status_t ds_skip_list_clone_with(const ds_skip_list_t *container,
+                                    ds_skip_list_clone_fn clone,
+                                    ds_skip_list_destroy_fn destroy, void *user,
+                                    ds_context_t *context,
+                                    ds_skip_list_t **out);
+void ds_skip_list_destroy_with(ds_skip_list_t *container,
+                               ds_skip_list_destroy_fn destroy, void *user);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,8 @@
 # Roadmap and current status
 
-This file tracks the current direction of `ds`: an intrusive,
-allocator-aware, diagnostic-rich, versionable C data-structure library.
+This file describes the direction of `ds`: an intrusive, allocator-aware,
+diagnostic-rich, versionable C data-structure library. The current finalization
+ledger is `completion-plan.md`; its twelve tracked items are complete.
 
 ## Implemented foundation
 
@@ -201,7 +202,7 @@ allocator-aware, diagnostic-rich, versionable C data-structure library.
 - lib/roaring: Roaring bitmaps with array/bitmap/run containers, rank/select, and/or/xor/andnot (run containers natively), optimize
 - algo/robust_predicates: Shewchuk-style expansion arithmetic, filtered exact orient2d/3d, incircle, insphere
 - lib/persistent_hamt: persistent CHAMP HAMT with refcounted sharing, canonical deletion, structural equality, in-place transient edits
-- lib/pq_iface: addressable priority-queue ops table with twelve heap backends, traits and per-operation cost classes
+- lib/pq_iface: addressable priority-queue ops table with fourteen heap backends, traits and per-operation cost classes
 - lib/fm_index: FM-index with sampled SA/ISA, occurrence-table and wavelet-matrix rank backends, configurable suffix array builder
 - lib/euler_tour_tree: Euler-tour trees with component/subtree summaries and lazy actions, edge lookup via map_iface
 - lib/persistent_vector: Clojure-style persistent vector with transients and configurable branching
@@ -348,8 +349,7 @@ Checked allocation-safe edits now cover the B+ tree, HAMT, radix trie,
 Aho-Corasick, ART and rope. WAL recovery accepts an empty commit group, and
 WAL/LSM first-format recovery requires identifiable ownership of the store.
 
-The Result/i18n design supplied in the PHP repositories is implemented in C
-with explicit ownership and callback contracts. Existing result pairs remain
+Result/i18n provides explicit outcome, ownership and callback contracts. Existing result pairs remain
 available. See [finalization-notes.md](finalization-notes.md) for the change
 manifest, compatibility requirements and validation limits.
 
@@ -383,32 +383,21 @@ designed for concurrency belong in a dedicated module.
 
 ## DADS coverage
 
-`docs/dads-coverage.md` classifies every NIST DADS entry as done, todo
-(with its target module) or definition-only, and is the checklist for
-the remaining algorithm and data-structure families.
+`docs/dads-coverage.md` classifies every NIST DADS entry by its implemented,
+restricted, reference, variant or definition-only scope. No currently identified
+indexed capability is missing; `coverage-review.md` records the audit limits.
 
-## Still open / future work
+## Completion work
 
-High-value work that remains intentionally open:
+See `completion-plan.md` for the current ledger and `completion-notes.md` for
+implementation and validation details. Delivered in this pass: out-of-core
+SSTable/LSM reads, addressable heap backends, namespace compatibility, persistent
+radix storage, checked history archives/keyed merges, catalog adapters and locale
+policies, randomized-tree stack safety, iterator/compaction contracts, logic
+inference, bounded quantum references, and executor-backed prefix scans.
 
-- out-of-core SSTable/LSM reads through a block-read capability; currently
-  opening an LSM tree loads its tables into memory
-- addressable min-max and shadow-heap backends for `pq_iface`
-- decide whether to deprecate the original unprefixed exported names; this
-  pass preserves them
-- audit individual DADS mappings for exact semantic and complexity equivalence;
-  a coverage classification is not a correctness or completeness proof
-- optional catalog-file adapters and language-data packages for i18n; the C
-  core provides providers/formatters rather than executing PHP or embedding CLDR
-
-- migrate every legacy sentinel-returning API to `ds_status_t` plus
-  out-parameters while keeping compatibility wrappers
-- add `void *user` callback context to older compare/destroy APIs
-- continue migrating older modules to `ds_context_t` allocation internally
-- document or strengthen iterator synchronization guarantees per container
-- add tombstone-density compaction for probing hash tables
-- add compressed/radix storage as a persistent-trie backend
-- add richer history semantic conflict adapters for common containers
-- add file-backed archive helpers on top of the existing history archive API
-- make very deep list/tree traversals iterative where practical
-- add more graph algorithms only after the current API stabilizes
+The DADS inventory and semantic review are reconciled. The identified hypergraph,
+multi-commodity flow, Karnaugh-map, hash-suffix delta and jelly-fish capabilities
+are delivered with their actual restricted/reference scopes. Legacy API
+migration and final integration checks are complete; see
+`legacy-api-migration.md`. Coverage is not a correctness proof of every entry.

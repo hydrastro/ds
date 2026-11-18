@@ -493,7 +493,7 @@ int ds_str_view_u8_prev(ds_str_view_t v, size_t *ioff, unsigned long *out_cp,
 int ds_str_u8_grapheme_iter_init(ds_u8_grapheme_iter_t *it, const ds_str_t *s) {
   if (!it || !s)
     return -1;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
   return ds__grapheme_iter_init(&it->_it, s->buf, s->len);
 }
@@ -528,7 +528,7 @@ int ds_str_u8_slice_graphemes(ds_str_t *dst, const ds_str_t *src,
 
   if (!dst || !src)
     return -1;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   r = ds_str_u8_grapheme_iter_init(&it, src);
@@ -575,7 +575,7 @@ int ds_str_u8_backspace_one_egc(ds_str_t *s) {
     return -1;
   if (s->len == 0)
     return 0;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -603,7 +603,7 @@ int ds_str_u8_truncate_graphemes(ds_str_t *s, size_t max_gc) {
 
   if (!s)
     return -1;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -632,7 +632,7 @@ int ds_str_u8_grapheme_to_byte(const ds_str_t *s, size_t gi, size_t *byte_out) {
 
   if (!s || !byte_out)
     return -1;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -665,7 +665,7 @@ int ds_str_u8_byte_to_grapheme(const ds_str_t *s, size_t byte, size_t *gi_out) {
     return -1;
   if (byte > s->len)
     byte = s->len;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -692,7 +692,7 @@ int ds_str_u8_delete_grapheme_at(ds_str_t *s, size_t gi) {
 
   if (!s)
     return -1;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -728,7 +728,7 @@ int ds_str_u8_delete_next_egc_from_byte(ds_str_t *s, size_t cursor_byte) {
     return -1;
   if (cursor_byte >= s->len)
     return 0;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -748,7 +748,7 @@ long ds_str_u8_find_folded(const ds_str_t *s, const ds_str_t *needle) {
 
   if (!s || !needle)
     return -1;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   hs = ds_str_create();
@@ -786,7 +786,7 @@ size_t ds_str_u8_cursor_prev(const ds_str_t *s, size_t cursor_byte) {
     return SIZE_MAX;
   if (cursor_byte > s->len)
     cursor_byte = s->len;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return SIZE_MAX;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -813,7 +813,7 @@ size_t ds_str_u8_cursor_next(const ds_str_t *s, size_t cursor_byte) {
     return SIZE_MAX;
   if (cursor_byte >= s->len)
     return s->len;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return SIZE_MAX;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -846,7 +846,7 @@ int ds_str_u8_backspace(ds_str_t *s, size_t cursor_byte, size_t *new_cursor) {
   }
   if (cursor_byte > s->len)
     cursor_byte = s->len;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -904,7 +904,7 @@ int ds_str_u8_delete(ds_str_t *s, size_t cursor_byte, size_t *new_cursor) {
       *new_cursor = s->len;
     return 0;
   }
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -953,7 +953,7 @@ int ds_str_u8_cp_width(unsigned long cp, unsigned int flags) {
   if (ds__is_c0_c1(cp))
     return -1;
 
-  if (get_ccc(cp) != 0ul)
+  if (ds_get_ccc(cp) != 0ul)
     return 0;
 
   if (ds__in_ranges(cp, DS__WIDE_TABLE,
@@ -974,7 +974,7 @@ int ds_str_u8_width(const ds_str_t *s, unsigned int flags, size_t *out_width) {
 
   if (!s || !out_width)
     return -1;
-  if (ucd_init_once() != 0)
+  if (ds_ucd_init_once() != 0)
     return -1;
 
   if (ds_str_u8_grapheme_iter_init(&it, s) != 0)
@@ -1001,11 +1001,11 @@ int ds_str_u8_width(const ds_str_t *s, unsigned int flags, size_t *out_width) {
       if (ds__is_c0_c1(cp)) {
         cluster_has_control = 1;
       }
-      if (is_EP(cp)) {
+      if (ds_is_EP(cp)) {
         cluster_has_EP = 1;
       }
 
-      if (get_ccc(cp) == 0ul && cluster_base_width == 0) {
+      if (ds_get_ccc(cp) == 0ul && cluster_base_width == 0) {
         int w = ds_str_u8_cp_width(cp, flags);
         if (w < 0)
           w = 0;

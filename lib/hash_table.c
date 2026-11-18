@@ -167,7 +167,7 @@ static size_t ht_rebuild_capacity(const ds_hash_table_t *table) {
   if (live / cap <= HASH_TABLE_RESIZE_FACTOR / 2.0) {
     return table->capacity;
   }
-  return next_prime_capacity(table->capacity);
+  return ds_hash_next_prime_capacity(table->capacity);
 }
 
 static void hash_table_link_node(ds_hash_table_t *table, ds_hash_node_t *node) {
@@ -399,6 +399,8 @@ static ds_hash_table_t *hash_table_create_alloc_internal(
   table->config_compare = NULL;
   table->config_clone_key = NULL;
   table->config_clone_value = NULL;
+  table->config_clone_key_ex = NULL;
+  table->config_clone_value_ex = NULL;
   table->config_destroy_key = NULL;
   table->config_destroy_value = NULL;
   table->config_user = NULL;
@@ -421,9 +423,9 @@ static ds_hash_table_t *hash_table_create_alloc_internal(
   if (probing_func != NULL) {
     table->probing_func = probing_func;
   } else if (mode == HASH_LINEAR_PROBING || mode == HASH_CUSTOM_PROBING) {
-    table->probing_func = linear_probing;
+    table->probing_func = ds_hash_linear_probing;
   } else if (mode == HASH_QUADRATIC_PROBING) {
-    table->probing_func = quadratic_probing;
+    table->probing_func = ds_hash_quadratic_probing;
   } else {
     table->probing_func = NULL;
   }
@@ -440,17 +442,19 @@ fail:
   return NULL;
 }
 
-size_t quadratic_probing(size_t base_index, size_t iteration, size_t capacity) {
+size_t ds_hash_quadratic_probing(size_t base_index, size_t iteration,
+                                 size_t capacity) {
   const size_t c1 = 1;
   const size_t c2 = 1;
   return (base_index + c1 * iteration + c2 * iteration * iteration) % capacity;
 }
 
-size_t linear_probing(size_t base_index, size_t iteration, size_t capacity) {
+size_t ds_hash_linear_probing(size_t base_index, size_t iteration,
+                              size_t capacity) {
   return (base_index + iteration) % capacity;
 }
 
-size_t hash_func_string_djb2(void *key) {
+size_t ds_hash_func_string_djb2(void *key) {
   char *str;
   size_t hash;
   size_t c;
@@ -462,7 +466,7 @@ size_t hash_func_string_djb2(void *key) {
   return hash;
 }
 
-size_t hash_func_int(void *key) {
+size_t ds_hash_func_int(void *key) {
   unsigned int num;
   num = (unsigned int)*(int *)key;
   num = ((num >> 16) ^ num) * 0x45d9f3bu;
@@ -471,7 +475,7 @@ size_t hash_func_int(void *key) {
   return (size_t)num;
 }
 
-size_t hash_func_size_t(void *key) {
+size_t ds_hash_func_size_t(void *key) {
   size_t num;
   num = *(size_t *)key;
   num = (~num) + (num << 21);
@@ -484,9 +488,9 @@ size_t hash_func_size_t(void *key) {
   return num;
 }
 
-size_t hash_func_pointer(void *key) { return (size_t)key; }
+size_t ds_hash_func_pointer(void *key) { return (size_t)key; }
 
-size_t hash_func_double(void *key) {
+size_t ds_hash_func_double(void *key) {
   double num;
   size_t hash;
   unsigned char *bytes;
@@ -503,10 +507,10 @@ size_t hash_func_double(void *key) {
   return hash;
 }
 
-size_t hash_func_default(void *key) { return (size_t)key; }
+size_t ds_hash_func_default(void *key) { return (size_t)key; }
 
-ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
-                                 void *value) {
+ds_hash_node_t *ds_hash_node_create(ds_hash_table_t *table, void *key,
+                                    void *value) {
   ds_hash_node_t *node;
   node = (ds_hash_node_t *)ht_alloc(table, sizeof(ds_hash_node_t));
   if (node == NULL) {
@@ -520,7 +524,7 @@ ds_hash_node_t *hash_node_create(ds_hash_table_t *table, void *key,
   return node;
 }
 
-size_t next_prime_capacity(size_t current_capacity) {
+size_t ds_hash_next_prime_capacity(size_t current_capacity) {
   size_t i;
   for (i = 0; i < sizeof(prime_capacities) / sizeof(prime_capacities[0]); i++) {
     if (prime_capacities[i] > current_capacity) {
@@ -583,11 +587,11 @@ static void hash_table_resize_unlocked(ds_hash_table_t *table,
   }
   for (current = hash_table_first_node(table); current != NULL;
        current = current->list_next) {
-    hash_table_insert(new_table, current->key, current->value, hash_func,
-                      compare);
+    ds_hash_table_insert_with(new_table, current->key, current->value,
+                              hash_func, compare);
   }
   if (new_table->size != table->size) {
-    hash_table_destroy(new_table, NULL);
+    ds_hash_table_destroy_with(new_table, NULL);
     return; /* out of memory: keep the current table */
   }
 
@@ -615,9 +619,9 @@ void ds_hash_table_resize(ds_hash_table_t *table, size_t new_capacity,
   hash_table_resize_unlocked(table, new_capacity, hash_func, compare);
 }
 
-void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *)) {
+void ds_hash_table_insert_with(ds_hash_table_t *table, void *key, void *value,
+                               size_t (*hash_func)(void *),
+                               int (*compare)(void *, void *)) {
   size_t base_index;
   size_t index;
   size_t iteration;
@@ -627,7 +631,8 @@ void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
   if (table->mode == HASH_CHAINING) {
     if ((double)table->size / (double)table->capacity >
         HASH_TABLE_RESIZE_FACTOR) {
-      hash_table_resize_unlocked(table, next_prime_capacity(table->capacity),
+      hash_table_resize_unlocked(table,
+                                 ds_hash_next_prime_capacity(table->capacity),
                                  hash_func, compare);
     }
   } else if (ht_rebuild_capacity(table) != 0) {
@@ -647,7 +652,7 @@ void hash_table_insert(ds_hash_table_t *table, void *key, void *value,
       current->value = value;
       return;
     }
-    new_node = hash_node_create(table, key, value);
+    new_node = ds_hash_node_create(table, key, value);
     if (new_node == NULL) {
       return; /* out of memory: not inserted (lookups will tell) */
     }
@@ -707,10 +712,10 @@ void *ds_hash_table_lookup(ds_hash_table_t *table, void *key,
   return node != NULL ? node->value : table->nil;
 }
 
-void hash_table_remove(ds_hash_table_t *table, void *key,
-                       size_t (*hash_func)(void *),
-                       int (*compare)(void *, void *),
-                       void (*destroy)(ds_hash_node_t *)) {
+void ds_hash_table_remove_with(ds_hash_table_t *table, void *key,
+                               size_t (*hash_func)(void *),
+                               int (*compare)(void *, void *),
+                               void (*destroy)(ds_hash_node_t *)) {
   size_t base_index;
   size_t index;
   size_t iteration;
@@ -763,17 +768,17 @@ void ds_hash_table_for_each(ds_hash_table_t *table,
 
 bool ds_hash_table_is_empty(ds_hash_table_t *table) { return table->size == 0; }
 
-void hash_table_destroy(ds_hash_table_t *table,
-                        void (*destroy)(ds_hash_node_t *)) {
+void ds_hash_table_destroy_with(ds_hash_table_t *table,
+                                void (*destroy)(ds_hash_node_t *)) {
   hash_table_destroy_store(table, destroy);
   ht_free(table, table->nil);
   ht_free(table, table->tombstone);
   ht_free(table, table);
 }
 
-ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
-                                  void *(*clone_key)(void *),
-                                  void *(*clone_value)(void *)) {
+ds_hash_table_t *ds_hash_table_clone_callbacks(ds_hash_table_t *table,
+                                               void *(*clone_key)(void *),
+                                               void *(*clone_value)(void *)) {
   ds_hash_table_t *new_table;
   void *key;
   void *value;
@@ -800,9 +805,9 @@ ds_hash_table_t *hash_table_clone(ds_hash_table_t *table,
         key = clone_key != NULL ? clone_key(current->key) : current->key;
         value =
             clone_value != NULL ? clone_value(current->value) : current->value;
-        new_node = hash_node_create(new_table, key, value);
+        new_node = ds_hash_node_create(new_table, key, value);
         if (new_node == NULL) {
-          hash_table_destroy(new_table, NULL);
+          ds_hash_table_destroy_with(new_table, NULL);
           return NULL;
         }
         hash_table_link_node(new_table, new_node);
@@ -858,7 +863,7 @@ ds_hash_table_t *ds_hash_table_clone_with(ds_hash_table_t *table,
        current = current->list_next) {
     key = clone_key != NULL ? clone_key(current->key) : current->key;
     value = clone_value != NULL ? clone_value(current->value) : current->value;
-    hash_table_insert(new_table, key, value, hash_func, compare);
+    ds_hash_table_insert_with(new_table, key, value, hash_func, compare);
   }
   return new_table;
 }
@@ -867,7 +872,7 @@ static size_t hash_table_config_hash(ds_hash_table_t *table, void *key) {
   if (table->config_hash != NULL) {
     return table->config_hash(key, table->config_user);
   }
-  return hash_func_pointer((void *)key);
+  return ds_hash_func_pointer((void *)key);
 }
 
 static int hash_table_config_compare(ds_hash_table_t *table, void *a, void *b) {
@@ -903,6 +908,8 @@ void ds_hash_table_config_init(ds_hash_table_config_t *config) {
   config->compare = NULL;
   config->clone_key = NULL;
   config->clone_value = NULL;
+  config->clone_key_ex = NULL;
+  config->clone_value_ex = NULL;
   config->destroy_key = NULL;
   config->destroy_value = NULL;
   config->user = NULL;
@@ -931,6 +938,8 @@ ds_hash_table_create_config(const ds_hash_table_config_t *config) {
   table->config_compare = config->compare;
   table->config_clone_key = config->clone_key;
   table->config_clone_value = config->clone_value;
+  table->config_clone_key_ex = config->clone_key_ex;
+  table->config_clone_value_ex = config->clone_value_ex;
   table->config_destroy_key = config->destroy_key;
   table->config_destroy_value = config->destroy_value;
   table->config_user = config->user;
@@ -961,6 +970,8 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
   new_table->config_compare = table->config_compare;
   new_table->config_clone_key = table->config_clone_key;
   new_table->config_clone_value = table->config_clone_value;
+  new_table->config_clone_key_ex = table->config_clone_key_ex;
+  new_table->config_clone_value_ex = table->config_clone_value_ex;
   new_table->config_destroy_key = table->config_destroy_key;
   new_table->config_destroy_value = table->config_destroy_value;
   new_table->config_user = table->config_user;
@@ -975,7 +986,7 @@ static bool ds_hash_table_resize_config_unlocked(ds_hash_table_t *table,
     iteration = 0U;
     if (new_table->mode == HASH_CHAINING) {
       ds_hash_node_t *new_node;
-      new_node = hash_node_create(new_table, current->key, current->value);
+      new_node = ds_hash_node_create(new_table, current->key, current->value);
       if (new_node == NULL) {
         hash_table_destroy_store(new_table, NULL);
         ht_free(new_table, new_table->nil);
@@ -1046,7 +1057,7 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
           : ht_rebuild_capacity(table) != 0) {
     if (!ds_hash_table_resize_config_unlocked(
             table, table->mode == HASH_CHAINING
-                       ? next_prime_capacity(table->capacity)
+                       ? ds_hash_next_prime_capacity(table->capacity)
                        : ht_rebuild_capacity(table))) {
       return DS_CONTEXT_ERROR(table->context, DS_ERR_ALLOC,
                               "ds.hash_table/resize_failed", "hash_table",
@@ -1073,7 +1084,7 @@ static ds_status_t ds_hash_table_insert_internal(ds_hash_table_t *table,
       current->value = value;
       return DS_OK;
     }
-    new_node = hash_node_create(table, key, value);
+    new_node = ds_hash_node_create(table, key, value);
     if (new_node == NULL) {
       return DS_CONTEXT_ERROR(table->context, DS_ERR_ALLOC,
                               "ds.hash_table/node_alloc_failed", "hash_table",
@@ -1236,82 +1247,110 @@ void ds_hash_table_destroy(ds_hash_table_t *table) {
   ht_free(table, table);
 }
 
+static ds_status_t ht_clone_part(void *source, ds_hash_clone_checked_fn checked,
+                                 ds_hash_clone_func_t legacy, void *user,
+                                 void **out) {
+  ds_status_t status;
+  *out = NULL;
+  if (checked != NULL) {
+    status = checked(source, out, user);
+    return status <= DS_OK ? status : DS_ERR_CALLBACK;
+  }
+  *out = legacy(source, user);
+  return *out != NULL ? DS_OK : DS_ERR_CALLBACK;
+}
+ds_status_t ds_hash_table_clone_ex(ds_hash_table_t *table, bool borrowed,
+                                   ds_context_t *context,
+                                   ds_hash_table_t **out) {
+  ds_hash_table_t *copy;
+  ds_hash_node_t *current;
+  bool keys, values;
+  void *key, *value;
+  ds_status_t status;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (table == NULL)
+    return DS_ERR_NULL;
+  if (table->config_hash == NULL || table->config_compare == NULL)
+    return DS_ERR_UNSUPPORTED;
+  keys = !borrowed && (table->config_clone_key_ex != NULL ||
+                       table->config_clone_key != NULL);
+  values = !borrowed && (table->config_clone_value_ex != NULL ||
+                         table->config_clone_value != NULL);
+  if (!borrowed && (keys != (table->config_destroy_key != NULL) ||
+                    values != (table->config_destroy_value != NULL)))
+    return DS_ERR_UNSUPPORTED;
+  copy = hash_table_create_alloc_internal(
+      table->capacity, table->mode, table->probing_func, table->bucket_store,
+      table->allocator, table->deallocator,
+      context != NULL ? context : (table->use_context ? table->context : NULL));
+  if (copy == NULL)
+    return DS_ERR_ALLOC;
+  if (!copy->use_context)
+    copy->context = table->context;
+  copy->config_hash = table->config_hash;
+  copy->config_compare = table->config_compare;
+  copy->config_user = table->config_user;
+  copy->config_clone_key = borrowed ? NULL : table->config_clone_key;
+  copy->config_clone_value = borrowed ? NULL : table->config_clone_value;
+  copy->config_clone_key_ex = borrowed ? NULL : table->config_clone_key_ex;
+  copy->config_clone_value_ex = borrowed ? NULL : table->config_clone_value_ex;
+  copy->config_destroy_key = borrowed ? NULL : table->config_destroy_key;
+  copy->config_destroy_value = borrowed ? NULL : table->config_destroy_value;
+  for (current = hash_table_first_node(table); current != NULL;
+       current = current->list_next) {
+    key = current->key;
+    value = current->value;
+    if (keys) {
+      status = ht_clone_part(current->key, table->config_clone_key_ex,
+                             table->config_clone_key, table->config_user, &key);
+      if (status != DS_OK) {
+        ds_hash_table_destroy(copy);
+        return status;
+      }
+    }
+    if (values) {
+      status =
+          ht_clone_part(current->value, table->config_clone_value_ex,
+                        table->config_clone_value, table->config_user, &value);
+      if (status != DS_OK) {
+        if (keys)
+          table->config_destroy_key(key, table->config_user);
+        ds_hash_table_destroy(copy);
+        return status;
+      }
+    }
+    status = ds_hash_table_contains(copy, key);
+    if (status == DS_NOT_FOUND)
+      status = ds_hash_table_insert(copy, key, value);
+    else if (status == DS_OK)
+      status = DS_ERR_CALLBACK;
+    if (status != DS_OK) {
+      if (keys)
+        table->config_destroy_key(key, table->config_user);
+      if (values)
+        table->config_destroy_value(value, table->config_user);
+      ds_hash_table_destroy(copy);
+      return status;
+    }
+  }
+  *out = copy;
+  return DS_OK;
+}
 static ds_hash_table_t *hash_table_clone_impl(ds_hash_table_t *table,
                                               bool borrowed) {
-  ds_hash_table_config_t config;
-  ds_hash_table_t *clone;
-  ds_hash_node_t *current;
-  void *key;
-  void *value;
-  ds_status_t status;
-  bool clone_keys;
-  bool clone_values;
-
-  if (table == NULL) {
-    return NULL;
-  }
-  /* an owning clone must not share what the source will destroy */
-  if (!borrowed &&
-      ((table->config_destroy_key != NULL && table->config_clone_key == NULL) ||
-       (table->config_destroy_value != NULL &&
-        table->config_clone_value == NULL))) {
-    (void)DS_CONTEXT_ERROR(table->context, DS_ERR_UNSUPPORTED,
-                           "ds.hash_table/clone_ownership", "hash_table",
-                           "owning clone needs clone callbacks for every "
-                           "destroyed part; use ds_hash_table_clone_borrowed");
-    return NULL;
-  }
-  clone_keys = !borrowed && table->config_clone_key != NULL;
-  clone_values = !borrowed && table->config_clone_value != NULL;
-  ds_hash_table_config_init(&config);
-  config.capacity = table->capacity;
-  config.mode = table->mode;
-  config.probing_func = table->probing_func;
-  config.bucket_store = table->bucket_store;
-  config.hash = table->config_hash;
-  config.compare = table->config_compare;
-  config.clone_key = borrowed ? NULL : table->config_clone_key;
-  config.clone_value = borrowed ? NULL : table->config_clone_value;
-  config.destroy_key = borrowed ? NULL : table->config_destroy_key;
-  config.destroy_value = borrowed ? NULL : table->config_destroy_value;
-  config.user = table->config_user;
-  config.context = table->use_context ? table->context : NULL;
-  clone = ds_hash_table_create_config(&config);
-  if (clone == NULL) {
-    return NULL;
-  }
-  if (!table->use_context) {
-    clone->context = table->context;
-  }
-
-  current = hash_table_first_node(table); /* keep the insertion order */
-  while (current != NULL) {
-    key = clone_keys ? table->config_clone_key(current->key, table->config_user)
-                     : current->key;
-    value = clone_values
-                ? table->config_clone_value(current->value, table->config_user)
-                : current->value;
-    status = ds_hash_table_insert(clone, key, value);
-    if (DS_FAILED(status)) {
-      /* the pair never made it in: release what was cloned for it */
-      if (clone_keys && table->config_destroy_key != NULL) {
-        table->config_destroy_key(key, table->config_user);
-      }
-      if (clone_values && table->config_destroy_value != NULL) {
-        table->config_destroy_value(value, table->config_user);
-      }
-      ds_hash_table_destroy(clone);
-      return NULL;
-    }
-    current = current->list_next;
-  }
-  return clone;
+  ds_hash_table_t *copy;
+  ds_status_t status = ds_hash_table_clone_ex(table, borrowed, NULL, &copy);
+  if (status != DS_OK)
+    (void)DS_CONTEXT_ERROR(table != NULL ? table->context : NULL, status,
+                           "ds.hash_table/clone_failed", "hash_table",
+                           "hash table clone failed");
+  return copy;
 }
-
 ds_hash_table_t *ds_hash_table_clone(ds_hash_table_t *table) {
   return hash_table_clone_impl(table, false);
 }
-
 ds_hash_table_t *ds_hash_table_clone_borrowed(ds_hash_table_t *table) {
   return hash_table_clone_impl(table, true);
 }
@@ -1362,4 +1401,52 @@ ds_status_t ds_hash_table_iter_init(ds_hash_table_t *table, ds_iter_t *iter) {
     return DS_ERR_NULL;
   }
   return DS_OK;
+}
+
+ds_status_t ds_hash_table_walk_with(ds_hash_table_t *table,
+                                    ds_hash_table_visit_fn visit, void *user) {
+  ds_hash_node_t *node;
+  ds_status_t status;
+  if (table == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  for (node = table->last_node; node != NULL; node = node->list_prev) {
+    status = visit(node, user);
+    if (status != DS_OK)
+      return status;
+  }
+  return DS_OK;
+}
+ds_status_t ds_hash_table_create_config_ex(const ds_hash_table_config_t *config,
+                                           ds_hash_table_t **out) {
+  ds_hash_table_config_t normalized;
+  const ds_hash_bucket_store_t *store;
+  size_t capacity, limit;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (config == NULL)
+    return DS_ERR_NULL;
+  if (config->mode != HASH_CHAINING && !hash_table_uses_probing(config->mode))
+    return DS_ERR_INVALID;
+  if (config->hash == NULL || config->compare == NULL)
+    return DS_ERR_NULL;
+  store = config->bucket_store;
+  if (config->mode == HASH_CHAINING && store != NULL &&
+      (store->create == NULL || store->search == NULL ||
+       store->insert == NULL || store->remove == NULL ||
+       store->destroy == NULL || store->apply == NULL))
+    return DS_ERR_INVALID;
+  limit = config->mode == HASH_CHAINING
+              ? (size_t)-1 / sizeof(void *)
+              : (size_t)-1 / 2 / sizeof(ds_hash_node_t);
+  if (config->capacity > limit)
+    return DS_ERR_OVERFLOW;
+  capacity = hash_table_prime_capacity_at_least(config->capacity);
+  if (capacity < config->capacity || capacity > limit)
+    return DS_ERR_OVERFLOW;
+  normalized = *config;
+  if (normalized.context == NULL)
+    normalized.context = ds_default_context();
+  *out = ds_hash_table_create_config(&normalized);
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }

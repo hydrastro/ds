@@ -1,5 +1,6 @@
 #include "lsm_tree.h"
 #include "checked.h"
+#include "stage.h"
 #include <string.h>
 
 #define LSM_NONE ((size_t) - 1)
@@ -175,8 +176,100 @@ static void lsm_free_mem(ds_lsm_t *l) {
   l->mem_bytes = 0;
 }
 
+struct ds_lsm_table_reader {
+  ds_pager_t pager;
+  unsigned long start;
+  size_t length;
+  bool read_failed;
+};
+
+static ds_status_t lsm_table_read(void *user, size_t offset, void *buffer,
+                                  size_t count) {
+  struct ds_lsm_table_reader *r = (struct ds_lsm_table_reader *)user;
+  unsigned char *dst = (unsigned char *)buffer;
+  size_t ps = r->pager.store->page_size;
+  if (offset > r->length || count > r->length - offset)
+    return DS_ERR_RANGE;
+  while (count != 0) {
+    unsigned long page = r->start + (unsigned long)(offset / ps);
+    size_t within = offset % ps, take = ps - within;
+    void *data;
+    ds_status_t st;
+    if (take > count)
+      take = count;
+    st = ds_pager_get(&r->pager, page, &data);
+    if (st != DS_OK) {
+      r->read_failed = true;
+      return st;
+    }
+    memcpy(dst, (const unsigned char *)data + within, take);
+    st = ds_pager_unpin(&r->pager, page);
+    if (st != DS_OK)
+      return st;
+    offset += take;
+    dst += take;
+    count -= take;
+  }
+  return DS_OK;
+}
+
+/* Prepare all read state before replacing a memory-backed table. */
+static ds_status_t lsm_read_table(ds_lsm_t *l, ds_lsm_table_t *t,
+                                  bool *read_failed) {
+  struct ds_lsm_table_reader *r;
+  ds_sstable_source_t source;
+  ds_sstable_t table;
+  ds_status_t st;
+  unsigned long count = ds_page_store_count(l->config.store);
+  if (t->page < 2 || t->page > count || t->pages > count - t->page)
+    return DS_ERR_INVALID;
+  r = (struct ds_lsm_table_reader *)ds_context_calloc(l->config.context, 1,
+                                                      sizeof(*r));
+  if (r == NULL)
+    return DS_ERR_ALLOC;
+  r->start = t->page;
+  r->length = t->len;
+  st = ds_pager_init_policy(
+      &r->pager, l->config.store,
+      l->config.read_cache_frames == 0 ? 2 : l->config.read_cache_frames,
+      l->config.read_cache_map, l->config.read_cache_policy, l->config.context);
+  if (st != DS_OK) {
+    ds_context_free(l->config.context, r);
+    return st;
+  }
+  ds_sstable_source_init(&source);
+  source.read = lsm_table_read;
+  source.user = r;
+  source.length = t->len;
+  source.max_metadata_bytes = l->config.max_table_metadata_bytes;
+  source.max_block_bytes = l->config.max_table_block_bytes;
+  st = ds_sstable_open_reader(&table, &source, &l->cmp, l->config.filter,
+                              l->config.context);
+  if (st == DS_OK)
+    st = ds_sstable_set_key_hash(&table, l->key_hash.hash != NULL ? &l->key_hash
+                                                                  : NULL);
+  if (st != DS_OK) {
+    if (read_failed != NULL && r->read_failed)
+      *read_failed = true;
+    ds_sstable_close(&table);
+    ds_pager_discard(&r->pager);
+    ds_context_free(l->config.context, r);
+    return st;
+  }
+  ds_sstable_close(&t->table);
+  ds_context_free(l->config.context, t->data);
+  t->data = NULL;
+  t->table = table;
+  t->reader = r;
+  return DS_OK;
+}
+
 static void lsm_free_table(ds_lsm_t *l, ds_lsm_table_t *t) {
   ds_sstable_close(&t->table);
+  if (t->reader != NULL) {
+    ds_pager_discard(&t->reader->pager);
+    ds_context_free(l->config.context, t->reader);
+  }
   ds_context_free(l->config.context, t->data);
   memset(t, 0, sizeof(*t));
 }
@@ -393,7 +486,7 @@ static ds_status_t lsm_write_run(ds_lsm_t *l, unsigned long start,
 }
 
 static ds_status_t lsm_read_run(ds_lsm_t *l, unsigned long start, size_t len,
-                                unsigned char **out) {
+                                unsigned char **out, bool *read_failed) {
   size_t ps = lsm_page_size(l);
   unsigned long pages = lsm_pages_for(l, len);
   unsigned long k;
@@ -413,6 +506,8 @@ static ds_status_t lsm_read_run(ds_lsm_t *l, unsigned long start, size_t len,
   }
   for (k = 0; k < pages && st == DS_OK; k++) {
     st = ds_page_store_read(l->config.store, start + k, buf + (size_t)k * ps);
+    if (st != DS_OK && read_failed != NULL)
+      *read_failed = true;
   }
   if (st != DS_OK) {
     ds_context_free(l->config.context, buf);
@@ -438,6 +533,8 @@ static ds_status_t lsm_store_table(ds_lsm_t *l, ds_lsm_table_t *t) {
   if (st == DS_OK) {
     t->page = start;
     t->pages = pages;
+    if (l->config.out_of_core)
+      st = lsm_read_table(l, t, NULL);
   }
   return st;
 }
@@ -644,7 +741,7 @@ static ds_status_t lsm_encode_manifest(ds_lsm_t *l, unsigned long seq,
   size_t k = 0;
   unsigned char *p;
   for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
-    n += l->levels[i].data != NULL ? 1U : 0U;
+    n += l->levels[i].len != 0 ? 1U : 0U;
   }
   *len = 8 + 8 * 8 + n * 32;
   p = (unsigned char *)ds_context_alloc(l->config.context, *len);
@@ -664,7 +761,7 @@ static ds_status_t lsm_encode_manifest(ds_lsm_t *l, unsigned long seq,
     const ds_lsm_table_t *t =
         i < l->l0_count ? &l->l0[i] : &l->levels[i - l->l0_count];
     unsigned char *e = p + 72 + 32 * k;
-    if (t->data == NULL) {
+    if (t->len == 0) {
       continue;
     }
     lsm_put8(e, i < l->l0_count ? 0UL : (unsigned long)(i - l->l0_count + 1));
@@ -747,7 +844,7 @@ static ds_status_t lsm_publish(ds_lsm_t *l) {
     lsm_ext_mark(l, l->l0[i].page, seq);
   }
   for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
-    if (l->levels[i].data != NULL) {
+    if (l->levels[i].len != 0) {
       lsm_ext_mark(l, l->levels[i].page, seq);
     }
   }
@@ -797,7 +894,7 @@ static ds_status_t lsm_read_slot(ds_lsm_t *l, unsigned long page,
 
 /* loads the tables of a manifest; *log_head gets the log */
 static ds_status_t lsm_load(ds_lsm_t *l, const lsm_slot_t *slot,
-                            unsigned long *log_head) {
+                            unsigned long *log_head, bool *read_failed) {
   unsigned char *man = NULL;
   unsigned long v;
   unsigned long n;
@@ -807,7 +904,7 @@ static ds_status_t lsm_load(ds_lsm_t *l, const lsm_slot_t *slot,
   if (!lsm_fits(slot->len)) {
     return DS_ERR_INVALID;
   }
-  st = lsm_read_run(l, slot->start, (size_t)slot->len, &man);
+  st = lsm_read_run(l, slot->start, (size_t)slot->len, &man, read_failed);
   if (st != DS_OK) {
     return st;
   }
@@ -857,26 +954,26 @@ static ds_status_t lsm_load(ds_lsm_t *l, const lsm_slot_t *slot,
       break;
     }
     t = level == 0 ? &l->l0[l->l0_count] : &l->levels[level - 1];
-    if (t->data != NULL) {
+    if (t->len != 0) {
       st = DS_ERR_INVALID;
       break;
     }
     st = lsm_ext_insert(l, start, pages, slot->seq);
     if (st == DS_OK) {
-      st = lsm_read_run(l, start, (size_t)len, &t->data);
-    }
-    if (st == DS_OK) {
       t->len = (size_t)len;
       t->page = start;
       t->pages = pages;
-      st = lsm_open(l, t);
-      if (st != DS_OK) {
-        ds_context_free(l->config.context, t->data);
-        t->data = NULL;
-        st = st == DS_ERR_ALLOC ? st : DS_ERR_INVALID;
-      } else if (level == 0) {
-        l->l0_count++;
+      if (l->config.out_of_core)
+        st = lsm_read_table(l, t, read_failed);
+      else {
+        st = lsm_read_run(l, start, (size_t)len, &t->data, read_failed);
+        if (st == DS_OK)
+          st = lsm_open(l, t);
       }
+      if (st != DS_OK)
+        lsm_free_table(l, t);
+      else if (level == 0)
+        l->l0_count++;
     }
   }
   /* extents must not overlap */
@@ -1133,11 +1230,12 @@ static ds_status_t lsm_recover(ds_lsm_t *l) {
   for (k = 0; k < 2; k++) {
     int s = order[k];
     size_t i;
+    bool read_failed = false;
     if (!ok[s]) {
       continue;
     }
     l->seq = slots[s].seq;
-    st = lsm_load(l, &slots[s], &head);
+    st = lsm_load(l, &slots[s], &head, &read_failed);
     if (st == DS_OK) {
       break;
     }
@@ -1150,7 +1248,7 @@ static ds_status_t lsm_recover(ds_lsm_t *l) {
     }
     l->l0_count = 0;
     l->extent_count = 0;
-    if (st != DS_ERR_INVALID) {
+    if (st != DS_ERR_INVALID || read_failed) {
       return st;
     }
   }
@@ -1200,6 +1298,8 @@ ds_status_t ds_lsm_init(ds_lsm_t *lsm, const ds_lsm_config_t *config) {
     config = &def;
   }
   lsm->config = *config;
+  if (config->out_of_core && config->store == NULL)
+    return DS_ERR_INVALID;
   if (lsm->config.memtable_bytes == 0) {
     lsm->config.memtable_bytes = 1UL << 20;
   }
@@ -1325,7 +1425,7 @@ static size_t lsm_level_limit(const ds_lsm_t *l, size_t i) {
 static bool lsm_deeper_empty(const ds_lsm_t *l, size_t level) {
   size_t i;
   for (i = level + 1; i < DS_LSM_MAX_LEVELS; i++) {
-    if (l->levels[i].data != NULL) {
+    if (l->levels[i].len != 0) {
       return false;
     }
   }
@@ -1386,7 +1486,7 @@ static ds_status_t lsm_compact(ds_lsm_t *l) {
     for (i = 0; i < l->l0_count; i++) {
       srcs[n++] = &l->l0[i];
     }
-    if (l->levels[0].data != NULL) {
+    if (l->levels[0].len != 0) {
       srcs[n++] = &l->levels[0];
     }
     st = lsm_merge_into(l, srcs, n, 0);
@@ -1396,10 +1496,10 @@ static ds_status_t lsm_compact(ds_lsm_t *l) {
     l->l0_count = 0;
   }
   for (i = 0; i + 1 < DS_LSM_MAX_LEVELS; i++) {
-    if (l->levels[i].data != NULL && l->levels[i].len > lsm_level_limit(l, i)) {
+    if (l->levels[i].len != 0 && l->levels[i].len > lsm_level_limit(l, i)) {
       n = 0;
       srcs[n++] = &l->levels[i];
-      if (l->levels[i + 1].data != NULL) {
+      if (l->levels[i + 1].len != 0) {
         srcs[n++] = &l->levels[i + 1];
       }
       st = lsm_merge_into(l, srcs, n, i + 1);
@@ -1581,8 +1681,8 @@ static ds_status_t arr_set(ds_lsm_t *l, const void *key, size_t klen,
   return DS_OK;
 }
 
-static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
-                           const void *value, size_t vlen, int tomb) {
+static ds_status_t lsm_set_staged(ds_lsm_t *l, const void *key, size_t klen,
+                                  const void *value, size_t vlen, int tomb) {
   size_t bytes;
   size_t mark;
   int logged;
@@ -1634,6 +1734,21 @@ static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
   return DS_OK;
 }
 
+static ds_status_t lsm_set(ds_lsm_t *l, const void *key, size_t klen,
+                           const void *value, size_t vlen, int tomb) {
+  ds_stage_t args;
+  ds_status_t st;
+  if (l == NULL || l->l0 == NULL || (key == NULL && klen != 0) ||
+      (value == NULL && vlen != 0))
+    return DS_ERR_NULL;
+  st = ds_stage_copy(&args, l->config.context, true, key, klen, value, vlen);
+  if (st != DS_OK)
+    return st;
+  st = lsm_set_staged(l, args.key, klen, args.value, vlen, tomb);
+  ds_stage_release(&args);
+  return st;
+}
+
 ds_status_t ds_lsm_put(ds_lsm_t *lsm, const void *key, size_t key_len,
                        const void *value, size_t value_len) {
   return lsm_set(lsm, key, key_len, value, value_len, 0);
@@ -1648,7 +1763,7 @@ static ds_status_t lsm_table_get(ds_lsm_t *l, ds_lsm_table_t *t,
                                  const unsigned char **v, size_t *vl) {
   bool tomb = false;
   ds_status_t st;
-  if (t->data == NULL || !ds_sstable_may_contain(&t->table, key, klen)) {
+  if (t->len == 0 || !ds_sstable_may_contain(&t->table, key, klen)) {
     return DS_NOT_FOUND;
   }
   st = ds_sstable_get(&t->table, key, klen, v, vl, &tomb, l->config.context);
@@ -1658,8 +1773,10 @@ static ds_status_t lsm_table_get(ds_lsm_t *l, ds_lsm_table_t *t,
   return st;
 }
 
-ds_status_t ds_lsm_get(ds_lsm_t *lsm, const void *key, size_t key_len,
-                       const unsigned char **out_value, size_t *out_len) {
+static ds_status_t lsm_get_staged(ds_lsm_t *lsm, const void *key,
+                                  size_t key_len,
+                                  const unsigned char **out_value,
+                                  size_t *out_len) {
   const unsigned char *v = NULL;
   size_t vl = 0, i;
   lsm_ent_t *e;
@@ -1696,6 +1813,22 @@ ds_status_t ds_lsm_get(ds_lsm_t *lsm, const void *key, size_t key_len,
   return st;
 }
 
+ds_status_t ds_lsm_get(ds_lsm_t *lsm, const void *key, size_t key_len,
+                       const unsigned char **out_value, size_t *out_len) {
+  ds_stage_t arg;
+  ds_status_t st;
+  if (lsm == NULL || (key == NULL && key_len != 0))
+    return DS_ERR_NULL;
+  if (!lsm->config.out_of_core)
+    return lsm_get_staged(lsm, key, key_len, out_value, out_len);
+  st = ds_stage_copy(&arg, lsm->config.context, true, key, key_len, NULL, 0);
+  if (st != DS_OK)
+    return st;
+  st = lsm_get_staged(lsm, arg.key, key_len, out_value, out_len);
+  ds_stage_release(&arg);
+  return st;
+}
+
 ds_status_t ds_lsm_compact_all(ds_lsm_t *lsm) {
   ds_lsm_table_t *srcs[DS_LSM_MAX_LEVELS + 64];
   size_t i, n = 0, target = 0;
@@ -1711,7 +1844,7 @@ ds_status_t ds_lsm_compact_all(ds_lsm_t *lsm) {
     srcs[n++] = &lsm->l0[i];
   }
   for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
-    if (lsm->levels[i].data != NULL) {
+    if (lsm->levels[i].len != 0) {
       srcs[n++] = &lsm->levels[i];
       target = i;
     }
@@ -1734,7 +1867,7 @@ size_t ds_lsm_table_count(const ds_lsm_t *lsm) {
   }
   n = lsm->l0_count;
   for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
-    n += lsm->levels[i].data != NULL ? 1U : 0U;
+    n += lsm->levels[i].len != 0 ? 1U : 0U;
   }
   return n;
 }
@@ -1749,7 +1882,7 @@ static ds_sstable_t *lsm_source_table(ds_lsm_t *l, size_t k) {
   }
   k -= l->l0_count;
   for (i = 0; i < DS_LSM_MAX_LEVELS; i++) {
-    if (l->levels[i].data != NULL) {
+    if (l->levels[i].len != 0) {
       if (k == 0) {
         return &l->levels[i].table;
       }

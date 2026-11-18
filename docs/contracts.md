@@ -85,6 +85,8 @@ says what remains:
 
 | Module | Guarantee |
 |---|---|
+| `lib/btree` | insert stages every required split node before mutation; removal never allocates and clears the removed node owner; equal keys are allowed as distinct intrusive nodes |
+| `lib/treap` | insertion never allocates and reports duplicate keys; checked clones preserve topology and release accepted clones on failure |
 | `lib/paged_btree` | put and remove prepare every page (splits, borrows, merges) before changing any; pages a failed put took return to the free list |
 | `lib/topology_tree` | reserves cluster slots and work lists for the per-level bound before committing, so a committed update does not allocate; a failed commit still leaves an explicit broken state, and `ds_topology_tree_rebuild` repairs it |
 | `lib/pq_iface` | a copying meld stops at the failing item, with both queues valid and every item in exactly one of them |
@@ -200,19 +202,16 @@ the map.
 
 ## Costs
 
-- **Stack depth.** Balanced structures and divide-and-conquer algorithms
-  recurse to logarithmic height (quicksorts recurse into the smaller side). Where
-  depth follows the data (unbalanced and splay trees, tries of long keys,
-  lists, graph searches, chains of history branches), walks, clones and
-  destruction use parent links, explicit stacks on the heap, or lists
-  threaded through the nodes being freed, so destruction never needs
-  memory. The generic trie (`lib/trie`) steps through its child stores
-  with their `next` operation; only a custom store written without one
-  still recurses, through its own apply and clone. Two recursions are
-  bounded by the caller instead: game-tree search by its depth argument,
-  the CTL parser by a nesting limit, and nested i18n callbacks by `max_depth`
-  (32 by default). Treap paths have logarithmic expected depth, not a
-  deterministic worst-case bound.
+- **Stack depth.** Intrusive, implicit, augmented, ordered-capability,
+  Euler-tour and enfilade treaps, the randomized BST, and the visibility
+  sweep's status tree now use iterative paths even with degenerate shapes.
+  Expected logarithmic running time is not a deterministic height bound.
+  Other balanced trees and divide-and-conquer routines retain recursion,
+  bounded by their structural height or shrinking subproblem; index widths,
+  explicit depth limits and fixed Unicode data bound other reviewed cases.
+  Generic-trie stores without `next` and user callbacks can still recurse.
+  See `recursion-review.md` for the reviewed families, exceptions and limits
+  of the source audit; `container-lifetimes.md` covers borrowed cursors.
 - **Rope.** Nodes form an AVL tree with at most 64 bytes per leaf. Indexing
   and joining use logarithmic tree height; building inserted text is linear
   in its byte length. Split-based edits have a conservative O(log² leaves)
@@ -393,3 +392,109 @@ not guess them from diagnostics.
   - Markov hitting times are numerical.
   - The TSP heuristics are approximations with stated bounds where they
     exist.
+
+## Addressable array heaps
+
+`ds_min_max_heap_set_move_callback` and `ds_shadow_heap_set_move_callback`
+report item placement and movement. Index `(size_t)-1` reports removal,
+replacement, clear or destruction. Callbacks update external metadata only;
+they must not reenter the heap. Indices alone are not stable handles.
+
+`ds_pq_min_max_ops()` and `ds_pq_shadow_ops()` store pointers to stable,
+context-allocated payload nodes in those same heaps. Handles and item pointers
+survive priority changes, growth and unrelated removals. Update and removal
+use tracked indices, without a linear search. Removed handles are invalid.
+Neither backend supplies native meld; the capability's copying fallback applies.
+The min-max backend has constant-time top and logarithmic repair/removal.
+The shadow backend scans its logarithmic shadow for top; its cost metadata
+conservatively allows logarithmic-squared folding during removal. Array growth
+can make a push linear. See `examples/addressable_schedulers.c`.
+
+These additions extend public heap structs. Recompile clients when updating
+the library; source entry points and the default heap behavior are retained.
+
+## Callback-backed SSTables and LSM reads
+
+`ds_sstable_open_reader` accepts an immutable byte source with an exact-read
+callback. Opening verifies the existing checksum in chunks, then retains only
+the index and filter region. Each active iterator owns a reusable block buffer
+and a decoded key; the table owns a separate iterator for point lookups.
+Metadata and block limits are independently configurable. Zero means the format
+limit, not a promise of constant memory. A single oversized record can require
+a large block; metadata scales with the number of blocks and filter size.
+Checksum verification still reads the entire table during open.
+
+A callback lookup's value lasts until that table's next get or close. Iterator
+views last until that iterator's next positioning call. Positioning stages its
+input key, so a current key/value may be supplied as a new search key. Read
+failures propagate; positive callback statuses become `DS_ERR_CALLBACK`.
+Independent iterators do not share block buffers. A callback table may move
+by value only when no external iterator refers to its old address; shallow
+copies borrow its reader and must not close it.
+
+`ds_lsm_config_t.out_of_core` selects this path and requires a page store. Each
+table owns a pager with configurable frame count, page-map backend and eviction
+policy. Retiring the table retires its cache, preventing stale pages when an
+extent is reused. Newly flushed and compacted tables also switch to callback
+reads after their bytes are stored. An LSM lookup's value is conservatively
+borrowed until the next get, mutation or destruction. Existing in-memory mode
+remains the default. Flush and compaction output are still assembled in memory;
+this option bounds retained table data during reads, not write-side building.
+The file format and page-store durability contract are unchanged. See
+`examples/sstable_reader.c` and `examples/paged_catalog.c`.
+
+## Persistent trie storage
+
+`ds_ptrie_config_t.storage` selects byte edges or compressed radix labels.
+Both share immutable, reference-counted subtrees and copy an update's path;
+the radix backend stores a suffix on each incoming edge and splits/coalesces
+labels as keys diverge or disappear. Empty and binary keys remain distinct.
+Prefix count, visit, removal, copy and move accept prefixes ending inside labels.
+Traversal and release are iterative. Radix path scratch scales with branching
+depth; decoded traversal keys still require space for the full key. A node's
+ordered child list has at most 256 entries.
+
+Checked creation and mutation APIs distinguish missing removals, invalid version
+owners, allocation/size failures and clone failures. `clone_value_ex` can return
+`DS_OK` with a NULL value, independently of failure. Owned values require a clone
+callback; configure only one clone form. All updates publish a new version only
+after successful construction; the base remains usable. Versions must be released
+through their creating trie before destroying it. Cross-trie prefix copy reads the
+source and uses the destination's clone policy. Reference counts are externally
+synchronized; use checked retain to detect exhaustion. See
+`examples/versioned_routes.c` for the same workflow with both backends.
+
+## History archive and merge contracts
+
+History storage now accepts a context, and checked branch/transaction/edit APIs
+report allocation failure and ID/time exhaustion. Checked portable import stages
+all branches and payloads, validates parent/ID/order relationships, enforces
+optional resource limits, and uses configurable ordered maps for ID indexes.
+Payload readers can distinguish a successful NULL value from an error.
+
+`history_adapters` provides FILE serialization with sticky I/O errors and transfer
+budgets. `fflush` is not a durability barrier; atomic file replacement and fsync
+remain the caller's storage policy. The memory archive also accepts a context,
+checks allocator pairs, exposes sticky status, and safely appends its own data.
+
+The keyed merge adapter projects semantic keys into a configurable map, supports
+four conflict policies or a resolver callback, and reports partial progress.
+It merges operations; sequence rebasing and domain-specific three-way snapshots
+remain explicit application policies. Retained payload clones are released on
+skipped/failed operations even when the clone returns the original address.
+
+`history_catalog` uses three different map/ordered backends to merge inventory
+edits, keep a newer target change, serialize, and reopen a NULL payload marker.
+Normal and ASan/UBSan runs succeeded. GCC's analyzer reports no diagnostics for
+both history implementation units. No exhaustive failure-sequence claim is made.
+
+
+## Completed legacy API migration
+
+`legacy-api-migration.md` inventories the new compatible checked paths. The
+original entry points remain, including their documented unchecked arithmetic,
+callback and ownership preconditions. The new constructors/clones propagate
+contexts; checked visitors stop explicitly; fallible clones have rollback
+cleanup. Public structures grew and all consumers must be rebuilt. This pass
+also gives segment-tree arithmetic rollback, cross-owner string swapping,
+checked nullable hash/trie payload cloning, and typed trie slice callbacks.

@@ -1,31 +1,48 @@
 #include "stack.h"
+#include "legacy_alloc.h"
 #include <stdlib.h>
 
 ds_stack_t *ds_stack_create(void) {
   return ds_stack_create_alloc(malloc, free);
 }
 
-ds_stack_t *ds_stack_create_alloc(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
+static ds_stack_t *stack_create_internal(void *(*allocator)(size_t),
+                                         void (*deallocator)(void *),
+                                         ds_context_t *context) {
   ds_stack_t *stack;
   if (allocator == NULL || deallocator == NULL) {
     return NULL;
   }
-  stack = (ds_stack_t *)allocator(sizeof(ds_stack_t));
+  stack =
+      (ds_stack_t *)DS_LEGACY_ALLOCATE(context, allocator, sizeof(ds_stack_t));
   if (stack == NULL) {
     return NULL;
   }
+  stack->context = context;
   stack->allocator = allocator;
   stack->deallocator = deallocator;
-  stack->nil = (ds_stack_node_t *)allocator(sizeof(ds_stack_node_t));
+  stack->nil = (ds_stack_node_t *)DS_LEGACY_ALLOCATE(context, allocator,
+                                                     sizeof(ds_stack_node_t));
   if (stack->nil == NULL) {
-    deallocator(stack);
+    DS_LEGACY_RELEASE(context, deallocator, stack);
     return NULL;
   }
   stack->nil->next = stack->nil;
   stack->top = stack->nil;
   stack->size = 0;
   return stack;
+}
+
+ds_stack_t *ds_stack_create_alloc(void *(*allocator)(size_t),
+                                  void (*deallocator)(void *)) {
+  return stack_create_internal(allocator, deallocator, NULL);
+}
+ds_status_t ds_stack_create_context(ds_context_t *context, ds_stack_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = stack_create_internal(
+      malloc, free, context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 void ds_stack_push(ds_stack_t *stack, ds_stack_node_t *node) {
@@ -60,17 +77,32 @@ bool ds_stack_is_empty(ds_stack_t *stack) {
   return result;
 }
 
-void ds_stack_destroy(ds_stack_t *stack, void (*destroy)(ds_stack_node_t *)) {
+static void stack_destroy_internal(ds_stack_t *stack,
+                                   ds_stack_destroy_fn destroy, void *user) {
   ds_stack_node_t *node = stack->top;
   while (node != stack->nil) {
     ds_stack_node_t *next = node->next;
     if (destroy != NULL) { /* as the queue and the list: NULL owns nothing */
-      destroy(node);
+      destroy(node, user);
     }
     node = next;
   }
-  stack->deallocator(stack->nil);
-  stack->deallocator(stack);
+  DS_LEGACY_FREE(stack, stack->nil);
+  DS_LEGACY_FREE(stack, stack);
+}
+void ds_stack_destroy_with(ds_stack_t *container, ds_stack_destroy_fn destroy,
+                           void *user) {
+  if (container != NULL)
+    stack_destroy_internal(container, destroy, user);
+}
+static void stack_destroy_legacy(ds_stack_node_t *node, void *user) {
+  void (**destroy)(ds_stack_node_t *) = (void (**)(ds_stack_node_t *))user;
+  (*destroy)(node);
+}
+void ds_stack_destroy(ds_stack_t *container,
+                      void (*destroy)(ds_stack_node_t *)) {
+  ds_stack_destroy_with(
+      container, destroy != NULL ? stack_destroy_legacy : NULL, &destroy);
 }
 
 void ds_stack_delete(ds_stack_t *stack) {
@@ -199,7 +231,8 @@ ds_stack_t *ds_stack_clone(ds_stack_t *stack,
   if (stack == NULL || clone_node == NULL) {
     return NULL;
   }
-  copy = ds_stack_create_alloc(stack->allocator, stack->deallocator);
+  copy = stack_create_internal(stack->allocator, stack->deallocator,
+                               stack->context);
   if (copy != NULL && !stack_clone_nodes(stack, copy, clone_node)) {
     /* the clones made so far are not released */
     ds_stack_destroy(copy, NULL);
@@ -220,7 +253,8 @@ ds_status_t ds_stack_clone_ex(const ds_stack_t *stack,
   if (stack == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  copy = ds_stack_create_alloc(stack->allocator, stack->deallocator);
+  copy = stack_create_internal(stack->allocator, stack->deallocator,
+                               stack->context);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -230,4 +264,152 @@ ds_status_t ds_stack_clone_ex(const ds_stack_t *stack,
   }
   *out = copy;
   return DS_OK;
+}
+
+ds_status_t ds_stack_walk_with(ds_stack_t *container, ds_stack_visit_fn visit,
+                               void *user) {
+  size_t i;
+  ds_stack_node_t *node;
+  ds_status_t st;
+  if (container == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  node = container->top;
+  for (i = 0; i < container->size; ++i) {
+
+    st = visit(node, user);
+    if (st != DS_OK)
+      return st;
+    node = node->next;
+  }
+  return DS_OK;
+}
+ds_status_t ds_stack_find_with(ds_stack_t *container, ds_stack_node_t *key,
+                               ds_stack_compare_fn compare, void *user,
+                               ds_stack_node_t **out) {
+  size_t i;
+  ds_stack_node_t *node;
+  if (container == NULL || key == NULL || compare == NULL || out == NULL)
+    return DS_ERR_NULL;
+  node = container->top;
+  for (i = 0; i < container->size; ++i) {
+
+    if (compare(node, key, user) == 0) {
+      *out = node;
+      return DS_OK;
+    }
+    node = node->next;
+  }
+  return DS_NOT_FOUND;
+}
+
+ds_status_t ds_stack_clone_with(const ds_stack_t *container,
+                                ds_stack_clone_fn clone,
+                                ds_stack_destroy_fn destroy, void *user,
+                                ds_context_t *context, ds_stack_t **out) {
+  ds_stack_t *copy;
+  size_t i;
+  ds_stack_node_t *node;
+  ds_stack_node_t *new_node;
+  ds_stack_node_t *last;
+  ds_status_t st;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (container == NULL || clone == NULL || destroy == NULL)
+    return DS_ERR_NULL;
+  copy = stack_create_internal(container->allocator, container->deallocator,
+                               context != NULL ? context : container->context);
+  if (copy == NULL)
+    return DS_ERR_ALLOC;
+  last = copy->nil;
+  node = container->top;
+  for (i = 0; i < container->size; ++i) {
+
+    new_node = NULL;
+    st = clone(node, &new_node, user);
+    if (st != DS_OK || new_node == NULL) {
+      ds_stack_destroy_with(copy, destroy, user);
+      return st < 0 ? st : DS_ERR_CALLBACK;
+    }
+    new_node->next = copy->nil;
+    if (last == copy->nil)
+      copy->top = new_node;
+    else
+      last->next = new_node;
+    last = new_node;
+    copy->size += 1;
+    node = node->next;
+  }
+  *out = copy;
+  return DS_OK;
+}
+
+ds_status_t ds_stack_push_ex(ds_stack_t *container, ds_stack_node_t *node) {
+  if (container == NULL || node == NULL)
+    return DS_ERR_NULL;
+  if (node == container->nil)
+    return DS_ERR_INVALID;
+  if (container->size == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  ds_stack_push(container, node);
+  return DS_OK;
+}
+
+ds_status_t ds_stack_pop_ex(ds_stack_t *container, ds_stack_node_t **out) {
+  if (container == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (container->size == 0)
+    return DS_EMPTY;
+  *out = ds_stack_pop(container);
+  return DS_OK;
+}
+
+ds_status_t ds_stack_remove_ex(ds_stack_t *container, ds_stack_node_t *target) {
+  size_t i;
+  ds_stack_node_t *node;
+  if (container == NULL || target == NULL)
+    return DS_ERR_NULL;
+  if (target == container->nil)
+    return DS_ERR_INVALID;
+  node = container->top;
+  for (i = 0; i < container->size; ++i) {
+
+    if (node == target) {
+      ds_stack_delete_node(container, node);
+      return DS_OK;
+    }
+    node = node->next;
+  }
+  return DS_NOT_FOUND;
+}
+
+ds_status_t ds_stack_walk_reverse_with(ds_stack_t *container,
+                                       ds_stack_visit_fn visit, void *user) {
+  ds_stack_node_t *node, *next, *rev, *first;
+  size_t i;
+  ds_status_t st = DS_OK;
+  if (container == NULL || visit == NULL)
+    return DS_ERR_NULL;
+  if (container->size == 0)
+    return DS_OK;
+  first = container->top;
+  node = first;
+  rev = container->nil;
+  for (i = 0; i < container->size; ++i) {
+    next = node->next;
+    node->next = rev;
+    rev = node;
+    node = next;
+  }
+  node = rev;
+  rev = container->nil;
+  for (i = 0; i < container->size; ++i) {
+    next = node->next;
+    node->next = rev;
+    rev = node;
+    if (st == DS_OK)
+      st = visit(node, user);
+    node = next;
+  }
+  return st;
 }

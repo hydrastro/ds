@@ -14,8 +14,8 @@ typedef struct u32vec_like {
   int (*push)(struct u32vec_like *v, unsigned long x);
 } u32vec_like;
 
-int u32vec_push(u32vec_like *v, unsigned long x);
-void u32vec_free(u32vec_like *v);
+int ds_u32vec_push(u32vec_like *v, unsigned long x);
+void ds_u32vec_free(u32vec_like *v);
 
 typedef enum {
   DS_MAP_NONE = 0,
@@ -64,7 +64,7 @@ enum {
   GB_LVT
 };
 
-/* Indic_Conjunct_Break values in the generated U_INCB_RANGES */
+/* Indic_Conjunct_Break values in the generated ds_ucd_incb_ranges */
 enum { INCB_None = 0, INCB_Linker, INCB_Consonant, INCB_Extend };
 
 typedef struct {
@@ -91,12 +91,13 @@ int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf,
 int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
                            size_t *out_len);
 
-int ucd_do_init(void);
-int ucd_init_once(void);
-void ensure_ucd_once_lock(void);
+int ds_ucd_do_init(void);
+int ds_ucd_init_once(void);
+void ds_ensure_ucd_once_lock(void);
 
-int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp);
-int u8_push(ds_str_t *s, unsigned long cp);
+int ds_u8_next(const char *buf, size_t len, size_t *ioff,
+               unsigned long *out_cp);
+int ds_u8_push(ds_str_t *s, unsigned long cp);
 
 #define SBase 0xAC00ul
 #define LBase 0x1100ul
@@ -108,23 +109,23 @@ int u8_push(ds_str_t *s, unsigned long cp);
 #define NCount (VCount * TCount)
 #define SCount (LCount * NCount)
 
-int is_Hangul_S(unsigned long cp);
-int is_Hangul_L(unsigned long cp);
-int is_Hangul_V(unsigned long cp);
-int is_Hangul_T(unsigned long cp);
-void decompose_Hangul(unsigned long s, void *out_u32vec);
-int compose_Hangul(unsigned long *LVT, unsigned long next, size_t *consumed);
+int ds_is_Hangul_S(unsigned long cp);
+int ds_is_Hangul_L(unsigned long cp);
+int ds_is_Hangul_V(unsigned long cp);
+int ds_is_Hangul_T(unsigned long cp);
+void ds_decompose_Hangul(unsigned long s, void *out_u32vec);
+int ds_compose_Hangul(unsigned long *LVT, unsigned long next, size_t *consumed);
 
-unsigned long get_ccc(unsigned long cp);
+unsigned long ds_get_ccc(unsigned long cp);
 
-int decompose_cp(unsigned long cp, int compat, void *out_u32vec);
-void reorder_ccc(void *u32vec);
-void compose_vec(void *u32vec);
+int ds_decompose_cp(unsigned long cp, int compat, void *out_u32vec);
+void ds_reorder_ccc(void *u32vec);
+void ds_compose_vec(void *u32vec);
 
-int fold_cp(unsigned long cp, void *out_u32vec);
+int ds_fold_cp(unsigned long cp, void *out_u32vec);
 
-unsigned long gb_get(unsigned long cp);
-int is_EP(unsigned long cp);
+unsigned long ds_gb_get(unsigned long cp);
+int ds_is_EP(unsigned long cp);
 
 int ds__is_control_cc(unsigned long cp);
 int ds__is_default_ignorable(unsigned long cp);
@@ -141,6 +142,31 @@ unsigned long ds__map_simple(const unsigned long *keys,
                              unsigned long cp);
 
 size_t ds__comp_find_pair(unsigned long a, unsigned long b);
+
+/* Compatibility entry points. Define DS_NO_LEGACY_NAMES to omit these
+ * declarations and rebuild the library with that macro to omit exports. */
+#ifndef DS_NO_LEGACY_NAMES
+int u32vec_push(u32vec_like *v, unsigned long x);
+void u32vec_free(u32vec_like *v);
+int ucd_do_init(void);
+int ucd_init_once(void);
+void ensure_ucd_once_lock(void);
+int u8_next(const char *buf, size_t len, size_t *ioff, unsigned long *out_cp);
+int u8_push(ds_str_t *s, unsigned long cp);
+int is_Hangul_S(unsigned long cp);
+int is_Hangul_L(unsigned long cp);
+int is_Hangul_V(unsigned long cp);
+int is_Hangul_T(unsigned long cp);
+void decompose_Hangul(unsigned long s, void *out_u32vec);
+int compose_Hangul(unsigned long *LVT, unsigned long next, size_t *consumed);
+unsigned long get_ccc(unsigned long cp);
+int decompose_cp(unsigned long cp, int compat, void *out_u32vec);
+void reorder_ccc(void *u32vec);
+void compose_vec(void *u32vec);
+int fold_cp(unsigned long cp, void *out_u32vec);
+unsigned long gb_get(unsigned long cp);
+int is_EP(unsigned long cp);
+#endif
 
 #ifdef __cplusplus
 }

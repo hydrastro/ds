@@ -51,6 +51,8 @@
  * treap before anything moves, and apply() works from a copy of its tag, so
  * the tag may be an element of the range it updates. An empty range is
  * nothing to reverse or tag (DS_OK); query() needs a nonempty one.
+ * Split, merge, traversal and destruction are iterative, including with
+ * degenerate priorities. Path time is O(height), logarithmic in expectation.
  * Nodes come from the ds_context_t. Concurrency: one thread at a time.
  */
 

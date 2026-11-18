@@ -52,10 +52,13 @@ typedef enum ds_lp_result {
   DS_LP_OPTIMAL = 0,
   DS_LP_INFEASIBLE,
   DS_LP_UNBOUNDED,
-  DS_LP_LIMIT /* a node or cut budget ran out: best solution so far */
+  DS_LP_LIMIT, /* a node budget ran out: an incumbent may or may not exist */
+  DS_LP_RELAXATION_UNBOUNDED /* MILP: no integer unboundedness certificate */
 } ds_lp_result_t;
 
-/* x: cols; dual (rows, may be NULL): d objective / d b_i. */
+/* x: cols; dual (rows, may be NULL): d objective / d b_i. Finite input only.
+ * Numerical overflow/breakdown returns DS_ERR_STATE. Floating-point simplex
+ * uses fixed tolerances; it does not provide exact feasibility certificates. */
 ds_status_t ds_lp_solve(const ds_lp_t *lp, double *x, double *dual,
                         double *out_objective, ds_lp_result_t *out_result,
                         ds_context_t *context);
@@ -82,8 +85,14 @@ typedef enum ds_milp_method {
   DS_MILP_CUTTING_PLANE
 } ds_milp_method_t;
 
-/* integer: cols flags (NULL: every variable integral). budget: nodes
- * (and cuts) to spend, 0 for unlimited. */
+/* integer: cols flags (NULL: every variable integral). budget: maximum nodes
+ * and, separately, maximum preliminary cuts; 0 means unlimited. Budget 1
+ * processes the root. LIMIT may have no incumbent: x/objective are unchanged
+ * in that case. On errors, an earlier incumbent may already be in x.
+ * RELAXATION_UNBOUNDED means the continuous relaxation is unbounded, not that
+ * an integer feasible point/ray was established. A prior incumbent is retained.
+ * Cutting stops before a nonintegral added row's slack could be treated as an
+ * integer; branch and bound continues from the cuts already made. */
 ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
                           ds_milp_method_t method, size_t budget, double *x,
                           double *out_objective, ds_lp_result_t *out_result,

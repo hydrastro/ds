@@ -1,5 +1,6 @@
 #include "aug_treap.h"
 #include "checked.h"
+#include "vec.h"
 #include <string.h>
 
 typedef union aug_align {
@@ -12,6 +13,7 @@ typedef union aug_align {
 struct ds_aug_node {
   ds_aug_node_t *left;
   ds_aug_node_t *right;
+  ds_aug_node_t *parent;
   size_t count;
   unsigned long priority;
 };
@@ -59,40 +61,59 @@ static void aug_pull(ds_aug_treap_t *t, ds_aug_node_t *n) {
   }
 }
 
-/* Keys < key go to *a, keys >= key to *b. */
+/* Iterative split/join; repair summaries along the changed parent spines. */
 static void aug_split(ds_aug_treap_t *t, ds_aug_node_t *n, const void *key,
                       ds_aug_node_t **a, ds_aug_node_t **b) {
-  if (n == NULL) {
-    *a = NULL;
-    *b = NULL;
-    return;
+  ds_aug_node_t *left = NULL, *right = NULL, **ls = a, **rs = b;
+  while (n != NULL) {
+    ds_aug_node_t *next;
+    if (aug_cmp(t, aug_key(t, n), key) < 0) {
+      next = n->right;
+      *ls = n;
+      n->parent = left;
+      left = n;
+      ls = &n->right;
+    } else {
+      next = n->left;
+      *rs = n;
+      n->parent = right;
+      right = n;
+      rs = &n->left;
+    }
+    n = next;
   }
-  if (aug_cmp(t, aug_key(t, n), key) < 0) {
-    aug_split(t, n->right, key, &n->right, b);
-    *a = n;
-  } else {
-    aug_split(t, n->left, key, a, &n->left);
-    *b = n;
-  }
-  aug_pull(t, n);
+  *ls = *rs = NULL;
+  for (; left != NULL; left = left->parent)
+    aug_pull(t, left);
+  for (; right != NULL; right = right->parent)
+    aug_pull(t, right);
 }
 
 static ds_aug_node_t *aug_merge(ds_aug_treap_t *t, ds_aug_node_t *a,
                                 ds_aug_node_t *b) {
-  if (a == NULL) {
-    return b;
+  ds_aug_node_t *root = NULL, *tail = NULL, **slot = &root;
+  while (a != NULL && b != NULL) {
+    ds_aug_node_t *chosen;
+    if (a->priority > b->priority) {
+      chosen = a;
+      a = a->right;
+      *slot = chosen;
+      slot = &chosen->right;
+    } else {
+      chosen = b;
+      b = b->left;
+      *slot = chosen;
+      slot = &chosen->left;
+    }
+    chosen->parent = tail;
+    tail = chosen;
   }
-  if (b == NULL) {
-    return a;
-  }
-  if (a->priority > b->priority) {
-    a->right = aug_merge(t, a->right, b);
-    aug_pull(t, a);
-    return a;
-  }
-  b->left = aug_merge(t, a, b->left);
-  aug_pull(t, b);
-  return b;
+  *slot = a == NULL ? b : a;
+  if (*slot != NULL)
+    (*slot)->parent = tail;
+  for (; tail != NULL; tail = tail->parent)
+    aug_pull(t, tail);
+  return root;
 }
 
 static ds_aug_node_t *aug_find(const ds_aug_treap_t *t, const void *key) {
@@ -108,25 +129,23 @@ static ds_aug_node_t *aug_find(const ds_aug_treap_t *t, const void *key) {
   return NULL;
 }
 
-static void aug_refresh(ds_aug_treap_t *t, ds_aug_node_t *n, const void *key) {
-  int c;
-  if (n == NULL) {
-    return;
-  }
-  c = aug_cmp(t, key, aug_key(t, n));
-  if (c < 0) {
-    aug_refresh(t, n->left, key);
-  } else if (c > 0) {
-    aug_refresh(t, n->right, key);
-  }
-  aug_pull(t, n);
+static void aug_pull_path(ds_aug_treap_t *t, ds_aug_node_t *n) {
+  for (; n != NULL; n = n->parent)
+    aug_pull(t, n);
 }
 
 static void aug_free(ds_aug_treap_t *t, ds_aug_node_t *n) {
-  if (n != NULL) {
-    aug_free(t, n->left);
-    aug_free(t, n->right);
-    ds_context_free(t->config.context, n);
+  while (n != NULL) {
+    if (n->left != NULL) {
+      ds_aug_node_t *left = n->left;
+      n->left = left->right;
+      left->right = n;
+      n = left;
+    } else {
+      ds_aug_node_t *right = n->right;
+      ds_context_free(t->config.context, n);
+      n = right;
+    }
   }
 }
 
@@ -219,16 +238,20 @@ static ds_status_t aug_store(ds_aug_treap_t *t, const void *key,
   if (n != NULL) {
     if (overwrite && t->config.value_size > 0) {
       memmove(AUG_AT(n, t->value_offset), value, t->config.value_size);
-      aug_refresh(t, t->root, key); /* summaries on the path may change */
+      aug_pull_path(
+          t, n); /* use the found node even if key aliased its old value */
     }
     return DS_EXISTS;
   }
+  if (aug_count(t->root) == (size_t)-1)
+    return DS_ERR_OVERFLOW;
   n = (ds_aug_node_t *)ds_context_alloc(t->config.context, t->node_bytes);
   if (n == NULL) {
     return DS_ERR_ALLOC;
   }
   n->left = NULL;
   n->right = NULL;
+  n->parent = NULL;
   n->priority = aug_random(t);
   memcpy(AUG_AT(n, t->key_offset), key, t->config.key_size);
   if (t->config.value_size > 0) {
@@ -250,43 +273,28 @@ ds_status_t ds_aug_treap_put(ds_aug_treap_t *treap, const void *key,
   return aug_store(treap, key, value, true);
 }
 
-static ds_aug_node_t *aug_remove_rec(ds_aug_treap_t *t, ds_aug_node_t *n,
-                                     const void *key, ds_aug_node_t **found) {
-  int c;
-  ds_aug_node_t *merged;
-  if (n == NULL) {
-    return NULL;
-  }
-  c = aug_cmp(t, key, aug_key(t, n));
-  if (c == 0) {
-    *found = n;
-    merged = aug_merge(t, n->left, n->right);
-    return merged;
-  }
-  if (c < 0) {
-    n->left = aug_remove_rec(t, n->left, key, found);
-  } else {
-    n->right = aug_remove_rec(t, n->right, key, found);
-  }
-  aug_pull(t, n);
-  return n;
-}
-
-ds_status_t ds_aug_treap_remove(ds_aug_treap_t *treap, const void *key,
+ds_status_t ds_aug_treap_remove(ds_aug_treap_t *t, const void *key,
                                 void *out_value) {
-  ds_aug_node_t *found = NULL;
-  if (key == NULL) {
+  ds_aug_node_t *found, *parent, *merged;
+  if (t == NULL || key == NULL)
     return DS_ERR_NULL;
-  }
-  if (aug_find(treap, key) == NULL) {
+  found = aug_find(t, key);
+  if (found == NULL)
     return DS_NOT_FOUND;
-  }
-  treap->root = aug_remove_rec(treap, treap->root, key, &found);
-  if (out_value != NULL && treap->config.value_size > 0) {
-    memcpy(out_value, AUG_AT(found, treap->value_offset),
-           treap->config.value_size);
-  }
-  ds_context_free(treap->config.context, found);
+  parent = found->parent;
+  if (out_value != NULL && t->config.value_size > 0)
+    memmove(out_value, AUG_AT(found, t->value_offset), t->config.value_size);
+  merged = aug_merge(t, found->left, found->right);
+  if (parent == NULL)
+    t->root = merged;
+  else if (parent->left == found)
+    parent->left = merged;
+  else
+    parent->right = merged;
+  if (merged != NULL)
+    merged->parent = parent;
+  aug_pull_path(t, parent);
+  ds_context_free(t->config.context, found);
   return DS_OK;
 }
 
@@ -357,31 +365,60 @@ static void aug_acc_add(const ds_aug_treap_t *t, aug_acc_t *acc,
   }
 }
 
+static void aug_acc_prepend(const ds_aug_treap_t *t, aug_acc_t *acc,
+                            const void *summary, unsigned char *tmp) {
+  if (!acc->has) {
+    memcpy(acc->out, summary, t->config.summary_size);
+    acc->has = true;
+  } else {
+    t->config.combine(tmp, summary, acc->out, t->config.user);
+    memcpy(acc->out, tmp, t->config.summary_size);
+  }
+}
+
+/* Find one in-range pivot, then visit the two boundary paths. Whole subtree
+ * summaries between them are combined in key order (not assumed commutative).
+ */
 static void aug_range(const ds_aug_treap_t *t, const ds_aug_node_t *n,
-                      const void *low, const void *high, bool low_free,
-                      bool high_free, aug_acc_t *acc, unsigned char *tmp,
-                      unsigned char *single) {
-  bool above_low;
-  bool below_high;
-  if (n == NULL) {
+                      const void *low, const void *high, aug_acc_t *acc,
+                      unsigned char *tmp, unsigned char *single) {
+  const ds_aug_node_t *x;
+  while (n != NULL) {
+    if (aug_cmp(t, aug_key(t, n), low) < 0)
+      n = n->right;
+    else if (aug_cmp(t, aug_key(t, n), high) >= 0)
+      n = n->left;
+    else
+      break;
+  }
+  if (n == NULL)
     return;
+  x = n->left;
+  while (x != NULL) {
+    if (aug_cmp(t, aug_key(t, x), low) >= 0) {
+      if (x->right != NULL)
+        aug_acc_prepend(t, acc, aug_sum(t, x->right), tmp);
+      t->config.summarize(single, aug_key(t, x), AUG_CAT(x, t->value_offset),
+                          t->config.user);
+      aug_acc_prepend(t, acc, single, tmp);
+      x = x->left;
+    } else
+      x = x->right;
   }
-  if (low_free && high_free) {
-    aug_acc_add(t, acc, aug_sum(t, n), tmp); /* whole subtree inside */
-    return;
-  }
-  above_low = low_free || aug_cmp(t, aug_key(t, n), low) >= 0;
-  below_high = high_free || aug_cmp(t, aug_key(t, n), high) < 0;
-  if (above_low) {
-    aug_range(t, n->left, low, high, low_free, below_high, acc, tmp, single);
-  }
-  if (above_low && below_high) {
-    t->config.summarize(single, AUG_CAT(n, t->key_offset),
-                        AUG_CAT(n, t->value_offset), t->config.user);
-    aug_acc_add(t, acc, single, tmp);
-  }
-  if (below_high) {
-    aug_range(t, n->right, low, high, above_low, high_free, acc, tmp, single);
+  t->config.summarize(single, aug_key(t, n), AUG_CAT(n, t->value_offset),
+                      t->config.user);
+  aug_acc_add(t, acc, single, tmp);
+  x = n->right;
+  while (x != NULL) {
+    if (aug_cmp(t, aug_key(t, x), high) < 0) {
+      if (x->left != NULL)
+        aug_acc_add(t, acc, aug_sum(t, x->left), tmp);
+      t->config.summarize(single, aug_key(t, x), AUG_CAT(x, t->value_offset),
+                          t->config.user);
+      aug_acc_add(t, acc, single, tmp);
+      x = x->right;
+    } else
+      x = x->left;
   }
 }
 
@@ -403,59 +440,66 @@ ds_status_t ds_aug_treap_range_summary(const ds_aug_treap_t *treap,
   }
   acc.has = false;
   acc.out = (unsigned char *)out_summary;
-  aug_range(treap, treap->root, low, high, false, false, &acc, work, work + ss);
+  aug_range(treap, treap->root, low, high, &acc, work, work + ss);
   ds_context_free(treap->config.context, work);
   return acc.has ? DS_OK : DS_EMPTY;
 }
 
-static bool aug_descend_rec(const ds_aug_treap_t *t, ds_aug_node_t *n,
-                            ds_aug_descend_func_t descend, void *user) {
-  int flags;
-  if (n == NULL) {
-    return true;
-  }
-  flags =
-      descend(aug_key(t, n), AUG_AT(n, t->value_offset),
-              t->config.summary_size > 0 ? aug_sum(t, n->left) : NULL,
-              t->config.summary_size > 0 ? aug_sum(t, n->right) : NULL, user);
-  if ((flags & DS_AUG_STOP) != 0) {
-    return false;
-  }
-  if ((flags & DS_AUG_LEFT) != 0 &&
-      !aug_descend_rec(t, n->left, descend, user)) {
-    return false;
-  }
-  if ((flags & DS_AUG_RIGHT) != 0 &&
-      !aug_descend_rec(t, n->right, descend, user)) {
-    return false;
-  }
-  return true;
-}
-
-ds_status_t ds_aug_treap_descend(const ds_aug_treap_t *treap,
+ds_status_t ds_aug_treap_descend(const ds_aug_treap_t *t,
                                  ds_aug_descend_func_t descend, void *user) {
-  if (treap == NULL || descend == NULL) {
+  ds_aug_node_t *n;
+  ds_vec_t pending;
+  ds_status_t st;
+  if (t == NULL || descend == NULL)
     return DS_ERR_NULL;
+  st = ds_vec_init(&pending, sizeof(n), t->config.context);
+  n = t->root;
+  while (st == DS_OK && (n != NULL || pending.size != 0)) {
+    int flags;
+    if (n == NULL)
+      (void)ds_vec_pop(&pending, &n);
+    flags =
+        descend(aug_key(t, n), AUG_AT(n, t->value_offset),
+                t->config.summary_size > 0 ? aug_sum(t, n->left) : NULL,
+                t->config.summary_size > 0 ? aug_sum(t, n->right) : NULL, user);
+    if ((flags & DS_AUG_STOP) != 0) {
+      st = DS_STOP;
+      break;
+    }
+    if ((flags & DS_AUG_LEFT) != 0 && n->left != NULL) {
+      if ((flags & DS_AUG_RIGHT) != 0 && n->right != NULL)
+        st = ds_vec_push(&pending, &n->right);
+      n = n->left;
+    } else
+      n = (flags & DS_AUG_RIGHT) != 0 ? n->right : NULL;
   }
-  return aug_descend_rec(treap, treap->root, descend, user) ? DS_OK : DS_STOP;
+  ds_vec_destroy(&pending);
+  return st;
 }
 
-static bool aug_visit_rec(const ds_aug_treap_t *t, ds_aug_node_t *n,
-                          ds_aug_visit_func_t visit, void *user) {
-  if (n == NULL) {
-    return true;
-  }
-  return aug_visit_rec(t, n->left, visit, user) &&
-         visit(aug_key(t, n), AUG_AT(n, t->value_offset), user) &&
-         aug_visit_rec(t, n->right, visit, user);
-}
-
-ds_status_t ds_aug_treap_visit(const ds_aug_treap_t *treap,
+ds_status_t ds_aug_treap_visit(const ds_aug_treap_t *t,
                                ds_aug_visit_func_t visit, void *user) {
-  if (treap == NULL || visit == NULL) {
+  ds_aug_node_t *n;
+  if (t == NULL || visit == NULL)
     return DS_ERR_NULL;
+  n = t->root;
+  if (n != NULL)
+    while (n->left != NULL)
+      n = n->left;
+  while (n != NULL) {
+    if (!visit(aug_key(t, n), AUG_AT(n, t->value_offset), user))
+      return DS_STOP;
+    if (n->right != NULL) {
+      n = n->right;
+      while (n->left != NULL)
+        n = n->left;
+    } else {
+      while (n->parent != NULL && n == n->parent->right)
+        n = n->parent;
+      n = n->parent;
+    }
   }
-  return aug_visit_rec(treap, treap->root, visit, user) ? DS_OK : DS_STOP;
+  return DS_OK;
 }
 
 ds_status_t ds_aug_treap_refresh(ds_aug_treap_t *treap, const void *key) {
@@ -465,6 +509,6 @@ ds_status_t ds_aug_treap_refresh(ds_aug_treap_t *treap, const void *key) {
   if (aug_find(treap, key) == NULL) {
     return DS_NOT_FOUND;
   }
-  aug_refresh(treap, treap->root, key);
+  aug_pull_path(treap, aug_find(treap, key));
   return DS_OK;
 }

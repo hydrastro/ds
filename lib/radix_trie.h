@@ -2,6 +2,7 @@
 #define DS_RADIX_TRIE_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -23,11 +24,18 @@ typedef struct radix_trie_node {
 typedef struct radix_trie {
   ds_radix_trie_node_t *root;
   size_t size;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_radix_trie_t;
 
 /* NULL when memory runs out, or without an allocator and a deallocator */
+/* Context owns all internal storage and must outlive the container. NULL
+ * context selects the default. On failure *out is NULL. Existing constructors
+ * retain their allocator behavior. Public layouts require recompilation. */
+ds_status_t ds_radix_trie_create_context(ds_context_t *context,
+                                         ds_radix_trie_t **out);
+
 ds_radix_trie_t *ds_radix_trie_create(void);
 ds_radix_trie_t *ds_radix_trie_create_alloc(void *(*allocator)(size_t),
                                             void (*deallocator)(void *));
@@ -52,6 +60,24 @@ void ds_radix_trie_walk(ds_radix_trie_t *trie,
                                          void *));
 void ds_radix_trie_destroy(ds_radix_trie_t *trie,
                            void (*destroy_value)(void *));
+
+typedef ds_status_t (*ds_radix_trie_visit_fn)(const unsigned char *key,
+                                              size_t length, void *value,
+                                              void *user);
+/* Find distinguishes a stored NULL value from absence. Error/DS_NOT_FOUND
+ * preserves *out. NULL key is valid only for zero length. */
+ds_status_t ds_radix_trie_find_ex(ds_radix_trie_t *tree,
+                                  const unsigned char *key, size_t length,
+                                  void **out);
+/* Stops on the visitor's first non-DS_OK status. Visits already performed are
+ * not rolled back; borrowed key/value views may not be retained or mutated.
+ * Radix traversal also reports allocation/overflow failures in its scratch. */
+ds_status_t ds_radix_trie_walk_with(ds_radix_trie_t *tree,
+                                    ds_radix_trie_visit_fn visit, void *user);
+/* Optional destroy receives each stored value and the supplied user data;
+ * it must not inspect/traverse/mutate this container during destruction. */
+void ds_radix_trie_destroy_with(ds_radix_trie_t *tree,
+                                void (*destroy)(void *, void *), void *user);
 
 #ifdef __cplusplus
 }

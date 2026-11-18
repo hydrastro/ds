@@ -11,7 +11,10 @@
  * are exposed too.
  *
  * The random source is pluggable (NULL: an internal xorshift generator
- * seeded per tree). Elements are stored by value in node arrays.
+ * seeded per tree). Rejection sampling uses all size_t bits, without modulo
+ * bias under a uniform random source; a broken source may fail to make
+ * progress. Elements are stored by value in node arrays. All operations are
+ * iterative; paths may have linear length, but do not consume a linear C stack.
  *
  * Concurrency: a tree may be used by one thread at a time.
  */
@@ -35,6 +38,7 @@ typedef struct ds_rbst {
   unsigned char *data;
   size_t *left;
   size_t *right;
+  size_t *parent;
   size_t *size;
   size_t root;
   size_t slots;
@@ -63,10 +67,11 @@ ds_status_t ds_rbst_select(const ds_rbst_t *t, size_t k, void *out);
 size_t ds_rbst_rank(const ds_rbst_t *t, const void *key);
 size_t ds_rbst_height(const ds_rbst_t *t);
 /* Moves every element >= key from t into out (an empty tree initialised
- * with the same element size; nodes are copied). */
+ * with the same element size, compare callback and user; nodes are copied). */
 ds_status_t ds_rbst_split(ds_rbst_t *t, const void *key, ds_rbst_t *out);
 /* Moves every element of other (all greater than t's) into t; other is
- * left empty. DS_ERR_INVALID if the ranges overlap. */
+ * left empty. The compare callback and user must match. DS_ERR_INVALID if
+ * the ranges overlap or policies differ. */
 ds_status_t ds_rbst_join(ds_rbst_t *t, ds_rbst_t *other);
 void ds_rbst_foreach(const ds_rbst_t *t,
                      bool (*visit)(const void *elem, void *user), void *user);

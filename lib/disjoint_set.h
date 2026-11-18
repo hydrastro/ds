@@ -2,6 +2,7 @@
 #define DS_DISJOINT_SET_H
 
 #include "common.h"
+#include "context.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -16,14 +17,33 @@ typedef struct disjoint_set_node {
 
 typedef struct disjoint_set {
   size_t count;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_disjoint_set_t;
 
 /* NULL when memory runs out, or without an allocator and a deallocator */
+/* Context owns all internal storage and must outlive the container. NULL
+ * context selects the default. On failure *out is NULL. Existing constructors
+ * retain their allocator behavior. Public layouts require recompilation. */
+ds_status_t ds_disjoint_set_create_context(ds_context_t *context,
+                                           ds_disjoint_set_t **out);
+
 ds_disjoint_set_t *ds_disjoint_set_create(void);
 ds_disjoint_set_t *ds_disjoint_set_create_alloc(void *(*allocator)(size_t),
                                                 void (*deallocator)(void *));
+/* Nodes must be registered exactly once and belong to this set. Intrusive
+ * nodes carry no ownership tag. Checked operations validate arguments/counts,
+ * not membership or arbitrary link corruption. Find may compress paths.
+ * DS_EXISTS from union means already connected. Errors preserve outputs. */
+ds_status_t ds_disjoint_set_make_ex(ds_disjoint_set_t *set,
+                                    ds_disjoint_set_node_t *node);
+ds_status_t ds_disjoint_set_find_ex(ds_disjoint_set_t *set,
+                                    ds_disjoint_set_node_t *node,
+                                    ds_disjoint_set_node_t **out);
+ds_status_t ds_disjoint_set_union_ex(ds_disjoint_set_t *set,
+                                     ds_disjoint_set_node_t *a,
+                                     ds_disjoint_set_node_t *b);
 void ds_disjoint_set_make(ds_disjoint_set_t *set, ds_disjoint_set_node_t *node);
 ds_disjoint_set_node_t *ds_disjoint_set_find(ds_disjoint_set_t *set,
                                              ds_disjoint_set_node_t *node);

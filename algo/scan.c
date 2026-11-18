@@ -65,6 +65,9 @@ static ds_status_t scan_args(const ds_monoid_t *m, const void *in,
   if (count > 0 && (in == NULL || out == NULL)) {
     return DS_ERR_NULL;
   }
+  if (count > (size_t)-1 / m->elem_size) {
+    return DS_ERR_OVERFLOW;
+  }
   return DS_OK;
 }
 
@@ -213,14 +216,40 @@ ds_status_t ds_multiprefix(const ds_monoid_t *m, const void *in,
   return DS_OK;
 }
 
-ds_status_t ds_scan_hillis_steele(const ds_monoid_t *m, const void *in,
-                                  void *out, size_t count, void *scratch) {
+typedef struct scan_round {
+  const ds_monoid_t *monoid;
+  const unsigned char *src;
+  unsigned char *dst;
+  unsigned char *temporary;
+  size_t count;
+  size_t stride;
+  size_t tasks;
+  bool downward;
+} scan_round_t;
+
+static void scan_hillis_task(size_t task, void *arg) {
+  scan_round_t *round = (scan_round_t *)arg;
+  const ds_monoid_t *m = round->monoid;
+  size_t begin, end, i, es = m->elem_size;
+  ds_executor_chunk(round->count, round->tasks, task, &begin, &end);
+  for (i = begin; i < end; i++) {
+    if (i >= round->stride)
+      m->combine(AT(round->dst, i, es), CAT(round->src, i - round->stride, es),
+                 CAT(round->src, i, es), m->user);
+    else
+      memcpy(AT(round->dst, i, es), CAT(round->src, i, es), es);
+  }
+}
+
+ds_status_t ds_scan_hillis_steele_with(const ds_monoid_t *m, const void *in,
+                                       void *out, size_t count, void *scratch,
+                                       const ds_executor_t *executor) {
   unsigned char *src;
   unsigned char *dst;
   unsigned char *tmp;
   size_t es;
   size_t d;
-  size_t i;
+  scan_round_t round;
   ds_status_t st = scan_args(m, in, out, count);
   if (st != DS_OK || count == 0) {
     return st;
@@ -234,17 +263,16 @@ ds_status_t ds_scan_hillis_steele(const ds_monoid_t *m, const void *in,
   }
   src = (unsigned char *)out;
   dst = (unsigned char *)scratch;
+  round.monoid = m;
+  round.count = count;
+  round.tasks = ds_executor_tasks(executor, count);
   /* round d: every position i >= d reads i - d and i of the previous
    * round, as the parallel algorithm does in one step */
   for (d = 1; d < count; d *= 2) {
-    for (i = 0; i < count; i++) {
-      if (i >= d) {
-        m->combine(AT(dst, i, es), CAT(src, i - d, es), CAT(src, i, es),
-                   m->user);
-      } else {
-        memcpy(AT(dst, i, es), CAT(src, i, es), es);
-      }
-    }
+    round.stride = d;
+    round.src = src;
+    round.dst = dst;
+    ds_executor_run(executor, round.tasks, scan_hillis_task, &round);
     tmp = src;
     src = dst;
     dst = tmp;
@@ -255,6 +283,89 @@ ds_status_t ds_scan_hillis_steele(const ds_monoid_t *m, const void *in,
   if (src != (unsigned char *)out) {
     memcpy(out, src, count * es);
   }
+  return DS_OK;
+}
+
+ds_status_t ds_scan_hillis_steele(const ds_monoid_t *m, const void *in,
+                                  void *out, size_t count, void *scratch) {
+  return ds_scan_hillis_steele_with(m, in, out, count, scratch, NULL);
+}
+
+static void scan_blelloch_task(size_t task, void *arg) {
+  scan_round_t *r = (scan_round_t *)arg;
+  const ds_monoid_t *m = r->monoid;
+  size_t begin, end, i, es = m->elem_size;
+  unsigned char *tmp = AT(r->temporary, task, es);
+  ds_executor_chunk(r->count, r->tasks, task, &begin, &end);
+  for (i = begin; i < end; i++) {
+    size_t right = (i + 1) * 2 * r->stride - 1, left = right - r->stride;
+    if (r->downward) {
+      memcpy(tmp, CAT(r->dst, left, es), es);
+      memcpy(AT(r->dst, left, es), CAT(r->dst, right, es), es);
+      m->combine(AT(r->dst, right, es), CAT(r->dst, right, es), tmp, m->user);
+    } else {
+      m->combine(AT(r->dst, right, es), CAT(r->dst, left, es),
+                 CAT(r->dst, right, es), m->user);
+    }
+  }
+}
+
+ds_status_t ds_scan_blelloch_with(const ds_monoid_t *m, void *data,
+                                  size_t count, void *out_total,
+                                  const ds_executor_t *executor) {
+  scan_round_t r;
+  unsigned char *storage;
+  size_t padded = 1, tasks, slots, bytes, i, d, es;
+  ds_status_t st = scan_args(m, data, data, count);
+  if (st != DS_OK)
+    return st;
+  es = m->elem_size;
+  if (count == 0) {
+    if (out_total != NULL)
+      memmove(out_total, m->identity, es);
+    return DS_OK;
+  }
+  while (padded < count) {
+    if (padded > (size_t)-1 / 2)
+      return DS_ERR_OVERFLOW;
+    padded *= 2;
+  }
+  tasks = ds_executor_tasks(executor, padded / 2);
+  if (padded > (size_t)-1 - tasks || padded + tasks == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  slots = padded + tasks + 1;
+  if (slots > (size_t)-1 / es)
+    return DS_ERR_OVERFLOW;
+  bytes = slots * es;
+  storage = (unsigned char *)ds_context_alloc(m->context, bytes);
+  if (storage == NULL)
+    return DS_ERR_ALLOC;
+  memcpy(storage, data, count * es);
+  for (i = count; i < padded; i++)
+    memcpy(AT(storage, i, es), m->identity, es);
+  r.monoid = m;
+  r.dst = storage;
+  r.temporary = AT(storage, padded + 1, es);
+  r.downward = false;
+  for (d = 1; d < padded; d *= 2) {
+    r.stride = d;
+    r.count = padded / (2 * d);
+    r.tasks = ds_executor_tasks(executor, r.count);
+    ds_executor_run(executor, r.tasks, scan_blelloch_task, &r);
+  }
+  memcpy(AT(storage, padded, es), CAT(storage, padded - 1, es), es);
+  memcpy(AT(storage, padded - 1, es), m->identity, es);
+  r.downward = true;
+  for (d = padded / 2; d > 0; d /= 2) {
+    r.stride = d;
+    r.count = padded / (2 * d);
+    r.tasks = ds_executor_tasks(executor, r.count);
+    ds_executor_run(executor, r.tasks, scan_blelloch_task, &r);
+  }
+  memmove(data, storage, count * es);
+  if (out_total != NULL)
+    memmove(out_total, CAT(storage, padded, es), es);
+  ds_context_free(m->context, storage);
   return DS_OK;
 }
 
@@ -334,9 +445,10 @@ ds_status_t ds_scan_blelloch(const ds_monoid_t *m, void *data, size_t count,
 
 ds_status_t ds_reduce(const ds_monoid_t *m, const void *in, size_t count,
                       void *out) {
+  scan_temps_t tt;
   size_t es;
   size_t i;
-  ds_status_t st = scan_check(m);
+  ds_status_t st = scan_args(m, in, out, count);
   if (st != DS_OK) {
     return st;
   }
@@ -344,10 +456,15 @@ ds_status_t ds_reduce(const ds_monoid_t *m, const void *in, size_t count,
     return DS_ERR_NULL;
   }
   es = m->elem_size;
-  memcpy(out, m->identity, es);
+  st = scan_temps_get(m, &tt);
+  if (st != DS_OK)
+    return st;
+  memcpy(tt.t, m->identity, es);
   for (i = 0; i < count; i++) {
-    m->combine(out, out, CAT(in, i, es), m->user);
+    m->combine(tt.t, tt.t, CAT(in, i, es), m->user);
   }
+  memmove(out, tt.t, es);
+  scan_temps_release(m, &tt);
   return DS_OK;
 }
 

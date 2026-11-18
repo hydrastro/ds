@@ -213,6 +213,57 @@ ds_status_t ds_i18n_set_text(ds_i18n_t *t, const char *locale,
   return ds_i18n_set(t, locale, domain, key, &m);
 }
 
+ds_status_t ds_i18n_set_many(ds_i18n_t *t, const ds_i18n_entry_t *entries,
+                             size_t count) {
+  ds_i18n_t staged, old;
+  ds_i18n_config_t config;
+  ds_i18n_record_t *record;
+  ds_status_t st;
+  size_t i;
+  if (t == NULL || (entries == NULL && count != 0))
+    return DS_ERR_NULL;
+  if (t->depth != 0 || t->catalog.ops == NULL)
+    return DS_ERR_STATE;
+  if (count == 0)
+    return DS_OK;
+  ds_i18n_config_init(&config);
+  config.context = t->context;
+  config.map = t->catalog.ops;
+  config.locale = t->locale;
+  config.fallback_locale = t->fallback_locale;
+  config.fallback_to_key = t->fallback_to_key;
+  config.max_depth = t->max_depth;
+  config.sink = t->sink;
+  config.lookup = t->lookup;
+  config.lookup_user = t->lookup_user;
+  st = ds_i18n_init(&staged, &config);
+  if (st != DS_OK)
+    return st;
+  record = t->first;
+  if (record != NULL)
+    while (record->next != NULL)
+      record = record->next;
+  for (; record != NULL; record = record->prev) {
+    st = ds_i18n_set(&staged, record->locale, record->domain, record->id,
+                     &record->message);
+    if (st != DS_OK)
+      goto done;
+  }
+  for (i = 0; i < count; i++) {
+    st = ds_i18n_set(&staged, entries[i].locale, entries[i].domain,
+                     entries[i].key, &entries[i].message);
+    if (st != DS_OK && st != DS_EXISTS)
+      goto done;
+  }
+  old = *t;
+  *t = staged;
+  staged = old;
+  st = DS_OK;
+done:
+  ds_i18n_destroy(&staged);
+  return st;
+}
+
 ds_status_t ds_i18n_remove(ds_i18n_t *t, const char *locale, const char *domain,
                            const char *key) {
   ds_i18n_record_t *r;

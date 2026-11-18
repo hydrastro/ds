@@ -123,3 +123,16 @@ keeps the core history module generic.
 
 Use the portable helpers when archives need to survive machine-endianness or
 integer-representation differences.
+
+## Checked adapters
+
+See `lib/history_adapters.h` and `examples/history_catalog.c` for FILE archives
+and keyed operation merges. Prefer `ds_history_deserialize_portable_ex` over
+the native-width legacy format. Read callbacks with a status can represent valid
+NULL payloads; legacy pointer callbacks use NULL for failure. Deserialize limits
+are opt-in, and payload codecs must also enforce their own allocation bounds.
+
+Merges commit one operation at a time and report their committed count even
+when a later callback/allocation fails. Resolver callbacks must not mutate either
+branch. Keys include both insertion and removal operations for the same record;
+selecting a policy determines which history wins, not how payloads are rebased.

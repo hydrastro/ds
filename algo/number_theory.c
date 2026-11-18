@@ -21,6 +21,16 @@ static int nt_add(unsigned long a, unsigned long b, unsigned long *out) {
   return 1;
 }
 
+/* Reduced operands and positive modulus; no intermediate word overflow. */
+static unsigned long nt_addmod(unsigned long a, unsigned long b,
+                               unsigned long modulus) {
+  return a >= modulus - b ? a - (modulus - b) : a + b;
+}
+static unsigned long nt_submod(unsigned long a, unsigned long b,
+                               unsigned long modulus) {
+  return a >= b ? a - b : modulus - (b - a);
+}
+
 ds_status_t ds_crt(const unsigned long *residues, const unsigned long *moduli,
                    size_t count, unsigned long *out_x,
                    unsigned long *out_modulus) {
@@ -48,7 +58,7 @@ ds_status_t ds_crt(const unsigned long *residues, const unsigned long *moduli,
     a = residues[i] % mi;
     g = ds_gcd(m, mi);
     /* need x + m * t = a (mod mi) */
-    diff = (a + mi - x % mi) % mi;
+    diff = nt_submod(a, x % mi, mi);
     if (diff % g != 0) {
       return DS_NOT_FOUND;
     }
@@ -111,11 +121,11 @@ unsigned long ds_fibonacci_mod(unsigned long n, unsigned long m) {
     return 0;
   }
   for (bit = (int)NT_BITS - 1; bit >= 0; bit--) {
-    c = ds_mulmod(a, (2 * (b % m) % m + m - a) % m, m);
-    d = (ds_mulmod(a, a, m) + ds_mulmod(b, b, m)) % m;
+    c = ds_mulmod(a, nt_submod(nt_addmod(b, b, m), a, m), m);
+    d = nt_addmod(ds_mulmod(a, a, m), ds_mulmod(b, b, m), m);
     if ((n >> bit) & 1UL) {
       a = d;
-      b = (c + d) % m;
+      b = nt_addmod(c, d, m);
     } else {
       a = c;
       b = d;
@@ -137,7 +147,7 @@ ds_status_t ds_kbonacci(unsigned int k, unsigned long n, unsigned long *out) {
     return DS_ERR_RANGE;
   }
   /* F(0..k-2) = 0, F(k-1) = 1 */
-  if (n + 1 < (unsigned long)k) {
+  if (n < (unsigned long)k - 1) {
     *out = 0;
     return DS_OK;
   }
@@ -147,11 +157,14 @@ ds_status_t ds_kbonacci(unsigned int k, unsigned long n, unsigned long *out) {
   sum = 1;
   for (i = (unsigned long)k; i <= n; i++) {
     next = sum;
+    if (i == n) {
+      *out = next;
+      return DS_OK;
+    }
     /* slide: sum += next - oldest */
-    if (!nt_add(sum, next, &sum)) {
+    if (!nt_add(sum - window[i % k], next, &sum)) {
       return DS_ERR_OVERFLOW;
     }
-    sum -= window[i % k];
     window[i % k] = next;
   }
   *out = window[n % k];
@@ -180,8 +193,12 @@ ds_status_t ds_ackermann(unsigned long m, unsigned long n, unsigned long *out) {
     return DS_OK;
   }
   if (m == 3) {
-    if (n + 3 >= NT_BITS) {
+    if (n > NT_BITS - 3) {
       return DS_ERR_OVERFLOW;
+    }
+    if (n == NT_BITS - 3) {
+      *out = NT_MAX - 2;
+      return DS_OK;
     }
     *out = (1UL << (n + 3)) - 3;
     return DS_OK;

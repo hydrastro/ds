@@ -2,6 +2,7 @@
 #define DS_BITSET_H
 
 #include "common.h"
+#include "context.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -13,6 +14,7 @@ typedef struct bitset {
   unsigned long *words;
   size_t num_bits;
   size_t num_words;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_bitset_t;
@@ -25,6 +27,10 @@ void ds_bitset_set(ds_bitset_t *bitset, size_t index);
 void ds_bitset_clear(ds_bitset_t *bitset, size_t index);
 void ds_bitset_flip(ds_bitset_t *bitset, size_t index);
 void ds_bitset_set_value(ds_bitset_t *bitset, size_t index, bool value);
+/* Checked point access distinguishes an invalid index from a clear bit. */
+ds_status_t ds_bitset_set_ex(ds_bitset_t *bitset, size_t index, bool value);
+ds_status_t ds_bitset_get_ex(const ds_bitset_t *bitset, size_t index,
+                             bool *out);
 bool ds_bitset_test(ds_bitset_t *bitset, size_t index);
 void ds_bitset_set_all(ds_bitset_t *bitset);
 void ds_bitset_clear_all(ds_bitset_t *bitset);
@@ -45,6 +51,11 @@ void ds_bitset_destroy(ds_bitset_t *bitset);
 
 /* sentinel returned by find_first / find_next when no set bit exists */
 #define DS_BITSET_NPOS ((size_t) - 1)
+
+/* Context-owned internal storage; NULL context chooses the default.
+ * The context must outlive the container. On failure *out is NULL. */
+ds_status_t ds_bitset_create_context(size_t num_bits, ds_context_t *context,
+                                     ds_bitset_t **out);
 
 #ifdef __cplusplus
 }

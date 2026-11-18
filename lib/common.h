@@ -17,6 +17,15 @@ extern "C" {
 #define CAST(node, type) ((type *)(node))
 #endif
 
+/* Recover the containing object from a non-NULL pointer to an embedded node.
+ * The pointer must address the named member of a live object of this type.
+ * In C++ the type must be standard-layout. Use the CONST form for read-only
+ * nodes; CAST is only suitable when the node is the first member. */
+#define DS_CONTAINER_OF(node, type, member)                                    \
+  ((type *)((unsigned char *)(node) - offsetof(type, member)))
+#define DS_CONTAINER_OF_CONST(node, type, member)                              \
+  ((const type *)((const unsigned char *)(node) - offsetof(type, member)))
+
 #ifndef DS_VA_COPY
 #if defined(__has_builtin)
 #if __has_builtin(__builtin_va_copy)

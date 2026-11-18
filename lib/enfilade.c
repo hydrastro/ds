@@ -1,4 +1,5 @@
 #include "enfilade.h"
+#include "stage.h"
 #include <string.h>
 
 #define EN_NONE (~(size_t)0)
@@ -48,6 +49,7 @@ void ds_enfilade_destroy(ds_enfilade_t *e) {
   ds_context_free(e->context, e->cnt);
   ds_context_free(e->context, e->left);
   ds_context_free(e->context, e->right);
+  ds_context_free(e->context, e->parent);
   ds_context_free(e->context, e->prio);
   ds_enfilade_init(e, e->elem_size, e->context);
 }
@@ -60,41 +62,59 @@ size_t ds_enfilade_width(const ds_enfilade_t *e) {
   return e == NULL ? 0 : en_sum(e, e->root);
 }
 
-/* Split v into the first k items (*a) and the rest (*b). */
+/* Split/join build spines and repair them through parent indexes. */
 static void en_split(ds_enfilade_t *e, size_t v, size_t k, size_t *a,
                      size_t *b) {
-  size_t lc;
-  if (v == EN_NONE) {
-    *a = *b = EN_NONE;
-    return;
+  size_t left = EN_NONE, right = EN_NONE, *ls = a, *rs = b;
+  while (v != EN_NONE) {
+    size_t next, count = en_cnt(e, e->left[v]);
+    if (k > count) {
+      k -= count + 1;
+      next = e->right[v];
+      *ls = v;
+      e->parent[v] = left;
+      left = v;
+      ls = &e->right[v];
+    } else {
+      next = e->left[v];
+      *rs = v;
+      e->parent[v] = right;
+      right = v;
+      rs = &e->left[v];
+    }
+    v = next;
   }
-  lc = en_cnt(e, e->left[v]);
-  if (k <= lc) {
-    en_split(e, e->left[v], k, a, &e->left[v]);
-    en_fix(e, v);
-    *b = v;
-  } else {
-    en_split(e, e->right[v], k - lc - 1, &e->right[v], b);
-    en_fix(e, v);
-    *a = v;
-  }
+  *ls = *rs = EN_NONE;
+  for (; left != EN_NONE; left = e->parent[left])
+    en_fix(e, left);
+  for (; right != EN_NONE; right = e->parent[right])
+    en_fix(e, right);
 }
 
 static size_t en_join(ds_enfilade_t *e, size_t a, size_t b) {
-  if (a == EN_NONE) {
-    return b;
+  size_t root = EN_NONE, tail = EN_NONE, *slot = &root;
+  while (a != EN_NONE && b != EN_NONE) {
+    size_t chosen;
+    if (e->prio[a] > e->prio[b]) {
+      chosen = a;
+      a = e->right[a];
+      *slot = chosen;
+      slot = &e->right[chosen];
+    } else {
+      chosen = b;
+      b = e->left[b];
+      *slot = chosen;
+      slot = &e->left[chosen];
+    }
+    e->parent[chosen] = tail;
+    tail = chosen;
   }
-  if (b == EN_NONE) {
-    return a;
-  }
-  if (e->prio[a] > e->prio[b]) {
-    e->right[a] = en_join(e, e->right[a], b);
-    en_fix(e, a);
-    return a;
-  }
-  e->left[b] = en_join(e, a, e->left[b]);
-  en_fix(e, b);
-  return b;
+  *slot = a == EN_NONE ? b : a;
+  if (*slot != EN_NONE)
+    e->parent[*slot] = tail;
+  for (; tail != EN_NONE; tail = e->parent[tail])
+    en_fix(e, tail);
+  return root;
 }
 
 static unsigned long en_rand(ds_enfilade_t *e) {
@@ -117,7 +137,8 @@ static ds_status_t en_node(ds_enfilade_t *e, size_t *out) {
   if (e->slots == e->capacity) {
     cap = e->capacity < 8 ? 8 : e->capacity * 2;
     if (cap <= e->capacity || cap > ((size_t)-1) / e->elem_size ||
-        cap > ((size_t)-1) / sizeof(size_t)) {
+        cap > ((size_t)-1) / sizeof(size_t) ||
+        cap > ((size_t)-1) / sizeof(unsigned long)) {
       return DS_ERR_OVERFLOW;
     }
 #define EN_GROW(field, type)                                                   \
@@ -131,6 +152,7 @@ static ds_status_t en_node(ds_enfilade_t *e, size_t *out) {
     EN_GROW(cnt, size_t)
     EN_GROW(left, size_t)
     EN_GROW(right, size_t)
+    EN_GROW(parent, size_t)
     EN_GROW(prio, unsigned long)
 #undef EN_GROW
     p = ds_context_realloc(e->context, e->data, cap * e->elem_size);
@@ -150,19 +172,25 @@ ds_status_t ds_enfilade_insert(ds_enfilade_t *e, size_t index, const void *elem,
   size_t a;
   size_t b;
   ds_status_t st;
+  ds_stage_t staged;
   if (e == NULL || elem == NULL) {
     return DS_ERR_NULL;
   }
   if (index > ds_enfilade_count(e)) {
     return DS_ERR_RANGE;
   }
+  st = ds_stage_copy(&staged, e->context, true, elem, e->elem_size, NULL, 0);
+  if (st != DS_OK)
+    return st;
   st = en_node(e, &n);
   if (st != DS_OK) {
+    ds_stage_release(&staged);
     return st;
   }
-  memcpy(e->data + n * e->elem_size, elem, e->elem_size);
+  memcpy(e->data + n * e->elem_size, staged.key, e->elem_size);
+  ds_stage_release(&staged);
   e->wid[n] = wid;
-  e->left[n] = e->right[n] = EN_NONE;
+  e->left[n] = e->right[n] = e->parent[n] = EN_NONE;
   e->prio[n] = en_rand(e);
   en_fix(e, n);
   en_split(e, e->root, index, &a, &b);
@@ -183,7 +211,7 @@ ds_status_t ds_enfilade_remove(ds_enfilade_t *e, size_t index, void *out) {
   en_split(e, e->root, index, &a, &m);
   en_split(e, m, 1, &m, &b);
   if (out != NULL) {
-    memcpy(out, e->data + m * e->elem_size, e->elem_size);
+    memmove(out, e->data + m * e->elem_size, e->elem_size);
   }
   e->left[m] = e->free_list;
   e->free_list = m;
@@ -321,25 +349,27 @@ ds_status_t ds_enfilade_rearrange(ds_enfilade_t *e, size_t from, size_t to,
   return DS_OK;
 }
 
-static bool en_each(const ds_enfilade_t *e, size_t v, size_t *dsp,
-                    ds_enfilade_visit_func_t f, void *user) {
-  if (v == EN_NONE) {
-    return true;
-  }
-  if (!en_each(e, e->left[v], dsp, f, user)) {
-    return false;
-  }
-  if (!f(e->data + v * e->elem_size, e->wid[v], *dsp, user)) {
-    return false;
-  }
-  *dsp = en_add(*dsp, e->wid[v]);
-  return en_each(e, e->right[v], dsp, f, user);
-}
-
 void ds_enfilade_foreach(const ds_enfilade_t *e, ds_enfilade_visit_func_t f,
                          void *user) {
-  size_t dsp = 0;
-  if (e != NULL && f != NULL) {
-    (void)en_each(e, e->root, &dsp, f, user);
+  size_t v, dsp = 0;
+  if (e == NULL || f == NULL)
+    return;
+  v = e->root;
+  if (v != EN_NONE)
+    while (e->left[v] != EN_NONE)
+      v = e->left[v];
+  while (v != EN_NONE) {
+    if (!f(e->data + v * e->elem_size, e->wid[v], dsp, user))
+      return;
+    dsp = en_add(dsp, e->wid[v]);
+    if (e->right[v] != EN_NONE) {
+      v = e->right[v];
+      while (e->left[v] != EN_NONE)
+        v = e->left[v];
+    } else {
+      while (e->parent[v] != EN_NONE && v == e->right[e->parent[v]])
+        v = e->parent[v];
+      v = e->parent[v];
+    }
   }
 }

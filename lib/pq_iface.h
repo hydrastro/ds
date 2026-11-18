@@ -83,6 +83,13 @@
  *     and lowers ranks above it (O(1) amortized, no cascading cuts);
  *     increase and remove go through the minimum's relinking. Nodes never
  *     move, so item pointers stay valid
+ *   ds_pq_min_max_ops()    n/log    log      log      log      log      -
+ *     lib/min_max_heap over stable payload pointers; movement callbacks
+ *     maintain handle indices. The underlying heap retains both extrema.
+ *   ds_pq_shadow_ops()     n/log    log^2    log      log      log^2    -
+ *     lib/shadow_heap over stable payload pointers, automatic threshold;
+ *     conservative bounds include shadow folding. top scans O(log n)
+ *     shadow entries (DS_PQ_TOP_LOG); the other built-in tops are O(1).
  *   ds_pq_fibonacci_ops()   1   n/log    n/1      n/log    n/log    1
  *     Fibonacci heap (lib/fibonacci_heap's item heap): cascading cuts,
  *     consolidation by degree; nodes never move, so item pointers stay
@@ -126,6 +133,7 @@ typedef struct ds_pq_handle_s *ds_pq_handle_t;
 #define DS_PQ_FAST_DECREASE 0x20u
 #define DS_PQ_MELD_ANY_CONTEXT 0x40u
 #define DS_PQ_MOVING_ITEMS 0x80u
+#define DS_PQ_TOP_LOG 0x100u /* top scans a logarithmically bounded buffer */
 
 /* cost classes of ds_pq_cost_t */
 #define DS_PQ_COST_UNSTATED 0u /* no bound claimed (or not native) */
@@ -189,6 +197,8 @@ const ds_pq_ops_t *ds_pq_binary_ops(void);
 const ds_pq_ops_t *ds_pq_quaternary_ops(void);
 const ds_pq_ops_t *ds_pq_packed_ops(void);
 const ds_pq_ops_t *ds_pq_weak_ops(void);
+const ds_pq_ops_t *ds_pq_min_max_ops(void);
+const ds_pq_ops_t *ds_pq_shadow_ops(void);
 const ds_pq_ops_t *ds_pq_binomial_ops(void);
 const ds_pq_ops_t *ds_pq_leftist_ops(void);
 const ds_pq_ops_t *ds_pq_weight_ops(void);

@@ -20,7 +20,7 @@
  *                            label equals labels[i]; per-label totals
  *   ds_scan_hillis_steele    parallel prefix computation by recursive
  *                            doubling (log n rounds, O(n log n) work),
- *                            simulated round by round
+ *                            round by round, on an optional executor
  *   ds_scan_blelloch         work-efficient parallel prefix computation
  *                            (up-sweep / down-sweep balanced tree, O(n)
  *                            work, in place), any n
@@ -28,13 +28,17 @@
  * plus prefix sums of long, unsigned long, size_t and double (the
  * double version compensated, Neumaier).
  *
- * Every output may alias its input. Functions need up to three
+ * Input and output may have the same base address; other partial overlap
+ * is not supported except for reduce's output. Separate output arrays,
+ * flags, labels, identity and caller scratch must not overlap each other.
+ * Sequential functions need up to three
  * temporary elements: from monoid.scratch when set (at least
  * DS_SCAN_SCRATCH_ELEMS * elem_size bytes), else the stack for small
  * elements, else the monoid's context.
  */
 
 #include "../lib/context.h"
+#include "../lib/executor.h"
 #include "../lib/status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -73,12 +77,25 @@ ds_status_t ds_scan_segmented(const ds_monoid_t *m, const void *in, void *out,
 ds_status_t ds_multiprefix(const ds_monoid_t *m, const void *in,
                            const size_t *labels, size_t label_count, void *out,
                            size_t count, void *totals);
-/* Inclusive; scratch holds count elements. */
+/* Inclusive; scratch holds count elements, disjoint from input/output. */
 ds_status_t ds_scan_hillis_steele(const ds_monoid_t *m, const void *in,
                                   void *out, size_t count, void *scratch);
 /* In place, exclusive. */
 ds_status_t ds_scan_blelloch(const ds_monoid_t *m, void *data, size_t count,
                              void *out_total);
+/* Executor variants: each round is a barrier. combine/user must be safe for
+ * simultaneous independent calls; monoid.scratch is not used. NULL executor
+ * runs sequentially. Hillis-Steele uses the same caller scratch as above.
+ * Blelloch stages a power-of-two padded tree plus per-task temporaries, O(n)
+ * memory from m->context; allocation failure leaves data/out_total unchanged.
+ * Blelloch has O(n) combine work and O(log n) rounds; noncommutative order is
+ * preserved. out_total, when present, must not overlap data. */
+ds_status_t ds_scan_hillis_steele_with(const ds_monoid_t *m, const void *in,
+                                       void *out, size_t count, void *scratch,
+                                       const ds_executor_t *executor);
+ds_status_t ds_scan_blelloch_with(const ds_monoid_t *m, void *data,
+                                  size_t count, void *out_total,
+                                  const ds_executor_t *executor);
 ds_status_t ds_reduce(const ds_monoid_t *m, const void *in, size_t count,
                       void *out);
 

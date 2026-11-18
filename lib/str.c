@@ -1,4 +1,5 @@
 #include "str.h"
+#include "legacy_alloc.h"
 #include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -16,19 +17,19 @@ int ds__ensure_exact(ds_str_t *s, size_t need_cap) {
     return -1;
   bytes = need_cap + 1u;
   if (s->buf == NULL) {
-    nbuf = (char *)s->allocator(bytes);
+    nbuf = (char *)DS_LEGACY_ALLOC(s, bytes);
     if (!nbuf)
       return -1;
     nbuf[0] = '\0';
   } else {
-    char *tmp = (char *)s->allocator(bytes);
+    char *tmp = (char *)DS_LEGACY_ALLOC(s, bytes);
     size_t copy = s->len;
     if (!tmp)
       return -1;
     if (copy)
       memcpy(tmp, s->buf, copy);
     tmp[copy] = '\0';
-    s->deallocator(s->buf);
+    DS_LEGACY_FREE(s, s->buf);
     nbuf = tmp;
   }
   s->buf = nbuf;
@@ -60,19 +61,19 @@ int ds__ensure(ds_str_t *s, size_t need_cap) {
     return -1;
   bytes = need_cap + 1u;
   if (s->buf == NULL) {
-    nbuf = (char *)s->allocator(bytes);
+    nbuf = (char *)DS_LEGACY_ALLOC(s, bytes);
     if (!nbuf)
       return -1;
     nbuf[0] = '\0';
   } else {
-    char *tmp = (char *)s->allocator(bytes);
+    char *tmp = (char *)DS_LEGACY_ALLOC(s, bytes);
     size_t copy = s->len;
     if (!tmp)
       return -1;
     if (copy)
       memcpy(tmp, s->buf, copy);
     tmp[copy] = '\0';
-    s->deallocator(s->buf);
+    DS_LEGACY_FREE(s, s->buf);
     nbuf = tmp;
   }
   s->buf = nbuf;
@@ -82,17 +83,33 @@ int ds__ensure(ds_str_t *s, size_t need_cap) {
 
 ds_str_t *ds_str_create(void) { return ds_str_create_alloc(malloc, free); }
 
-ds_str_t *ds_str_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
-  ds_str_t *s = (ds_str_t *)allocator(sizeof(ds_str_t));
-  if (!s)
+static ds_str_t *str_create_internal(void *(*allocator)(size_t),
+                                     void (*deallocator)(void *),
+                                     ds_context_t *context) {
+  ds_str_t *s;
+  if (allocator == NULL || deallocator == NULL)
     return NULL;
+  s = (ds_str_t *)DS_LEGACY_ALLOCATE(context, allocator, sizeof(*s));
+  if (s == NULL)
+    return NULL;
+  s->context = context;
   s->allocator = allocator;
   s->deallocator = deallocator;
   s->buf = NULL;
-  s->len = 0u;
-  s->cap = 0u;
+  s->len = 0;
+  s->cap = 0;
   return s;
+}
+ds_str_t *ds_str_create_alloc(void *(*allocator)(size_t),
+                              void (*deallocator)(void *)) {
+  return str_create_internal(allocator, deallocator, NULL);
+}
+ds_status_t ds_str_create_context(ds_context_t *context, ds_str_t **out) {
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = str_create_internal(malloc, free,
+                             context != NULL ? context : ds_default_context());
+  return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 ds_str_t *ds_str_with_capacity(size_t cap) {
@@ -105,7 +122,7 @@ ds_str_t *ds_str_with_capacity(size_t cap) {
       return NULL;
     }
     if (!s->buf) {
-      char *p = (char *)s->allocator(1u);
+      char *p = (char *)DS_LEGACY_ALLOC(s, 1u);
       if (!p) {
         ds_str_destroy(s);
         return NULL;
@@ -124,9 +141,16 @@ ds_str_t *ds_str_with_capacity(size_t cap) {
 }
 
 ds_str_t *ds_str_from(const void *data, size_t n) {
-  ds_str_t *s = ds_str_with_capacity(n);
+  ds_str_t *s;
+  if (data == NULL && n != 0)
+    return NULL;
+  s = ds_str_with_capacity(n);
   if (!s)
     return NULL;
+  if (s->buf == NULL) {
+    ds_str_destroy(s);
+    return NULL;
+  }
   if (n)
     memcpy(s->buf, data, n);
   s->len = n;
@@ -138,8 +162,8 @@ void ds_str_destroy(ds_str_t *s) {
   if (!s)
     return;
   if (s->buf)
-    s->deallocator(s->buf);
-  s->deallocator(s);
+    DS_LEGACY_FREE(s, s->buf);
+  DS_LEGACY_FREE(s, s);
 }
 
 void ds_str_clear(ds_str_t *s) {
@@ -170,7 +194,7 @@ int ds_str_shrink_to_fit(ds_str_t *s) {
     return -1;
   }
   bytes = s->len + 1u;
-  nbuf = (char *)s->allocator(bytes);
+  nbuf = (char *)DS_LEGACY_ALLOC(s, bytes);
   if (!nbuf) {
     return -1;
   }
@@ -178,7 +202,7 @@ int ds_str_shrink_to_fit(ds_str_t *s) {
     memcpy(nbuf, s->buf, s->len);
   nbuf[s->len] = '\0';
   if (s->buf)
-    s->deallocator(s->buf);
+    DS_LEGACY_FREE(s, s->buf);
   s->buf = nbuf;
   s->cap = s->len;
   return 0;
@@ -198,7 +222,7 @@ static int str_grow_keep(ds_str_t *s, size_t need_cap, char **old) {
   if (need_cap > SIZE_MAX - 1u) {
     return -1;
   }
-  nbuf = (char *)s->allocator(need_cap + 1u);
+  nbuf = (char *)DS_LEGACY_ALLOC(s, need_cap + 1u);
   if (!nbuf) {
     return -1;
   }
@@ -214,7 +238,7 @@ static int str_grow_keep(ds_str_t *s, size_t need_cap, char **old) {
 
 static void str_release(ds_str_t *s, char *old) {
   if (old) {
-    s->deallocator(old);
+    DS_LEGACY_FREE(s, old);
   }
 }
 
@@ -328,7 +352,7 @@ ds_str_t *ds_str_clone(ds_str_t *s) {
   ds_str_t *n;
   if (!s)
     return NULL;
-  n = ds_str_create_alloc(s->allocator, s->deallocator);
+  n = str_create_internal(s->allocator, s->deallocator, s->context);
   if (!n) {
     return NULL;
   }
@@ -350,7 +374,7 @@ ds_str_t *ds_str_clone_cap(ds_str_t *s) {
   if (!s) {
     return NULL;
   }
-  n = ds_str_create_alloc(s->allocator, s->deallocator);
+  n = str_create_internal(s->allocator, s->deallocator, s->context);
   if (!n) {
     return NULL;
   }
@@ -466,36 +490,65 @@ void ds_str_to_lower(ds_str_t *s) {
   }
 }
 
-void ds_str_swap(ds_str_t *a, ds_str_t *b) {
-  char *tbuf;
-  size_t tlen, tcap;
-  void *(*talloc)(size_t);
-  void (*tfree)(void *);
-  if (!a || !b || a == b) {
-    return;
+ds_status_t ds_str_swap_ex(ds_str_t *a, ds_str_t *b) {
+  char *abuf, *bbuf, *tmp;
+  size_t len, cap;
+  bool compatible;
+  if (a == NULL || b == NULL)
+    return DS_ERR_NULL;
+  if (a == b)
+    return DS_OK;
+  compatible = a->context != NULL && b->context != NULL
+                   ? ds_context_compatible(a->context, b->context)
+                   : a->context == NULL && b->context == NULL &&
+                         a->allocator == b->allocator &&
+                         a->deallocator == b->deallocator;
+  if (compatible) {
+    tmp = a->buf;
+    a->buf = b->buf;
+    b->buf = tmp;
+  } else {
+    abuf = NULL;
+    bbuf = NULL;
+    if (a->cap == (size_t)-1 || b->cap == (size_t)-1)
+      return DS_ERR_OVERFLOW;
+    if (b->buf != NULL) {
+      abuf = (char *)DS_LEGACY_ALLOC(a, b->cap + 1);
+      if (abuf == NULL)
+        return DS_ERR_ALLOC;
+      memcpy(abuf, b->buf, b->len + 1);
+    }
+    if (a->buf != NULL) {
+      bbuf = (char *)DS_LEGACY_ALLOC(b, a->cap + 1);
+      if (bbuf == NULL) {
+        if (abuf != NULL)
+          DS_LEGACY_FREE(a, abuf);
+        return DS_ERR_ALLOC;
+      }
+      memcpy(bbuf, a->buf, a->len + 1);
+    }
+    if (a->buf != NULL)
+      DS_LEGACY_FREE(a, a->buf);
+    if (b->buf != NULL)
+      DS_LEGACY_FREE(b, b->buf);
+    a->buf = abuf;
+    b->buf = bbuf;
   }
-  tbuf = a->buf;
-  a->buf = b->buf;
-  b->buf = tbuf;
-  tlen = a->len;
+  len = a->len;
   a->len = b->len;
-  b->len = tlen;
-  tcap = a->cap;
+  b->len = len;
+  cap = a->cap;
   a->cap = b->cap;
-  b->cap = tcap;
-  talloc = a->allocator;
-  a->allocator = b->allocator;
-  b->allocator = talloc;
-  tfree = a->deallocator;
-  a->deallocator = b->deallocator;
-  b->deallocator = tfree;
+  b->cap = cap;
+  return DS_OK;
 }
+void ds_str_swap(ds_str_t *a, ds_str_t *b) { (void)ds_str_swap_ex(a, b); }
 
 int ds_str_clear_freebuf(ds_str_t *s) {
   if (!s)
     return -1;
   if (s->buf)
-    s->deallocator(s->buf);
+    DS_LEGACY_FREE(s, s->buf);
   s->buf = NULL;
   s->len = 0;
   s->cap = 0;
@@ -522,7 +575,7 @@ int ds_str_append_vfmt(ds_str_t *s, const char *fmt, va_list ap) {
     }
     return ds_str_append(s, stage, (size_t)need);
   } else {
-    char *tmp = (char *)s->allocator((size_t)need + 1u);
+    char *tmp = (char *)DS_LEGACY_ALLOC(s, (size_t)need + 1u);
     int r;
     if (!tmp) {
       return -1;
@@ -530,7 +583,7 @@ int ds_str_append_vfmt(ds_str_t *s, const char *fmt, va_list ap) {
     r = vsnprintf(tmp, (size_t)need + 1u, fmt, ap) == need
             ? ds_str_append(s, tmp, (size_t)need)
             : -1;
-    s->deallocator(tmp);
+    DS_LEGACY_FREE(s, tmp);
     return r;
   }
 }
@@ -595,10 +648,14 @@ ds_str_t *ds_str_slice(ds_str_t *s, size_t pos, size_t n) {
   len = s->len;
   start = pos > len ? len : pos;
   take = (n > len - start) ? (len - start) : n;
-  out = ds_str_with_capacity(take);
+  out = str_create_internal(s->allocator, s->deallocator, s->context);
   if (!out)
     return NULL;
 
+  if (ds_str_assign(out, take != 0 ? s->buf + start : NULL, take) != 0) {
+    ds_str_destroy(out);
+    return NULL;
+  }
   len = s->len;
   if (start > len)
     start = len;
@@ -608,7 +665,8 @@ ds_str_t *ds_str_slice(ds_str_t *s, size_t pos, size_t n) {
     memcpy(out->buf, s->buf + start, take);
 
   out->len = take;
-  out->buf[take] = '\0';
+  if (out->buf != NULL)
+    out->buf[take] = '\0';
   return out;
 }
 
@@ -634,8 +692,10 @@ int ds_str_adopt(ds_str_t *s, char *buf, size_t len, size_t cap) {
     return -1;
   if (buf && cap < len)
     return -1;
-  if (s->buf)
-    s->deallocator(s->buf);
+  if (cap == (size_t)-1 || (buf == s->buf && cap > s->cap))
+    return -1;
+  if (s->buf && s->buf != buf)
+    DS_LEGACY_FREE(s, s->buf);
   s->buf = buf;
   s->len = len;
   s->cap = cap;
@@ -647,43 +707,85 @@ int ds_str_adopt(ds_str_t *s, char *buf, size_t len, size_t cap) {
 void ds_str_free_external(ds_str_t *owner, void *p) {
   if (!owner || !p)
     return;
-  owner->deallocator(p);
+  DS_LEGACY_FREE(owner, p);
 }
 
 int ds_str_adopt_safe(ds_str_t *s, char *buf, size_t len, size_t cap,
                       int has_room_for_nul) {
-  if (!s)
+  if (s == NULL || (buf == NULL && (len != 0 || cap != 0)) || cap < len)
     return -1;
-  if (!buf && (len != 0u || cap != 0u))
-    return -1;
-  if (buf && cap < len)
-    return -1;
+  if (buf != NULL && !has_room_for_nul && len == cap)
+    return ds_str_assign(s, buf, len); /* copies; caller retains external buf */
+  return ds_str_adopt(s, buf, len, cap);
+}
 
-  if (!buf) {
-    if (s->buf)
-      s->deallocator(s->buf);
-    s->buf = NULL;
-    s->len = 0u;
-    s->cap = 0u;
-    return 0;
+ds_status_t ds_str_reserve_ex(ds_str_t *s, size_t capacity) {
+  if (s == NULL)
+    return DS_ERR_NULL;
+  if (capacity == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  return ds_str_reserve(s, capacity) == 0 ? DS_OK : DS_ERR_ALLOC;
+}
+ds_status_t ds_str_assign_ex(ds_str_t *s, const void *data, size_t length) {
+  if (s == NULL || (data == NULL && length != 0))
+    return DS_ERR_NULL;
+  if (length == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  return ds_str_assign(s, data, length) == 0 ? DS_OK : DS_ERR_ALLOC;
+}
+ds_status_t ds_str_append_ex(ds_str_t *s, const void *data, size_t length) {
+  if (s == NULL || (data == NULL && length != 0))
+    return DS_ERR_NULL;
+  if (length >= (size_t)-1 - s->len)
+    return DS_ERR_OVERFLOW;
+  return ds_str_append(s, data, length) == 0 ? DS_OK : DS_ERR_ALLOC;
+}
+ds_status_t ds_str_insert_ex(ds_str_t *s, size_t position, const void *data,
+                             size_t length) {
+  if (s == NULL || (data == NULL && length != 0))
+    return DS_ERR_NULL;
+  if (position > s->len)
+    return DS_ERR_RANGE;
+  if (length >= (size_t)-1 - s->len)
+    return DS_ERR_OVERFLOW;
+  return ds_str_insert(s, position, data, length) == 0 ? DS_OK : DS_ERR_ALLOC;
+}
+ds_status_t ds_str_erase_ex(ds_str_t *s, size_t position, size_t length) {
+  if (s == NULL)
+    return DS_ERR_NULL;
+  if (position > s->len || length > s->len - position)
+    return DS_ERR_RANGE;
+  (void)ds_str_erase(s, position, length);
+  return DS_OK;
+}
+ds_status_t ds_str_pop_ex(ds_str_t *s, int *out) {
+  if (s == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (s->len == 0)
+    return DS_EMPTY;
+  (void)ds_str_pop(s, out);
+  return DS_OK;
+}
+ds_status_t ds_str_clone_with(const ds_str_t *s, bool keep_capacity,
+                              ds_context_t *context, ds_str_t **out) {
+  ds_str_t *copy;
+  ds_status_t st;
+  if (out == NULL)
+    return DS_ERR_NULL;
+  *out = NULL;
+  if (s == NULL)
+    return DS_ERR_NULL;
+  copy = str_create_internal(s->allocator, s->deallocator,
+                             context != NULL ? context : s->context);
+  if (copy == NULL)
+    return DS_ERR_ALLOC;
+  st = ds_str_reserve_ex(copy, keep_capacity ? s->cap : s->len);
+  if (st == DS_OK)
+    st = ds_str_assign_ex(copy, s->buf, s->len);
+  if (st != DS_OK) {
+    ds_str_destroy(copy);
+    return st;
   }
-
-  if (!has_room_for_nul && len == cap) {
-    if (ds__ensure_exact(s, len) != 0) {
-      return -1;
-    }
-    if (len)
-      memcpy(s->buf, buf, len);
-    s->len = len;
-    s->buf[len] = '\0';
-    return 0;
-  }
-
-  if (s->buf)
-    s->deallocator(s->buf);
-  s->buf = buf;
-  s->len = len;
-  s->cap = cap;
-  s->buf[s->len] = '\0';
-  return 0;
+  *out = copy;
+  return DS_OK;
 }

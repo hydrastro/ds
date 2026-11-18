@@ -22,6 +22,7 @@
 
 #include "../lib/adj_matrix.h"
 #include "../lib/context.h"
+#include "../lib/hypergraph.h"
 #include "../lib/pq_iface.h"
 #include "../lib/status.h"
 #include <stdbool.h>
@@ -51,6 +52,13 @@ typedef struct ds_gview_csr {
 } ds_gview_csr_t;
 
 void ds_gview_from_csr(const ds_gview_csr_t *csr, ds_gview_t *out_view);
+/* Bipartite incidence graph: original vertices are 0..V-1; edge vertex
+ * V+i denotes the handle at dense edge index i. Each incidence is an
+ * undirected unit-weight edge. Graph mutation invalidates the whole view;
+ * recreate it afterwards. Two incidence hops traverse one hyperedge.
+ * No allocation or clique expansion; each edge lookup inherits map costs. */
+ds_status_t ds_gview_from_hypergraph(const ds_hypergraph_t *graph,
+                                     ds_gview_t *out_view);
 /* a view of a lib/adj_matrix graph: each row's edges in O(1) apiece; the
  * matrix must outlive the view and not change while an algorithm runs */
 void ds_gview_from_adj_matrix(const ds_adj_matrix_t *matrix,

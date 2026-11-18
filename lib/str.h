@@ -2,6 +2,7 @@
 #define DS_STR_H
 
 #include "common.h"
+#include "context.h"
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -16,6 +17,7 @@ typedef struct ds_str {
   char *buf;
   size_t len;
   size_t cap;
+  ds_context_t *context; /* NULL for legacy allocators */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_str_t;
@@ -76,6 +78,32 @@ void ds_str_free_external(ds_str_t *owner, void *p);
 
 int ds_str_adopt_safe(ds_str_t *s, char *buf, size_t len, size_t cap,
                       int has_room_for_nul);
+
+/* Checked core operations distinguish invalid input, range, size overflow and
+ * allocation failure. Existing integer-returning modifiers keep 0/-1 contracts.
+ * Byte edits and cross-owner swap are atomic on failure; borrowed source bytes
+ * may lie in the destination. Checked erase/insert use strict ranges. */
+ds_status_t ds_str_create_context(ds_context_t *context, ds_str_t **out);
+ds_status_t ds_str_reserve_ex(ds_str_t *s, size_t capacity);
+ds_status_t ds_str_assign_ex(ds_str_t *s, const void *data, size_t length);
+ds_status_t ds_str_append_ex(ds_str_t *s, const void *data, size_t length);
+ds_status_t ds_str_insert_ex(ds_str_t *s, size_t position, const void *data,
+                             size_t length);
+ds_status_t ds_str_erase_ex(ds_str_t *s, size_t position, size_t length);
+ds_status_t ds_str_pop_ex(ds_str_t *s, int *out);
+/* Same-owner swap is O(1). Incompatible owners stage copies (O(capacity) space)
+ * while preserving each string header's owner. Legacy swap ignores failures. */
+ds_status_t ds_str_swap_ex(ds_str_t *a, ds_str_t *b);
+/* NULL context inherits the source owner; failed creation/clone sets out NULL.
+ * The context must outlive all strings and detached buffers using it. */
+ds_status_t ds_str_clone_with(const ds_str_t *s, bool keep_capacity,
+                              ds_context_t *context, ds_str_t **out);
+/* Detach transfers the buffer, including its owner policy. Free it through
+ * ds_str_free_external while the original owner lives, or that same context /
+ * allocator afterwards. Adopt requires compatible storage with cap+1 bytes;
+ * interior aliases into the current buffer are forbidden. Safe adopt copies
+ * when no NUL room exists (len == cap), leaving that external buffer owned by
+ * its caller; otherwise it transfers ownership. Exact self-adoption is safe. */
 
 #ifdef __cplusplus
 }

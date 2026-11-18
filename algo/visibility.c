@@ -102,37 +102,39 @@ static int vs_point_side(const vs_seg_t *t, double pa, double pb) {
   }
 }
 
-/* mode 0: left gets nodes < s; mode 1: left gets nodes <= s */
+/* No metadata needs repairing: splice split/merge spines directly. */
 static void vs_split(vs_t *v, size_t t, size_t s, double at, int mode,
                      size_t *l, size_t *r) {
-  bool left;
-  if (t == VS_NONE) {
-    *l = *r = VS_NONE;
-    return;
+  while (t != VS_NONE) {
+    bool left = mode == 0 ? vs_less(v, t, s, at) : !vs_less(v, s, t, at);
+    if (left) {
+      *l = t;
+      l = &v->rc[t];
+      t = v->rc[t];
+    } else {
+      *r = t;
+      r = &v->lc[t];
+      t = v->lc[t];
+    }
   }
-  left = mode == 0 ? vs_less(v, t, s, at) : !vs_less(v, s, t, at);
-  if (left) {
-    vs_split(v, v->rc[t], s, at, mode, &v->rc[t], r);
-    *l = t;
-  } else {
-    vs_split(v, v->lc[t], s, at, mode, l, &v->lc[t]);
-    *r = t;
-  }
+  *l = *r = VS_NONE;
 }
 
 static size_t vs_merge(vs_t *v, size_t a, size_t b) {
-  if (a == VS_NONE) {
-    return b;
+  size_t root, *slot = &root;
+  while (a != VS_NONE && b != VS_NONE) {
+    if (v->pri[a] > v->pri[b]) {
+      *slot = a;
+      slot = &v->rc[a];
+      a = v->rc[a];
+    } else {
+      *slot = b;
+      slot = &v->lc[b];
+      b = v->lc[b];
+    }
   }
-  if (b == VS_NONE) {
-    return a;
-  }
-  if (v->pri[a] > v->pri[b]) {
-    v->rc[a] = vs_merge(v, v->rc[a], b);
-    return a;
-  }
-  v->lc[b] = vs_merge(v, a, v->lc[b]);
-  return b;
+  *slot = a == VS_NONE ? b : a;
+  return root;
 }
 
 static void vs_insert(vs_t *v, size_t s, double at) {

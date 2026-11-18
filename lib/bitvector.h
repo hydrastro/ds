@@ -2,6 +2,7 @@
 #define DS_BITVECTOR_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -29,6 +30,7 @@ typedef struct bitvector {
   size_t num_blocks;
   size_t total_ones;
   bool built;
+  ds_context_t *context; /* NULL for legacy allocator constructors */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_bitvector_t;
@@ -41,6 +43,16 @@ ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
                                           void *(*allocator)(size_t),
                                           void (*deallocator)(void *));
 void ds_bitvector_set(ds_bitvector_t *bv, size_t index, bool value);
+/* Checked set rejects writes after build (DS_ERR_STATE). Checked rank/select
+ * require a completed build; errors preserve outputs. Rank accepts 0..num_bits;
+ * select returns DS_NOT_FOUND when k has no corresponding bit. */
+ds_status_t ds_bitvector_set_ex(ds_bitvector_t *bv, size_t index, bool value);
+ds_status_t ds_bitvector_rank1_ex(ds_bitvector_t *bv, size_t index,
+                                  size_t *out);
+ds_status_t ds_bitvector_rank0_ex(ds_bitvector_t *bv, size_t index,
+                                  size_t *out);
+ds_status_t ds_bitvector_select1_ex(ds_bitvector_t *bv, size_t k, size_t *out);
+ds_status_t ds_bitvector_select0_ex(ds_bitvector_t *bv, size_t k, size_t *out);
 bool ds_bitvector_get(ds_bitvector_t *bv, size_t index);
 /* Legacy build: when the rank directory cannot be allocated, the vector
  * keeps the directory it had (none before a first build, so rank and
@@ -58,6 +70,11 @@ size_t ds_bitvector_rank0(ds_bitvector_t *bv, size_t index);
 size_t ds_bitvector_select1(ds_bitvector_t *bv, size_t k);
 size_t ds_bitvector_select0(ds_bitvector_t *bv, size_t k);
 void ds_bitvector_destroy(ds_bitvector_t *bv);
+
+/* Context-owned internal storage; NULL context chooses the default.
+ * The context must outlive the container. On failure *out is NULL. */
+ds_status_t ds_bitvector_create_context(size_t num_bits, ds_context_t *context,
+                                        ds_bitvector_t **out);
 
 #ifdef __cplusplus
 }

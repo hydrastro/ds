@@ -2,6 +2,7 @@
 #define DS_BLOOM_FILTER_H
 
 #include "common.h"
+#include "context.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -15,6 +16,7 @@ typedef struct bloom_filter {
   size_t num_words;
   size_t num_hashes;
   size_t num_items;
+  ds_context_t *context; /* NULL for legacy allocators */
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
 } ds_bloom_filter_t;
@@ -42,6 +44,29 @@ double ds_bloom_filter_estimated_fpr(ds_bloom_filter_t *filter);
 bool ds_bloom_filter_union(ds_bloom_filter_t *filter, ds_bloom_filter_t *other);
 ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter);
 void ds_bloom_filter_destroy(ds_bloom_filter_t *filter);
+
+/* Checked constructors reject invalid sizing/rates; NULL context chooses the
+ * default. Context must outlive the filter. Clone inherits the source context
+ * when context is NULL. Constructor/clone failures leave out NULL. */
+ds_status_t ds_bloom_filter_create_context(size_t expected, double rate,
+                                           ds_context_t *context,
+                                           ds_bloom_filter_t **out);
+ds_status_t ds_bloom_filter_create_params_context(size_t bits, size_t hashes,
+                                                  ds_context_t *context,
+                                                  ds_bloom_filter_t **out);
+ds_status_t ds_bloom_filter_clone_with(const ds_bloom_filter_t *filter,
+                                       ds_context_t *context,
+                                       ds_bloom_filter_t **out);
+/* Keys may be NULL only for length zero. Count overflow/shape mismatch leave
+ * the filter unchanged. Contains preserves out on error. A true result remains
+ * probabilistic; count counts additions, not distinct keys. */
+ds_status_t ds_bloom_filter_add_ex(ds_bloom_filter_t *filter, const void *key,
+                                   size_t length);
+ds_status_t ds_bloom_filter_contains_ex(ds_bloom_filter_t *filter,
+                                        const void *key, size_t length,
+                                        bool *out);
+ds_status_t ds_bloom_filter_union_ex(ds_bloom_filter_t *filter,
+                                     ds_bloom_filter_t *other);
 
 #ifdef __cplusplus
 }

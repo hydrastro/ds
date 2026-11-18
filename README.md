@@ -9,6 +9,13 @@ also offering newer high-level wrappers such as config-based hash tables,
 string maps/sets, persistent tries, persistent red-black trees, graph
 algorithms, and timeline/history utilities.
 
+The completed finalization ledger and validation record are in
+[`docs/completion-plan.md`](docs/completion-plan.md) and
+[`docs/completion-notes.md`](docs/completion-notes.md). For the compatible checked
+APIs, callback policies and changed public layouts, read
+[`docs/legacy-api-migration.md`](docs/legacy-api-migration.md). Recompile clients
+when updating to this tree.
+
 ## Features
 
 Core mutable containers:

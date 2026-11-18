@@ -1,4 +1,18 @@
 #include "checked.h"
+#include <limits.h>
+
+bool ds_long_add(long a, long b, long *out) {
+  if ((b > 0 && a > LONG_MAX - b) || (b < 0 && a < LONG_MIN - b))
+    return false;
+  *out = a + b;
+  return true;
+}
+bool ds_long_sub(long a, long b, long *out) {
+  if ((b > 0 && a < LONG_MIN + b) || (b < 0 && a > LONG_MAX + b))
+    return false;
+  *out = a - b;
+  return true;
+}
 
 bool ds_size_add(size_t a, size_t b, size_t *out) {
   if (a > (size_t)-1 - b) {

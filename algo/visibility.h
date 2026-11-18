@@ -13,7 +13,8 @@
  * segments are strictly ordered (ties between collinear overlapping
  * pieces fall back to the index); queries at an event coordinate run
  * against the status both before the segments ending there leave and
- * after the segments starting there arrive.
+ * after the segments starting there arrive. Status-tree split and merge are
+ * iterative even when the priority order gives a linear-height tree.
  *
  * Numerics: every ordering decision (one segment below another, a segment
  * above or below a ray's origin) is the exact sign of an orientation test

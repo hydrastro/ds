@@ -1,9 +1,7 @@
 # Result, diagnostics and i18n
 
-The C implementation follows the domain model in the supplied PHP packages:
-[Result at 88b0ff9](https://github.com/Vxmdzhb/result/tree/88b0ff9b4c24b16167c50e70acf1e92ece4a24ec)
-and [i18n at 9ddc58d](https://github.com/Vxmdzhb/i18n/tree/9ddc58df418ce9e8301c9ef11695734b04769555).
-Memory ownership, operational failure and callbacks are explicit in C.
+Results keep domain outcomes, diagnostic events and presentation policy separate.
+Payload ownership, operational failure and callback lifetimes are explicit.
 
 ## What a Result means
 
@@ -20,7 +18,7 @@ successfully constructed a domain error. `DS_ERR_ALLOC` means construction
 failed and the initialized output remains unchanged. This separation avoids
 turning memory exhaustion into a fabricated application error.
 
-| PHP concept | C API and behavior |
+| Operation | API and behavior |
 |---|---|
 | `ok`, `err` | `ds_result_ok`, `ds_result_err`; `_ptr` helpers borrow a pointer |
 | `isOk`, `isErr` | explicit state predicates, independent of payload and log |
@@ -30,7 +28,7 @@ turning memory exhaustion into a fabricated application error.
 | `map` | transforms only success; retains the ordered log |
 | `andThen` | runs only on success; preceding diagnostics come before callback diagnostics |
 | error mapping/recovery | `map_error`, `or_else`, with the corresponding error-branch behavior |
-| `drainTo` | emits without consuming the source, matching the PHP behavior |
+| `drainTo` | emits without consuming the source, preserving the source sequence |
 | immutable `Diagnostics` | Result logs use the existing RRB vector of immutable snapshot handles |
 
 An initialized, empty Result is `DS_RESULT_UNINITIALIZED`, not a domain error.
@@ -122,8 +120,7 @@ Messages contain either literal text or a formatter callback. Literal text
 supports single-pass `{name}` substitution: unknown placeholders remain, NULL
 strings become empty text, and substituted values are never interpreted again.
 A formatter writes to a supplied writer and may explicitly call `interpolate`.
-Unlike the PHP callable-return convention, its output is final; the C core does
-not run a second interpolation pass. This prevents substituted user text from
+Its output is final; rendering does not run a second interpolation pass. This prevents substituted user text from
 becoming a template. Writer errors are sticky even if a formatter ignores an
 append/interpolation return value. The completed text replaces the initialized
 output only on success; otherwise previous output remains available.
@@ -147,7 +144,7 @@ those names. This separation prevents missing-diagnostic-message recursion.
 change its effective severity. It then applies the viewer's minimum level.
 `DS_NOT_FOUND` means hidden and leaves the previous output unchanged. The
 source diagnostic and Result branch remain unchanged. Severity increases from
-DEBUG=0 to EMERGENCY=7, as in the supplied PHP package.
+DEBUG=0 to EMERGENCY=7.
 
 Context remains opt-in: callers choose which arguments and source fields to
 capture. The C implementation does not introspect arbitrary application objects.
@@ -155,8 +152,8 @@ capture. The C implementation does not introspect arbitrary application objects.
 ## Deliberate boundaries
 
 The core accepts UTF-8-compatible byte strings but does not validate or normalize
-Unicode. It does not execute PHP, edit PHP catalog files, supply CLDR data,
-implement universal plural rules or mutate the process locale. Built-in numeric
+Unicode. Locale data, plural rules and catalog-file formats are separate
+policies; translation does not mutate the process locale. Built-in numeric
 substitution uses C formatting (including the process numeric locale for
 floating-point values); formatters supply language-specific behavior. The
 provider and formatter APIs are the extension points for those policies.

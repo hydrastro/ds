@@ -2,6 +2,7 @@
 #define DS_BTREE_H
 
 #include "common.h"
+#include "context.h"
 #include "status.h"
 #include <stdbool.h>
 
@@ -28,7 +29,52 @@ typedef struct btree {
   size_t size;
   void *(*allocator)(size_t);
   void (*deallocator)(void *);
+  ds_context_t *context;
+  bool use_context;
 } ds_btree_t;
+
+/* Intrusive multiset: equal keys may be inserted as separate nodes. Nodes must
+ * not already belong to any tree. Compare must be stable and must not mutate
+ * the tree; insertion compares during both planning and commit. Node addresses
+ * survive splits/rebalancing. Removal clears node->internal for safe reuse. */
+typedef int (*ds_btree_compare_fn)(const ds_btree_node_t *a,
+                                   const ds_btree_node_t *b, void *user);
+typedef ds_status_t (*ds_btree_visit_fn)(ds_btree_node_t *node, void *user);
+typedef void (*ds_btree_destroy_fn)(ds_btree_node_t *node, void *user);
+typedef ds_status_t (*ds_btree_clone_fn)(const ds_btree_node_t *node,
+                                         void *user, ds_btree_node_t **out);
+/* Context must outlive the tree, including all clone trees. */
+ds_status_t ds_btree_create_context(int degree, ds_context_t *context,
+                                    ds_btree_t **out);
+/* Strong allocation guarantee: required split nodes are staged before edits;
+ * an error preserves the tree, size and incoming node. No allocation occurs
+ * when the selected path has no full nodes. Legacy void insert discards status.
+ * Helpers insert_non_full/split_child do not update the tree's size. */
+ds_status_t ds_btree_insert_with(ds_btree_t *tree, ds_btree_node_t *node,
+                                 ds_btree_compare_fn compare, void *user);
+ds_status_t ds_btree_insert_ex(ds_btree_t *tree, ds_btree_node_t *node,
+                               int (*compare)(ds_btree_node_t *,
+                                              ds_btree_node_t *));
+ds_status_t ds_btree_split_child_ex(ds_btree_t *tree,
+                                    ds_btree_internal_node_t *parent,
+                                    int index);
+ds_status_t ds_btree_find_with(ds_btree_t *tree, ds_btree_node_t *key,
+                               ds_btree_compare_fn compare, void *user,
+                               ds_btree_node_t **out);
+/* DS_NOT_FOUND for a detached/foreign live node; pointer must not be dangling.
+ */
+ds_status_t ds_btree_remove_ex(ds_btree_t *tree, ds_btree_node_t *node,
+                               ds_btree_node_t **out);
+ds_status_t ds_btree_walk_with(ds_btree_t *tree, ds_btree_visit_fn visit,
+                               void *user);
+void ds_btree_destroy_with(ds_btree_t *tree, ds_btree_destroy_fn destroy,
+                           void *user);
+
+/* Successful clones must be distinct unlinked nodes. A failing clone callback
+ * cleans its own partial output; later failure releases all accepted clones. */
+ds_status_t ds_btree_clone_with(const ds_btree_t *tree, ds_btree_clone_fn clone,
+                                ds_btree_destroy_fn destroy, void *user,
+                                ds_btree_t **out);
 
 /* NULL when memory runs out */
 ds_btree_internal_node_t *ds_btree_create_node(ds_btree_t *tree, bool is_leaf);

@@ -14,10 +14,11 @@
  * every group of a power-of-two table. The rest of the hash (H1) picks the
  * starting position. The user hash is mixed first, so weak hashes work.
  *
- * Removal leaves a tombstone; when tombstones fill the growth budget the
- * table is rehashed in place without allocating (the same algorithm as
- * Abseil's drop-deletes), and only a genuinely full table grows. Maximum
- * load is 7/8.
+ * Removal leaves a tombstone. When an insertion needs an empty slot but the
+ * growth budget is exhausted, tombstones are dropped in place (no allocation)
+ * for fixed storage, or when live entries <= 25 * floor(capacity / 32).
+ * Otherwise dynamic storage doubles. reserve may also compact. Maximum load
+ * is 7/8, except the smallest groups keep at least one slot empty.
  *
  * Storage: dynamic (ds_swiss_map_init) through a ds_context_t, or caller
  * buffers (ds_swiss_map_init_buffer): control bytes of
@@ -26,8 +27,8 @@
  * DS_ERR_OVERFLOW once 7/8 full. Hash and equality functions have the same
  * shape as rh_map's, so ds_rh_map_hash_ulong() and friends can be used.
  *
- * Pointers returned by get/emplace stay valid until the next insertion or
- * removal. Complexity: expected O(1) get, put, remove; O(capacity)
+ * Pointers and slot cursors expire on insertion, removal, clear, reserve,
+ * compaction or destruction (including failed mutations, conservatively). Complexity: expected O(1) get, put, remove; O(capacity)
  * iteration and rehash.
  * Concurrency: a map may be used by one thread at a time.
  */

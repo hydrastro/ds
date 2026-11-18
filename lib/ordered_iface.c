@@ -2,6 +2,7 @@
 #include "ab_tree.h"
 #include "checked.h"
 #include "fusion_tree.h"
+#include "stage.h"
 #include <string.h>
 
 /* ---- sorted arrays ---- */
@@ -87,27 +88,39 @@ static void oa_destroy(void *s) {
 static ds_status_t oa_insert(void *s, unsigned long key, const void *value) {
   oa_t *a = (oa_t *)s;
   size_t pos = oa_lower(a, key), vs = a->value_size;
+  ds_stage_t staged;
   ds_status_t st;
   if (pos < a->count && a->keys[pos] == key) {
-    if (vs > 0) {
-      memmove(a->values + pos * vs, value, vs);
+    if (vs != 0) {
+      if (value != NULL)
+        memmove(a->values + pos * vs, value, vs);
+      else
+        memset(a->values + pos * vs, 0, vs);
     }
     return DS_EXISTS;
   }
-  st = oa_reserve(a, a->count + 1);
-  if (st != DS_OK) {
+  if (a->count == (size_t)-1)
+    return DS_ERR_OVERFLOW;
+  st = ds_stage_copy(&staged, a->context, true, NULL, 0, value, vs);
+  if (st != DS_OK)
     return st;
+  st = oa_reserve(a, a->count + 1);
+  if (st == DS_OK) {
+    memmove(a->keys + pos + 1, a->keys + pos,
+            (a->count - pos) * sizeof(unsigned long));
+    a->keys[pos] = key;
+    if (vs != 0) {
+      memmove(a->values + (pos + 1) * vs, a->values + pos * vs,
+              (a->count - pos) * vs);
+      if (staged.value != NULL)
+        memcpy(a->values + pos * vs, staged.value, vs);
+      else
+        memset(a->values + pos * vs, 0, vs);
+    }
+    a->count++;
   }
-  memmove(a->keys + pos + 1, a->keys + pos,
-          (a->count - pos) * sizeof(unsigned long));
-  a->keys[pos] = key;
-  if (vs > 0) {
-    memmove(a->values + (pos + 1) * vs, a->values + pos * vs,
-            (a->count - pos) * vs);
-    memcpy(a->values + pos * vs, value, vs);
-  }
-  a->count++;
-  return DS_OK;
+  ds_stage_release(&staged);
+  return st;
 }
 
 static ds_status_t oa_remove(void *s, unsigned long key, void *out_value) {
@@ -209,6 +222,8 @@ static ds_status_t oa_join(void *s, void *upper) {
   if (!oa_compatible(a, u)) {
     return DS_ERR_INVALID;
   }
+  if (u->count > (size_t)-1 - a->count)
+    return DS_ERR_OVERFLOW;
   st = oa_reserve(a, a->count + u->count);
   if (st != DS_OK) {
     return st;
@@ -261,6 +276,7 @@ static ds_status_t oa_for_each(const void *s, ds_ordered_visit_fn visit,
 typedef struct ot_node {
   struct ot_node *left;
   struct ot_node *right;
+  struct ot_node *parent;
   unsigned long key;
   unsigned long priority;
   size_t size;
@@ -286,41 +302,61 @@ static void *ot_value(const ot_t *t, ot_node_t *n) {
                            : (void *)&n->key;
 }
 
-/* recursion follows one root-to-leaf path: expected O(log n) deep */
+/* Build the changed spine top down, then repair metadata bottom up through
+ * parent links. These operations never allocate or consume the C call stack. */
 static ot_node_t *ot_merge(ot_node_t *a, ot_node_t *b) {
-  if (a == NULL) {
-    return b;
+  ot_node_t *root = NULL, *tail = NULL, **slot = &root;
+  while (a != NULL && b != NULL) {
+    ot_node_t *chosen;
+    if (a->priority > b->priority) {
+      chosen = a;
+      a = a->right;
+      *slot = chosen;
+      slot = &chosen->right;
+    } else {
+      chosen = b;
+      b = b->left;
+      *slot = chosen;
+      slot = &chosen->left;
+    }
+    chosen->parent = tail;
+    tail = chosen;
   }
-  if (b == NULL) {
-    return a;
-  }
-  if (a->priority > b->priority) {
-    a->right = ot_merge(a->right, b);
-    ot_update(a);
-    return a;
-  }
-  b->left = ot_merge(a, b->left);
-  ot_update(b);
-  return b;
+  *slot = a == NULL ? b : a;
+  if (*slot != NULL)
+    (*slot)->parent = tail;
+  for (; tail != NULL; tail = tail->parent)
+    ot_update(tail);
+  return root;
 }
 
 /* l: keys < key, r: keys >= key */
 static void ot_split_lt(ot_node_t *n, unsigned long key, ot_node_t **l,
                         ot_node_t **r) {
-  if (n == NULL) {
-    *l = NULL;
-    *r = NULL;
-    return;
+  ot_node_t *left = NULL, *right = NULL, **ls = l, **rs = r;
+  while (n != NULL) {
+    ot_node_t *next;
+    if (n->key < key) {
+      next = n->right;
+      *ls = n;
+      n->parent = left;
+      left = n;
+      ls = &n->right;
+    } else {
+      next = n->left;
+      *rs = n;
+      n->parent = right;
+      right = n;
+      rs = &n->left;
+    }
+    n = next;
   }
-  if (n->key < key) {
-    ot_split_lt(n->right, key, &n->right, r);
-    ot_update(n);
-    *l = n;
-  } else {
-    ot_split_lt(n->left, key, l, &n->left);
-    ot_update(n);
-    *r = n;
-  }
+  *ls = NULL;
+  *rs = NULL;
+  for (; left != NULL; left = left->parent)
+    ot_update(left);
+  for (; right != NULL; right = right->parent)
+    ot_update(right);
 }
 
 static ot_node_t *ot_find_node(const ot_t *t, unsigned long key) {
@@ -369,10 +405,15 @@ static ds_status_t ot_insert(void *s, unsigned long key, const void *value) {
   unsigned long x;
   if (n != NULL) {
     if (t->value_size > 0) {
-      memmove(ot_value(t, n), value, t->value_size);
+      if (value != NULL)
+        memmove(ot_value(t, n), value, t->value_size);
+      else
+        memset(ot_value(t, n), 0, t->value_size);
     }
     return DS_EXISTS;
   }
+  if (ot_sz(t->root) == (size_t)-1)
+    return DS_ERR_OVERFLOW;
   n = (ot_node_t *)ds_context_alloc(t->context, t->node_size);
   if (n == NULL) {
     return DS_ERR_ALLOC;
@@ -386,9 +427,13 @@ static ds_status_t ot_insert(void *s, unsigned long key, const void *value) {
   n->key = key;
   n->left = NULL;
   n->right = NULL;
+  n->parent = NULL;
   n->size = 1;
   if (t->value_size > 0) {
-    memcpy(ot_value(t, n), value, t->value_size);
+    if (value != NULL)
+      memcpy(ot_value(t, n), value, t->value_size);
+    else
+      memset(ot_value(t, n), 0, t->value_size);
   }
   ot_split_lt(t->root, key, &l, &r);
   t->root = ot_merge(ot_merge(l, n), r);
@@ -530,61 +575,26 @@ static bool ot_next(const void *s, size_t *cursor, unsigned long *key,
   return true;
 }
 
-/* In-order walk with an explicit stack of ancestors, O(n). The stack
- * grows with the tree height; if it cannot grow, the walk goes on from the
- * current rank by selection, O(log n) expected per entry, so it never
- * fails for lack of memory. */
+/* In-order walk through parent links, O(n), without allocation. */
 static ds_status_t ot_for_each(const void *s, ds_ordered_visit_fn visit,
                                void *user) {
   const ot_t *t = (const ot_t *)s;
-  ot_node_t **stack;
   ot_node_t *n = t->root;
-  size_t cap = 64;
-  size_t top = 0;
-  size_t rank = 0;
-  ds_status_t st;
-  stack = (ot_node_t **)ds_context_alloc(t->context, cap * sizeof(*stack));
-  while (stack != NULL && (n != NULL || top > 0)) {
-    while (n != NULL) {
-      if (top == cap) {
-        ot_node_t **grown = NULL;
-        size_t bytes;
-        if (cap <= ((size_t)-1) / 2 / sizeof(*stack) &&
-            ds_size_mul(cap * 2, sizeof(*stack), &bytes)) {
-          grown = (ot_node_t **)ds_context_realloc(t->context, stack, bytes);
-        }
-        if (grown == NULL) {
-          ds_context_free(t->context, stack);
-          stack = NULL;
-          break;
-        }
-        stack = grown;
-        cap *= 2;
-      }
-      stack[top++] = n;
+  if (n != NULL)
+    while (n->left != NULL)
       n = n->left;
-    }
-    if (stack == NULL) {
-      break;
-    }
-    n = stack[--top];
-    st = visit(n->key, ot_value(t, n), user);
-    if (st != DS_OK) {
-      ds_context_free(t->context, stack);
+  while (n != NULL) {
+    ds_status_t st = visit(n->key, ot_value(t, n), user);
+    if (st != DS_OK)
       return st;
-    }
-    rank++;
-    n = n->right;
-  }
-  if (stack != NULL) {
-    ds_context_free(t->context, stack);
-    return DS_OK;
-  }
-  /* fallback: continue by rank */
-  for (n = ot_select_node(t, rank); n != NULL; n = ot_select_node(t, ++rank)) {
-    st = visit(n->key, ot_value(t, n), user);
-    if (st != DS_OK) {
-      return st;
+    if (n->right != NULL) {
+      n = n->right;
+      while (n->left != NULL)
+        n = n->left;
+    } else {
+      while (n->parent != NULL && n == n->parent->right)
+        n = n->parent;
+      n = n->parent;
     }
   }
   return DS_OK;
@@ -601,16 +611,9 @@ static void of_destroy(void *s) { ds_fusion_destroy((ds_fusion_tree_t *)s); }
 
 static ds_status_t of_insert(void *s, unsigned long key, const void *value) {
   ds_fusion_tree_t *t = (ds_fusion_tree_t *)s;
-  ds_status_t st = ds_fusion_insert(t, key, value);
-  if (st == DS_EXISTS && t->value_size > 0) { /* the value is replaced */
-    void *p = ds_fusion_get(t, key);
-    if (value != NULL) {
-      memcpy(p, value, t->value_size);
-    } else {
-      memset(p, 0, t->value_size);
-    }
-  }
-  return st;
+  bool present = ds_fusion_contains(t, key);
+  ds_status_t st = ds_fusion_put(t, key, value);
+  return st == DS_OK && present ? DS_EXISTS : st;
 }
 
 static ds_status_t of_remove(void *s, unsigned long key, void *out_value) {

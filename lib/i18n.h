@@ -12,10 +12,10 @@
 extern "C" {
 #endif
 
-/* Locale/domain/key catalogs, inspired by AstrX's Translator and
- * DiagnosticRenderer. Text remains UTF-8 bytes: no interpreter or process
- * locale mutation. Registered strings are owned copies. Formatter/provider
- * user data is borrowed. A translator is externally synchronized.
+/* Locale/domain/key catalogs and diagnostic rendering. Text remains UTF-8
+ * bytes; translation does not mutate the process locale. Registered strings are
+ * owned copies. Formatter/provider user data is borrowed. A translator is
+ * externally synchronized.
  *
  * Local entries override an optional provider; within a locale later sets
  * replace earlier ones (module catalogs first, application overrides last).
@@ -99,6 +99,18 @@ ds_status_t ds_i18n_set(ds_i18n_t *translator, const char *locale,
 ds_status_t ds_i18n_set_text(ds_i18n_t *translator, const char *locale,
                              const char *domain, const char *key,
                              const char *text);
+typedef struct ds_i18n_entry {
+  const char *locale;
+  const char *domain;
+  const char *key;
+  ds_i18n_message_t message;
+} ds_i18n_entry_t;
+/* Apply entries in order, publishing all changes together. Existing entries
+ * and options are preserved on failure. O(existing + incoming) copied records
+ * plus the selected map's insertion costs. Formatter user data remains borrowed
+ * and must not point into storage owned by this translator. */
+ds_status_t ds_i18n_set_many(ds_i18n_t *translator,
+                             const ds_i18n_entry_t *entries, size_t count);
 ds_status_t ds_i18n_remove(ds_i18n_t *translator, const char *locale,
                            const char *domain, const char *key);
 /* Quiet probe, including provider and locale fallback; no missing diagnostic.
