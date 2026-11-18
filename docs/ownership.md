@@ -189,3 +189,12 @@ previous one as soon as the next is produced.
   key or a stored NULL value; use a status-returning lookup to distinguish them.
 - Index-returning succinct structures (`bitset`, `bitvector`, `wavelet_tree`)
   return a published `DS_*_NPOS` constant when no position satisfies the query.
+
+## Unicode scratch storage
+
+Normalization, case folding and case mapping allocate their temporary code-point
+sequences through the destination string's allocation owner. Growth checks size
+overflow and uses allocate/copy/release, so an allocator without realloc can
+serve these operations. An arena retains released blocks until reset; budget
+for intermediate buffers as well as the final text. See
+[arena_text.c](../examples/arena_text.c).

@@ -11,9 +11,13 @@ extern "C" {
 typedef struct u32vec_like {
   unsigned long *p;
   size_t n, cap;
+  ds_str_t *owner; /* borrowed allocation owner */
   int (*push)(struct u32vec_like *v, unsigned long x);
 } u32vec_like;
 
+/* Initialize before use. Owner must outlive the scratch vector; NULL selects
+ * the default context. Growth uses allocate/copy/release, not realloc. */
+void ds_u32vec_init(u32vec_like *v, ds_str_t *owner);
 int ds_u32vec_push(u32vec_like *v, unsigned long x);
 void ds_u32vec_free(u32vec_like *v);
 

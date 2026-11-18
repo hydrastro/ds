@@ -787,7 +787,9 @@ ds_trie_t *ds_trie_create_config(const ds_trie_config_t *config) {
       config->num_splits, ops->search, ops->create, ops->insert, ops->remove,
       ops->destroy_entry, ops->destroy, ops->get_size, ops->apply, ops->clone,
       ops->next, allocator, deallocator,
-      config->allocator == NULL ? config->context : NULL);
+      config->allocator == NULL
+          ? (config->context != NULL ? config->context : ds_default_context())
+          : NULL);
   if (trie != NULL && !trie->use_context && config->context != NULL) {
     trie->context = config->context; /* diagnostics only */
   }

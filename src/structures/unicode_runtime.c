@@ -1,3 +1,4 @@
+#include "core/owner_alloc.h"
 #include <dsa/structures/str.h>
 #include <dsa/structures/str_io.h>
 #include <dsa/structures/str_unicode.h>
@@ -71,14 +72,34 @@ int ds_compose_Hangul(unsigned long *LVT, unsigned long next,
   return 0;
 }
 
+void ds_u32vec_init(u32vec_like *v, ds_str_t *owner) {
+  memset(v, 0, sizeof(*v));
+  v->owner = owner;
+  v->push = ds_u32vec_push;
+}
+
 int ds_u32vec_push(u32vec_like *v, unsigned long x) {
   unsigned long *np;
   size_t nc;
   if (v->n == v->cap) {
-    nc = v->cap ? (v->cap * 2u) : 8u;
-    np = (unsigned long *)realloc(v->p, nc * sizeof(unsigned long));
-    if (!np)
+    if (v->cap > (size_t)-1 / 2)
       return -1;
+    nc = v->cap ? v->cap * 2 : 8;
+    if (nc > (size_t)-1 / sizeof(*np))
+      return -1;
+    np = (unsigned long *)(v->owner != NULL
+                               ? DS_OWNER_ALLOC(v->owner, nc * sizeof(*np))
+                               : ds_context_alloc(NULL, nc * sizeof(*np)));
+    if (np == NULL)
+      return -1;
+    if (v->n != 0)
+      memcpy(np, v->p, v->n * sizeof(*np));
+    if (v->owner != NULL) {
+      if (v->p != NULL)
+        DS_OWNER_FREE(v->owner, v->p);
+    } else {
+      ds_context_free(NULL, v->p);
+    }
     v->p = np;
     v->cap = nc;
   }
@@ -86,11 +107,14 @@ int ds_u32vec_push(u32vec_like *v, unsigned long x) {
   return 0;
 }
 void ds_u32vec_free(u32vec_like *v) {
-  if (v->p)
-    free(v->p);
+  if (v->p != NULL) {
+    if (v->owner != NULL)
+      DS_OWNER_FREE(v->owner, v->p);
+    else
+      ds_context_free(NULL, v->p);
+  }
   v->p = NULL;
-  v->n = 0;
-  v->cap = 0;
+  v->n = v->cap = 0;
 }
 
 unsigned long ds_get_ccc(unsigned long cp) {
@@ -339,10 +363,7 @@ int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat,
   if (!dst || !src)
     return -1;
 
-  tmp.p = NULL;
-  tmp.n = 0;
-  tmp.cap = 0;
-  tmp.push = ds_u32vec_push;
+  ds_u32vec_init(&tmp, dst);
 
   i = 0;
   while ((r = ds_u8_next(src->buf, src->len, &i, &cp)) == 1) {
@@ -378,10 +399,7 @@ int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src) {
   if (!dst || !src)
     return -1;
 
-  out.p = NULL;
-  out.n = 0;
-  out.cap = 0;
-  out.push = ds_u32vec_push;
+  ds_u32vec_init(&out, dst);
 
   i = 0;
   while ((r = ds_u8_next(src->buf, src->len, &i, &cp)) == 1) {
@@ -417,10 +435,7 @@ static int ucd_map_simple(ds_str_t *dst, const ds_str_t *src,
   if (!dst || !src)
     return -1;
 
-  out.p = NULL;
-  out.n = 0;
-  out.cap = 0;
-  out.push = ds_u32vec_push;
+  ds_u32vec_init(&out, dst);
   while ((r = ds_u8_next(src->buf, src->len, &i, &cp)) == 1) {
     if (out.push(&out, ds__map_simple(keys, vals, len, cp)) != 0) {
       ds_u32vec_free(&out);

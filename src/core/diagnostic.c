@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void *diag_default_alloc(size_t size) { return malloc(size); }
-static void diag_default_free(void *ptr) { free(ptr); }
 static void diagnostics_collector_emit(ds_diagnostic_sink_t *sink,
                                        const ds_diagnostic_t *diagnostic);
 
@@ -225,32 +223,34 @@ static void diag_free(ds_diagnostics_t *d, void *p) {
     d->deallocator(p);
 }
 
-void ds_diagnostics_init(ds_diagnostics_t *d) {
-  ds_diagnostics_init_alloc(d, diag_default_alloc, diag_default_free);
-}
-
-void ds_diagnostics_init_alloc(ds_diagnostics_t *d, void *(*allocator)(size_t),
-                               void (*deallocator)(void *)) {
+void ds_diagnostics_init_context(ds_diagnostics_t *d, ds_context_t *context) {
   if (d == NULL)
     return;
   memset(d, 0, sizeof(*d));
-  if ((allocator == NULL) != (deallocator == NULL)) {
-    d->status = DS_ERR_INVALID;
-    allocator = diag_default_alloc;
-    deallocator = diag_default_free;
-  }
-  d->allocator = allocator == NULL ? diag_default_alloc : allocator;
-  d->deallocator = deallocator == NULL ? diag_default_free : deallocator;
+  d->context = context != NULL ? context : ds_default_context();
+  d->use_context = true;
   d->sink.emit = diagnostics_collector_emit;
   d->sink.user = d;
 }
 
-void ds_diagnostics_init_context(ds_diagnostics_t *d, ds_context_t *context) {
+void ds_diagnostics_init(ds_diagnostics_t *d) {
+  ds_diagnostics_init_context(d, NULL);
+}
+
+void ds_diagnostics_init_alloc(ds_diagnostics_t *d, void *(*allocator)(size_t),
+                               void (*deallocator)(void *)) {
+  ds_diagnostics_init_context(d, NULL);
   if (d == NULL)
     return;
-  ds_diagnostics_init(d);
-  d->context = context;
-  d->use_context = true;
+  if ((allocator == NULL) != (deallocator == NULL)) {
+    d->status = DS_ERR_INVALID;
+    return;
+  }
+  if (allocator != NULL) {
+    d->use_context = false;
+    d->allocator = allocator;
+    d->deallocator = deallocator;
+  }
 }
 
 void ds_diagnostics_clear(ds_diagnostics_t *d) {

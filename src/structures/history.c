@@ -51,8 +51,6 @@ struct ds_history {
   bool use_context;
 };
 
-static void *history_default_allocator(size_t size);
-static void history_default_deallocator(void *ptr);
 static char *history_strdup(ds_history_t *history, const char *str);
 static ds_history_branch_t *history_branch_alloc(ds_history_t *history,
                                                  ds_history_branch_t *parent,
@@ -114,10 +112,6 @@ static void history_free(ds_history_t *h, void *p) {
   else
     h->deallocator(p);
 }
-
-static void *history_default_allocator(size_t size) { return malloc(size); }
-
-static void history_default_deallocator(void *ptr) { free(ptr); }
 
 static char *history_strdup(ds_history_t *history, const char *str) {
   size_t len;
@@ -594,8 +588,9 @@ history_branch_local_head_time(ds_history_branch_t *branch) {
 }
 
 ds_history_t *ds_history_create(const ds_history_ops_t *ops, void *config) {
-  return ds_history_create_alloc(ops, config, history_default_allocator,
-                                 history_default_deallocator);
+  ds_history_t *history = NULL;
+  (void)ds_history_create_context(ops, config, NULL, &history);
+  return history;
 }
 
 static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
@@ -612,12 +607,10 @@ static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
 
   if (!use_context && ((allocator == NULL) != (deallocator == NULL)))
     return NULL;
-  if (allocator == NULL) {
-    allocator = history_default_allocator;
-  }
-  if (deallocator == NULL) {
-    deallocator = history_default_deallocator;
-  }
+  if (allocator == NULL && deallocator == NULL)
+    use_context = true;
+  if (use_context && context == NULL)
+    context = ds_default_context();
 
   history =
       (ds_history_t *)(use_context ? ds_context_alloc(context, sizeof(*history))
@@ -636,7 +629,7 @@ static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
   history->transaction_dirty = false;
   history->main_branch = NULL;
   history->branches = NULL;
-  history->context = context;
+  history->context = context != NULL ? context : ds_default_context();
   history->use_context = use_context;
   history->allocator = allocator;
   history->deallocator = deallocator;
@@ -1784,15 +1777,8 @@ static bool history_serialize_branches_portable(
   return true;
 }
 
-static void *history_archive_default_allocator(size_t size) {
-  return malloc(size);
-}
-
-static void history_archive_default_deallocator(void *ptr) { free(ptr); }
-
 void ds_history_archive_init(ds_history_archive_t *archive) {
-  ds_history_archive_init_alloc(archive, history_archive_default_allocator,
-                                history_archive_default_deallocator);
+  (void)ds_history_archive_init_context(archive, NULL);
 }
 
 ds_status_t ds_history_archive_init_ex(ds_history_archive_t *a,
@@ -1803,10 +1789,10 @@ ds_status_t ds_history_archive_init_ex(ds_history_archive_t *a,
   memset(a, 0, sizeof(*a));
   if ((allocator == NULL) != (deallocator == NULL))
     return a->status = DS_ERR_INVALID;
-  a->allocator =
-      allocator == NULL ? history_archive_default_allocator : allocator;
-  a->deallocator =
-      deallocator == NULL ? history_archive_default_deallocator : deallocator;
+  a->allocator = allocator;
+  a->deallocator = deallocator;
+  a->use_context = allocator == NULL;
+  a->context = ds_default_context();
   return DS_OK;
 }
 
@@ -1820,7 +1806,7 @@ ds_status_t ds_history_archive_init_context(ds_history_archive_t *a,
                                             ds_context_t *context) {
   ds_status_t st = ds_history_archive_init_ex(a, NULL, NULL);
   if (st == DS_OK) {
-    a->context = context;
+    a->context = context != NULL ? context : ds_default_context();
     a->use_context = true;
   }
   return st;

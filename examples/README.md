@@ -8,6 +8,7 @@ The source is deliberately small enough to read alongside its public headers.
 
 | Example | Demonstrates |
 |---|---|
+| [arena_text.c](arena_text.c) | Unicode normalization using a fixed arena, including scratch buffers. |
 | [getting_started.c](getting_started.c) | A growable vector, ordering and cleanup. |
 | [intrusive_list.c](intrusive_list.c) | Links embedded in application records. |
 | [container_contexts.c](container_contexts.c) | One explicit allocation owner across container families. |

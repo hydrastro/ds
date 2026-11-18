@@ -12,7 +12,7 @@ static void *ts_alloc(ds_trie_t *trie, size_t size) {
   if (trie != NULL && (trie->use_context || trie->allocator != NULL)) {
     return ds_trie_alloc(trie, size);
   }
-  return malloc(size);
+  return ds_context_alloc(NULL, size);
 }
 
 /* apply and clone come from the trie's generic walk and copy, which need
@@ -32,8 +32,8 @@ static void ts_apply(ds_trie_t *trie, void *store, trie_visit_t f,
  * through. The map or vector inside a store takes its arrays from the
  * same place as the trie's nodes: the trie's context, or, for a trie
  * given its own allocator functions, a context over them (allocators.h)
- * that the store carries after itself in the same block. A trie on
- * malloc and free needs none: its arrays come from the default context. */
+ * that the store carries after itself in the same block. A context-owned trie
+ * needs no adapter: its arrays use that same context. */
 typedef struct ts_owner {
   void (*deallocator)(void *);
   ds_context_t *context; /* when the trie allocates from its context */
@@ -47,8 +47,7 @@ typedef struct ts_functions {
 
 static bool ts_own_functions(const ds_trie_t *trie) {
   return trie != NULL && !trie->use_context && trie->allocator != NULL &&
-         trie->deallocator != NULL &&
-         !(trie->allocator == malloc && trie->deallocator == free);
+         trie->deallocator != NULL;
 }
 
 /* A store of size bytes, followed (aligned) by the context over the
@@ -87,7 +86,7 @@ static void ts_free(ts_owner_t owner, void *block) {
   } else if (owner.deallocator != NULL) {
     owner.deallocator(block);
   } else {
-    free(block);
+    ds_context_free(NULL, block);
   }
 }
 
