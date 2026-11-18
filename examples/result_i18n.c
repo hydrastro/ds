@@ -1,6 +1,6 @@
 /* Immutable Result pipelines, owned diagnostic arguments, and translation
  * at the presentation boundary, without changing the process locale. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

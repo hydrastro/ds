@@ -1,6 +1,6 @@
 /* The same event scheduler uses either heap through the priority-queue
  * capability. Handles survive priority changes and unrelated insertions. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 typedef struct event {

@@ -5,7 +5,7 @@
  * as it could between requests, and the height falls back to a red-black
  * tree's. Searches, rank and select are exact throughout.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static int cmp_long(const void *a, const void *b, void *user) {

@@ -11,7 +11,7 @@
  * The program counts live strings to show when clones are made and
  * released.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

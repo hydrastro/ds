@@ -1,7 +1,6 @@
 # Quantum algorithm references
 
-`algo/quantum_reference` contains classical amplitude simulations, classified as
-**reference** implementations in the coverage map. They enumerate classical
+`dsa/algorithms/quantum_reference.h` contains classical amplitude simulations. They enumerate classical
 oracle inputs and keep exponentially many amplitudes. They do not supply a
 quantum device backend, quantum query complexity or a speedup over ordinary C
 algorithms. Amplitudes and sampling probabilities use floating-point arithmetic.
@@ -15,8 +14,8 @@ algorithms. Amplitudes and sampling probabilities use floating-point arithmetic.
 | `ds_qref_shor_factor` | Even/perfect-power/gcd reductions and sampled orders | Returns one nontrivial factor; does not implement the discrete-logarithm branch |
 
 The transform and measurement operations are public for reuse. Fourier steps use
-`algo/fft`; modular arithmetic and primality use `algo/numeric`; sampling uses
-`algo/random`. There is no shared global random state. Supply a borrowed generator
+`dsa/algorithms/fft.h`; modular arithmetic and primality use `dsa/algorithms/numeric.h`; sampling uses
+`dsa/algorithms/random.h`. There is no shared global random state. Supply a borrowed generator
 for a continuing stream; otherwise each call starts with a documented-in-source,
 fixed local seed. This makes examples repeatable, not cryptographically random.
 
@@ -38,9 +37,6 @@ the limit does not change these costs.
 
 `interference_patterns` demonstrates a balanced oracle, marked-state search,
 paired/injective Simon oracles, order 10 for base 5 modulo 33, and a factor of 33.
-The example passes normally and under ASan/UBSan; GCC's analyzer reports no
-module diagnostics. This does not exhaust promises, shot sequences, budgets,
-floating-point configurations or allocation failures.
 
 Primary algorithm references:
 

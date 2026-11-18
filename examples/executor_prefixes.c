@@ -1,5 +1,5 @@
 /* Noncommutative prefix composition through an executor's round barriers. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 typedef struct digits {

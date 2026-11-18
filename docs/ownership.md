@@ -1,6 +1,6 @@
 # Ownership model
 
-`ds` deliberately separates container storage from user data ownership.
+`dsa` separates container storage from user data ownership.
 
 ## Default rule
 
@@ -92,12 +92,12 @@ pool allocators have stricter behavior than `malloc`:
 - pool allocation only supports fixed-size blocks;
 - pool frees reject pointers outside the pool and double-free attempts (in
   O(1) unless the block's data happen to look like a free block's mark);
-- debug allocator statistics are intended for diagnostics and test visibility.
+- debug allocator statistics expose allocation counts and sizes.
 
 Use the default context or a debug allocator when a module requires general
 `realloc` behavior.
 
-Older interfaces take a pair of allocator functions instead of a context
+Allocator-pair constructors take a pair of allocator functions instead of a context
 (`void *(*)(size_t)` and `void (*)(void *)`, as the bitset, the hash table
 and the trie do). `ds_context_use_allocator_functions` makes a context over
 such a pair, with a size header per block so that it can reallocate; a
@@ -107,25 +107,24 @@ arrays.
 
 ## Allocation failure
 
-Two allocation profiles coexist. Every module states which one its API
-follows; an adapter over a module keeps that module's profile and must not
-claim the stronger one unless it checks for failure itself.
+Failure reporting and rollback guarantees belong to each operation. An
+adapter inherits the guarantees of its backend; check its header before
+assuming that a failed call leaves every part unchanged.
 
-**Fallible profile** (status-returning APIs, and every module added or
-reworked since the capability interfaces). An operation that returns
+**Status-returning APIs.** An operation that returns
 `ds_status_t` reports allocator exhaustion as `DS_ERR_ALLOC` and size
 arithmetic that does not fit as `DS_ERR_OVERFLOW`. Unless its header says
 otherwise, a failed operation leaves the structure unchanged and usable.
 Where that cannot hold, the header states exactly what remains, for example:
 
-- `lib/topology_tree` reserves cluster slots and work lists for the
+- `dsa/structures/topology_tree.h` reserves cluster slots and work lists for the
   re-clustering bound before committing; if a commit still fails it marks
   the tree broken, queries report it, and `ds_topology_tree_rebuild`
   restores it from the adjacency;
-- `lib/paged_btree` prepares every page a split needs before changing any;
-- `lib/pq_iface`'s copying meld stops at the failing item with both queues
+- `dsa/structures/paged_btree.h` prepares every page a split needs before changing any;
+- `dsa/structures/pq_iface.h`'s copying meld stops at the failing item with both queues
   valid and every item in exactly one of them;
-- `lib/pager`'s `ds_pager_close` keeps the pager and its dirty pages alive
+- `dsa/structures/pager.h`'s `ds_pager_close` keeps the pager and its dirty pages alive
   when a write fails, so the close can be retried, and `ds_pager_discard`
   drops them explicitly.
 
@@ -134,16 +133,15 @@ for instance, fall back to visiting children in place when they cannot
 take a snapshot. A release path that still allocates says what it does on
 failure.
 
-**Legacy interfaces.** A pointer, boolean or void return type alone does not
-imply an infallible allocator. The original constructors now return NULL on
-allocation failure. Checked insertion is available for the heap, skip list, B-tree, treap,
+**Pointer, boolean and void APIs.** Constructors return NULL on allocation
+failure. A return type alone does not imply an infallible allocator. Checked insertion is available for the heap, skip list, B-tree, treap,
 B+ tree (including B*), HAMT, radix trie and ART; Aho-Corasick also has checked
 add, compile and query functions. Rope edits have checked variants. These
-prepare allocations before changing existing content. Their legacy wrappers
-preserve signatures but cannot distinguish all operational failures from
-ordinary conditions; use `_ex` to obtain the status.
+prepare allocations before changing existing content. Pointer, boolean and void forms
+cannot distinguish all operational failures from ordinary conditions; use a
+status-returning form when that distinction matters.
 
-An older operation whose header explicitly assumes allocation success still
+An operation whose header explicitly assumes allocation success
 requires an allocator that handles exhaustion itself. Do not infer a stronger
 failure guarantee for an adapter than its underlying operation provides.
 
@@ -161,11 +159,11 @@ an allocator whose limits suit the structure (anything that grows by
 `realloc` needs a context with general `realloc`).
 
 **Other failures are separate.** I/O errors (`DS_ERR_STATE`, as in
-`algo/external_sort` and `lib/pager`), integer overflow
+`dsa/algorithms/external_sort.h` and `dsa/structures/pager.h`), integer overflow
 (`DS_ERR_OVERFLOW`), ownership mismatches (`DS_ERR_INVALID` or
 `DS_ERR_UNSUPPORTED`, e.g. an element destructor without a copy function
 where values are shared) and unsupported operations are reported in their
-own right, whichever allocation profile applies.
+own right, independently of allocation failure.
 
 ## Persistent structure versions
 
@@ -187,7 +185,7 @@ previous one as soon as the next is produced.
   result from search/min/max/peek queries. Test against the container's `nil`
   field rather than `NULL`.
 - Value-mapping APIs (`hash_table`, `trie`, `radix_trie`, `hamt`, `art`,
-  `string_map`) return the stored `void *` value, or `NULL` when the key is
-  absent — `NULL` is the value's natural "not present" marker here.
+  `string_map`) offer pointer-returning lookups. A NULL result can mean either an absent
+  key or a stored NULL value; use a status-returning lookup to distinguish them.
 - Index-returning succinct structures (`bitset`, `bitvector`, `wavelet_tree`)
   return a published `DS_*_NPOS` constant when no position satisfies the query.

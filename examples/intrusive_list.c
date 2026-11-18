@@ -6,21 +6,21 @@
  * list, and recover your struct from a node pointer with CAST(). The list never
  * allocates your elements, so you stay in full control of their memory.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 typedef struct task {
-  list_node_t node; /* embed the list node */
+  ds_list_node_t node; /* embed the list node */
   const char *name;
   int priority;
 } task_t;
 
 int main(void) {
-  list_t *list = ds_list_create();
+  ds_list_t *list = ds_list_create();
   task_t a;
   task_t b;
   task_t c;
-  list_node_t *it;
+  ds_list_node_t *it;
 
   if (list == NULL) {
     fputs("Could not allocate the list.\n", stderr);

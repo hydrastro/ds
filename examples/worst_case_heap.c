@@ -5,7 +5,7 @@
  * reports stay within the paper's invariants after every operation.
  * Melding two heaps of pending jobs closes the example.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

@@ -10,7 +10,7 @@ provides neither a snapshot nor automatic invalidation detection.
 |---|---|
 | Intrusive lists, queues and stacks | Payload/node addresses belong to the caller. Relinking changes next/previous traversal. Removing/freeing a pending node invalidates traversal; callbacks may not mutate unless a specific API permits it. |
 | Intrusive BST/AVL/RBT/splay/treap | Rotations preserve node addresses; parent/child relationships and traversal state can change. Splay lookup itself mutates links. Erased/freed nodes cannot be used as cursors. |
-| Original intrusive B-tree | User-node addresses stay stable; splits/merges move internal slots and update owner links. Remove clears the removed owner. Tree/node lifetime remains caller-controlled. |
+| Intrusive B-tree | User-node addresses stay stable; splits/merges move internal slots and update owner links. Remove clears the removed owner. Tree/node lifetime remains caller-controlled. |
 | Open, Swiss and Robin Hood maps | Treat insert/remove/clear/reserve/compact/destroy, including failed mutations, as invalidating slot cursors and borrowed key/value pointers. Replacement keeps no general lifetime promise. |
 | Generic hash table | Iterators borrow linked node storage. Do not mutate during a walk; resizing can rebuild nodes. To resume across a completed mutation, retain an application-owned key and look up its node again. |
 | Dynamic vectors/deques/heaps | Growth moves backing storage; shifts and heap repair also change element positions without growth. Stable handles exist only in APIs that explicitly provide them. |
@@ -40,5 +40,5 @@ iterator state; invoke its destroy operation.
 
 Open-map compaction retains stored hashes; Swiss compaction calls the configured
 hash again. Hash/equality/probe callbacks must remain stable and must not mutate
-the map. Open-map custom probes must cover all slots; the original generic hash
+the map. Open-map custom probes must cover all slots; the generic hash
 table instead has its documented bounded-probe plus linear-sweep fallback.

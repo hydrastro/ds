@@ -1,7 +1,7 @@
 /* Three intrusive indexes share application records and a comparison policy.
  * Clones own separate records, allocated through the callback's user context.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

@@ -1,9 +1,9 @@
 /* Owning clones inherit a caller-selected comparison policy. */
-#include "lib/bplus_tree.h"
-#include "lib/order_statistic_tree.h"
-#include "lib/pairing_heap.h"
-#include "lib/skip_list.h"
-#include "lib/splay_tree.h"
+#include <dsa/structures/bplus_tree.h>
+#include <dsa/structures/order_statistic_tree.h>
+#include <dsa/structures/pairing_heap.h>
+#include <dsa/structures/skip_list.h>
+#include <dsa/structures/splay_tree.h>
 #include <stdio.h>
 #include <stdlib.h>
 

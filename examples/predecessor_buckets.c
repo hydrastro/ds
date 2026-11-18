@@ -8,7 +8,7 @@
  * the bound of Willard's design, at a node per key. The answers are the
  * same; the per-update work and the memory layout differ.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static int fill(ds_yfast_t *t, const ds_ordered_ops_t *buckets,

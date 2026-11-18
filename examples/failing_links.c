@@ -5,7 +5,7 @@
  * three links per relay) answers path sums of relay delays while the
  * relay tree is rewired.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 #define SIDE 8

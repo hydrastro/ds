@@ -8,7 +8,7 @@
  * items one by one in the receiving queue's order, and the absorbed
  * queue's handles become invalid.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static int ascending(const void *a, const void *b, void *user) {

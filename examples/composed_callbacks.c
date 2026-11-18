@@ -1,8 +1,8 @@
 /* Copy a trie between child stores; clone nullable values in a hash table. */
-#include "lib/fibonacci_heap.h"
-#include "lib/hash_table.h"
-#include "lib/trie.h"
-#include "lib/trie_stores.h"
+#include <dsa/structures/fibonacci_heap.h>
+#include <dsa/structures/hash_table.h>
+#include <dsa/structures/trie.h>
+#include <dsa/structures/trie_stores.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

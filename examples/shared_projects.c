@@ -1,6 +1,6 @@
 /* Hyperedges model shared projects; ordinary BFS runs on their incidence view.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static ds_status_t connections(ds_hypergraph_t *graph, const char *label) {

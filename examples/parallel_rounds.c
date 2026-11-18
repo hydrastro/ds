@@ -1,13 +1,13 @@
 /*
- * The PRAM techniques of algo/parallel_sim on a custom executor. C89 has
- * no threads, so this executor stands in for any scheduler: it runs each
- * parallel step's tasks in a different scrambled order and counts what it
+ * The PRAM techniques of dsa/algorithms/parallel_sim.h on a custom executor.
+ * C89 has no threads, so this executor stands in for any scheduler: it runs
+ * each parallel step's tasks in a different scrambled order and counts what it
  * was given. Because tasks of one step never write the same memory, the
  * results and round counts match the sequential runs exactly; on a thread
  * pool, `run` would hand the tasks to the workers and wait for them.
  */
-#include "ds.h"
-#include "ds_algo.h"
+#include <dsa.h>
+#include <dsaa.h>
 #include <stdio.h>
 #include <stdlib.h>
 

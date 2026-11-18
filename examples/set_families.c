@@ -6,7 +6,7 @@
  * of an edge. There are Fibonacci(n + 2) of them, yet the diagram stays
  * linear in n. maximal() keeps those no vertex can be added to.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 /* the independent sets of an n-vertex path, and the maximal ones */

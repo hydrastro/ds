@@ -1,4 +1,5 @@
-# Object files, precompiled headers, libraries
+# Build products
+/build/
 *.o
 *.d
 *.gch
@@ -6,24 +7,9 @@
 *.so
 *.out
 
-# Build artifacts
-/build/
-/libds.a
-/libds.so
-/src.zip
-
-# Generated Unicode tables (produced by `make unicode-data`)
-/build/unicode_tables.c
-/build/unicode_tables.h
-
-# Sanitizer / profiling output
 *.log
-valgrind.log
-*.gcda
-*.gcno
-*.gcov
 
-# Editor and OS noise
+# Editor files
 *.swp
 *~
 .DS_Store

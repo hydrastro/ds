@@ -3,7 +3,7 @@
 The capability interfaces (maps, ordered maps, priority queues, rank/select,
 approximate membership, replacement policies, page stores, the inverted
 index's dictionaries, codecs and scorers, and the suffix array builders that
-`lib/fm_index`, `lib/suffix_array` and `lib/r_index` share) let one structure
+`dsa/structures/fm_index.h`, `dsa/structures/suffix_array.h` and `dsa/structures/r_index.h` share) let one structure
 be built from another chosen by the caller. An operation table alone does not
 make two components compatible, though: they also have to agree on element
 layout and ownership, on order, on memory, on what a failure leaves behind,
@@ -12,7 +12,7 @@ document collects those agreements and points to where each is implemented.
 
 ## Element schema
 
-`lib/schema` describes the values a container stores: size, alignment, copy
+`dsa/core/schema.h` describes the values a container stores: size, alignment, copy
 and destroy callbacks, user data and a representation id.
 
 - **Policy follows from the callbacks.**
@@ -32,10 +32,10 @@ and destroy callbacks, user data and a representation id.
   structures' configurations from a schema.
 - **Owned values elsewhere.** Two algorithm drivers take ownership
   callbacks of their own:
-  - `algo/dynamization` moves items as bytes between levels and never
+  - `dsa/algorithms/dynamization.h` moves items as bytes between levels and never
     duplicates them; `ops.release` releases each item exactly once, when a
     rebuild drops it after its removal or at destroy.
-  - `algo/anneal` takes `clone`, `copy` and `release` for states that own
+  - `dsa/algorithms/anneal.h` takes `clone`, `copy` and `release` for states that own
     memory: the candidate is cloned once and exchanged bytewise on
     acceptance, and the best state is assigned with `copy`.
 
@@ -79,60 +79,60 @@ functions should be described with `ds_context_set_resource`.
 
 ## Mutation and failure
 
-`docs/ownership.md` defines the two allocation profiles. Where an operation
+[Ownership](ownership.md) describes the two allocation profiles. Where an operation
 cannot leave its structure unchanged after a failure, the module's header
 says what remains:
 
 | Module | Guarantee |
 |---|---|
-| `lib/btree` | insert stages every required split node before mutation; removal never allocates and clears the removed node owner; equal keys are allowed as distinct intrusive nodes |
-| `lib/treap` | insertion never allocates and reports duplicate keys; checked clones preserve topology and release accepted clones on failure |
-| `lib/paged_btree` | put and remove prepare every page (splits, borrows, merges) before changing any; pages a failed put took return to the free list |
-| `lib/topology_tree` | reserves cluster slots and work lists for the per-level bound before committing, so a committed update does not allocate; a failed commit still leaves an explicit broken state, and `ds_topology_tree_rebuild` repairs it |
-| `lib/pq_iface` | a copying meld stops at the failing item, with both queues valid and every item in exactly one of them |
-| `lib/pager` | `ds_pager_close` keeps dirty pages and can be retried; `ds_pager_discard` drops them |
-| `lib/map_iface` | put is all or nothing; removing a present key always succeeds |
-| `lib/yfast_trie` | a skipped rebalance leaves a bucket outside its bounds until a later update retries it |
-| `lib/zipper`, `lib/trie_stores` | release and destruction never need fresh memory |
-| `lib/trie` | insertion is all or nothing; with stores that have `next`, cloning is all or nothing (`clone_data` runs only on a complete copy) and destruction needs no memory |
-| `lib/hash_table` | a resize that runs out of memory leaves the table as it was, every entry included |
-| `lib/sstable`, `lib/paged_btree` | malformed stored data gives `DS_ERR_INVALID`, never a read outside the data; each also has a separate full verification call |
-| `lib/spiral_storage` | a put whose growth fails (memory or slot numbers) keeps the key; the table only gets fuller |
-| `lib/inverted_index` | a failed add restores every posting list it touched, bits and skip tables included, and removes the terms it created; compaction builds every new list before freeing an old one, so it is all or nothing |
-| `lib/dynamic_connectivity` | insert is all or nothing; a delete that runs out of memory while recording a replacement leaves an explicit broken state (`ds_dc_broken`), repaired by `ds_dc_rebuild`, which can be retried |
-| `lib/rrb_vector` | every update builds a new version; on failure the inputs are unchanged and no clone leaks |
-| `algo/delaunay` constraints | memory is reserved before any flip; a failure leaves a valid constrained triangulation of the segments already inserted, which are counted; a crossing segment is refused before anything changes |
-| `lib/rank_pairing_heap` | update and remove never allocate, so they cannot fail on a queued item |
-| `lib/chromatic_tree` | inserts and removes reserve their memory (nodes, a pending slot) before changing anything; rebalancing never allocates in eager mode (the path buffer covers any red-black height), and a deferred rebalance that cannot grow its path returns `DS_ERR_ALLOC` with the tree valid and the work still pending |
-| `lib/top_tree` | all memory is taken at init: no operation allocates or fails for lack of memory |
-| `algo/planarity` | every call allocates its working memory before it starts; an embedding is filled only on success and is otherwise left empty, safe to destroy; a too small certificate buffer gives `DS_ERR_RANGE` with the size needed |
-| `lib/suffix_array`, `lib/r_index` | builds are all or nothing: a failed build frees what it took and leaves nothing to destroy |
-| `lib/hollow_heap` | an update that cannot allocate its new node changes nothing |
-| `lib/strict_fibonacci_heap` | push takes its node, cell and at most two rank records before changing anything; update, remove and meld never allocate (an increase re-inserts the item's own node, and a meld recycles the absorbed heap's rank records) |
-| `lib/fusion_tree` | an insert takes every node its splits need before changing anything; remove and the queries never allocate; a bulk load builds the new tree before releasing the old one |
-| `lib/decremental_msf` | a deletion that runs out of memory while promoting or recording a replacement leaves an explicit broken state; `ds_dmsf_rebuild` starts over from the remaining edges |
-| `lib/dynamic_msf` | an insertion that cannot get its edge record changes nothing; an update that runs out of memory while rebuilding a deletions-only structure (or recording replacements) leaves an explicit broken state, in which updates return `DS_ERR_STATE` until `ds_dyn_msf_rebuild` builds everything again from the live edges |
-| `lib/fibonacci_heap` (item heap) | push takes its node before changing anything; pop, update, remove and meld never allocate (consolidation links through a degree table inside the heap) |
-| `lib/ordered_iface` fusion-tree backend | split and join build both new trees before releasing the old ones, so a failure leaves both sides as they were |
-| `algo/alternating_tm` | all or nothing: an error frees everything the exploration took and leaves `*out` unchanged |
-| `algo/sdp` | a solve takes its memory before iterating; after an error status the solution holds nothing, after any other status it must be destroyed; problems only grow by `ds_sdp_add`, which changes nothing when it cannot |
-| `algo/matrix` factorizations | they work in place: a failed Cholesky or LU leaves the factorization partly done; determinants and inverses factor a copy, taken before anything else |
-| `lib/ab_tree` | every insert and remove, and every split and join, takes all the nodes it may need before changing anything, so each is all or nothing |
-| `lib/ordered_iface` (a,b)-tree backend | split and join are the tree's own, all or nothing; they move nodes, so the two contexts must be compatible (`DS_ERR_INVALID` otherwise, with nothing moved) |
-| `lib/rdf_canon` | adding a quad or parsing a document changes nothing when it fails (a syntax error adds no quad and names the line); a canonicalization that fails (memory, a poison-dataset limit) leaves its result empty |
-| `algo/parallel_sim` | every call takes its memory before the first round; on failure the outputs are untouched |
-| `lib/lsm_tree` with a page store | an update whose log record cannot be buffered changes nothing; a flush or merge whose tables cannot be written changes nothing in memory; a failed publish keeps every update in the log; a publish that fails after its slot write began leaves the tree broken (`DS_ERR_STATE` for updates) until it is reopened, which recovers it |
-| `lib/amq_iface` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
-| `lib/wal_store` | a failed write or truncation changes nothing; a failed sync leaves its commit pending, and the next write, truncation or sync completes it first (failing, with nothing else changed, while it cannot); a failed checkpoint leaves the log as it was, and a log restart that fails is pending in the same way; after a crash the store opens as of the last completed sync (or the one under way, if its commit record landed) |
-| `lib/fault_store` | an injected failure changes nothing; a base-store failure during sync keeps the operations not yet applied for the next sync |
-| the legacy intrusive containers (`lib/list`, `lib/stack`, `lib/queue`, `lib/deque`, `lib/dlist`, `lib/ring_list`, `lib/circular_buffer`, `lib/heap`, `lib/bst`, `lib/avl`, `lib/rbt`, `lib/splay_tree`, `lib/treap`, `lib/btree`, `lib/bplus_tree`, `lib/skip_list`) | constructors return NULL when memory runs out, releasing what they took; `clone_ex` rolls back every clone it made through `destroy_clone` (`DS_ERR_CALLBACK` for a NULL clone, `DS_ERR_ALLOC`); a legacy clone returns NULL, and the clones it made before are not released; `lib/heap` and `lib/skip_list` insertion through `insert_ex` reports a failed allocation with nothing changed (the legacy insert leaves the node out); `lib/bplus_tree` insertion stages all split nodes and B* scratch space before mutation, and its checked clone rolls back an insertion failure |
-| the other legacy constructors (`lib/order_statistic_tree`, `lib/bitvector`, `lib/wavelet_tree`, `lib/bloom_filter`, `lib/fenwick_tree`, `lib/segment_tree`, `lib/disjoint_set`, `lib/pairing_heap`, `lib/fibonacci_heap`, `lib/radix_trie`, `lib/aho_corasick`, `lib/hamt`, `lib/art`, `lib/rope`, `lib/bitset`, `lib/str`) | return NULL when memory runs out, releasing what they took, as do the clones they offer; `ds_bitvector_build_ex` keeps the old rank directory when the new one cannot be allocated |
-| `lib/hamt`, `lib/art`, `lib/radix_trie` | checked insertion prepares every new node, key and layout before publishing; errors preserve keys and values; ART/radix removal may skip optional compression without losing the deletion |
-| `lib/aho_corasick` | checked add constructs a missing path privately; checked compile reserves the BFS queue before replacing failure links; checked searches report compilation failure |
-| `lib/rope` | checked append, insert, delete, concat and rebalance prepare a balanced replacement root; errors preserve both inputs; concat rejects different allocator pairs and self-concat |
-| `lib/result` | operations stage the payload handle and persistent diagnostic sequence; failure preserves inputs and output; callback side effects are outside this guarantee |
-| `lib/i18n` | registration copies storage before replacing an entry; rendering publishes complete output only on success, including when a formatter ignores a writer failure |
-| `lib/persistent_rbt`, `lib/persistent_trie` | every update builds a new version; when memory or a clone is refused it returns NULL with its base unchanged and nothing leaked (also a prefix copy or move that fails partway) |
+| `dsa/structures/btree.h` | insert stages every required split node before mutation; removal never allocates and clears the removed node owner; equal keys are allowed as distinct intrusive nodes |
+| `dsa/structures/treap.h` | insertion never allocates and reports duplicate keys; checked clones preserve topology and release accepted clones on failure |
+| `dsa/structures/paged_btree.h` | put and remove prepare every page (splits, borrows, merges) before changing any; pages a failed put took return to the free list |
+| `dsa/structures/topology_tree.h` | reserves cluster slots and work lists for the per-level bound before committing, so a committed update does not allocate; a failed commit still leaves an explicit broken state, and `ds_topology_tree_rebuild` repairs it |
+| `dsa/structures/pq_iface.h` | a copying meld stops at the failing item, with both queues valid and every item in exactly one of them |
+| `dsa/structures/pager.h` | `ds_pager_close` keeps dirty pages and can be retried; `ds_pager_discard` drops them |
+| `dsa/structures/map_iface.h` | put is all or nothing; removing a present key always succeeds |
+| `dsa/structures/yfast_trie.h` | a skipped rebalance leaves a bucket outside its bounds until a later update retries it |
+| `dsa/structures/zipper.h`, `dsa/structures/trie_stores.h` | release and destruction never need fresh memory |
+| `dsa/structures/trie.h` | insertion is all or nothing; with stores that have `next`, cloning is all or nothing (`clone_data` runs only on a complete copy) and destruction needs no memory |
+| `dsa/structures/hash_table.h` | a resize that runs out of memory leaves the table as it was, every entry included |
+| `dsa/structures/sstable.h`, `dsa/structures/paged_btree.h` | malformed stored data gives `DS_ERR_INVALID`, never a read outside the data; each also has a separate full verification call |
+| `dsa/structures/spiral_storage.h` | a put whose growth fails (memory or slot numbers) keeps the key; the table only gets fuller |
+| `dsa/structures/inverted_index.h` | a failed add restores every posting list it touched, bits and skip tables included, and removes the terms it created; compaction builds every new list before freeing an old one, so it is all or nothing |
+| `dsa/structures/dynamic_connectivity.h` | insert is all or nothing; a delete that runs out of memory while recording a replacement leaves an explicit broken state (`ds_dc_broken`), repaired by `ds_dc_rebuild`, which can be retried |
+| `dsa/structures/rrb_vector.h` | every update builds a new version; on failure the inputs are unchanged and no clone leaks |
+| `dsa/algorithms/delaunay.h` constraints | memory is reserved before any flip; a failure leaves a valid constrained triangulation of the segments already inserted, which are counted; a crossing segment is refused before anything changes |
+| `dsa/structures/rank_pairing_heap.h` | update and remove never allocate, so they cannot fail on a queued item |
+| `dsa/structures/chromatic_tree.h` | inserts and removes reserve their memory (nodes, a pending slot) before changing anything; rebalancing never allocates in eager mode (the path buffer covers any red-black height), and a deferred rebalance that cannot grow its path returns `DS_ERR_ALLOC` with the tree valid and the work still pending |
+| `dsa/structures/top_tree.h` | all memory is taken at init: no operation allocates or fails for lack of memory |
+| `dsa/algorithms/planarity.h` | every call allocates its working memory before it starts; an embedding is filled only on success and is otherwise left empty, safe to destroy; a too small certificate buffer gives `DS_ERR_RANGE` with the size needed |
+| `dsa/structures/suffix_array.h`, `dsa/structures/r_index.h` | builds are all or nothing: a failed build frees what it took and leaves nothing to destroy |
+| `dsa/structures/hollow_heap.h` | an update that cannot allocate its new node changes nothing |
+| `dsa/structures/strict_fibonacci_heap.h` | push takes its node, cell and at most two rank records before changing anything; update, remove and meld never allocate (an increase re-inserts the item's own node, and a meld recycles the absorbed heap's rank records) |
+| `dsa/structures/fusion_tree.h` | an insert takes every node its splits need before changing anything; remove and the queries never allocate; a bulk load builds the new tree before releasing the old one |
+| `dsa/structures/decremental_msf.h` | a deletion that runs out of memory while promoting or recording a replacement leaves an explicit broken state; `ds_dmsf_rebuild` starts over from the remaining edges |
+| `dsa/structures/dynamic_msf.h` | an insertion that cannot get its edge record changes nothing; an update that runs out of memory while rebuilding a deletions-only structure (or recording replacements) leaves an explicit broken state, in which updates return `DS_ERR_STATE` until `ds_dyn_msf_rebuild` builds everything again from the live edges |
+| `dsa/structures/fibonacci_heap.h` (item heap) | push takes its node before changing anything; pop, update, remove and meld never allocate (consolidation links through a degree table inside the heap) |
+| `dsa/structures/ordered_iface.h` fusion-tree backend | split and join build both new trees before releasing the old ones, so a failure leaves both sides as they were |
+| `dsa/algorithms/alternating_tm.h` | all or nothing: an error frees everything the exploration took and leaves `*out` unchanged |
+| `dsa/algorithms/sdp.h` | a solve takes its memory before iterating; after an error status the solution holds nothing, after any other status it must be destroyed; problems only grow by `ds_sdp_add`, which changes nothing when it cannot |
+| `dsa/algorithms/matrix.h` factorizations | they work in place: a failed Cholesky or LU leaves the factorization partly done; determinants and inverses factor a copy, taken before anything else |
+| `dsa/structures/ab_tree.h` | every insert and remove, and every split and join, takes all the nodes it may need before changing anything, so each is all or nothing |
+| `dsa/structures/ordered_iface.h` (a,b)-tree backend | split and join are the tree's own, all or nothing; they move nodes, so the two contexts must be compatible (`DS_ERR_INVALID` otherwise, with nothing moved) |
+| `dsa/algorithms/rdf_canon.h` | adding a quad or parsing a document changes nothing when it fails (a syntax error adds no quad and names the line); a canonicalization that fails (memory, a poison-dataset limit) leaves its result empty |
+| `dsa/algorithms/parallel_sim.h` | every call takes its memory before the first round; on failure the outputs are untouched |
+| `dsa/structures/lsm_tree.h` with a page store | an update whose log record cannot be buffered changes nothing; a flush or merge whose tables cannot be written changes nothing in memory; a failed publish keeps every update in the log; a publish that fails after its slot write began leaves the tree broken (`DS_ERR_STATE` for updates) until it is reopened, which recovers it |
+| `dsa/structures/amq_iface.h` images | a load checks the whole image, including a quotient filter's slot structure, so a loaded filter is one its backend could have built; images from another word width are `DS_ERR_UNSUPPORTED` |
+| `dsa/structures/wal_store.h` | a failed write or truncation changes nothing; a failed sync leaves its commit pending, and the next write, truncation or sync completes it first (failing, with nothing else changed, while it cannot); a failed checkpoint leaves the log as it was, and a log restart that fails is pending in the same way; after a crash the store opens as of the last completed sync (or the one under way, if its commit record landed) |
+| `dsa/structures/fault_store.h` | an injected failure changes nothing; a base-store failure during sync keeps the operations not yet applied for the next sync |
+| intrusive containers (`dsa/structures/list.h`, `dsa/structures/stack.h`, `dsa/structures/queue.h`, `dsa/structures/deque.h`, `dsa/structures/dlist.h`, `dsa/structures/ring_list.h`, `dsa/structures/circular_buffer.h`, `dsa/structures/heap.h`, `dsa/structures/bst.h`, `dsa/structures/avl.h`, `dsa/structures/rbt.h`, `dsa/structures/splay_tree.h`, `dsa/structures/treap.h`, `dsa/structures/btree.h`, `dsa/structures/bplus_tree.h`, `dsa/structures/skip_list.h`) | constructors return NULL when memory runs out, releasing what they took; `clone_ex` rolls back every clone it made through `destroy_clone` (`DS_ERR_CALLBACK` for a NULL clone, `DS_ERR_ALLOC`); a pointer-only clone returns NULL, and the clones it made before are not released; `dsa/structures/heap.h` and `dsa/structures/skip_list.h` insertion through `insert_ex` reports a failed allocation with nothing changed (the void insert leaves the node out); `dsa/structures/bplus_tree.h` insertion stages all split nodes and B* scratch space before mutation, and its checked clone rolls back an insertion failure |
+| pointer-returning constructors (`dsa/structures/order_statistic_tree.h`, `dsa/structures/bitvector.h`, `dsa/structures/wavelet_tree.h`, `dsa/structures/bloom_filter.h`, `dsa/structures/fenwick_tree.h`, `dsa/structures/segment_tree.h`, `dsa/structures/disjoint_set.h`, `dsa/structures/pairing_heap.h`, `dsa/structures/fibonacci_heap.h`, `dsa/structures/radix_trie.h`, `dsa/structures/aho_corasick.h`, `dsa/structures/hamt.h`, `dsa/structures/art.h`, `dsa/structures/rope.h`, `dsa/structures/bitset.h`, `dsa/structures/str.h`) | return NULL when memory runs out, releasing what they took, as do the clones they offer; `ds_bitvector_build_ex` keeps the old rank directory when the new one cannot be allocated |
+| `dsa/structures/hamt.h`, `dsa/structures/art.h`, `dsa/structures/radix_trie.h` | checked insertion prepares every new node, key and layout before publishing; errors preserve keys and values; ART/radix removal may skip optional compression without losing the deletion |
+| `dsa/structures/aho_corasick.h` | checked add constructs a missing path privately; checked compile reserves the BFS queue before replacing failure links; checked searches report compilation failure |
+| `dsa/structures/rope.h` | checked append, insert, delete, concat and rebalance prepare a balanced replacement root; errors preserve both inputs; concat rejects different allocator pairs and self-concat |
+| `dsa/core/result.h` | operations stage the payload handle and persistent diagnostic sequence; failure preserves inputs and output; callback side effects are outside this guarantee |
+| `dsa/core/i18n.h` | registration copies storage before replacing an entry; rendering publishes complete output only on success, including when a formatter ignores a writer failure |
+| `dsa/structures/persistent_rbt.h`, `dsa/structures/persistent_trie.h` | every update builds a new version; when memory or a clone is refused it returns NULL with its base unchanged and nothing leaked (also a prefix copy or move that fails partway) |
 
 ## Sources inside the destination
 
@@ -143,7 +143,7 @@ copies the source into the new block before the old one is freed, and an
 operation in place stages it where the move cannot reach. No path
 compares pointers into unrelated objects.
 
-The hash maps stage their key and value arguments with `lib/stage`: a
+The hash maps stage their key and value arguments with `dsa/core/stage.h`: a
 copy on the stack up to `DS_STAGE_BYTES` (256 by default, a compile-time
 setting), a block from the map's context beyond that. A map in fixed
 storage must not allocate, so it stages only what fits on the stack.
@@ -155,19 +155,19 @@ the map.
 
 | Module | Operations |
 |---|---|
-| `lib/vec` | push, append, insert and insert_n, the fill of resize |
-| `lib/array_deque` | push_back, push_front, insert, set, push_back_overwrite |
-| `lib/gap_buffer` | insert (a stretch on either side of the gap) |
-| `lib/str` | append, insert, assign, and the arguments of the formatted appends |
-| `lib/slot_map` | insert (a value from `ds_slot_map_get`) |
-| `lib/lru_cache`, `lib/sieve_cache` | put (a value peeked from the entry it evicts) |
-| `lib/min_max_heap`, `lib/monotonic_queue` | push (one of the heap's ends, the queue's own front) |
-| `lib/rh_map` | put, insert and emplace (keys and values read from the map, which moves entries as it places one) |
-| `lib/swiss_map`, `lib/cuckoo_map`, `lib/open_map`, `lib/coalesced_map`, `lib/linear_hash_map`, `lib/extendible_hash` | put, insert and emplace (another entry's value as the value or the key, while the table grows or splits) |
-| `lib/map_iface` | put on every backend (it reports the backend's own status) |
-| `lib/implicit_treap` | insert and set (an element from `ds_itreap_at`), apply (a tag that is an element of the range it updates) |
-| `lib/rope` | append and insert may read bytes in the current rope; the old root stays alive until publication |
-| `lib/graph` | update_edge keeps data it is given back: the old data is destroyed only when replaced |
+| `dsa/structures/vec.h` | push, append, insert and insert_n, the fill of resize |
+| `dsa/structures/array_deque.h` | push_back, push_front, insert, set, push_back_overwrite |
+| `dsa/structures/gap_buffer.h` | insert (a stretch on either side of the gap) |
+| `dsa/structures/str.h` | append, insert, assign, and the arguments of the formatted appends |
+| `dsa/structures/slot_map.h` | insert (a value from `ds_slot_map_get`) |
+| `dsa/structures/lru_cache.h`, `dsa/structures/sieve_cache.h` | put (a value peeked from the entry it evicts) |
+| `dsa/structures/min_max_heap.h`, `dsa/structures/monotonic_queue.h` | push (one of the heap's ends, the queue's own front) |
+| `dsa/structures/rh_map.h` | put, insert and emplace (keys and values read from the map, which moves entries as it places one) |
+| `dsa/structures/swiss_map.h`, `dsa/structures/cuckoo_map.h`, `dsa/structures/open_map.h`, `dsa/structures/coalesced_map.h`, `dsa/structures/linear_hash_map.h`, `dsa/structures/extendible_hash.h` | put, insert and emplace (another entry's value as the value or the key, while the table grows or splits) |
+| `dsa/structures/map_iface.h` | put on every backend (it reports the backend's own status) |
+| `dsa/structures/implicit_treap.h` | insert and set (an element from `ds_itreap_at`), apply (a tag that is an element of the range it updates) |
+| `dsa/structures/rope.h` | append and insert may read bytes in the current rope; the old root stays alive until publication |
+| `dsa/structures/graph.h` | update_edge keeps data it is given back: the old data is destroyed only when replaced |
 
 ## Cursors and handles
 
@@ -204,14 +204,13 @@ the map.
 
 - **Stack depth.** Intrusive, implicit, augmented, ordered-capability,
   Euler-tour and enfilade treaps, the randomized BST, and the visibility
-  sweep's status tree now use iterative paths even with degenerate shapes.
+  sweep's status tree use iterative paths even with degenerate shapes.
   Expected logarithmic running time is not a deterministic height bound.
   Other balanced trees and divide-and-conquer routines retain recursion,
   bounded by their structural height or shrinking subproblem; index widths,
-  explicit depth limits and fixed Unicode data bound other reviewed cases.
+  explicit depth limits and fixed Unicode data bound other traversals.
   Generic-trie stores without `next` and user callbacks can still recurse.
-  See `recursion-review.md` for the reviewed families, exceptions and limits
-  of the source audit; `container-lifetimes.md` covers borrowed cursors.
+  [Mutation and lifetimes](container-lifetimes.md) covers borrowed cursors.
 - **Rope.** Nodes form an AVL tree with at most 64 bytes per leaf. Indexing
   and joining use logarithmic tree height; building inserted text is linear
   in its byte length. Split-based edits have a conservative O(log² leaves)
@@ -304,8 +303,9 @@ the map.
 - **Persistent LSM tree.** A sync writes the pending log records (about
   one page per page of records, plus the partly filled page) and syncs
   once; a flush also writes the new tables and a manifest and syncs twice.
-  Recovery reads every table into memory and replays the log, then flushes
-  what it replayed.
+  Recovery replays the log, then flushes what it replayed. In-memory mode
+  loads the tables; `out_of_core` retains their indexes and filters and reads
+  data blocks through the pager (see below).
 - **Write-ahead-logged store.** A write costs one log page (plus a header
   page per (page size - 48) / 16 entries) and a sync one header write and
   one log sync. Reads cost an index lookup and one page read; logged pages
@@ -348,7 +348,7 @@ Augmented structures state the laws their callbacks must satisfy:
 
 ## Outcomes
 
-Statuses already separate several outcomes:
+Statuses distinguish operational outcomes:
 
 - `DS_OK`, `DS_EXISTS` (an insert that replaced an existing value),
   `DS_NOT_FOUND`, `DS_EMPTY` and `DS_STOP` are successes.
@@ -356,10 +356,10 @@ Statuses already separate several outcomes:
 - `DS_SUCCEEDED` only says the status is not an error. It does not say that a
   payload exists, so lookups that can miss report `DS_NOT_FOUND` explicitly.
 
-`lib/result` now carries an explicitly tagged domain value/error, independent
+`dsa/core/result.h` carries an explicitly tagged domain value/error, independent
 of NULL and diagnostic severity, with owned or borrowed payloads and an ordered
 immutable log. Its operational return status remains separate from that domain
-outcome. Existing cheap status/value pairs remain available. See
+outcome. Lightweight status/value pairs are also available. See
 [result-i18n.md](result-i18n.md) for lifetimes and composition. The distinctions
 below remain the responsibility of the domain payload; the Result layer does
 not guess them from diagnostics.
@@ -410,9 +410,6 @@ The shadow backend scans its logarithmic shadow for top; its cost metadata
 conservatively allows logarithmic-squared folding during removal. Array growth
 can make a push linear. See `examples/addressable_schedulers.c`.
 
-These additions extend public heap structs. Recompile clients when updating
-the library; source entry points and the default heap behavior are retained.
-
 ## Callback-backed SSTables and LSM reads
 
 `ds_sstable_open_reader` accepts an immutable byte source with an exact-read
@@ -437,10 +434,10 @@ table owns a pager with configurable frame count, page-map backend and eviction
 policy. Retiring the table retires its cache, preventing stale pages when an
 extent is reused. Newly flushed and compacted tables also switch to callback
 reads after their bytes are stored. An LSM lookup's value is conservatively
-borrowed until the next get, mutation or destruction. Existing in-memory mode
-remains the default. Flush and compaction output are still assembled in memory;
+borrowed until the next get, mutation or destruction. In-memory mode
+is the default. Flush and compaction output are still assembled in memory;
 this option bounds retained table data during reads, not write-side building.
-The file format and page-store durability contract are unchanged. See
+See
 `examples/sstable_reader.c` and `examples/paged_catalog.c`.
 
 ## Persistent trie storage
@@ -466,7 +463,7 @@ synchronized; use checked retain to detect exhaustion. See
 
 ## History archive and merge contracts
 
-History storage now accepts a context, and checked branch/transaction/edit APIs
+History storage accepts a context, and checked branch/transaction/edit APIs
 report allocation failure and ID/time exhaustion. Checked portable import stages
 all branches and payloads, validates parent/ID/order relationships, enforces
 optional resource limits, and uses configurable ordered maps for ID indexes.
@@ -485,16 +482,3 @@ skipped/failed operations even when the clone returns the original address.
 
 `history_catalog` uses three different map/ordered backends to merge inventory
 edits, keep a newer target change, serialize, and reopen a NULL payload marker.
-Normal and ASan/UBSan runs succeeded. GCC's analyzer reports no diagnostics for
-both history implementation units. No exhaustive failure-sequence claim is made.
-
-
-## Completed legacy API migration
-
-`legacy-api-migration.md` inventories the new compatible checked paths. The
-original entry points remain, including their documented unchecked arithmetic,
-callback and ownership preconditions. The new constructors/clones propagate
-contexts; checked visitors stop explicitly; fallible clones have rollback
-cleanup. Public structures grew and all consumers must be rebuilt. This pass
-also gives segment-tree arithmetic rollback, cross-owner string swapping,
-checked nullable hash/trie payload cloning, and typed trie slice callbacks.

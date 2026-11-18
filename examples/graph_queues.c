@@ -1,13 +1,13 @@
 /*
  * One graph, several priority queues. The graph is plain CSR arrays read
  * through a graph view, never copied into an owning graph; Dijkstra runs
- * with each lib/pq_iface backend in turn and a reused workspace. Every
- * backend gives the same distances; what changes is the cost of each
+ * with each dsa/structures/pq_iface.h backend in turn and a reused workspace.
+ * Every backend gives the same distances; what changes is the cost of each
  * operation, which the backend states in ops->costs and Dijkstra inherits
  * (V pushes and pops, up to E decreases).
  */
-#include "ds.h"
-#include "ds_algo.h"
+#include <dsa.h>
+#include <dsaa.h>
 #include <math.h>
 #include <stdio.h>
 

@@ -1,7 +1,7 @@
 /* Competing shipments share road capacity. Model construction is separate
  * from solver choice, and each returned plan is validated before publication.
  */
-#include "ds_algo.h"
+#include <dsaa.h>
 #include <stdio.h>
 
 static ds_status_t choose_solver(const ds_lp_t *lp,

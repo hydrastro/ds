@@ -6,7 +6,7 @@
  * branch, each key's sketch, and the packed word the query is compared
  * against in one subtraction.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 typedef struct {

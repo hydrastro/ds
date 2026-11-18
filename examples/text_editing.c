@@ -1,6 +1,6 @@
 /* Compose a rope editor, an Aho-Corasick matcher and a B* record index.
  * Checked edits report operational failures before publishing replacements. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

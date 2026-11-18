@@ -1,6 +1,6 @@
 /* One set of records, two independent intrusive indexes, context allocation,
  * checked edits, cloned snapshots and callback-local state. */
-#include "ds.h"
+#include <dsa.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>

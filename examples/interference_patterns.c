@@ -1,5 +1,5 @@
 /* Small classical amplitude simulations, with explicit storage/shot limits. */
-#include "ds_algo.h"
+#include <dsaa.h>
 #include <stdio.h>
 
 static ds_status_t parity(size_t x, size_t *out, void *user) {

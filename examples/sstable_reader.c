@@ -1,6 +1,6 @@
 /* Write an immutable catalog, then query it through a bounded read callback.
  * Usage: sstable_reader OUTPUT.sst (replaces this example's output file). */
-#include "lib/sstable.h"
+#include <dsa/structures/sstable.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,5 +1,5 @@
 /* Ordered split/join, noncommutative summaries and a movable text timeline. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

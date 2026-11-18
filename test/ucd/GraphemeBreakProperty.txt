@@ -1,3 +1,0 @@
-030A ; Extend # Mn COMBINING RING ABOVE
-1F3FB..1F3FF ; Extend # emoji modifiers
-200D ; ZWJ # ZERO WIDTH JOINER

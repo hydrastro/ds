@@ -1,5 +1,5 @@
 {
-  description = "ds";
+  description = "Data structures and algorithms in C";
 
   inputs = { nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable"; };
 
@@ -11,8 +11,8 @@
       packages = forAllSystems (system:
         let pkgs = import nixpkgs { inherit system; };
         in rec {
-          ds = pkgs.stdenv.mkDerivation {
-            pname = "ds";
+          dsa = pkgs.stdenv.mkDerivation {
+            pname = "dsa";
             version = "0.0.0";
             src = ./.;
 
@@ -27,7 +27,7 @@
             '';
 
             meta = with pkgs.lib; {
-              description = "Data structure library";
+              description = "Data structures and algorithms in C";
               license = {
                 shortName = "dw";
                 fullName = "Do Whatever License";
@@ -39,7 +39,7 @@
             };
           };
 
-          default = ds;
+          default = dsa;
         });
 
       devShells = forAllSystems (system:
@@ -50,6 +50,5 @@
           };
         });
 
-      defaultPackage = forAllSystems (system: self.packages.${system}.default);
     };
 }

@@ -6,7 +6,7 @@
  * The suffix array comes from SA-IS, which also yields the LCP array: its
  * maximum is the longest repeated substring.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -5,7 +5,7 @@
  * by index or symbol. The bitvector adds rank/select over a frozen bitset; the
  * wavelet tree generalizes rank/select to an alphabet of symbols.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static void bitset_demo(void) {

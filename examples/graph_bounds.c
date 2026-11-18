@@ -1,13 +1,13 @@
 /*
  * Semidefinite programs as bounds for hard graph problems. Lovasz's theta
  * lies between the independence number and the clique cover number, and
- * the exact searches of algo/graph_np show where in that window it falls.
- * Goemans and Williamson's relaxation bounds the maximum cut, and random
+ * the exact searches of dsa/algorithms/graph_np.h show where in that window it
+ * falls. Goemans and Williamson's relaxation bounds the maximum cut, and random
  * hyperplanes through its vectors turn it into a cut. Last, a small
  * semidefinite program read from the SDPA format, with its certificate.
  */
-#include "ds.h"
-#include "ds_algo.h"
+#include <dsa.h>
+#include <dsaa.h>
 #include <stdio.h>
 
 #define MAXN 16

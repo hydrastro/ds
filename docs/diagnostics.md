@@ -1,6 +1,6 @@
 # Diagnostics and errors
 
-`ds` splits failure reporting into status, errors, and diagnostics.
+`dsa` splits failure reporting into status, errors, and diagnostics.
 
 - `ds_status_t` is the cheap return value used for control flow.
 - `ds_error_t` is the primary machine-readable failure object.
@@ -82,7 +82,7 @@ ds_context_set_diagnostic_sink(&ctx, ds_diagnostics_sink(&diagnostics));
 
 Modules can then emit structured diagnostics through the context.
 
-The collector now owns snapshots: it copies IDs, messages, source strings,
+The collector owns snapshots: it copies IDs, messages, source strings,
 argument names, and string argument values. A producer may pass stack-local
 arguments. `DS_ARG_PTR` copies the pointer only; its pointee remains borrowed.
 The public `items` array is a read-only view, valid until the collector changes.
@@ -91,7 +91,7 @@ immutable event. Snapshot reference counts are not atomic.
 
 `ds_diagnostics_add`, `append` and `filter` report failures with a status and
 leave their destination sequence unchanged on failure. Check those returns.
-An emission through the legacy void sink cannot return a failure; the collector
+An emission through the void sink cannot return a failure; the collector
 records the first failure in `diagnostics.status`. Clearing the collector resets
 that status. Result construction refuses a collector with a recorded failure
 instead of silently treating a partial sequence as complete.
@@ -110,7 +110,7 @@ callback's diagnostics, including when that callback returns a domain error.
 functions' returned `ds_status_t` reports operational failure (for example an
 allocation failure); `is_ok` and `is_err` inspect the domain outcome.
 
-`lib/i18n` translates ordinary messages and renders diagnostic IDs through
+`dsa/core/i18n.h` translates ordinary messages and renders diagnostic IDs through
 separate catalog domains. Missing ordinary translations emit a NOTICE; missing
 diagnostic translations use a quiet fallback to prevent recursive reporting.
 Severity is ordered DEBUG=0 through EMERGENCY=7. Neither a diagnostic nor a

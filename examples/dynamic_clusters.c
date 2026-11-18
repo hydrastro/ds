@@ -5,7 +5,7 @@
  * clusters keep hanging populations. Routes, regions (subtrees) and
  * searches along a route are answered as roads are cut and built.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

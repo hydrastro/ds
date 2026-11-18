@@ -12,7 +12,7 @@
  * refused instead of hanging. (Without callbacks the suite is HMAC-SHA256
  * with a shared key.)
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

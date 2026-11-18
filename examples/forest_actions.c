@@ -1,5 +1,5 @@
 /* Component and edge-side updates through lazy Euler-tour aggregates. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static void summarize(void *out, const void *elem, void *user) {

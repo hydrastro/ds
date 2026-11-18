@@ -6,7 +6,7 @@
  * in lexicographic order. Internally the nodes grow and shrink between four
  * layouts (4/16/48/256 children) so memory tracks the actual fan-out.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

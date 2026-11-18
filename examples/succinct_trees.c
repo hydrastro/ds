@@ -5,7 +5,7 @@
  * directories; they number nodes differently, so each reports which input
  * node it means.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 /*        0

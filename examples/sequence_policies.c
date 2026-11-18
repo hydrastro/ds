@@ -1,6 +1,6 @@
 /* Lazy sequence editing, randomized ordered catalogs, and visibility rays. */
-#include "algo/visibility.h"
-#include "ds.h"
+#include <dsa.h>
+#include <dsa/algorithms/visibility.h>
 #include <stdio.h>
 #include <string.h>
 

@@ -1,6 +1,6 @@
 /* Catalog import/export, exact-decimal plural selection and formatting policy.
  * Usage: localized_catalog [output.tsv] */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

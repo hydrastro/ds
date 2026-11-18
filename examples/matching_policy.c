@@ -1,5 +1,5 @@
 /* Require an exact integer matching and inspect the solver's mode. */
-#include "algo/weighted_matching.h"
+#include <dsa/algorithms/weighted_matching.h>
 #include <stdio.h>
 
 int main(void) {

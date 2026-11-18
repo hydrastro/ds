@@ -1,9 +1,9 @@
 /* Nullable values and stoppable visitors, with caller-owned policy data. */
-#include "lib/aho_corasick.h"
-#include "lib/art.h"
-#include "lib/disjoint_set.h"
-#include "lib/hamt.h"
-#include "lib/radix_trie.h"
+#include <dsa/structures/aho_corasick.h>
+#include <dsa/structures/art.h>
+#include <dsa/structures/disjoint_set.h>
+#include <dsa/structures/hamt.h>
+#include <dsa/structures/radix_trie.h>
 #include <stdio.h>
 
 static ds_status_t visit_bytes(const unsigned char *key, size_t length,

@@ -29,7 +29,7 @@ turning memory exhaustion into a fabricated application error.
 | `andThen` | runs only on success; preceding diagnostics come before callback diagnostics |
 | error mapping/recovery | `map_error`, `or_else`, with the corresponding error-branch behavior |
 | `drainTo` | emits without consuming the source, preserving the source sequence |
-| immutable `Diagnostics` | Result logs use the existing RRB vector of immutable snapshot handles |
+| immutable `Diagnostics` | Result logs use the RRB vector of immutable snapshot handles |
 
 An initialized, empty Result is `DS_RESULT_UNINITIALIZED`, not a domain error.
 Use a constructor before querying or composing it. All outputs must be
@@ -61,9 +61,9 @@ const by the C type system. A schema's callback state and every allocation
 context must outlive all retained owners that use them. Reference counts are
 not atomic; synchronize shared ownership operations externally.
 
-The cheap existing `ds_result_ptr_t` and `ds_result_size_t` status/value pairs
-remain available. Existing DS APIs are not forced to allocate an owned Result;
-applications wrap outcomes where composition and accumulated diagnostics help.
+The lightweight `ds_result_ptr_t` and `ds_result_size_t` types pair an
+operational status with a value. Use an owned Result when domain composition
+and accumulated diagnostics help; each application chooses that boundary.
 
 ## Diagnostics and sharing
 

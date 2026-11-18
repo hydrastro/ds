@@ -4,7 +4,7 @@
  * every other edge stays as Delaunay as the constraints allow. The wall
  * runs through a point on it, where it is split.
  */
-#include "ds_algo.h"
+#include <dsaa.h>
 #include <stdio.h>
 
 int main(void) {

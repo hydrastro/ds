@@ -1,0 +1,352 @@
+#ifndef DS_SSTABLE_H
+#define DS_SSTABLE_H
+
+/*
+ * SSTables (sorted string tables): immutable dictionaries of byte-string
+ * keys and values, the files of log-structured merge (LSM) trees.
+ *
+ * Layout (all integers little-endian, lengths as LEB128 varints):
+ *   data blocks   key/value entries in key order, each key stored as the
+ *                 length it shares with the previous key plus the rest
+ *                 (prefix compression), with a restart point (a full key)
+ *                 every `restart_interval` entries and the restart offsets
+ *                 at the end of the block, so a block is searched by
+ *                 binary search over its restarts, then a short scan
+ *   index block   the last key of each data block with its offset and size
+ *   filter block  optional: the built-in Bloom filter over all keys
+ *                 (bits_per_key), or the image of an AMQ filter from any
+ *                 dsa/structures/amq_iface.h backend (options.filter)
+ *   footer        index and filter positions, entry count, comparator id,
+ *                 the filter kind (version 3), a CRC-32C of everything
+ *                 before the checksum (data and the footer's own fields)
+ *                 and a magic number
+ * Keys order by a comparator: bytes (memcmp, shorter prefix first) by
+ * default, or a ds_sstable_comparator_t whose id is recorded in the
+ * footer, so a table is only opened with the order it was written in. A
+ * value may be a tombstone (a deletion marker for merging).
+ *
+ * Format versions: version 3 adds the filter kind and is written for
+ * tables with an AMQ filter; other tables are still written as version 2
+ * (CRC-32C over the data and the footer fields), which older readers
+ * understand; version 1 tables (FNV-1a over the data only, bytewise keys)
+ * are still read.
+ *
+ * AMQ filters: the builder hashes every key to an unsigned long (64-bit
+ * FNV-1a with a finalizer where unsigned long has 64 bits, the built-in
+ * filter's 32-bit hash otherwise) and builds the chosen backend over the
+ * hashes, enlarging it if a backend with exact capacity overflows. Images
+ * depend on the width of unsigned long (see dsa/structures/amq_iface.h), so a
+ * table whose filter this platform cannot load (another width, an unknown
+ * backend) opens without a filter and stays readable;
+ * ds_sstable_has_filter() tells. ds_sstable_open and ds_sstable_open_cmp
+ * never allocate and so ignore an AMQ filter; ds_sstable_open_ex loads
+ * it, and such a table is released with ds_sstable_close.
+ *
+ * Untrusted input: every length, offset and count read from a table is
+ * checked against the table's bounds with overflow-checked arithmetic
+ * before use, and no read path recurses on table contents, so any byte
+ * string is safe to open, search and iterate: malformed tables yield
+ * DS_ERR_INVALID, never an out-of-bounds read. The checksum detects
+ * accidental corruption only; it is not a signature. ds_sstable_open
+ * checks the footer, checksum and region layout in O(len);
+ * ds_sstable_verify additionally checks the whole structure (block
+ * tiling, restart points, key order within and across blocks, index keys,
+ * entry count, the placement of the filter, the structure of an AMQ
+ * filter this platform can load, and optionally every key against the
+ * filter), so a table that verifies is one the builder could have
+ * written. Without verification a corrupted but checksum-matching table
+ * can only give wrong answers, not unsafe reads.
+ *
+ * ds_sstable_builder_t writes a table into memory from keys added in
+ * strictly increasing order; ds_sstable_t reads one in place (zero-copy)
+ * with point lookups, a filter probe and iterators with seek;
+ * ds_sstable_merge compacts several tables (newest first: on equal keys
+ * the newest entry wins) into one, optionally dropping tombstones, as an
+ * LSM compaction does. Tables are limited to 2 GiB (DS_SSTABLE_MAX_LEN).
+ *
+ * Memory comes from the ds_context_t.
+ */
+
+#include <dsa/core/context.h>
+#include <dsa/core/status.h>
+#include <dsa/structures/amq_iface.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define DS_SSTABLE_MAX_LEN 0x7FFFFFFFUL
+
+/* filter kinds */
+#define DS_SSTABLE_FILTER_NONE 0u
+#define DS_SSTABLE_FILTER_BLOOM 1u /* the built-in Bloom filter */
+#define DS_SSTABLE_FILTER_AMQ 2u   /* an AMQ filter image */
+/* flag with a filter kind: the filter hashes keys with a key hash given
+ * for a custom comparator (version 3 footers) */
+#define DS_SSTABLE_FILTER_KEYED 0x100u
+
+/* Key order. compare returns <0, 0, >0 like memcmp; it must be a strict
+ * weak order consistent across runs, since tables persist it. id names
+ * the order in the footer (0 is reserved for the bytewise order); tables
+ * and readers must agree on it. Copied into builders and tables.
+ * Filters hash bytes, and a custom order may equate keys whose bytes
+ * differ, so tables with a custom comparator carry no filter unless the
+ * builder's options name a key hash consistent with it (below). */
+typedef int (*ds_sstable_cmp_fn)(const unsigned char *a, size_t a_len,
+                                 const unsigned char *b, size_t b_len,
+                                 void *user);
+typedef struct ds_sstable_comparator {
+  ds_sstable_cmp_fn compare;
+  void *user;
+  unsigned long id;
+} ds_sstable_comparator_t;
+
+/* the default: bytes in memcmp order, shorter prefix first; id 0 */
+const ds_sstable_comparator_t *ds_sstable_bytewise(void);
+
+/* A key hash for a custom comparator: keys that compare equal must hash
+ * equally. Tables keep filters built from it under the comparator's id,
+ * so it must not change between runs either. Builders given one keep
+ * their filters and mark them keyed (version 3 footers, which readers
+ * that predate keyed filters refuse). A reader uses a keyed filter once
+ * the same hash is attached with ds_sstable_set_key_hash, and bypasses it
+ * otherwise, as it bypasses the raw-byte filters of older images with a
+ * custom order. The hash is mixed before use, so a plain one will do. */
+typedef unsigned long (*ds_sstable_hash_fn)(const unsigned char *key,
+                                            size_t len, void *user);
+typedef struct ds_sstable_key_hash {
+  ds_sstable_hash_fn hash;
+  void *user;
+} ds_sstable_key_hash_t;
+
+/* How tables are written. */
+typedef struct ds_sstable_options {
+  size_t block_size;       /* 0: 4096 */
+  size_t restart_interval; /* 0: 16 */
+  size_t bits_per_key;     /* the built-in Bloom filter, at most 32; 0: none */
+  /* an AMQ backend for the filter instead (bits_per_key must then be 0);
+   * it must support images. NULL: the built-in filter or none */
+  const ds_amq_ops_t *filter;
+  unsigned filter_fp_bits;                   /* its fp_bits (0: default) */
+  const ds_sstable_comparator_t *comparator; /* NULL: bytewise */
+  /* a custom comparator's key hash, which keeps the filter (NULL: tables
+   * with a custom comparator get none); ignored for bytewise keys */
+  const ds_sstable_key_hash_t *key_hash;
+} ds_sstable_options_t;
+
+/* all defaults: 4096-byte blocks, restarts every 16 entries, no filter,
+ * bytewise keys */
+void ds_sstable_options_init(ds_sstable_options_t *options);
+
+typedef struct ds_sstable_builder {
+  unsigned char *buf; /* the table so far */
+  size_t len;
+  size_t cap;
+  size_t block_size;
+  size_t restart_interval;
+  size_t bits_per_key;
+  const ds_amq_ops_t *filter_ops; /* AMQ filter backend, or NULL */
+  unsigned filter_fp_bits;
+  /* current data block */
+  size_t block_start;
+  size_t block_entries;
+  unsigned long *restarts; /* offsets within the block */
+  size_t restart_count;
+  size_t restart_cap;
+  unsigned char *last_key;
+  size_t last_len;
+  size_t last_cap;
+  bool has_last;
+  /* index entries: last key, offset, size */
+  unsigned char *index; /* encoded index block entries */
+  size_t index_len;
+  size_t index_cap;
+  size_t index_entries;
+  /* key hashes for the filter */
+  unsigned long *hashes;
+  size_t hash_count;
+  size_t hash_cap;
+  size_t entries;
+  ds_status_t error;
+  ds_sstable_comparator_t cmp;
+  ds_sstable_key_hash_t key_hash; /* when keyed */
+  bool keyed;                     /* filters hash with key_hash */
+  ds_context_t *context;
+} ds_sstable_builder_t;
+
+/* block_size (0: 4096), restart_interval >= 1 (0: 16), bits_per_key (0:
+ * no filter, at most 32). */
+ds_status_t ds_sstable_builder_init(ds_sstable_builder_t *b, size_t block_size,
+                                    size_t restart_interval,
+                                    size_t bits_per_key, ds_context_t *context);
+void ds_sstable_builder_destroy(ds_sstable_builder_t *b);
+/* the same with a key order (NULL: bytewise); DS_ERR_INVALID for a
+ * comparator without compare or a non-bytewise one with id 0 */
+ds_status_t ds_sstable_builder_init_cmp(ds_sstable_builder_t *b,
+                                        size_t block_size,
+                                        size_t restart_interval,
+                                        size_t bits_per_key,
+                                        const ds_sstable_comparator_t *cmp,
+                                        ds_context_t *context);
+/* the same from options (NULL: defaults); DS_ERR_INVALID for an invalid
+ * comparator, bits_per_key above 32, or both bits_per_key and filter;
+ * DS_ERR_UNSUPPORTED for a filter backend without images */
+ds_status_t ds_sstable_builder_init_opts(ds_sstable_builder_t *b,
+                                         const ds_sstable_options_t *options,
+                                         ds_context_t *context);
+/* Keys strictly increasing (DS_ERR_INVALID otherwise). */
+ds_status_t ds_sstable_builder_add(ds_sstable_builder_t *b, const void *key,
+                                   size_t key_len, const void *value,
+                                   size_t value_len);
+ds_status_t ds_sstable_builder_add_tombstone(ds_sstable_builder_t *b,
+                                             const void *key, size_t key_len);
+/* The finished table: *out (from the context, freed by the caller with
+ * ds_context_free) and its length. The builder is spent afterwards. */
+ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
+                                      unsigned char **out, size_t *out_len);
+
+/* Immutable byte source. read must fill the complete requested range or
+ * return an error. Positive statuses become DS_ERR_CALLBACK. The source and
+ * its user state must outlive the table. Limits of zero mean no additional
+ * limit beyond the format's 2 GiB bound. */
+typedef struct ds_sstable_source {
+  ds_status_t (*read)(void *user, size_t offset, void *buffer, size_t count);
+  void *user;
+  size_t length;
+  size_t max_metadata_bytes;
+  size_t max_block_bytes;
+} ds_sstable_source_t;
+
+void ds_sstable_source_init(ds_sstable_source_t *source);
+struct ds_sstable_reader;
+
+typedef struct ds_sstable {
+  const unsigned char *data;
+  size_t len;
+  size_t index_off;
+  size_t index_len;
+  size_t filter_off;
+  size_t filter_len;
+  size_t entries;
+  unsigned version;     /* format version, 1 to 3 */
+  unsigned filter_kind; /* DS_SSTABLE_FILTER_* */
+  unsigned filter_id;   /* the AMQ backend id, for DS_SSTABLE_FILTER_AMQ */
+  ds_amq_t amq;         /* the loaded AMQ filter (ops NULL when not loaded) */
+  ds_sstable_comparator_t cmp;
+  bool keyed;                       /* the filter hashes with a key hash */
+  ds_sstable_key_hash_t key_hash;   /* attached by ds_sstable_set_key_hash */
+  struct ds_sstable_reader *reader; /* owned callback-reader state, or NULL */
+} ds_sstable_t;
+
+/* Checks the footer, checksum and region layout (bytewise order); the
+ * bytes must outlive the table. DS_ERR_INVALID for anything malformed or
+ * for a table written with another comparator. */
+/* CRC-32C (Castagnoli), the checksum tables carry, for other formats to
+ * share: the CRC of n bytes at p continuing from crc (0 to start) */
+unsigned long ds_sstable_crc32c(unsigned long crc, const void *p, size_t n);
+
+ds_status_t ds_sstable_open(ds_sstable_t *t, const void *data, size_t len);
+/* the same with the table's key order (NULL: bytewise) */
+ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,
+                                const ds_sstable_comparator_t *cmp);
+/* the same, also loading an AMQ filter with memory from the context: with
+ * the backend `filter` when the image has its id, with a built-in backend
+ * otherwise; a filter no backend here can load is skipped. A malformed
+ * filter image is DS_ERR_INVALID. Release with ds_sstable_close. */
+ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
+                               const ds_sstable_comparator_t *cmp,
+                               const ds_amq_ops_t *filter,
+                               ds_context_t *context);
+/* Streams checksum verification with bounded scratch space, then retains
+ * index/filter metadata. Data blocks are read on demand. Allocation limits
+ * above yield DS_ERR_OVERFLOW; source failures propagate. Close on success;
+ * failure leaves a zeroed table. Do not open over an already open table.
+ * Opening still reads all bytes for integrity, but never retains all data. */
+ds_status_t ds_sstable_open_reader(ds_sstable_t *t,
+                                   const ds_sstable_source_t *source,
+                                   const ds_sstable_comparator_t *cmp,
+                                   const ds_amq_ops_t *filter,
+                                   ds_context_t *context);
+/* frees a loaded filter and callback-reader state; not the byte source */
+void ds_sstable_close(ds_sstable_t *t);
+/* attaches the key hash a keyed filter was built with (NULL detaches it);
+ * it must be the builder's, or lookups may miss keys */
+ds_status_t ds_sstable_set_key_hash(ds_sstable_t *t,
+                                    const ds_sstable_key_hash_t *hash);
+/* true when may_contain can rule keys out */
+bool ds_sstable_has_filter(const ds_sstable_t *t);
+/* full structural check in O(len) plus O(longest key) memory (and one data
+ * block for a callback reader); check_filter also probes every key. Source
+ * errors propagate; DS_ERR_INVALID means malformed structure. */
+ds_status_t ds_sstable_verify(const ds_sstable_t *t, bool check_filter,
+                              ds_context_t *context);
+size_t ds_sstable_entries(const ds_sstable_t *t);
+size_t ds_sstable_blocks(const ds_sstable_t *t);
+/* false when the filter rules the key out (true without a usable
+ * filter). */
+bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
+                            size_t key_len);
+/* DS_OK with the value or DS_NOT_FOUND; a tombstone sets *out_tombstone.
+ * Memory tables borrow the image. Callback tables cache one lookup iterator:
+ * the value lasts until their next get or close, using the opening context
+ * (the context argument here is for memory-table key decoding). Synchronize
+ * gets on the same callback table. Separate iterators have separate buffers. */
+ds_status_t ds_sstable_get(const ds_sstable_t *t, const void *key,
+                           size_t key_len, const unsigned char **out_value,
+                           size_t *out_value_len, bool *out_tombstone,
+                           ds_context_t *context);
+
+typedef struct ds_sstable_iter {
+  const ds_sstable_t *table;
+  size_t block;       /* index entry */
+  size_t block_off;   /* data block start */
+  size_t block_len;   /* entries part (before the restarts) */
+  size_t pos;         /* next entry offset within the block */
+  unsigned char *key; /* decoded current key */
+  size_t key_len;
+  size_t key_cap;
+  const unsigned char *value;
+  size_t value_len;
+  bool tombstone;
+  bool valid;
+  ds_status_t error;
+  ds_context_t *context;
+  unsigned char *block_data; /* callback reader's owned current block */
+  size_t block_cap;
+} ds_sstable_iter_t;
+
+ds_status_t ds_sstable_iter_init(ds_sstable_iter_t *it, const ds_sstable_t *t,
+                                 ds_context_t *context);
+void ds_sstable_iter_destroy(ds_sstable_iter_t *it);
+/* Iterator key/value views last until its next positioning call or destroy.
+ * The table and immutable source must outlive it. No concurrent table close. */
+ds_status_t ds_sstable_iter_first(ds_sstable_iter_t *it);
+/* The first entry with key >= the given key. */
+ds_status_t ds_sstable_iter_seek(ds_sstable_iter_t *it, const void *key,
+                                 size_t key_len);
+ds_status_t ds_sstable_iter_next(ds_sstable_iter_t *it);
+bool ds_sstable_iter_valid(const ds_sstable_iter_t *it);
+
+/* tables[0] is the newest; the merged table uses the builder settings and
+ * the tables' key order, which must be the same for all of them
+ * (DS_ERR_INVALID otherwise). */
+ds_status_t ds_sstable_merge(const ds_sstable_t *tables, size_t n,
+                             bool drop_tombstones, size_t block_size,
+                             size_t restart_interval, size_t bits_per_key,
+                             unsigned char **out, size_t *out_len,
+                             ds_context_t *context);
+/* the same with the output written by options (NULL: defaults); a
+ * comparator set there must be the tables' (DS_ERR_INVALID otherwise) */
+ds_status_t ds_sstable_merge_opts(const ds_sstable_t *tables, size_t n,
+                                  bool drop_tombstones,
+                                  const ds_sstable_options_t *options,
+                                  unsigned char **out, size_t *out_len,
+                                  ds_context_t *context);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* DS_SSTABLE_H */

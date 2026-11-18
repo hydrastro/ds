@@ -1,7 +1,7 @@
 /* Measure candidate rates for one documented workload. Rates are statistical
  * estimates, not guarantees for arbitrary or adversarial keys. Candidates
  * from either structure still need verification against the source records. */
-#include "ds.h"
+#include <dsa.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,13 +1,13 @@
 /*
  * A key-value store that survives power cuts: the LSM tree keeps its
  * tables, manifest and write-ahead log in a page store. The store here is
- * lib/fault_store over the in-memory one, which acts like a disk with a
- * volatile write cache: writes wait in the cache until a sync, and a power
- * cut throws away the cache (or, worse, keeps a random part of it). After
+ * dsa/structures/fault_store.h over the in-memory one, which acts like a disk
+ * with a volatile write cache: writes wait in the cache until a sync, and a
+ * power cut throws away the cache (or, worse, keeps a random part of it). After
  * every cut the tree is reopened from what reached "the disk", and every
  * update that a completed ds_lsm_sync or flush covered is still there.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

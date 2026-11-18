@@ -1,7 +1,7 @@
 /* Branch a map-backed inventory, resolve edits by key, archive and reopen it.
  * Usage: history_catalog OUTPUT.history (replaces this example's archive). */
-#include "lib/history_adapters.h"
-#include "lib/ordered_iface.h"
+#include <dsa/structures/history_adapters.h>
+#include <dsa/structures/ordered_iface.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>

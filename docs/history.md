@@ -1,7 +1,7 @@
 # History architecture
 
 The history module is a generic versioning and retroactivity layer for existing
-`ds` containers. It intentionally does not make every mutable container aware of
+`dsa` containers. It intentionally does not make every mutable container aware of
 time. Normal containers stay fast and simple; history wraps them through an
 operation table.
 
@@ -17,10 +17,8 @@ The core invariant is:
 every branch has finite acyclic ancestry
 ```
 
-That gives deterministic snapshots and avoids the semantic problems created by
-cyclic time dependencies. Loop-like history can be explored later as a separate
-fixed-point/simulation layer, but it should not be part of the normal branch
-DAG.
+Finite acyclic ancestry makes snapshot replay well-defined. Cyclic branch
+relationships are rejected.
 
 ## Persistence vs retroactivity
 
@@ -126,10 +124,11 @@ integer-representation differences.
 
 ## Checked adapters
 
-See `lib/history_adapters.h` and `examples/history_catalog.c` for FILE archives
-and keyed operation merges. Prefer `ds_history_deserialize_portable_ex` over
-the native-width legacy format. Read callbacks with a status can represent valid
-NULL payloads; legacy pointer callbacks use NULL for failure. Deserialize limits
+See `dsa/structures/history_adapters.h` and `examples/history_catalog.c` for FILE archives
+and keyed operation merges. `ds_history_deserialize_portable_ex` reads
+portable metadata with explicit bounds and status reporting. Native-width
+serialization is also available for same-representation archives. Read callbacks with a status can represent valid
+NULL payloads; pointer-returning callbacks use NULL for failure. Deserialize limits
 are opt-in, and payload codecs must also enforce their own allocation bounds.
 
 Merges commit one operation at a time and report their committed count even

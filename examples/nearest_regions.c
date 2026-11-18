@@ -6,7 +6,7 @@
  * The unclipped diagram gives the same cells with exact combinatorics:
  * bounded cells as rings of vertices, hull cells closed off by two rays.
  */
-#include "ds_algo.h"
+#include <dsaa.h>
 #include <stdio.h>
 
 static double area(const double *p, size_t m) {

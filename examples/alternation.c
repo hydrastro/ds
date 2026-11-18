@@ -7,8 +7,8 @@
  * 1, 3 or 4) is solved directly as a game graph by retrograde analysis,
  * with a winning move for every winning position.
  */
-#include "ds.h"
-#include "ds_algo.h"
+#include <dsa.h>
+#include <dsaa.h>
 #include <stdio.h>
 #include <string.h>
 

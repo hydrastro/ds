@@ -1,8 +1,8 @@
 /* Context ownership through string swaps, filters and checked range updates. */
-#include "lib/bloom_filter.h"
-#include "lib/segment_tree.h"
-#include "lib/str.h"
-#include "lib/str_algo.h"
+#include <dsa/algorithms/str_algo.h>
+#include <dsa/structures/bloom_filter.h>
+#include <dsa/structures/segment_tree.h>
+#include <dsa/structures/str.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>

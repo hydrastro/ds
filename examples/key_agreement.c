@@ -10,7 +10,7 @@
  * changes. Key material here is fixed for reproducibility; real keys come
  * from a cryptographic random source.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

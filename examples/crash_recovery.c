@@ -1,13 +1,14 @@
 /*
  * Crash-safe B+ tree: the paged B+ tree runs on a pager whose page store
- * is write-ahead logged (lib/wal_store), and the two stores under the log
- * act like disks with volatile write caches (lib/fault_store over memory
- * stores; lib/posix_store would put real files there). Committing is
+ * is write-ahead logged (dsa/structures/wal_store.h), and the two stores under
+ * the log act like disks with volatile write caches
+ * (dsa/structures/fault_store.h over memory stores;
+ * dsa/structures/posix_store.h would put real files there). Committing is
  * ds_pbtree_sync then ds_pager_flush. A power cut in the middle of a
  * transaction, even one that tears a page, loses that transaction and
  * nothing else: the tree reopens as of the last commit, intact.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 #define PAGE 256

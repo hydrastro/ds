@@ -1,5 +1,5 @@
-#include "ds.h"
-#include "ds_algo.h"
+#include <dsa.h>
+#include <dsaa.h>
 #include <math.h>
 #include <stdio.h>
 

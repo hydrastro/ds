@@ -5,8 +5,8 @@
  * new link would remove) is one query away. Every so often the backbone
  * is compared with a fresh Kruskal run.
  */
-#include "ds.h"
-#include "ds_algo.h"
+#include <dsa.h>
+#include <dsaa.h>
 #include <stdio.h>
 #include <stdlib.h>
 

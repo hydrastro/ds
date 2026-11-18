@@ -1,5 +1,5 @@
 /* Reusable Boolean gates and least-fixed-point prerequisite inference. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static ds_status_t threshold(size_t gate, const unsigned char *inputs,

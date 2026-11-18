@@ -1,5 +1,5 @@
 /* Fallible cloning of intrusive nodes with caller-defined rollback. */
-#include "ds.h"
+#include <dsa.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>

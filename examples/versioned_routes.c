@@ -1,6 +1,6 @@
 /* The same persistent routing workflow with byte edges and compressed labels.
  */
-#include "lib/persistent_trie.h"
+#include <dsa/structures/persistent_trie.h>
 #include <stdio.h>
 #include <string.h>
 

@@ -11,7 +11,7 @@
  * size of the sampled suffix array. The index does not keep the text:
  * extract recovers any part of it.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

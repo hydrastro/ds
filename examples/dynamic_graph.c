@@ -4,7 +4,7 @@
  * components. Deleting a link of the spanning forest triggers the search
  * for a replacement; deleting a link outside it costs almost nothing.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 static void report(const ds_dynconn_t *g, const char *what) {

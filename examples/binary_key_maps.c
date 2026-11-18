@@ -1,6 +1,6 @@
 /* Byte-string keys include empty strings, NUL bytes and long shared paths.
  * Values here are borrowed integer objects; each map owns its key copies. */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

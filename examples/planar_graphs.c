@@ -4,7 +4,7 @@
  * makes it non-planar, and the test returns a Kuratowski subdivision as
  * proof. Outerplanarity and a maximal planar subgraph of K6 round it off.
  */
-#include "ds_algo.h"
+#include <dsaa.h>
 #include <stdio.h>
 #include <string.h>
 

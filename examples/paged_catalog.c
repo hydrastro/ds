@@ -1,6 +1,6 @@
 /* Persistent catalog with on-demand SSTable blocks and configurable paging.
  * Usage: paged_catalog STORE.pages. Creates or reopens this example's store. */
-#include "lib/lsm_tree.h"
+#include <dsa/structures/lsm_tree.h>
 #include <stdio.h>
 #include <string.h>
 

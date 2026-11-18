@@ -5,7 +5,7 @@
  * the smallest element under the supplied comparison, so draining the heap
  * yields ascending order.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 

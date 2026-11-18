@@ -5,7 +5,7 @@
  * queue. Then a document is updated (removed and added under a new id)
  * and the index compacted.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

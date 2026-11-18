@@ -1,6 +1,6 @@
 /* Reuse an indexed release as the base of streamed and owned update scripts. */
-#include "ds_algo.h"
-#include "lib/suffix_array.h"
+#include <dsa/structures/suffix_array.h>
+#include <dsaa.h>
 #include <stdio.h>
 
 static ds_status_t show_command(const ds_hsadelta_command_t *command,

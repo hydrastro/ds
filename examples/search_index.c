@@ -11,7 +11,7 @@
  * Posting lists are delta + variable-byte coded in every mode; the
  * printed sizes show what each granularity costs.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <string.h>
 

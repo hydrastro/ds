@@ -5,7 +5,7 @@
  * embedded nodes and recover your record with CAST(). An in-order walk visits
  * keys in sorted order.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 #include <stdlib.h>
 

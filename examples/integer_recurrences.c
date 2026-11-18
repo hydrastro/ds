@@ -1,5 +1,5 @@
 /* Exact recurrences and congruences at the machine-word boundary. */
-#include "ds_algo.h"
+#include <dsaa.h>
 #include <limits.h>
 #include <stdio.h>
 

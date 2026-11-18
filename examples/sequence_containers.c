@@ -7,7 +7,7 @@
  * sentinel when empty); the elements here are stack objects, so we free
  * nothing.
  */
-#include "ds.h"
+#include <dsa.h>
 #include <stdio.h>
 
 typedef struct si {
