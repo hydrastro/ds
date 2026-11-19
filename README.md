@@ -1,19 +1,24 @@
 # dsa
 
-Data structures and algorithms in C, with control over how they store memory,
-own values, compare keys and work together.
+A C library of data structures and algorithms, built around explicit memory
+ownership and configurable components.
 
-Use a vector or hash map directly, embed links in your own records, or choose the
-components of a larger structure. A trie can use different child stores; graph
-algorithms can use different priority queues; a pager can use different caches
-and storage backends. These choices are part of the API.
+Use a vector or hash table on its own, or choose the pieces of a larger
+structure: the child store of a trie, the priority queue used by a graph
+algorithm, or the cache and storage backend behind a pager. Allocator contexts,
+comparison callbacks and ownership policies let the library work with your
+application's data and memory model.
 
-The library includes trees, tries, hash tables, heaps, graphs, text indexes,
-persistent containers and storage structures, alongside sorting, searching,
-string, graph, geometry and numerical algorithms. The [module catalog](docs/catalog.md)
-is the place to browse them.
+The library covers containers, trees, tries, hashing, graphs, text indexes,
+persistent structures and storage, together with sorting, searching, string,
+graph, geometry and numerical algorithms. Browse the [module catalog](docs/catalog.md)
+for individual implementations.
 
-## Start here
+## Build and run
+
+You need a C compiler, GNU Make 4.3 or later and the C math library. The default
+compiler flags target GCC. Unicode input data is bundled; building needs no
+download.
 
 ```sh
 make -j4
@@ -21,12 +26,13 @@ make examples
 ./build/examples/getting_started
 ```
 
-This builds the library and the runnable examples. You need a C compiler and
-GNU Make 4.3 or later; the default flags target GCC. Unicode data is included.
-See [building and installation](docs/building.md) for compiler options, Nix and
-using the library in your own project.
+This produces `build/libdsa.a`, `build/libdsa.so` and the example executables.
+See [building and installation](docs/building.md) for compiler options, installing
+the library, pkg-config and Nix.
 
-Here is a growable vector of integers:
+## A first example
+
+Create a vector, copy three integers into it, sort them and release its storage:
 
 ```c
 #include <dsa.h>
@@ -44,84 +50,108 @@ int main(void) {
   ds_vec_t numbers;
   size_t i;
 
-  if (DS_FAILED(ds_vec_init(&numbers, sizeof(int), NULL)))
+  if (DS_FAILED(ds_vec_init(&numbers, sizeof(int), NULL))) {
     return 1;
+  }
   if (DS_FAILED(ds_vec_append(&numbers, values, 3))) {
     ds_vec_destroy(&numbers);
     return 1;
   }
 
   ds_vec_sort(&numbers, compare_ints, NULL);
-  for (i = 0; i < ds_vec_size(&numbers); ++i)
+  for (i = 0; i < ds_vec_size(&numbers); ++i) {
     printf("%d\n", *(const int *)ds_vec_at(&numbers, i));
+  }
 
   ds_vec_destroy(&numbers);
   return 0;
 }
 ```
 
-The vector owns its storage and copies each integer into it. Passing `NULL` as
-the context uses the default allocator. You can instead provide an explicit
-context, or use `ds_vec_init_buffer` to work in a fixed caller-owned buffer.
+This prints `1`, `2` and `3`, each on its own line. The vector owns its storage;
+the original array remains yours. Passing `NULL` as the context selects the
+default allocator. Supply a context to choose another allocator, or use
+`ds_vec_init_buffer` for a fixed caller-owned buffer.
 
-## Choose your headers
+Save the example as `main.c` and compile it from the repository root:
 
-| Include | Use it for |
+```sh
+cc -std=c99 -Iinclude main.c build/libdsa.a -lm -o demo
+./demo
+```
+
+## Which header should I include?
+
+Use `<dsa.h>` to explore the library, or include individual modules when you know
+which APIs you need.
+
+| Header | What it provides |
 |---|---|
-| `<dsa.h>` | The whole library |
+| `<dsa.h>` | All public modules |
 | `<dsad.h>` | Data structures and shared services |
 | `<dsaa.h>` | Algorithms and shared services |
-| `<dsa/structures/vec.h>` | An individual module |
+| `<dsa/structures/vec.h>` | The vector API |
+| `<dsa/algorithms/sort.h>` | Sorting algorithms |
+| `<dsa/core/result.h>` | Results and their dependencies |
 
-All use the same `libdsa` library and `ds_` function/type prefix. Individual
-headers include their dependencies, so you do not have to assemble include
-orders yourself.
+The compiler's include path points to `include/`, so the file
+`include/dsa/structures/vec.h` is included as `<dsa/structures/vec.h>`.
+Public headers live together under `include/`; their implementations live under
+`src/` in matching groups. You do not need to include implementation files.
 
-## How the APIs fit together
+Each module header includes its dependencies. The umbrellas are conveniences;
+all modules link to the same `libdsa` library and use the `ds_` function and type
+prefix. Including an umbrella does not force every object in the static archive
+into your executable.
 
-**Memory and ownership are explicit.** Intrusive containers hold links in your
-records. Value containers copy elements; pointer containers document whether
-values are borrowed or owned. Allocator contexts and copy/destroy callbacks let
-you choose the lifetime policy. Allocating containers take a context directly or
-through their configuration and pass it to their nested storage. Read [ownership](docs/ownership.md) before
-sharing values between containers.
+## Working with the APIs
 
-**Composition includes contracts.** Map, ordered-map, priority-queue,
-rank/select and storage interfaces let you choose backends. Their cost,
-allocation and cursor guarantees matter to the structures built on them. See
-[component contracts](docs/contracts.md) and [mutation and lifetimes](docs/container-lifetimes.md).
+**Memory and ownership.** Containers document whether they copy, borrow or own
+values. Intrusive structures embed links in your records. Contexts and
+copy/destroy callbacks control allocation and lifetime; configurable components
+carry those choices into nested storage. Read [ownership](docs/ownership.md)
+and [mutation and lifetimes](docs/container-lifetimes.md) when sharing values
+between containers.
 
-**Errors carry information.** `ds_status_t` reports an operation's outcome.
-`ds_result_t` carries a domain success or error, a payload and an ordered log of
-diagnostics. i18n renders messages at the presentation boundary, without changing
-the Result's meaning. Sequential pipelines and independent validation have
-distinct composition operations; diagnostic storage is selectable. See [Results and localization](docs/result-i18n.md).
+**Interchangeable components.** Maps, ordered maps, priority queues, rank/select
+structures and storage backends expose interfaces for composition. Check their
+[component contracts](docs/contracts.md): choosing a backend also chooses its
+costs, allocation behavior and cursor guarantees.
 
-**Versions and history are available when you need them.** Persistent containers
-share immutable storage between versions. The [history layer](docs/history.md)
-adds branches, checkpoints, operation replay and retroactive edits through
-adapters.
+**Statuses, Results and diagnostics.** Many operations return `ds_status_t`;
+check the documented outcome before using their output. `ds_result_t` provides
+an explicit success or error branch, payload ownership and an ordered diagnostic
+log for workflows that need them. Modules can define their own diagnostic
+schemas and stable identifiers without a central registry. Error snapshots can
+retain causes, and diagnostic collectors support storage limits. These shared
+services live in `dsa/core/` because both structures and algorithms can use them.
+See [Results and localization](docs/result-i18n.md) and
+[diagnostic schemas and errors](docs/diagnostics.md). Localization renders messages
+without changing their identity or the Result's meaning.
 
-## Find your way around
+**Versions and history.** Persistent containers share immutable storage between
+versions. The [history layer](docs/history.md) provides branches, checkpoints,
+operation replay and retroactive edits through adapters.
 
-| Directory | Contents |
+## Explore the repository
+
+| Location | Contents |
 |---|---|
-| `include/` | Public headers and umbrellas |
-| `src/core/` | Allocation, statuses, Results, diagnostics and shared services |
-| `src/structures/` | Data structure implementations |
-| `src/algorithms/` | Algorithm implementations |
-| `examples/` | Runnable programs showing how to use the APIs |
+| `include/dsa.h`, `include/dsad.h`, `include/dsaa.h` | Public umbrella headers |
+| `include/dsa/core/` | Shared service APIs, including allocation and errors |
+| `include/dsa/structures/` | Data structure APIs |
+| `include/dsa/algorithms/` | Algorithm APIs |
+| `src/` | Implementations, grouped like the public headers |
+| `examples/` | Runnable programs demonstrating the APIs |
 | `docs/` | Guides, contracts and module reference |
-| `tools/` | Unicode table generator |
-| `data/` | Unicode source data |
-| `build/` | Generated files and compiled output |
+| `tools/`, `data/` | Unicode generator and its source data |
+| `build/` | Generated files, libraries and executables |
 
-Start with the [API guide](docs/api-overview.md), browse the
-[examples](examples/README.md), or open the [documentation index](docs/README.md).
-Each public header describes its module's operations, preconditions and limits.
+Start with the [API guide](docs/api-overview.md), choose a program from the
+[examples](examples/README.md), or browse the [documentation index](docs/README.md).
+Public headers describe operations, preconditions and limits.
 
 ## License
 
-[Do Whatever License](LICENSE). The repository's [code of conduct](CODE_OF_CONDUCT)
-applies to contributions. Bundled Unicode data carries the terms named in its
-file headers.
+[Do Whatever License](LICENSE). The [code of conduct](CODE_OF_CONDUCT) applies to
+contributions. Bundled Unicode data carries the terms named in its file headers.
