@@ -5,7 +5,8 @@
 #define AU_NONE DS_AUTOMATON_NONE
 #define AU_BITS (sizeof(unsigned long) * CHAR_BIT)
 
-static void *au_realloc(ds_context_t *ctx, void *p, size_t count, size_t size) {
+static void *au_realloc(ds_context_t *ctx, void *p, size_t count,
+                        size_t size) {
   if (count == 0) {
     count = 1;
   }
@@ -17,7 +18,8 @@ static void *au_realloc(ds_context_t *ctx, void *p, size_t count, size_t size) {
 
 /* ---- DFA ------------------------------------------------------------ */
 
-ds_status_t ds_dfa_init(ds_dfa_t *dfa, size_t alphabet, ds_context_t *context) {
+ds_status_t ds_dfa_init(ds_dfa_t *dfa, size_t alphabet,
+                        ds_context_t *context) {
   if (dfa == NULL) {
     return DS_ERR_NULL;
   }
@@ -72,7 +74,8 @@ static ds_status_t dfa_reserve(ds_dfa_t *dfa, size_t states) {
   return DS_OK;
 }
 
-ds_status_t ds_dfa_add_state(ds_dfa_t *dfa, bool accepting, size_t *out_state) {
+ds_status_t ds_dfa_add_state(ds_dfa_t *dfa, bool accepting,
+                             size_t *out_state) {
   size_t i;
   ds_status_t st;
   if (dfa == NULL) {
@@ -160,7 +163,8 @@ bool ds_dfa_accepts_bytes(const ds_dfa_t *dfa, const unsigned char *s,
 
 /* ---- NFA ------------------------------------------------------------ */
 
-ds_status_t ds_nfa_init(ds_nfa_t *nfa, size_t alphabet, ds_context_t *context) {
+ds_status_t ds_nfa_init(ds_nfa_t *nfa, size_t alphabet,
+                        ds_context_t *context) {
   if (nfa == NULL) {
     return DS_ERR_NULL;
   }
@@ -188,7 +192,8 @@ void ds_nfa_destroy(ds_nfa_t *nfa) {
   nfa->edges = 0;
 }
 
-ds_status_t ds_nfa_add_state(ds_nfa_t *nfa, bool accepting, size_t *out_state) {
+ds_status_t ds_nfa_add_state(ds_nfa_t *nfa, bool accepting,
+                             size_t *out_state) {
   unsigned char *a;
   size_t cap;
   if (nfa == NULL) {
@@ -367,8 +372,8 @@ static int set_empty(const unsigned long *s, size_t words) {
   return 1;
 }
 
-ds_status_t ds_nfa_accepts(const ds_nfa_t *nfa, const size_t *symbols, size_t n,
-                           bool *out_accepts) {
+ds_status_t ds_nfa_accepts(const ds_nfa_t *nfa, const size_t *symbols,
+                           size_t n, bool *out_accepts) {
   nfa_csr_t c;
   unsigned long *cur;
   unsigned long *nxt;
@@ -499,8 +504,8 @@ static ds_status_t sc_get(sc_intern_t *sc, const ds_nfa_t *nfa, ds_dfa_t *out,
   return DS_OK;
 }
 
-ds_status_t ds_nfa_to_dfa(const ds_nfa_t *nfa, ds_dfa_t *out, size_t max_states,
-                          ds_context_t *context) {
+ds_status_t ds_nfa_to_dfa(const ds_nfa_t *nfa, ds_dfa_t *out,
+                          size_t max_states, ds_context_t *context) {
   nfa_csr_t c;
   sc_intern_t sc;
   unsigned long *tmp = NULL;
@@ -587,7 +592,8 @@ ds_status_t ds_nfa_union(const ds_nfa_t *a, const ds_nfa_t *b, ds_nfa_t *out,
     st = ds_nfa_add_state(out, b->accepting[i] != 0, NULL);
   }
   for (i = 0; i < a->edges && st == DS_OK; i++) {
-    st = ds_nfa_add_transition(out, 1 + a->from[i], a->symbol[i], 1 + a->to[i]);
+    st =
+        ds_nfa_add_transition(out, 1 + a->from[i], a->symbol[i], 1 + a->to[i]);
   }
   for (i = 0; i < b->edges && st == DS_OK; i++) {
     st = ds_nfa_add_transition(out, 1 + a->states + b->from[i], b->symbol[i],
@@ -597,8 +603,8 @@ ds_status_t ds_nfa_union(const ds_nfa_t *a, const ds_nfa_t *b, ds_nfa_t *out,
     st = ds_nfa_add_transition(out, s, DS_NFA_EPSILON, 1 + a->start);
   }
   if (st == DS_OK && b->states > 0) {
-    st =
-        ds_nfa_add_transition(out, s, DS_NFA_EPSILON, 1 + a->states + b->start);
+    st = ds_nfa_add_transition(out, s, DS_NFA_EPSILON,
+                               1 + a->states + b->start);
   }
   if (st != DS_OK) {
     ds_nfa_destroy(out);
@@ -848,7 +854,8 @@ ds_status_t ds_dfa_minimize(const ds_dfa_t *dfa, ds_dfa_t *out,
   }
   newid[b] = 0;
   queue[tail++] = b;
-  st = ds_dfa_add_state(out, dfa->accepting[orig[elems[bstart[b]]]] != 0, NULL);
+  st =
+      ds_dfa_add_state(out, dfa->accepting[orig[elems[bstart[b]]]] != 0, NULL);
   while (st == DS_OK && head < tail) {
     size_t cb = queue[head++];
     size_t rep = elems[bstart[cb]];
@@ -991,8 +998,9 @@ static ds_status_t pr_get(pr_intern_t *p, ds_dfa_t *out, size_t x, size_t y,
   return DS_OK;
 }
 
-ds_status_t ds_dfa_product(const ds_dfa_t *a, const ds_dfa_t *b, unsigned table,
-                           ds_dfa_t *out, ds_context_t *context) {
+ds_status_t ds_dfa_product(const ds_dfa_t *a, const ds_dfa_t *b,
+                           unsigned table, ds_dfa_t *out,
+                           ds_context_t *context) {
   pr_intern_t p;
   size_t k;
   size_t s;
@@ -1027,9 +1035,9 @@ ds_status_t ds_dfa_product(const ds_dfa_t *a, const ds_dfa_t *b, unsigned table,
   for (i = 0; i < p.hsize; i++) {
     p.hash[i] = AU_NONE;
   }
-#define PR_ACC(x, y)                                                           \
-  ((int)((table >> (((x) < a->states && a->accepting[x] ? 2u : 0u) +           \
-                    ((y) < b->states && b->accepting[y] ? 1u : 0u))) &         \
+#define PR_ACC(x, y)                                                          \
+  ((int)((table >> (((x) < a->states && a->accepting[x] ? 2u : 0u) +          \
+                    ((y) < b->states && b->accepting[y] ? 1u : 0u))) &        \
          1u))
   x = a->states > 0 ? a->start : a->states;
   y = b->states > 0 ? b->start : b->states;
@@ -1100,7 +1108,8 @@ ds_status_t ds_mealy_add_state(ds_mealy_t *m, size_t *out_state) {
   }
   if (m->dfa.capacity > m->output_capacity) {
     g = (size_t *)au_realloc(m->dfa.context, m->output,
-                             m->dfa.capacity * m->dfa.alphabet, sizeof(size_t));
+                             m->dfa.capacity * m->dfa.alphabet,
+                             sizeof(size_t));
     if (g == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -1454,8 +1463,8 @@ ds_status_t ds_fst_add_state(ds_fst_t *t, bool final,
     t->out_len[id * t->dfa.alphabet + i] = 0;
   }
   t->final_len[id] = final ? final_len : 0;
-  st =
-      fst_pool_add(t, final_output, final ? final_len : 0, &t->final_start[id]);
+  st = fst_pool_add(t, final_output, final ? final_len : 0,
+                    &t->final_start[id]);
   if (st == DS_OK && out_state != NULL) {
     *out_state = id;
   }

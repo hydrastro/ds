@@ -9,10 +9,10 @@
  *
  * Values are stored by value (value_size bytes, may be 0). In the built-in
  * backends a NULL insertion value zero-initializes those bytes, and values
- * may come from this same map: inputs are staged before relocation. Besides the
- * point operations, floor/ceiling, select by rank and in-order cursors,
- * a backend must split (keys >= k move to another instance) and join
- * (append an instance whose keys are all greater). Traits:
+ * may come from this same map: inputs are staged before relocation. Besides
+ * the point operations, floor/ceiling, select by rank and in-order cursors, a
+ * backend must split (keys >= k move to another instance) and join (append an
+ * instance whose keys are all greater). Traits:
  *
  *   DS_ORDERED_LOG_UPDATE  insert/remove in O(log n) (expected)
  *   DS_ORDERED_CONTIGUOUS  keys in one sorted array: O(n) updates by
@@ -73,14 +73,17 @@ typedef struct ds_ordered_ops {
   ds_status_t (*join)(void *s, void *upper);
   /* in-order cursor starting at 0 (treaps: O(log n) per step, by rank, so
    * a full scan costs O(n log n); for_each is the linear walk) */
-  bool (*next)(const void *s, size_t *cursor, unsigned long *key, void **value);
+  bool (*next)(const void *s, size_t *cursor, unsigned long *key,
+               void **value);
   /* whether split/join may move entries between the two instances: the
    * value layout must agree, and backends that move nodes (rather than
-   * copy) also need compatible contexts (ds_context_compatible) to free them */
+   * copy) also need compatible contexts (ds_context_compatible) to free them
+   */
   bool (*compatible)(const void *s, const void *other);
   /* in-order walk in O(n) total; NULL makes ds_ordered_for_each step the
    * cursor instead */
-  ds_status_t (*for_each)(const void *s, ds_ordered_visit_fn visit, void *user);
+  ds_status_t (*for_each)(const void *s, ds_ordered_visit_fn visit,
+                          void *user);
 } ds_ordered_ops_t;
 
 typedef struct ds_ordered {
@@ -91,9 +94,9 @@ typedef struct ds_ordered {
 
 const ds_ordered_ops_t *ds_ordered_array_ops(void);
 const ds_ordered_ops_t *ds_ordered_treap_ops(void);
-/* dsa/structures/fusion_tree.h: O(log n / log K) node searches by word-parallel
- * sketches, B-tree updates; split and join rebuild in O(n) and copy, so
- * any contexts are compatible */
+/* dsa/structures/fusion_tree.h: O(log n / log K) node searches by
+ * word-parallel sketches, B-tree updates; split and join rebuild in O(n) and
+ * copy, so any contexts are compatible */
 const ds_ordered_ops_t *ds_ordered_fusion_ops(void);
 /* dsa/structures/ab_tree.h with (a, b) = (4, 8): O(log n) updates, select and
  * rank, split and join (DS_ORDERED_SPLIT_LOG); the cursor steps by rank in

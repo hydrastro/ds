@@ -83,9 +83,9 @@ double ds_flow_network_flow(const ds_flow_network_t *net, size_t edge);
 void ds_flow_network_reset(ds_flow_network_t *net);
 
 /* Add a maximum s-t flow to the current flow; total added in *out_value. */
-ds_status_t ds_flow_max_flow(ds_flow_network_t *net, size_t source, size_t sink,
-                             ds_flow_algorithm_t algorithm, double *out_value,
-                             ds_context_t *context);
+ds_status_t ds_flow_max_flow(ds_flow_network_t *net, size_t source,
+                             size_t sink, ds_flow_algorithm_t algorithm,
+                             double *out_value, ds_context_t *context);
 ds_status_t ds_flow_edmonds_karp(ds_flow_network_t *net, size_t source,
                                  size_t sink, double *out_value,
                                  ds_context_t *context);

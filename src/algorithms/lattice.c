@@ -496,7 +496,8 @@ ds_status_t ds_integer_relation(const double *x, size_t n,
   if (!(max_coeff > 0.0)) {
     max_coeff = 1e6;
   }
-  if (n < 2 || ((int)method != DS_RELATION_PSLQ && method != DS_RELATION_LLL)) {
+  if (n < 2 ||
+      ((int)method != DS_RELATION_PSLQ && method != DS_RELATION_LLL)) {
     return DS_ERR_INVALID;
   }
   for (i = 0; i < n; i++) {

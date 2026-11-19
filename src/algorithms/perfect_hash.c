@@ -1,8 +1,8 @@
 #include <dsa/algorithms/hash.h>
 #include <dsa/algorithms/perfect_hash.h>
 
-static void ph_edge(const ds_perfect_hash_t *h, const void *data, size_t length,
-                    size_t *u, size_t *v) {
+static void ph_edge(const ds_perfect_hash_t *h, const void *data,
+                    size_t length, size_t *u, size_t *v) {
   size_t half = h->vertices / 2;
   *u = (size_t)(ds_hash_murmur3_32(data, length, h->seed1) % half);
   *v = half + (size_t)(ds_hash_murmur3_32(data, length, h->seed2) % half);

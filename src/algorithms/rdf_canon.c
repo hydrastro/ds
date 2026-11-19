@@ -188,8 +188,8 @@ static int rc_pn(unsigned long c) {
 
 /* a character N-Quads can write unescaped in an IRI */
 static int rc_iri_char(unsigned long c) {
-  return c > 0x20 && c != '<' && c != '>' && c != '"' && c != '{' && c != '}' &&
-         c != '|' && c != '^' && c != '`' && c != '\\';
+  return c > 0x20 && c != '<' && c != '>' && c != '"' && c != '{' &&
+         c != '}' && c != '|' && c != '^' && c != '`' && c != '\\';
 }
 
 static int rc_iri_ok(const char *s, size_t n) {
@@ -510,7 +510,8 @@ static ds_status_t rc_copy_term(ds_rdf_dataset_t *d, const ds_rdf_term_t *t,
       if (out->language == NULL) {
         return DS_ERR_ALLOC;
       }
-    } else if (t->datatype != NULL && strcmp(t->datatype, rc_xsd_string) != 0) {
+    } else if (t->datatype != NULL &&
+               strcmp(t->datatype, rc_xsd_string) != 0) {
       out->datatype = rc_store(d, t->datatype, strlen(t->datatype));
       if (out->datatype == NULL) {
         return DS_ERR_ALLOC;
@@ -644,7 +645,8 @@ static int rc_uchar(rc_parser_t *p, unsigned long *cp) {
   return 1;
 }
 
-static ds_status_t rc_put_cp(rc_buf_t *b, unsigned long cp, ds_context_t *ctx) {
+static ds_status_t rc_put_cp(rc_buf_t *b, unsigned long cp,
+                             ds_context_t *ctx) {
   char u[4];
   return rc_put(b, u, rc_encode(cp, u), ctx);
 }
@@ -1174,7 +1176,8 @@ static const char *rc_text(const rc_state_t *s, size_t q, int c, size_t *len) {
 
 /* quad q in canonical N-Quads form, blank nodes named by mode: ref as _:a
  * and others as _:z (ref != RC_NONE), or canonical identifiers */
-static ds_status_t rc_render(rc_state_t *s, rc_buf_t *b, size_t q, size_t ref) {
+static ds_status_t rc_render(rc_state_t *s, rc_buf_t *b, size_t q,
+                             size_t ref) {
   int c;
   ds_status_t st = DS_OK;
   for (c = 0; c < 4 && st == DS_OK; c++) {
@@ -1248,7 +1251,8 @@ static ds_status_t rc_first_degree(rc_state_t *s) {
     size_t m = s->mstart[b + 1] - s->mstart[b];
     most = m > most ? m : most;
   }
-  lines = (rc_line_t *)ds_context_alloc(s->ctx, (most + 1) * sizeof(rc_line_t));
+  lines =
+      (rc_line_t *)ds_context_alloc(s->ctx, (most + 1) * sizeof(rc_line_t));
   if (lines == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -1372,7 +1376,8 @@ static ds_status_t rc_build_related(rc_state_t *s, rc_frame_t *f) {
     return st;
   }
   f->nrel = 0;
-  for (i = s->mstart[f->node]; i < s->mstart[f->node + 1] && st == DS_OK; i++) {
+  for (i = s->mstart[f->node]; i < s->mstart[f->node + 1] && st == DS_OK;
+       i++) {
     size_t q = s->mq[i];
     int c;
     for (c = 0; c < 4 && st == DS_OK; c++) {
@@ -1648,7 +1653,8 @@ static ds_status_t rc_issue_all(rc_state_t *s) {
   ds_status_t st = DS_OK;
   order =
       (rc_bhash_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(rc_bhash_t));
-  comp = (rc_comp_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(rc_comp_t));
+  comp =
+      (rc_comp_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(rc_comp_t));
   stamp = (size_t *)ds_context_calloc(s->ctx, s->nb + 1, sizeof(size_t));
   cof = (size_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(size_t));
   clist = (size_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(size_t));
@@ -1801,8 +1807,8 @@ static ds_status_t rc_prepare(rc_state_t *s) {
   size_t i;
   size_t k;
   ds_status_t st = DS_OK;
-  refs =
-      (rc_qref_t *)ds_context_alloc(s->ctx, (d->count + 1) * sizeof(rc_qref_t));
+  refs = (rc_qref_t *)ds_context_alloc(s->ctx,
+                                       (d->count + 1) * sizeof(rc_qref_t));
   keep = (size_t *)ds_context_alloc(s->ctx, (d->count + 1) * sizeof(size_t));
   if (refs == NULL || keep == NULL) {
     st = DS_ERR_ALLOC;
@@ -1833,8 +1839,8 @@ static ds_status_t rc_prepare(rc_state_t *s) {
     tcap *= 2;
   }
   table = (size_t *)ds_context_alloc(s->ctx, tcap * sizeof(size_t));
-  s->label =
-      (const char **)ds_context_alloc(s->ctx, (3 * s->nq + 1) * sizeof(char *));
+  s->label = (const char **)ds_context_alloc(s->ctx,
+                                             (3 * s->nq + 1) * sizeof(char *));
   s->label_len =
       (size_t *)ds_context_alloc(s->ctx, (3 * s->nq + 1) * sizeof(size_t));
   if (s->qb == NULL || s->qt == NULL || table == NULL || s->label == NULL ||
@@ -1885,7 +1891,8 @@ static ds_status_t rc_prepare(rc_state_t *s) {
   }
   /* labels in order; mentions */
   s->rank = (size_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(size_t));
-  s->by_rank = (size_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(size_t));
+  s->by_rank =
+      (size_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(size_t));
   s->mstart = (size_t *)ds_context_calloc(s->ctx, s->nb + 2, sizeof(size_t));
   byl = (rc_lref_t *)ds_context_alloc(s->ctx, (s->nb + 1) * sizeof(rc_lref_t));
   if (s->rank == NULL || s->by_rank == NULL || s->mstart == NULL ||

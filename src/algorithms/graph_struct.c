@@ -37,12 +37,13 @@ size_t ds_gview_edge_offsets(const ds_gview_t *g, size_t *out_offsets) {
   return total;
 }
 
-/* ---- DFS forest ---------------------------------------------------------- */
+/* ---- DFS forest ----------------------------------------------------------
+ */
 
 ds_status_t ds_gview_dfs_forest(const ds_gview_t *g, size_t *out_discovery,
                                 size_t *out_finish, size_t *out_parent,
-                                ds_gview_edge_class_func_t classify, void *user,
-                                ds_context_t *context) {
+                                ds_gview_edge_class_func_t classify,
+                                void *user, ds_context_t *context) {
   size_t n;
   size_t *disc;
   size_t *fin;
@@ -133,7 +134,8 @@ ds_status_t ds_gview_dfs_forest(const ds_gview_t *g, size_t *out_discovery,
   return DS_OK;
 }
 
-/* ---- articulation points, bridges, biconnected components ---------------- */
+/* ---- articulation points, bridges, biconnected components ----------------
+ */
 
 typedef struct gs_lowlink {
   size_t *disc;
@@ -170,8 +172,8 @@ static ds_status_t gs_lowlink_alloc(ds_context_t *ctx, size_t n, size_t m,
     l->estack_u = (size_t *)gs_alloc(ctx, m, sizeof(size_t));
     l->estack_v = (size_t *)gs_alloc(ctx, m, sizeof(size_t));
   }
-  if (l->disc == NULL || l->low == NULL || l->it == NULL || l->parent == NULL ||
-      l->skipped == NULL || l->stack == NULL ||
+  if (l->disc == NULL || l->low == NULL || l->it == NULL ||
+      l->parent == NULL || l->skipped == NULL || l->stack == NULL ||
       (edges && (l->estack_u == NULL || l->estack_v == NULL))) {
     gs_lowlink_free(ctx, l);
     return DS_ERR_ALLOC;
@@ -325,7 +327,8 @@ ds_status_t ds_gview_biconnected(const ds_gview_t *g,
   return gs_lowlink_run(g, NULL, NULL, visit, user, NULL, out_count, context);
 }
 
-/* ---- Euler --------------------------------------------------------------- */
+/* ---- Euler ---------------------------------------------------------------
+ */
 
 ds_status_t ds_gview_euler_directed(const ds_gview_t *g, size_t start,
                                     size_t *out_path, size_t *out_length,
@@ -506,7 +509,8 @@ ds_status_t ds_euler_undirected(size_t n, const size_t *u, const size_t *v,
     goto out;
   }
   if (start != GS_NONE) {
-    if (start >= n || (odd == 2 && ((off[start + 1] - off[start]) & 1U) == 0)) {
+    if (start >= n ||
+        (odd == 2 && ((off[start + 1] - off[start]) & 1U) == 0)) {
       status = DS_NOT_FOUND;
       goto out;
     }
@@ -552,7 +556,8 @@ out:
   return status;
 }
 
-/* ---- condensation -------------------------------------------------------- */
+/* ---- condensation --------------------------------------------------------
+ */
 
 ds_status_t ds_gview_condensation(const ds_gview_t *g, size_t *out_component,
                                   size_t *out_count, size_t *out_offsets,
@@ -707,7 +712,8 @@ out:
   return status;
 }
 
-/* ---- transitive closure and reduction ------------------------------------ */
+/* ---- transitive closure and reduction ------------------------------------
+ */
 
 ds_status_t ds_gview_transitive_closure(const ds_gview_t *g,
                                         unsigned char *out_reach,
@@ -871,7 +877,8 @@ out:
   return status;
 }
 
-/* ---- feedback edge set --------------------------------------------------- */
+/* ---- feedback edge set ---------------------------------------------------
+ */
 
 static size_t gs_find(size_t *parent, size_t x) {
   while (parent[x] != x) {
@@ -921,11 +928,12 @@ ds_status_t ds_feedback_edge_set(size_t n, const size_t *u, const size_t *v,
   return DS_OK;
 }
 
-/* ---- trees --------------------------------------------------------------- */
+/* ---- trees ---------------------------------------------------------------
+ */
 
 /* Distances from s over a tree (iterative DFS); returns the farthest. */
-static size_t gs_far(const ds_gview_t *g, size_t s, double *dist, size_t *stack,
-                     size_t *parent) {
+static size_t gs_far(const ds_gview_t *g, size_t s, double *dist,
+                     size_t *stack, size_t *parent) {
   size_t n = g->vertex_count;
   size_t sp = 0;
   size_t v;

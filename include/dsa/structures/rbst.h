@@ -14,7 +14,8 @@
  * seeded per tree). Rejection sampling uses all size_t bits, without modulo
  * bias under a uniform random source; a broken source may fail to make
  * progress. Elements are stored by value in node arrays. All operations are
- * iterative; paths may have linear length, but do not consume a linear C stack.
+ * iterative; paths may have linear length, but do not consume a linear C
+ * stack.
  *
  * Concurrency: a tree may be used by one thread at a time.
  */
@@ -30,7 +31,8 @@ extern "C" {
 
 #define DS_RBST_NONE (~(size_t)0)
 
-typedef int (*ds_rbst_compare_func_t)(const void *a, const void *b, void *user);
+typedef int (*ds_rbst_compare_func_t)(const void *a, const void *b,
+                                      void *user);
 /* Uniform random bits (at least 31 of them). */
 typedef unsigned long (*ds_rbst_random_func_t)(void *state);
 

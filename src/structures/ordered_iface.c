@@ -92,18 +92,21 @@ static ds_status_t oa_insert(void *s, unsigned long key, const void *value) {
   ds_status_t st;
   if (pos < a->count && a->keys[pos] == key) {
     if (vs != 0) {
-      if (value != NULL)
+      if (value != NULL) {
         memmove(a->values + pos * vs, value, vs);
-      else
+      } else {
         memset(a->values + pos * vs, 0, vs);
+      }
     }
     return DS_EXISTS;
   }
-  if (a->count == (size_t)-1)
+  if (a->count == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   st = ds_stage_copy(&staged, a->context, true, NULL, 0, value, vs);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   st = oa_reserve(a, a->count + 1);
   if (st == DS_OK) {
     memmove(a->keys + pos + 1, a->keys + pos,
@@ -112,10 +115,11 @@ static ds_status_t oa_insert(void *s, unsigned long key, const void *value) {
     if (vs != 0) {
       memmove(a->values + (pos + 1) * vs, a->values + pos * vs,
               (a->count - pos) * vs);
-      if (staged.value != NULL)
+      if (staged.value != NULL) {
         memcpy(a->values + pos * vs, staged.value, vs);
-      else
+      } else {
         memset(a->values + pos * vs, 0, vs);
+      }
     }
     a->count++;
   }
@@ -208,7 +212,8 @@ static ds_status_t oa_split(void *s, unsigned long key, void *upper) {
   if (moved > 0) {
     memcpy(u->keys, a->keys + pos, moved * sizeof(unsigned long));
     if (a->value_size > 0) {
-      memcpy(u->values, a->values + pos * a->value_size, moved * a->value_size);
+      memcpy(u->values, a->values + pos * a->value_size,
+             moved * a->value_size);
     }
   }
   u->count = moved;
@@ -222,8 +227,9 @@ static ds_status_t oa_join(void *s, void *upper) {
   if (!oa_compatible(a, u)) {
     return DS_ERR_INVALID;
   }
-  if (u->count > (size_t)-1 - a->count)
+  if (u->count > (size_t)-1 - a->count) {
     return DS_ERR_OVERFLOW;
+  }
   st = oa_reserve(a, a->count + u->count);
   if (st != DS_OK) {
     return st;
@@ -303,7 +309,8 @@ static void *ot_value(const ot_t *t, ot_node_t *n) {
 }
 
 /* Build the changed spine top down, then repair metadata bottom up through
- * parent links. These operations never allocate or consume the C call stack. */
+ * parent links. These operations never allocate or consume the C call stack.
+ */
 static ot_node_t *ot_merge(ot_node_t *a, ot_node_t *b) {
   ot_node_t *root = NULL, *tail = NULL, **slot = &root;
   while (a != NULL && b != NULL) {
@@ -323,10 +330,12 @@ static ot_node_t *ot_merge(ot_node_t *a, ot_node_t *b) {
     tail = chosen;
   }
   *slot = a == NULL ? b : a;
-  if (*slot != NULL)
+  if (*slot != NULL) {
     (*slot)->parent = tail;
-  for (; tail != NULL; tail = tail->parent)
+  }
+  for (; tail != NULL; tail = tail->parent) {
     ot_update(tail);
+  }
   return root;
 }
 
@@ -353,10 +362,12 @@ static void ot_split_lt(ot_node_t *n, unsigned long key, ot_node_t **l,
   }
   *ls = NULL;
   *rs = NULL;
-  for (; left != NULL; left = left->parent)
+  for (; left != NULL; left = left->parent) {
     ot_update(left);
-  for (; right != NULL; right = right->parent)
+  }
+  for (; right != NULL; right = right->parent) {
     ot_update(right);
+  }
 }
 
 static ot_node_t *ot_find_node(const ot_t *t, unsigned long key) {
@@ -405,15 +416,17 @@ static ds_status_t ot_insert(void *s, unsigned long key, const void *value) {
   unsigned long x;
   if (n != NULL) {
     if (t->value_size > 0) {
-      if (value != NULL)
+      if (value != NULL) {
         memmove(ot_value(t, n), value, t->value_size);
-      else
+      } else {
         memset(ot_value(t, n), 0, t->value_size);
+      }
     }
     return DS_EXISTS;
   }
-  if (ot_sz(t->root) == (size_t)-1)
+  if (ot_sz(t->root) == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   n = (ot_node_t *)ds_context_alloc(t->context, t->node_size);
   if (n == NULL) {
     return DS_ERR_ALLOC;
@@ -430,10 +443,11 @@ static ds_status_t ot_insert(void *s, unsigned long key, const void *value) {
   n->parent = NULL;
   n->size = 1;
   if (t->value_size > 0) {
-    if (value != NULL)
+    if (value != NULL) {
       memcpy(ot_value(t, n), value, t->value_size);
-    else
+    } else {
       memset(ot_value(t, n), 0, t->value_size);
+    }
   }
   ot_split_lt(t->root, key, &l, &r);
   t->root = ot_merge(ot_merge(l, n), r);
@@ -580,20 +594,25 @@ static ds_status_t ot_for_each(const void *s, ds_ordered_visit_fn visit,
                                void *user) {
   const ot_t *t = (const ot_t *)s;
   ot_node_t *n = t->root;
-  if (n != NULL)
-    while (n->left != NULL)
+  if (n != NULL) {
+    while (n->left != NULL) {
       n = n->left;
+    }
+  }
   while (n != NULL) {
     ds_status_t st = visit(n->key, ot_value(t, n), user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     if (n->right != NULL) {
       n = n->right;
-      while (n->left != NULL)
+      while (n->left != NULL) {
         n = n->left;
+      }
     } else {
-      while (n->parent != NULL && n == n->parent->right)
+      while (n->parent != NULL && n == n->parent->right) {
         n = n->parent;
+      }
       n = n->parent;
     }
   }
@@ -848,9 +867,9 @@ const ds_ordered_ops_t *ds_ordered_fusion_ops(void) {
   return &ordered_fusion_ops;
 }
 
-/* ---- (a,b)-tree: dsa/structures/ab_tree.h with (a, b) = (4, 8), items holding
- * the key and then the value; split and join are its O(log n) ones, which move
- * nodes ---- */
+/* ---- (a,b)-tree: dsa/structures/ab_tree.h with (a, b) = (4, 8), items
+ * holding the key and then the value; split and join are its O(log n) ones,
+ * which move nodes ---- */
 
 #define OAB_A 4
 #define OAB_B 8

@@ -113,8 +113,8 @@ static unsigned ah_slide_and_increment(ds_adaptive_huffman_t *h, unsigned p) {
   unsigned long w = h->weight[p];
   int leaf = ah_is_leaf(h, p);
   unsigned fp;
-  while (p < AH_ROOT && h->weight[p + 1] == w && ah_is_leaf(h, p + 1) == leaf &&
-         p + 1 != h->parent[p]) {
+  while (p < AH_ROOT && h->weight[p + 1] == w &&
+         ah_is_leaf(h, p + 1) == leaf && p + 1 != h->parent[p]) {
     ah_swap(h, p, p + 1);
     p++;
   }
@@ -327,8 +327,8 @@ ds_status_t ds_adaptive_huffman_decompress(const unsigned char *in, size_t n,
   if (n < 5 || in[4] > 1) {
     return DS_ERR_INVALID;
   }
-  count = ((size_t)in[0] << 24) | ((size_t)in[1] << 16) | ((size_t)in[2] << 8) |
-          (size_t)in[3];
+  count = ((size_t)in[0] << 24) | ((size_t)in[1] << 16) |
+          ((size_t)in[2] << 8) | (size_t)in[3];
   *out_length = count;
   if (count > capacity) {
     return DS_ERR_OVERFLOW;

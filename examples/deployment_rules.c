@@ -7,8 +7,9 @@ static ds_status_t threshold(size_t gate, const unsigned char *inputs,
   const size_t *minimum = (const size_t *)user;
   size_t i, yes = 0;
   (void)gate;
-  for (i = 0; i < count; i++)
+  for (i = 0; i < count; i++) {
     yes += inputs[i] != 0;
+  }
   *out = yes >= *minimum;
   return DS_OK;
 }
@@ -47,8 +48,9 @@ int main(void) {
   policy.custom = threshold;
   policy.user = &minimum;
   st = ds_logic_circuit_eval(&view, gates, &policy, evaluated);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Deployment gate: %s\n", evaluated[0] ? "ready" : "waiting");
   rules.fact_count = 8;
   rules.rule_count = 6;
@@ -56,23 +58,27 @@ int main(void) {
   rules.premises = premises;
   rules.heads = heads;
   st = ds_horn_closure(&rules, given, closure, reason, NULL);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   puts("Derived prerequisites:");
   for (i = 0; i < 8; i++) {
-    if (!closure[i])
+    if (!closure[i]) {
       printf("  %lu: waiting\n", (unsigned long)i);
-    else if (reason[i] == DS_HORN_GIVEN)
+    } else if (reason[i] == DS_HORN_GIVEN) {
       printf("  %lu: supplied\n", (unsigned long)i);
-    else
+    } else {
       printf("  %lu: rule %lu\n", (unsigned long)i, (unsigned long)reason[i]);
+    }
   }
   st = ds_path_system(8, paths, 5, sources, terminals, &ready, closure, NULL);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     printf("Path-system release target: %s\n",
            ready ? "admissible" : "waiting");
+  }
 done:
-  if (st != DS_OK)
+  if (st != DS_OK) {
     fprintf(stderr, "deployment rules: %s\n", ds_status_name(st));
+  }
   return st == DS_OK ? 0 : 1;
 }

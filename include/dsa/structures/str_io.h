@@ -29,7 +29,8 @@ typedef long (*ds_writev_cb)(void *ud, const void *const *bufs,
                              const size_t *lens, size_t count);
 
 int ds_str_write_all(ds_str_t *s, ds_write_cb cb, void *ud);
-int ds_str_writev_all(ds_str_t **arr, size_t count, ds_writev_cb vcb, void *ud);
+int ds_str_writev_all(ds_str_t **arr, size_t count, ds_writev_cb vcb,
+                      void *ud);
 int ds_str_writev_all_cb(ds_str_t **arr, size_t count, ds_write_cb cb,
                          void *ud);
 int ds_str_views_writev_all(const ds_str_view_t *views, size_t count,

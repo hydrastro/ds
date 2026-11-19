@@ -96,7 +96,8 @@ bool ds_top_adjacent(ds_top_tree_t *t, size_t u, size_t v);
 
 /* the path cluster with u-v as its spine: the path from u to v with all
  * that hangs from it (the whole tree); DS_NOT_FOUND if not connected */
-ds_status_t ds_top_expose(ds_top_tree_t *t, size_t u, size_t v, void *out_path);
+ds_status_t ds_top_expose(ds_top_tree_t *t, size_t u, size_t v,
+                          void *out_path);
 /* v's subtree when the tree is rooted at root, as the path cluster of v
  * alone with all that hangs below it; DS_NOT_FOUND if not connected */
 ds_status_t ds_top_subtree(ds_top_tree_t *t, size_t v, size_t root,

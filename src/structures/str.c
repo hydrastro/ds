@@ -8,25 +8,31 @@
 int ds__ensure_exact(ds_str_t *s, size_t need_cap) {
   char *nbuf;
   size_t bytes;
-  if (!s)
+  if (!s) {
     return -1;
-  if (s->cap >= need_cap)
+  }
+  if (s->cap >= need_cap) {
     return 0;
-  if (need_cap > SIZE_MAX - 1u)
+  }
+  if (need_cap > SIZE_MAX - 1u) {
     return -1;
+  }
   bytes = need_cap + 1u;
   if (s->buf == NULL) {
     nbuf = (char *)ds_context_alloc(s->context, bytes);
-    if (!nbuf)
+    if (!nbuf) {
       return -1;
+    }
     nbuf[0] = '\0';
   } else {
     char *tmp = (char *)ds_context_alloc(s->context, bytes);
     size_t copy = s->len;
-    if (!tmp)
+    if (!tmp) {
       return -1;
-    if (copy)
+    }
+    if (copy) {
       memcpy(tmp, s->buf, copy);
+    }
     tmp[copy] = '\0';
     ds_context_free(s->context, s->buf);
     nbuf = tmp;
@@ -51,26 +57,32 @@ size_t ds__grow_cap(size_t cur, size_t need) {
 int ds__ensure(ds_str_t *s, size_t need_cap) {
   char *nbuf;
   size_t bytes;
-  if (!s)
+  if (!s) {
     return -1;
-  if (s->cap >= need_cap)
+  }
+  if (s->cap >= need_cap) {
     return 0;
+  }
   need_cap = ds__grow_cap(s->cap, need_cap);
-  if (need_cap > SIZE_MAX - 1u)
+  if (need_cap > SIZE_MAX - 1u) {
     return -1;
+  }
   bytes = need_cap + 1u;
   if (s->buf == NULL) {
     nbuf = (char *)ds_context_alloc(s->context, bytes);
-    if (!nbuf)
+    if (!nbuf) {
       return -1;
+    }
     nbuf[0] = '\0';
   } else {
     char *tmp = (char *)ds_context_alloc(s->context, bytes);
     size_t copy = s->len;
-    if (!tmp)
+    if (!tmp) {
       return -1;
-    if (copy)
+    }
+    if (copy) {
       memcpy(tmp, s->buf, copy);
+    }
     tmp[copy] = '\0';
     ds_context_free(s->context, s->buf);
     nbuf = tmp;
@@ -83,8 +95,9 @@ int ds__ensure(ds_str_t *s, size_t need_cap) {
 static ds_str_t *str_create_internal(ds_context_t *context) {
   ds_str_t *s;
   s = (ds_str_t *)ds_context_alloc(context, sizeof(*s));
-  if (s == NULL)
+  if (s == NULL) {
     return NULL;
+  }
   s->context = context != NULL ? context : ds_default_context();
 
   s->buf = NULL;
@@ -96,16 +109,18 @@ ds_str_t *ds_str_create(ds_context_t *context) {
   return str_create_internal(context);
 }
 ds_status_t ds_str_create_context(ds_context_t *context, ds_str_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = str_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
 ds_str_t *ds_str_with_capacity(size_t cap, ds_context_t *context) {
   ds_str_t *s = ds_str_create(context);
-  if (!s)
+  if (!s) {
     return NULL;
+  }
   if (cap == 0) {
     if (ds__ensure(s, 0) != 0) {
       ds_str_destroy(s);
@@ -132,36 +147,43 @@ ds_str_t *ds_str_with_capacity(size_t cap, ds_context_t *context) {
 
 ds_str_t *ds_str_from(const void *data, size_t n, ds_context_t *context) {
   ds_str_t *s;
-  if (data == NULL && n != 0)
+  if (data == NULL && n != 0) {
     return NULL;
+  }
   s = ds_str_with_capacity(n, context);
-  if (!s)
+  if (!s) {
     return NULL;
+  }
   if (s->buf == NULL) {
     ds_str_destroy(s);
     return NULL;
   }
-  if (n)
+  if (n) {
     memcpy(s->buf, data, n);
+  }
   s->len = n;
   s->buf[n] = '\0';
   return s;
 }
 
 void ds_str_destroy(ds_str_t *s) {
-  if (!s)
+  if (!s) {
     return;
-  if (s->buf)
+  }
+  if (s->buf) {
     ds_context_free(s->context, s->buf);
+  }
   ds_context_free(s->context, s);
 }
 
 void ds_str_clear(ds_str_t *s) {
-  if (!s)
+  if (!s) {
     return;
+  }
   s->len = 0u;
-  if (s->buf)
+  if (s->buf) {
     s->buf[0] = '\0';
+  }
 }
 
 void ds_str_delete(ds_str_t *s) { ds_str_clear(s); }
@@ -175,8 +197,9 @@ int ds_str_reserve(ds_str_t *s, size_t need) {
 int ds_str_shrink_to_fit(ds_str_t *s) {
   char *nbuf;
   size_t bytes;
-  if (!s)
+  if (!s) {
     return -1;
+  }
   if (s->cap == s->len) {
     return 0;
   }
@@ -188,11 +211,13 @@ int ds_str_shrink_to_fit(ds_str_t *s) {
   if (!nbuf) {
     return -1;
   }
-  if (s->len)
+  if (s->len) {
     memcpy(nbuf, s->buf, s->len);
+  }
   nbuf[s->len] = '\0';
-  if (s->buf)
+  if (s->buf) {
     ds_context_free(s->context, s->buf);
+  }
   s->buf = nbuf;
   s->cap = s->len;
   return 0;
@@ -251,10 +276,12 @@ static void str_reverse(char *p, size_t n) {
 int ds_str_append(ds_str_t *s, const void *data, size_t n) {
   size_t need_len;
   char *old;
-  if (!s || (!data && n))
+  if (!s || (!data && n)) {
     return -1;
-  if (n == 0u)
+  }
+  if (n == 0u) {
     return 0;
+  }
   need_len = s->len + n;
   if (need_len < s->len) {
     return -1;
@@ -283,11 +310,13 @@ int ds_str_pushc(ds_str_t *s, int c) {
 int ds_str_insert(ds_str_t *s, size_t pos, const void *data, size_t n) {
   size_t len;
   char *old;
-  if (!s || (!data && n))
+  if (!s || (!data && n)) {
     return -1;
+  }
   len = s->len;
-  if (pos > len)
+  if (pos > len) {
     pos = len;
+  }
   if (n == 0u) {
     return 0;
   }
@@ -321,14 +350,16 @@ int ds_str_insert(ds_str_t *s, size_t pos, const void *data, size_t n) {
 
 int ds_str_erase(ds_str_t *s, size_t pos, size_t n) {
   size_t len;
-  if (!s)
+  if (!s) {
     return -1;
+  }
   len = s->len;
   if (pos > len) {
     return 0;
   }
-  if (n > len - pos)
+  if (n > len - pos) {
     n = len - pos;
+  }
   if (n == 0u) {
     return 0;
   }
@@ -340,8 +371,9 @@ int ds_str_erase(ds_str_t *s, size_t pos, size_t n) {
 
 ds_str_t *ds_str_clone(ds_str_t *s) {
   ds_str_t *n;
-  if (!s)
+  if (!s) {
     return NULL;
+  }
   n = str_create_internal(s->context);
   if (!n) {
     return NULL;
@@ -350,11 +382,13 @@ ds_str_t *ds_str_clone(ds_str_t *s) {
     ds_str_destroy(n);
     return NULL;
   }
-  if (s->len)
+  if (s->len) {
     memcpy(n->buf, s->buf, s->len);
+  }
   n->len = s->len;
-  if (n->buf) /* an empty string has no buffer yet, like a new one */
+  if (n->buf) { /* an empty string has no buffer yet, like a new one */
     n->buf[n->len] = '\0';
+  }
   return n;
 }
 
@@ -373,19 +407,22 @@ ds_str_t *ds_str_clone_cap(ds_str_t *s) {
     ds_str_destroy(n);
     return NULL;
   }
-  if (s->len)
+  if (s->len) {
     memcpy(n->buf, s->buf, s->len);
+  }
   n->len = s->len;
-  if (n->buf)
+  if (n->buf) {
     n->buf[n->len] = '\0';
+  }
   return n;
 }
 
 int ds_str_cmp(ds_str_t *a, ds_str_t *b) {
   size_t la, lb, lm;
   int r;
-  if (a == b)
+  if (a == b) {
     return 0;
+  }
   la = a ? a->len : 0u;
   lb = b ? b->len : 0u;
   lm = la < lb ? la : lb;
@@ -410,8 +447,9 @@ long ds_str_find(ds_str_t *s, const void *needle, size_t n, size_t start) {
   size_t i, len;
   const void *p;
   long ret = -1;
-  if (!s || !needle || n == 0u)
+  if (!s || !needle || n == 0u) {
     return -1;
+  }
   len = s->len;
   if (start > len) {
     return -1;
@@ -438,11 +476,13 @@ long ds_str_rfind(ds_str_t *s, const void *needle, size_t n, size_t start) {
   const unsigned char *h, *nd = (const unsigned char *)needle;
   size_t i, len;
   long ret = -1;
-  if (!s || !needle || n == 0u)
+  if (!s || !needle || n == 0u) {
     return -1;
+  }
   len = s->len;
-  if (start > len)
+  if (start > len) {
     start = len;
+  }
   if (start < n) {
     return -1;
   }
@@ -458,25 +498,29 @@ long ds_str_rfind(ds_str_t *s, const void *needle, size_t n, size_t start) {
 
 void ds_str_to_upper(ds_str_t *s) {
   size_t i, n;
-  if (!s)
+  if (!s) {
     return;
+  }
   n = s->len;
   for (i = 0; i < n; ++i) {
     unsigned char c = (unsigned char)s->buf[i];
-    if (c >= 'a' && c <= 'z')
+    if (c >= 'a' && c <= 'z') {
       s->buf[i] = (char)(c - 'a' + 'A');
+    }
   }
 }
 
 void ds_str_to_lower(ds_str_t *s) {
   size_t i, n;
-  if (!s)
+  if (!s) {
     return;
+  }
   n = s->len;
   for (i = 0; i < n; ++i) {
     unsigned char c = (unsigned char)s->buf[i];
-    if (c >= 'A' && c <= 'Z')
+    if (c >= 'A' && c <= 'Z') {
       s->buf[i] = (char)(c - 'A' + 'a');
+    }
   }
 }
 
@@ -484,10 +528,12 @@ ds_status_t ds_str_swap_ex(ds_str_t *a, ds_str_t *b) {
   char *abuf, *bbuf, *tmp;
   size_t len, cap;
   bool compatible;
-  if (a == NULL || b == NULL)
+  if (a == NULL || b == NULL) {
     return DS_ERR_NULL;
-  if (a == b)
+  }
+  if (a == b) {
     return DS_OK;
+  }
   compatible = ds_context_compatible(a->context, b->context);
   if (compatible) {
     tmp = a->buf;
@@ -496,27 +542,32 @@ ds_status_t ds_str_swap_ex(ds_str_t *a, ds_str_t *b) {
   } else {
     abuf = NULL;
     bbuf = NULL;
-    if (a->cap == (size_t)-1 || b->cap == (size_t)-1)
+    if (a->cap == (size_t)-1 || b->cap == (size_t)-1) {
       return DS_ERR_OVERFLOW;
+    }
     if (b->buf != NULL) {
       abuf = (char *)ds_context_alloc(a->context, b->cap + 1);
-      if (abuf == NULL)
+      if (abuf == NULL) {
         return DS_ERR_ALLOC;
+      }
       memcpy(abuf, b->buf, b->len + 1);
     }
     if (a->buf != NULL) {
       bbuf = (char *)ds_context_alloc(b->context, a->cap + 1);
       if (bbuf == NULL) {
-        if (abuf != NULL)
+        if (abuf != NULL) {
           ds_context_free(a->context, abuf);
+        }
         return DS_ERR_ALLOC;
       }
       memcpy(bbuf, a->buf, a->len + 1);
     }
-    if (a->buf != NULL)
+    if (a->buf != NULL) {
       ds_context_free(a->context, a->buf);
-    if (b->buf != NULL)
+    }
+    if (b->buf != NULL) {
       ds_context_free(b->context, b->buf);
+    }
     a->buf = abuf;
     b->buf = bbuf;
   }
@@ -531,10 +582,12 @@ ds_status_t ds_str_swap_ex(ds_str_t *a, ds_str_t *b) {
 void ds_str_swap(ds_str_t *a, ds_str_t *b) { (void)ds_str_swap_ex(a, b); }
 
 int ds_str_clear_freebuf(ds_str_t *s) {
-  if (!s)
+  if (!s) {
     return -1;
-  if (s->buf)
+  }
+  if (s->buf) {
     ds_context_free(s->context, s->buf);
+  }
   s->buf = NULL;
   s->len = 0;
   s->cap = 0;
@@ -544,14 +597,16 @@ int ds_str_clear_freebuf(ds_str_t *s) {
 int ds_str_append_vfmt(ds_str_t *s, const char *fmt, va_list ap) {
   va_list ap2;
   int need;
-  if (!s || !fmt)
+  if (!s || !fmt) {
     return -1;
+  }
 
   DS_VA_COPY(ap2, ap);
   need = vsnprintf(NULL, 0, fmt, ap2);
   va_end(ap2);
-  if (need < 0)
+  if (need < 0) {
     return -1;
+  }
 
   /* formatted apart, then appended: an argument may point into s */
   if ((size_t)need < STR_STAGE_BYTES) {
@@ -576,8 +631,9 @@ int ds_str_append_vfmt(ds_str_t *s, const char *fmt, va_list ap) {
 
 int ds_str_reserve_exact(ds_str_t *s, size_t cap) {
   int r;
-  if (!s)
+  if (!s) {
     return -1;
+  }
   r = ds__ensure_exact(s, cap);
   return r;
 }
@@ -594,77 +650,92 @@ int ds_str_append_fmt(ds_str_t *s, const char *fmt, ...) {
 int ds_str_assign(ds_str_t *s, const void *data, size_t n) {
   int r;
   char *old;
-  if (!s)
+  if (!s) {
     return -1;
-  if (!data && n)
+  }
+  if (!data && n) {
     return -1;
+  }
   r = str_grow_keep(s, n, &old);
   if (r != 0) {
     return -1;
   }
-  if (n) /* data may be a part of s itself */
+  if (n) { /* data may be a part of s itself */
     memmove(s->buf, data, n);
+  }
   s->len = n;
-  if (s->buf) /* assigning "" to a string that never had a buffer */
+  if (s->buf) { /* assigning "" to a string that never had a buffer */
     s->buf[s->len] = '\0';
+  }
   str_release(s, old);
   return 0;
 }
 
 int ds_str_pop(ds_str_t *s, int *out_ch) {
   unsigned char c;
-  if (!s)
+  if (!s) {
     return -1;
+  }
   if (s->len == 0u) {
     return -1;
   }
   c = (unsigned char)s->buf[s->len - 1u];
   s->len -= 1u;
   s->buf[s->len] = '\0';
-  if (out_ch)
+  if (out_ch) {
     *out_ch = (int)c;
+  }
   return 0;
 }
 
 ds_str_t *ds_str_slice(ds_str_t *s, size_t pos, size_t n) {
   ds_str_t *out;
   size_t len, start, take;
-  if (!s)
+  if (!s) {
     return NULL;
+  }
   len = s->len;
   start = pos > len ? len : pos;
   take = (n > len - start) ? (len - start) : n;
   out = str_create_internal(s->context);
-  if (!out)
+  if (!out) {
     return NULL;
+  }
 
   if (ds_str_assign(out, take != 0 ? s->buf + start : NULL, take) != 0) {
     ds_str_destroy(out);
     return NULL;
   }
   len = s->len;
-  if (start > len)
+  if (start > len) {
     start = len;
-  if (take > len - start)
+  }
+  if (take > len - start) {
     take = len - start;
-  if (take)
+  }
+  if (take) {
     memcpy(out->buf, s->buf + start, take);
+  }
 
   out->len = take;
-  if (out->buf != NULL)
+  if (out->buf != NULL) {
     out->buf[take] = '\0';
+  }
   return out;
 }
 
 char *ds_str_detach(ds_str_t *s, size_t *len_out, size_t *cap_out) {
   char *p;
-  if (!s)
+  if (!s) {
     return NULL;
+  }
   p = s->buf;
-  if (len_out)
+  if (len_out) {
     *len_out = s->len;
-  if (cap_out)
+  }
+  if (cap_out) {
     *cap_out = s->cap;
+  }
   s->buf = NULL;
   s->len = 0u;
   s->cap = 0u;
@@ -672,84 +743,106 @@ char *ds_str_detach(ds_str_t *s, size_t *len_out, size_t *cap_out) {
 }
 
 int ds_str_adopt(ds_str_t *s, char *buf, size_t len, size_t cap) {
-  if (!s)
+  if (!s) {
     return -1;
-  if (!buf && (len != 0u || cap != 0u))
+  }
+  if (!buf && (len != 0u || cap != 0u)) {
     return -1;
-  if (buf && cap < len)
+  }
+  if (buf && cap < len) {
     return -1;
-  if (cap == (size_t)-1 || (buf == s->buf && cap > s->cap))
+  }
+  if (cap == (size_t)-1 || (buf == s->buf && cap > s->cap)) {
     return -1;
-  if (s->buf && s->buf != buf)
+  }
+  if (s->buf && s->buf != buf) {
     ds_context_free(s->context, s->buf);
+  }
   s->buf = buf;
   s->len = len;
   s->cap = cap;
-  if (s->buf)
+  if (s->buf) {
     s->buf[s->len] = '\0';
+  }
   return 0;
 }
 
 void ds_str_free_external(ds_str_t *owner, void *p) {
-  if (!owner || !p)
+  if (!owner || !p) {
     return;
+  }
   ds_context_free(owner->context, p);
 }
 
 int ds_str_adopt_safe(ds_str_t *s, char *buf, size_t len, size_t cap,
                       int has_room_for_nul) {
-  if (s == NULL || (buf == NULL && (len != 0 || cap != 0)) || cap < len)
+  if (s == NULL || (buf == NULL && (len != 0 || cap != 0)) || cap < len) {
     return -1;
-  if (buf != NULL && !has_room_for_nul && len == cap)
+  }
+  if (buf != NULL && !has_room_for_nul && len == cap) {
     return ds_str_assign(s, buf,
                          len); /* copies; caller retains external buf */
+  }
   return ds_str_adopt(s, buf, len, cap);
 }
 
 ds_status_t ds_str_reserve_ex(ds_str_t *s, size_t capacity) {
-  if (s == NULL)
+  if (s == NULL) {
     return DS_ERR_NULL;
-  if (capacity == (size_t)-1)
+  }
+  if (capacity == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   return ds_str_reserve(s, capacity) == 0 ? DS_OK : DS_ERR_ALLOC;
 }
 ds_status_t ds_str_assign_ex(ds_str_t *s, const void *data, size_t length) {
-  if (s == NULL || (data == NULL && length != 0))
+  if (s == NULL || (data == NULL && length != 0)) {
     return DS_ERR_NULL;
-  if (length == (size_t)-1)
+  }
+  if (length == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   return ds_str_assign(s, data, length) == 0 ? DS_OK : DS_ERR_ALLOC;
 }
 ds_status_t ds_str_append_ex(ds_str_t *s, const void *data, size_t length) {
-  if (s == NULL || (data == NULL && length != 0))
+  if (s == NULL || (data == NULL && length != 0)) {
     return DS_ERR_NULL;
-  if (length >= (size_t)-1 - s->len)
+  }
+  if (length >= (size_t)-1 - s->len) {
     return DS_ERR_OVERFLOW;
+  }
   return ds_str_append(s, data, length) == 0 ? DS_OK : DS_ERR_ALLOC;
 }
 ds_status_t ds_str_insert_ex(ds_str_t *s, size_t position, const void *data,
                              size_t length) {
-  if (s == NULL || (data == NULL && length != 0))
+  if (s == NULL || (data == NULL && length != 0)) {
     return DS_ERR_NULL;
-  if (position > s->len)
+  }
+  if (position > s->len) {
     return DS_ERR_RANGE;
-  if (length >= (size_t)-1 - s->len)
+  }
+  if (length >= (size_t)-1 - s->len) {
     return DS_ERR_OVERFLOW;
+  }
   return ds_str_insert(s, position, data, length) == 0 ? DS_OK : DS_ERR_ALLOC;
 }
 ds_status_t ds_str_erase_ex(ds_str_t *s, size_t position, size_t length) {
-  if (s == NULL)
+  if (s == NULL) {
     return DS_ERR_NULL;
-  if (position > s->len || length > s->len - position)
+  }
+  if (position > s->len || length > s->len - position) {
     return DS_ERR_RANGE;
+  }
   (void)ds_str_erase(s, position, length);
   return DS_OK;
 }
 ds_status_t ds_str_pop_ex(ds_str_t *s, int *out) {
-  if (s == NULL || out == NULL)
+  if (s == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (s->len == 0)
+  }
+  if (s->len == 0) {
     return DS_EMPTY;
+  }
   (void)ds_str_pop(s, out);
   return DS_OK;
 }
@@ -757,17 +850,21 @@ ds_status_t ds_str_clone_with(const ds_str_t *s, bool keep_capacity,
                               ds_context_t *context, ds_str_t **out) {
   ds_str_t *copy;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (s == NULL)
+  if (s == NULL) {
     return DS_ERR_NULL;
+  }
   copy = str_create_internal(context != NULL ? context : s->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   st = ds_str_reserve_ex(copy, keep_capacity ? s->cap : s->len);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_str_assign_ex(copy, s->buf, s->len);
+  }
   if (st != DS_OK) {
     ds_str_destroy(copy);
     return st;

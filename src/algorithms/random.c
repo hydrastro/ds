@@ -72,7 +72,8 @@ long ds_rng_range(ds_rng_t *rng, long low, long high) {
   if (high <= low) {
     return low;
   }
-  span = (unsigned long)high - (unsigned long)low; /* high - low, no overflow */
+  span =
+      (unsigned long)high - (unsigned long)low; /* high - low, no overflow */
   if (span < M32) {
     return (long)((unsigned long)low + ds_rng_bounded(rng, span + 1UL));
   }
@@ -575,7 +576,8 @@ int ds_von_neumann_bit(ds_coin_func_t biased, void *state) {
   }
 }
 
-/* ---- Zipf distribution ------------------------------------------------------
+/* ---- Zipf distribution
+ * ------------------------------------------------------
  */
 
 /* log(1 + x) / x and (exp(x) - 1) / x, accurate near 0 */
@@ -639,7 +641,8 @@ unsigned long ds_zipf_sample(const ds_zipf_t *z, ds_rng_t *rng) {
       kd = (double)z->n;
     }
     k = (unsigned long)kd;
-    if (kd - x <= z->squeeze || u >= rz_hint(z->s, kd + 0.5) - rz_h(z->s, kd)) {
+    if (kd - x <= z->squeeze ||
+        u >= rz_hint(z->s, kd + 0.5) - rz_h(z->s, kd)) {
       return k;
     }
   }

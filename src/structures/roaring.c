@@ -601,7 +601,8 @@ static ds_status_t dir_reserve(ds_roaring_t *r, size_t need) {
     return DS_ERR_ALLOC;
   }
   r->keys = k; /* a larger key array is harmless if the next step fails */
-  c = (rc_t *)ds_context_realloc(r->context, r->containers, cap * sizeof(rc_t));
+  c = (rc_t *)ds_context_realloc(r->context, r->containers,
+                                 cap * sizeof(rc_t));
   if (c == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -933,8 +934,8 @@ static ds_status_t rc_from_runs(ds_context_t *ctx, rc_t *out,
   out->cardinality = card;
   if (4 * n < rc_plain_bytes(card)) {
     out->kind = DS_ROARING_RUN;
-    out->values =
-        (unsigned short *)ds_context_alloc(ctx, 2 * n * sizeof(unsigned short));
+    out->values = (unsigned short *)ds_context_alloc(
+        ctx, 2 * n * sizeof(unsigned short));
     if (out->values == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -1025,10 +1026,10 @@ static size_t rb_array_in_runs(const rc_t *arr, const rc_t *run, bool inside,
 
 /* a op b where a or b is a run container; wa is a bitmap of scratch, tmp
  * room for 4096 runs, runbuf room for 32768 */
-static ds_status_t rb_pair_runs(ds_context_t *ctx, const rc_t *a, const rc_t *b,
-                                ds_roaring_op_t op, unsigned long *wa,
-                                unsigned short *tmp, unsigned short *runbuf,
-                                rc_t *out) {
+static ds_status_t rb_pair_runs(ds_context_t *ctx, const rc_t *a,
+                                const rc_t *b, ds_roaring_op_t op,
+                                unsigned long *wa, unsigned short *tmp,
+                                unsigned short *runbuf, rc_t *out) {
   rb_runs_t ra, rb;
   size_t n, card, i;
   const rc_t *run = a->kind == DS_ROARING_RUN ? a : b;
@@ -1176,7 +1177,8 @@ ds_status_t ds_roaring_combine(const ds_roaring_t *a, const ds_roaring_t *b,
   unsigned long *wa;
   unsigned short *tmp;
   unsigned short *runbuf = NULL;
-  size_t work = 2 * RB_BITMAP_BYTES + 2 * RB_ARRAY_MAX * sizeof(unsigned short);
+  size_t work =
+      2 * RB_BITMAP_BYTES + 2 * RB_ARRAY_MAX * sizeof(unsigned short);
   ds_status_t st = DS_OK;
   if (a == NULL || b == NULL || out == NULL) {
     return DS_ERR_NULL;

@@ -58,7 +58,8 @@ typedef struct ds_p_tree {
 /* dirs: k x d directions (NULL: the axes and the pairwise diagonals,
  * k = d^2); max_entries >= 4 (0: 8). */
 ds_status_t ds_p_tree_init(ds_p_tree_t *t, size_t dim, const double *dirs,
-                           size_t k, size_t max_entries, ds_context_t *context);
+                           size_t k, size_t max_entries,
+                           ds_context_t *context);
 void ds_p_tree_destroy(ds_p_tree_t *t);
 size_t ds_p_tree_size(const ds_p_tree_t *t);
 size_t ds_p_tree_height(const ds_p_tree_t *t);

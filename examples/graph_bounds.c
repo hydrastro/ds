@@ -2,8 +2,8 @@
  * Semidefinite programs as bounds for hard graph problems. Lovasz's theta
  * lies between the independence number and the clique cover number, and
  * the exact searches of dsa/algorithms/graph_np.h show where in that window it
- * falls. Goemans and Williamson's relaxation bounds the maximum cut, and random
- * hyperplanes through its vectors turn it into a cut. Last, a small
+ * falls. Goemans and Williamson's relaxation bounds the maximum cut, and
+ * random hyperplanes through its vectors turn it into a cut. Last, a small
  * semidefinite program read from the SDPA format, with its certificate.
  */
 #include <dsa.h>
@@ -20,8 +20,8 @@ static const char *example = "\"SDPA example 1\"\n"
                              "0 1 1 1 -11\n0 1 2 2 23\n1 1 1 1 10\n1 1 1 2 4\n"
                              "2 1 2 2 -8\n3 1 1 2 -8\n3 1 2 2 -2\n";
 
-static void bounds(const char *name, size_t n, const size_t *u, const size_t *v,
-                   size_t m) {
+static void bounds(const char *name, size_t n, const size_t *u,
+                   const size_t *v, size_t m) {
   unsigned char adj[MAXN * MAXN];
   unsigned char co[MAXN * MAXN];
   size_t set[MAXN];

@@ -73,7 +73,8 @@ ds_status_t ds_inversion_list_remove_range(ds_inversion_list_t *list,
                                            unsigned long high);
 /* Toggle membership of every value in [low, high]. */
 ds_status_t ds_inversion_list_flip_range(ds_inversion_list_t *list,
-                                         unsigned long low, unsigned long high);
+                                         unsigned long low,
+                                         unsigned long high);
 ds_status_t ds_inversion_list_add(ds_inversion_list_t *list,
                                   unsigned long value);
 ds_status_t ds_inversion_list_remove(ds_inversion_list_t *list,

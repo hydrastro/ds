@@ -17,7 +17,8 @@ typedef struct fz_step {
   size_t index; /* the child taken, or the key position at the end */
 } fz_step_t;
 
-/* ---- word operations ----------------------------------------------------- */
+/* ---- word operations -----------------------------------------------------
+ */
 
 /* the n low bits */
 static unsigned long fz_low(size_t n) {
@@ -152,7 +153,8 @@ static void fz_rebuild(ds_fusion_node_t *x) {
   }
 }
 
-/* ---- nodes --------------------------------------------------------------- */
+/* ---- nodes ---------------------------------------------------------------
+ */
 
 static unsigned char *fz_value(const ds_fusion_tree_t *t, ds_fusion_node_t *x,
                                size_t i) {
@@ -160,7 +162,8 @@ static unsigned char *fz_value(const ds_fusion_tree_t *t, ds_fusion_node_t *x,
 }
 
 /* what callers see of entry i: its value, or for a set its stored key */
-static void *fz_slot(const ds_fusion_tree_t *t, ds_fusion_node_t *x, size_t i) {
+static void *fz_slot(const ds_fusion_tree_t *t, ds_fusion_node_t *x,
+                     size_t i) {
   return t->value_size == 0 ? (void *)&x->key[i] : (void *)fz_value(t, x, i);
 }
 
@@ -231,7 +234,8 @@ static void fz_resize(ds_fusion_node_t *x) {
   x->size = s;
 }
 
-/* ---- lifetime ------------------------------------------------------------ */
+/* ---- lifetime ------------------------------------------------------------
+ */
 
 ds_status_t ds_fusion_init(ds_fusion_tree_t *t, size_t value_size,
                            ds_context_t *context) {
@@ -285,7 +289,8 @@ void ds_fusion_clear(ds_fusion_tree_t *t) {
 
 void ds_fusion_destroy(ds_fusion_tree_t *t) { ds_fusion_clear(t); }
 
-/* ---- bulk loading -------------------------------------------------------- */
+/* ---- bulk loading --------------------------------------------------------
+ */
 
 /* the most keys a tree of height h holds, saturating */
 static size_t fz_cap(size_t h) {
@@ -326,7 +331,8 @@ static ds_fusion_node_t *fz_build(ds_fusion_tree_t *t,
     return x;
   }
   below = fz_cap(h - 1);
-  c = below == (size_t)-1 ? 2 : n / (below + 1) + 1; /* ceil((n+1)/(below+1)) */
+  c = below == (size_t)-1 ? 2
+                          : n / (below + 1) + 1; /* ceil((n+1)/(below+1)) */
   if (c < (root ? 2u : FZ_MIN + 1u)) {
     c = root ? 2 : FZ_MIN + 1;
   }
@@ -384,7 +390,8 @@ ds_status_t ds_fusion_build(ds_fusion_tree_t *t, const unsigned long *keys,
   return DS_OK;
 }
 
-/* ---- updates ------------------------------------------------------------- */
+/* ---- updates -------------------------------------------------------------
+ */
 
 /* x holds K + 1 keys: the upper half moves to y; the median stays in x
  * just past its new count */
@@ -521,13 +528,16 @@ static ds_status_t fz_insert_staged(ds_fusion_tree_t *t, unsigned long key,
     return DS_ERR_NULL;
   }
   present = ds_fusion_contains(t, key);
-  if (present && !overwrite)
+  if (present && !overwrite) {
     return DS_EXISTS;
-  if (!present && ds_fusion_size(t) == (size_t)-1)
+  }
+  if (!present && ds_fusion_size(t) == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   st = ds_stage_copy(&staged, t->context, true, NULL, 0, value, t->value_size);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   st = fz_insert(t, key, staged.value, overwrite);
   ds_stage_release(&staged);
   return st;
@@ -696,7 +706,8 @@ ds_status_t ds_fusion_remove(ds_fusion_tree_t *t, unsigned long key,
   return DS_OK;
 }
 
-/* ---- queries ------------------------------------------------------------- */
+/* ---- queries -------------------------------------------------------------
+ */
 
 /* the node holding key and its position, or NULL */
 static ds_fusion_node_t *fz_find(const ds_fusion_tree_t *t, unsigned long key,
@@ -760,8 +771,8 @@ static ds_status_t fz_down(const ds_fusion_tree_t *t, unsigned long q,
 }
 
 /* the smallest key >= q (above: > q) */
-static ds_status_t fz_up(const ds_fusion_tree_t *t, unsigned long q, bool above,
-                         unsigned long *out_key, void *out_value) {
+static ds_status_t fz_up(const ds_fusion_tree_t *t, unsigned long q,
+                         bool above, unsigned long *out_key, void *out_value) {
   ds_fusion_node_t *x;
   ds_fusion_node_t *best = NULL;
   size_t best_at = 0;
@@ -966,7 +977,8 @@ int ds_fusion_foreach(const ds_fusion_tree_t *t, ds_fusion_visit_fn visit,
   return 0;
 }
 
-/* ---- checking ------------------------------------------------------------ */
+/* ---- checking ------------------------------------------------------------
+ */
 
 /* a node's sketch data against a fresh computation, and its search against
  * a plain one at and next to every key */

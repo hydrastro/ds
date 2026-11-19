@@ -436,8 +436,9 @@ ds_status_t ds_rectilinear_steiner(const double *xy, size_t k, double *out_xy,
   double len;
   size_t pts;
   ds_status_t st;
-  if (xy == NULL || out_xy == NULL || out_points == NULL || out_edges == NULL ||
-      out_length == NULL || (k > 1 && (eu == NULL || ev == NULL))) {
+  if (xy == NULL || out_xy == NULL || out_points == NULL ||
+      out_edges == NULL || out_length == NULL ||
+      (k > 1 && (eu == NULL || ev == NULL))) {
     return DS_ERR_NULL;
   }
   *out_edges = 0;
@@ -587,8 +588,8 @@ static double sn_dist(const double *p, size_t a, size_t b) {
 }
 
 /* Fermat point of three points by Weiszfeld's iteration. */
-static void sn_fermat(const double *p, size_t a, size_t b, size_t c, double *fx,
-                      double *fy) {
+static void sn_fermat(const double *p, size_t a, size_t b, size_t c,
+                      double *fx, double *fy) {
   double x = (p[2 * a] + p[2 * b] + p[2 * c]) / 3.0;
   double y = (p[2 * a + 1] + p[2 * b + 1] + p[2 * c + 1]) / 3.0;
   size_t it;
@@ -634,8 +635,9 @@ ds_status_t ds_euclidean_steiner(const double *xy, size_t k, double *out_xy,
   size_t j;
   size_t v;
   double len = 0.0;
-  if (xy == NULL || out_xy == NULL || out_points == NULL || out_edges == NULL ||
-      out_length == NULL || (k > 1 && (eu == NULL || ev == NULL))) {
+  if (xy == NULL || out_xy == NULL || out_points == NULL ||
+      out_edges == NULL || out_length == NULL ||
+      (k > 1 && (eu == NULL || ev == NULL))) {
     return DS_ERR_NULL;
   }
   for (i = 0; i < 2 * k; i++) {

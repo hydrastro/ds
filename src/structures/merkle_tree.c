@@ -74,7 +74,8 @@ static void mk_node(const ds_merkle_tree_config_t *c, const unsigned char *l,
   memcpy(out, tmp, c->digest_size);
 }
 
-static unsigned char *mk_at(const ds_merkle_tree_t *t, size_t level, size_t i) {
+static unsigned char *mk_at(const ds_merkle_tree_t *t, size_t level,
+                            size_t i) {
   return t->levels[level].data + i * t->config.digest_size;
 }
 

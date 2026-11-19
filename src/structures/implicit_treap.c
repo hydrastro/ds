@@ -171,10 +171,12 @@ static void it_split(ds_itreap_t *t, ds_itreap_node_t *n, size_t k,
   }
   *ls = NULL;
   *rs = NULL;
-  for (; left != NULL; left = left->parent)
+  for (; left != NULL; left = left->parent) {
     it_pull(t, left);
-  for (; right != NULL; right = right->parent)
+  }
+  for (; right != NULL; right = right->parent) {
     it_pull(t, right);
+  }
 }
 
 static ds_itreap_node_t *it_merge(ds_itreap_t *t, ds_itreap_node_t *a,
@@ -199,10 +201,12 @@ static ds_itreap_node_t *it_merge(ds_itreap_t *t, ds_itreap_node_t *a,
     tail = chosen;
   }
   *slot = a == NULL ? b : a;
-  if (*slot != NULL)
+  if (*slot != NULL) {
     (*slot)->parent = tail;
-  for (; tail != NULL; tail = tail->parent)
+  }
+  for (; tail != NULL; tail = tail->parent) {
     it_pull(t, tail);
+  }
   return root;
 }
 
@@ -282,8 +286,8 @@ ds_status_t ds_itreap_init(ds_itreap_t *treap,
   }
   treap->root = NULL;
   treap->seed = 0x2545F491UL;
-  treap->scratch = (unsigned char *)ds_context_alloc(treap->config.context,
-                                                     scratch > 0 ? scratch : 1);
+  treap->scratch = (unsigned char *)ds_context_alloc(
+      treap->config.context, scratch > 0 ? scratch : 1);
   return treap->scratch == NULL ? DS_ERR_ALLOC : DS_OK;
 }
 
@@ -309,8 +313,9 @@ ds_status_t ds_itreap_insert(ds_itreap_t *treap, size_t index,
   if (treap == NULL || elem == NULL) {
     return DS_ERR_NULL;
   }
-  if (ds_itreap_size(treap) == (size_t)-1)
+  if (ds_itreap_size(treap) == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   if (index > ds_itreap_size(treap)) {
     return DS_ERR_RANGE;
   }
@@ -558,8 +563,9 @@ ds_status_t ds_itreap_append(ds_itreap_t *treap, ds_itreap_t *other) {
   if (treap == other || !ds_itreap_compatible(treap, other)) {
     return DS_ERR_INVALID;
   }
-  if (ds_itreap_size(other) > (size_t)-1 - ds_itreap_size(treap))
+  if (ds_itreap_size(other) > (size_t)-1 - ds_itreap_size(treap)) {
     return DS_ERR_OVERFLOW;
+  }
   treap->root = it_merge(treap, treap->root, other->root);
   other->root = NULL;
   return DS_OK;
@@ -569,29 +575,34 @@ ds_status_t ds_itreap_visit(ds_itreap_t *treap, ds_itreap_visit_func_t visit,
                             void *user) {
   ds_itreap_node_t *n;
   size_t index = 0;
-  if (treap == NULL || visit == NULL)
+  if (treap == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   n = treap->root;
   while (n != NULL) {
     it_push(treap, n);
-    if (n->left == NULL)
+    if (n->left == NULL) {
       break;
+    }
     n = n->left;
   }
   while (n != NULL) {
-    if (!visit(IT_AT(n, treap->elem_offset), index++, user))
+    if (!visit(IT_AT(n, treap->elem_offset), index++, user)) {
       return DS_STOP;
+    }
     if (n->right != NULL) {
       n = n->right;
       for (;;) {
         it_push(treap, n);
-        if (n->left == NULL)
+        if (n->left == NULL) {
           break;
+        }
         n = n->left;
       }
     } else {
-      while (n->parent != NULL && n == n->parent->right)
+      while (n->parent != NULL && n == n->parent->right) {
         n = n->parent;
+      }
       n = n->parent;
     }
   }

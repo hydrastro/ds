@@ -102,8 +102,8 @@ ds_status_t ds_fta_determinize_ex(const ds_fta_t *fta,
 ds_status_t ds_fta_intersection(const ds_fta_t *a, const ds_fta_t *b,
                                 ds_fta_t *out, ds_context_t *context);
 ds_status_t ds_fta_intersection_ex(const ds_fta_t *a, const ds_fta_t *b,
-                                   const ds_fta_budget_t *budget, ds_fta_t *out,
-                                   ds_context_t *context);
+                                   const ds_fta_budget_t *budget,
+                                   ds_fta_t *out, ds_context_t *context);
 ds_status_t ds_fta_union(const ds_fta_t *a, const ds_fta_t *b, ds_fta_t *out,
                          ds_context_t *context);
 /* DS_ERR_STATE unless fta is a complete DFTA; complements in place */
@@ -187,7 +187,8 @@ ds_status_t ds_tt_init(ds_tree_transducer_t *tt, size_t states,
                        size_t out_symbols, const size_t *out_rank,
                        ds_context_t *context);
 void ds_tt_destroy(ds_tree_transducer_t *tt);
-ds_status_t ds_tt_set_final(ds_tree_transducer_t *tt, size_t state, bool final);
+ds_status_t ds_tt_set_final(ds_tree_transducer_t *tt, size_t state,
+                            bool final);
 /* DS_ERR_INVALID if rhs is not one output tree (variables count as
  * leaves, DS_TT_VAR(i) needs i < rank of symbol) or the left-hand side is
  * already used (the transducer is deterministic) */

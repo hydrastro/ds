@@ -200,7 +200,8 @@ ds_status_t ds_rdfc_canonicalize_nquads(const char *text, size_t length,
                                         ds_context_t *context);
 /* the canonical label of an input label (binary search), NULL if it has
  * none */
-const char *ds_rdfc_label_of(const ds_rdfc_result_t *result, const char *input);
+const char *ds_rdfc_label_of(const ds_rdfc_result_t *result,
+                             const char *input);
 void ds_rdfc_result_destroy(ds_rdfc_result_t *result);
 
 #ifdef __cplusplus

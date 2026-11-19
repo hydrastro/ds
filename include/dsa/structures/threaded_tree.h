@@ -88,8 +88,8 @@ typedef enum ds_traversal_order {
 
 /* left/right: child indices or DS_THREADED_NONE. Returns DS_STOP when the
  * visitor returned false. */
-ds_status_t ds_cupif_giannini_traverse(size_t *left, size_t *right, size_t root,
-                                       ds_traversal_order_t order,
+ds_status_t ds_cupif_giannini_traverse(size_t *left, size_t *right,
+                                       size_t root, ds_traversal_order_t order,
                                        bool (*visit)(size_t node, void *user),
                                        void *user);
 

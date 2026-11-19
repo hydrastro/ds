@@ -55,8 +55,9 @@ ds_radix_trie_t *ds_radix_trie_create(ds_context_t *context) {
 }
 ds_status_t ds_radix_trie_create_context(ds_context_t *context,
                                          ds_radix_trie_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = radix_trie_create_internal(context != NULL ? context
                                                     : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -82,8 +83,9 @@ static bool radix_trie_add_child(ds_radix_trie_t *trie,
   grown = (ds_radix_trie_node_t **)ds_context_alloc(
       trie->context,
       (parent->num_children + 1) * sizeof(ds_radix_trie_node_t *));
-  if (grown == NULL)
+  if (grown == NULL) {
     return false;
+  }
   for (i = 0; i < parent->num_children; i++) {
     grown[i] = parent->children[i];
   }
@@ -101,9 +103,11 @@ static void radix_trie_remove_child(ds_radix_trie_t *trie,
                                     ds_radix_trie_node_t *parent,
                                     ds_radix_trie_node_t *child) {
   size_t i, n = 0;
-  for (i = 0; i < parent->num_children; i++)
-    if (parent->children[i] != child)
+  for (i = 0; i < parent->num_children; i++) {
+    if (parent->children[i] != child) {
       parent->children[n++] = parent->children[i];
+    }
+  }
   parent->num_children = n;
   if (n == 0) {
     ds_context_free(trie->context, parent->children);
@@ -123,12 +127,15 @@ static size_t radix_trie_common_prefix(const unsigned char *a, size_t a_len,
 
 static void radix_trie_free_new(ds_radix_trie_t *trie,
                                 ds_radix_trie_node_t *node) {
-  if (node == NULL)
+  if (node == NULL) {
     return;
-  if (node->edge != NULL)
+  }
+  if (node->edge != NULL) {
     ds_context_free(trie->context, node->edge);
-  if (node->children != NULL)
+  }
+  if (node->children != NULL) {
     ds_context_free(trie->context, node->children);
+  }
   ds_context_free(trie->context, node);
 }
 
@@ -137,8 +144,9 @@ ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
   const unsigned char *bytes = (const unsigned char *)key;
   ds_radix_trie_node_t *node;
   size_t offset = 0;
-  if (trie == NULL || (key == NULL && length != 0))
+  if (trie == NULL || (key == NULL && length != 0)) {
     return DS_ERR_NULL;
+  }
   node = trie->root;
   for (;;) {
     ds_radix_trie_node_t *child;
@@ -148,8 +156,9 @@ ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
         node->value = value;
         return DS_EXISTS;
       }
-      if (trie->size == (size_t)-1)
+      if (trie->size == (size_t)-1) {
         return DS_ERR_OVERFLOW;
+      }
       node->is_terminal = true;
       node->value = value;
       trie->size++;
@@ -158,11 +167,13 @@ ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
     child = radix_trie_find_child(node, bytes[offset]);
     if (child == NULL) {
       ds_radix_trie_node_t *leaf;
-      if (trie->size == (size_t)-1)
+      if (trie->size == (size_t)-1) {
         return DS_ERR_OVERFLOW;
+      }
       leaf = radix_trie_new_node(trie, bytes + offset, length - offset);
-      if (leaf == NULL)
+      if (leaf == NULL) {
         return DS_ERR_ALLOC;
+      }
       leaf->is_terminal = true;
       leaf->value = value;
       if (!radix_trie_add_child(trie, node, leaf)) {
@@ -182,11 +193,13 @@ ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
     {
       ds_radix_trie_node_t *split, *leaf = NULL;
       size_t i, slots = offset + common == length ? 1U : 2U;
-      if (trie->size == (size_t)-1)
+      if (trie->size == (size_t)-1) {
         return DS_ERR_OVERFLOW;
+      }
       split = radix_trie_new_node(trie, child->edge, common);
-      if (split == NULL)
+      if (split == NULL) {
         return DS_ERR_ALLOC;
+      }
       if (slots == 2) {
         leaf = radix_trie_new_node(trie, bytes + offset + common,
                                    length - offset - common);
@@ -219,11 +232,12 @@ ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
         split->is_terminal = true;
         split->value = value;
       }
-      for (i = 0; i < node->num_children; i++)
+      for (i = 0; i < node->num_children; i++) {
         if (node->children[i] == child) {
           node->children[i] = split;
           break;
         }
+      }
       trie->size++;
       return DS_OK;
     }
@@ -240,8 +254,9 @@ static ds_radix_trie_node_t *radix_trie_find_node(ds_radix_trie_t *trie,
                                                   size_t length) {
   ds_radix_trie_node_t *node;
   size_t offset = 0;
-  if (trie == NULL || (bytes == NULL && length != 0))
+  if (trie == NULL || (bytes == NULL && length != 0)) {
     return NULL;
+  }
   node = trie->root;
   while (offset < length) {
     ds_radix_trie_node_t *child = radix_trie_find_child(node, bytes[offset]);
@@ -287,12 +302,14 @@ static bool radix_trie_merge_with_child(ds_radix_trie_t *trie,
   size_t merged_length;
   unsigned char *merged;
   size_t i;
-  if (child->edge_length > (size_t)-1 - node->edge_length)
+  if (child->edge_length > (size_t)-1 - node->edge_length) {
     return false;
+  }
   merged_length = node->edge_length + child->edge_length;
   merged = (unsigned char *)ds_context_alloc(trie->context, merged_length);
-  if (merged == NULL)
+  if (merged == NULL) {
     return false;
+  }
   for (i = 0; i < node->edge_length; i++) {
     merged[i] = node->edge[i];
   }
@@ -309,8 +326,9 @@ static bool radix_trie_merge_with_child(ds_radix_trie_t *trie,
   ds_context_free(trie->context, node->children);
   node->children = child->children;
   node->num_children = child->num_children;
-  for (i = 0; i < node->num_children; i++)
+  for (i = 0; i < node->num_children; i++) {
     node->children[i]->parent = node;
+  }
   if (child->edge != NULL) {
     ds_context_free(trie->context, child->edge);
   }
@@ -321,13 +339,16 @@ static bool radix_trie_merge_with_child(ds_radix_trie_t *trie,
 bool ds_radix_trie_remove(ds_radix_trie_t *trie, const void *key,
                           size_t length, void **out_value) {
   ds_radix_trie_node_t *node;
-  if (trie == NULL || (key == NULL && length != 0))
+  if (trie == NULL || (key == NULL && length != 0)) {
     return false;
+  }
   node = radix_trie_find_node(trie, (const unsigned char *)key, length);
-  if (node == NULL || !node->is_terminal)
+  if (node == NULL || !node->is_terminal) {
     return false;
-  if (out_value != NULL)
+  }
+  if (out_value != NULL) {
     *out_value = node->value;
+  }
   node->is_terminal = false;
   node->value = NULL;
   trie->size--;
@@ -341,8 +362,9 @@ bool ds_radix_trie_remove(ds_radix_trie_t *trie, const void *key,
                radix_trie_merge_with_child(trie, node)) {
       /* Another unary node may remain if earlier optional compression failed.
        */
-    } else
+    } else {
       break;
+    }
   }
   return true;
 }
@@ -376,8 +398,9 @@ static ds_status_t rt_enter(ds_radix_trie_t *trie, ds_radix_trie_node_t *node,
                             ds_radix_trie_visit_fn callback, void *user) {
   size_t needed;
   size_t i;
-  if (node->edge_length > (size_t)-1 - prefix)
+  if (node->edge_length > (size_t)-1 - prefix) {
     return DS_ERR_OVERFLOW;
+  }
   needed = prefix + node->edge_length;
   if (needed > *cap) {
     size_t new_cap = *cap == 0 ? 16 : *cap;
@@ -448,12 +471,14 @@ ds_status_t ds_radix_trie_walk_with(ds_radix_trie_t *trie,
   size_t buffer_cap = 0, depth = 0, stack_cap = 0;
   rt_frame_t *stack = NULL;
   ds_status_t st = DS_OK;
-  if (trie == NULL || callback == NULL)
+  if (trie == NULL || callback == NULL) {
     return DS_ERR_NULL;
+  }
   if (trie->root != NULL) {
     st = rt_enter(trie, trie->root, 0, &buffer, &buffer_cap, callback, user);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rt_push_frame(trie, &stack, &depth, &stack_cap, trie->root, 0);
+    }
   }
   while (st == DS_OK && depth > 0) {
     rt_frame_t *f = &stack[depth - 1];
@@ -466,13 +491,16 @@ ds_status_t ds_radix_trie_walk_with(ds_radix_trie_t *trie,
     child = f->node->children[f->next++];
     prefix = f->prefix;
     st = rt_enter(trie, child, prefix, &buffer, &buffer_cap, callback, user);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rt_push_frame(trie, &stack, &depth, &stack_cap, child, prefix);
+    }
   }
-  if (stack != NULL)
+  if (stack != NULL) {
     ds_context_free(trie->context, stack);
-  if (buffer != NULL)
+  }
+  if (buffer != NULL) {
     ds_context_free(trie->context, buffer);
+  }
   return st;
 }
 static ds_status_t rt_visit_direct(const unsigned char *key, size_t length,
@@ -485,8 +513,9 @@ static ds_status_t rt_visit_direct(const unsigned char *key, size_t length,
 void ds_radix_trie_walk(ds_radix_trie_t *trie,
                         void (*callback)(const unsigned char *, size_t,
                                          void *)) {
-  if (callback != NULL)
+  if (callback != NULL) {
     (void)ds_radix_trie_walk_with(trie, rt_visit_direct, &callback);
+  }
 }
 
 /* Destruction needs no memory: nodes waiting to be freed form a list
@@ -504,8 +533,9 @@ void ds_radix_trie_destroy_with(ds_radix_trie_t *trie,
                                 void (*destroy_value)(void *, void *),
                                 void *user) {
   ds_radix_trie_node_t *list = NULL;
-  if (trie == NULL)
+  if (trie == NULL) {
     return;
+  }
   if (trie->root != NULL) {
     rt_doom(trie, &list, trie->root);
   }
@@ -540,11 +570,13 @@ ds_status_t ds_radix_trie_find_ex(ds_radix_trie_t *tree,
                                   const unsigned char *key, size_t length,
                                   void **out) {
   ds_radix_trie_node_t *node;
-  if (tree == NULL || out == NULL || (length > 0 && key == NULL))
+  if (tree == NULL || out == NULL || (length > 0 && key == NULL)) {
     return DS_ERR_NULL;
+  }
   node = radix_trie_find_node(tree, key, length);
-  if (node == NULL || !node->is_terminal)
+  if (node == NULL || !node->is_terminal) {
     return DS_NOT_FOUND;
+  }
   *out = node->value;
   return DS_OK;
 }

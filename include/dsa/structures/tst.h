@@ -55,8 +55,8 @@ size_t ds_tst_size(const ds_tst_t *t);
 /* DS_EXISTS (value replaced) for a present key. */
 ds_status_t ds_tst_insert(ds_tst_t *t, const unsigned char *key, size_t len,
                           size_t value);
-ds_status_t ds_tst_find(const ds_tst_t *t, const unsigned char *key, size_t len,
-                        size_t *out_value);
+ds_status_t ds_tst_find(const ds_tst_t *t, const unsigned char *key,
+                        size_t len, size_t *out_value);
 ds_status_t ds_tst_remove(ds_tst_t *t, const unsigned char *key, size_t len);
 /* Keys starting with prefix, in lexicographic order. buf (buf_len bytes)
  * receives each key: DS_ERR_RANGE if a key does not fit. */
@@ -70,8 +70,8 @@ ds_status_t ds_tst_partial_match(ds_tst_t *t, const unsigned char *pattern,
                                  void *user);
 /* Keys of length len differing from key in at most d positions. */
 ds_status_t ds_tst_near(ds_tst_t *t, const unsigned char *key, size_t len,
-                        size_t d, unsigned char *buf, ds_tst_visit_func_t visit,
-                        void *user);
+                        size_t d, unsigned char *buf,
+                        ds_tst_visit_func_t visit, void *user);
 
 #ifdef __cplusplus
 }

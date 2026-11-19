@@ -171,12 +171,14 @@ ds_status_t ds_ca1_set_totalistic_code(ds_ca1_t *ca, unsigned long code) {
     t[s] = (unsigned char)(code % ca->states);
     code /= ca->states;
   }
-  st = code != 0 ? DS_ERR_RANGE : ca1_table(ca, size, t, DS_CA_RULE_TOTALISTIC);
+  st =
+      code != 0 ? DS_ERR_RANGE : ca1_table(ca, size, t, DS_CA_RULE_TOTALISTIC);
   ds_context_free(ca->context, t);
   return st;
 }
 
-ds_status_t ds_ca1_set_callback(ds_ca1_t *ca, ds_ca1_rule_fn rule, void *user) {
+ds_status_t ds_ca1_set_callback(ds_ca1_t *ca, ds_ca1_rule_fn rule,
+                                void *user) {
   if (ca == NULL || rule == NULL) {
     return DS_ERR_NULL;
   }
@@ -461,7 +463,8 @@ ds_status_t ds_ca2_parse_rule(ds_ca2_t *ca, const char *rule) {
   return st;
 }
 
-ds_status_t ds_ca2_set_callback(ds_ca2_t *ca, ds_ca2_rule_fn rule, void *user) {
+ds_status_t ds_ca2_set_callback(ds_ca2_t *ca, ds_ca2_rule_fn rule,
+                                void *user) {
   if (ca == NULL || rule == NULL) {
     return DS_ERR_NULL;
   }

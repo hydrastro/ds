@@ -41,7 +41,8 @@ static void xf_set(ds_xor_filter_t *f, size_t i, unsigned long v) {
   if (off + f->fp_bits > XF_W) {
     unsigned hi = off + f->fp_bits - (unsigned)XF_W;
     unsigned long hmask = (1UL << hi) - 1UL;
-    f->table[w + 1] = (f->table[w + 1] & ~hmask) | ((v & mask) >> (XF_W - off));
+    f->table[w + 1] =
+        (f->table[w + 1] & ~hmask) | ((v & mask) >> (XF_W - off));
   }
 }
 
@@ -105,9 +106,9 @@ static void xf_sort(unsigned long *a, size_t n) {
   }
 }
 
-ds_status_t ds_xor_filter_build(ds_xor_filter_t *f, const unsigned long *hashes,
-                                size_t n, unsigned fp_bits,
-                                ds_context_t *context) {
+ds_status_t ds_xor_filter_build(ds_xor_filter_t *f,
+                                const unsigned long *hashes, size_t n,
+                                unsigned fp_bits, ds_context_t *context) {
   unsigned long *keys = NULL, *xors = NULL, *stack_key = NULL;
   size_t *counts = NULL, *queue = NULL, *stack_slot = NULL;
   size_t i, m = 0, words, try_;
@@ -156,11 +157,11 @@ ds_status_t ds_xor_filter_build(ds_xor_filter_t *f, const unsigned long *hashes,
   f->segment = (m + m / 4 + 32) / 3 + 1; /* capacity ~ 1.25 n + 32 */
   f->capacity = 3 * f->segment;
   words = f->capacity * fp_bits / XF_W + 2;
-  f->table =
-      (unsigned long *)ds_context_alloc(context, words * sizeof(unsigned long));
+  f->table = (unsigned long *)ds_context_alloc(context,
+                                               words * sizeof(unsigned long));
   counts = (size_t *)ds_context_alloc(context, f->capacity * sizeof(size_t));
-  xors = (unsigned long *)ds_context_alloc(context,
-                                           f->capacity * sizeof(unsigned long));
+  xors = (unsigned long *)ds_context_alloc(context, f->capacity *
+                                                        sizeof(unsigned long));
   queue = (size_t *)ds_context_alloc(context, f->capacity * sizeof(size_t));
   stack_key = (unsigned long *)ds_context_alloc(
       context, (m == 0 ? 1 : m) * sizeof(unsigned long));

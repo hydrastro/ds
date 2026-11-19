@@ -53,7 +53,8 @@ ds_status_t ds_shadow_heap_init(ds_shadow_heap_t *heap, size_t elem_size,
                                 ds_shadow_heap_compare_func_t compare,
                                 void *user, size_t threshold,
                                 ds_context_t *context);
-ds_status_t ds_shadow_heap_init_buffer(ds_shadow_heap_t *heap, size_t elem_size,
+ds_status_t ds_shadow_heap_init_buffer(ds_shadow_heap_t *heap,
+                                       size_t elem_size,
                                        ds_shadow_heap_compare_func_t compare,
                                        void *user, size_t threshold,
                                        void *buffer, size_t capacity);

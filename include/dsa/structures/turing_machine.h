@@ -148,8 +148,8 @@ size_t ds_tm_tape_count(const ds_tm_config_t *cfg, size_t tape,
 /* one step of a deterministic machine (the first matching transition);
  * cfg->outcome becomes RUNNING or a halting outcome */
 ds_status_t ds_tm_step(ds_tm_t *tm, ds_tm_config_t *cfg);
-ds_status_t ds_tm_run(ds_tm_t *tm, ds_tm_config_t *cfg, unsigned long max_steps,
-                      ds_tm_outcome_t *out);
+ds_status_t ds_tm_run(ds_tm_t *tm, ds_tm_config_t *cfg,
+                      unsigned long max_steps, ds_tm_outcome_t *out);
 /* ACCEPT if some branch accepts within max_steps, REJECT if every branch
  * halts without accepting, LIMIT otherwise (also when more than
  * max_configs configurations are live) */
@@ -166,7 +166,8 @@ ds_status_t ds_tm_transduce(ds_tm_t *tm, const unsigned char *input,
 /* max ones (Sigma) and steps (S) over n-state 2-symbol machines that halt
  * within max_steps; *undecided counts machines stopped by the limit */
 ds_status_t ds_tm_busy_beaver_search(size_t n, unsigned long max_steps,
-                                     unsigned long *sigma, unsigned long *steps,
+                                     unsigned long *sigma,
+                                     unsigned long *steps,
                                      unsigned long *undecided,
                                      ds_context_t *context);
 

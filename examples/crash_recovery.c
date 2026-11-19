@@ -24,7 +24,8 @@ typedef struct db {
 static ds_status_t db_open(db_t *db) {
   /* recovery replays the commits the log holds; by default a sync
    * checkpoints once the log reaches 1024 pages */
-  ds_status_t st = ds_page_store_wal(&db->wal, &db->data, &db->log, NULL, NULL);
+  ds_status_t st =
+      ds_page_store_wal(&db->wal, &db->data, &db->log, NULL, NULL);
   if (st != DS_OK) {
     return st;
   }
@@ -55,7 +56,8 @@ static void db_power_cut(db_t *db, unsigned long seed) {
   (void)ds_fault_store_crash(&db->log, DS_FAULT_CRASH_TORN, seed + 1);
 }
 
-static unsigned long count_range(db_t *db, unsigned long lo, unsigned long hi) {
+static unsigned long count_range(db_t *db, unsigned long lo,
+                                 unsigned long hi) {
   unsigned long n = 0, k, v;
   for (k = lo; k < hi; k++) {
     if (ds_pbtree_get(&db->tree, k, &v) == DS_OK && v == k * 10) {
@@ -72,7 +74,8 @@ int main(void) {
   int ok = 1;
   if (ds_page_store_memory(&db.data_disk, PAGE, NULL) != DS_OK ||
       ds_page_store_memory(&db.log_disk, PAGE, NULL) != DS_OK ||
-      ds_page_store_fault(&db.data, &db.data_disk, NULL, NULL, NULL) != DS_OK ||
+      ds_page_store_fault(&db.data, &db.data_disk, NULL, NULL, NULL) !=
+          DS_OK ||
       ds_page_store_fault(&db.log, &db.log_disk, NULL, NULL, NULL) != DS_OK ||
       db_open(&db) != DS_OK) {
     return 1;

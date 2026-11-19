@@ -17,9 +17,9 @@
  * alignment of value_size-sized array elements and can be cast to the
  * user's type. Pointers returned by get/emplace stay valid until the next
  * insertion, removal, clear, reserve or destruction (including failed
- * mutations, conservatively); the key and value given to put, insert or emplace
- * may still be such pointers into the map (another entry's value, used as
- * a value or as a key): they are read before anything moves.
+ * mutations, conservatively); the key and value given to put, insert or
+ * emplace may still be such pointers into the map (another entry's value, used
+ * as a value or as a key): they are read before anything moves.
  *
  * The user hash is mixed before use, so a weak hash (e.g. the identity on
  * integers) still spreads well. Ready-made hash/equal functions for
@@ -81,7 +81,8 @@ ds_status_t ds_rh_map_init_buffer(ds_rh_map_t *map,
                                   unsigned int *dist, size_t capacity);
 void ds_rh_map_destroy(ds_rh_map_t *map);
 
-ds_status_t ds_rh_map_put(ds_rh_map_t *map, const void *key, const void *value);
+ds_status_t ds_rh_map_put(ds_rh_map_t *map, const void *key,
+                          const void *value);
 ds_status_t ds_rh_map_insert(ds_rh_map_t *map, const void *key,
                              const void *value);
 void *ds_rh_map_emplace(ds_rh_map_t *map, const void *key, bool *out_inserted);

@@ -5,7 +5,8 @@
 
 #define RT_NONE (~(size_t)0)
 
-/* ---- box helpers ------------------------------------------------------------
+/* ---- box helpers
+ * ------------------------------------------------------------
  */
 
 static double bx_area(const double *b, size_t d) {
@@ -1104,7 +1105,8 @@ static bool rp_cut(const double *boxes, size_t d, const double *region,
           continue;
         }
         imb = l > r ? l - r : r - l;
-        if (!any || l + r < best_sum || (l + r == best_sum && imb < best_imb)) {
+        if (!any || l + r < best_sum ||
+            (l + r == best_sum && imb < best_imb)) {
           any = true;
           best_sum = l + r;
           best_imb = imb;
@@ -1194,8 +1196,8 @@ static ds_status_t rp_make_leaf(ds_rplus_t *t, const double *boxes,
 }
 
 ds_status_t ds_rplus_build(ds_rplus_t *t, size_t dim, const double *boxes,
-                           const size_t *values, size_t n, size_t leaf_capacity,
-                           ds_context_t *context) {
+                           const size_t *values, size_t n,
+                           size_t leaf_capacity, ds_context_t *context) {
   size_t ncap = 0;
   size_t ecap = 0;
   size_t i;

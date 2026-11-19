@@ -125,11 +125,11 @@ ds_status_t ds_d_tree_build(ds_d_tree_t *t, const double *xy,
   t->context = context != NULL ? context : ds_default_context();
   cap = 2 * n;
   total_edges = offsets[n] - offsets[0];
-#define DT_ALLOC(field, type, count)                                           \
-  t->field = (type *)ds_context_calloc(context, (count), sizeof(type));        \
-  if (t->field == NULL) {                                                      \
-    st = DS_ERR_ALLOC;                                                         \
-    goto fail;                                                                 \
+#define DT_ALLOC(field, type, count)                                          \
+  t->field = (type *)ds_context_calloc(context, (count), sizeof(type));       \
+  if (t->field == NULL) {                                                     \
+    st = DS_ERR_ALLOC;                                                        \
+    goto fail;                                                                \
   }
   DT_ALLOC(value, size_t, n)
   DT_ALLOC(poly, double *, n)

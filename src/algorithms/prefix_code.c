@@ -662,7 +662,8 @@ void ds_coding_tree_destroy(ds_coding_tree_t *tree) {
 }
 
 ds_status_t ds_coding_tree_decode(const ds_coding_tree_t *tree,
-                                  ds_bit_reader_t *reader, size_t *out_symbol) {
+                                  ds_bit_reader_t *reader,
+                                  size_t *out_symbol) {
   size_t cur = 0;
   unsigned long bit;
   ds_status_t st;
@@ -760,8 +761,8 @@ ds_status_t ds_huffman_decompress(const unsigned char *in, size_t n,
   if (n < PC_HEADER) {
     return DS_ERR_INVALID;
   }
-  count = ((size_t)in[0] << 24) | ((size_t)in[1] << 16) | ((size_t)in[2] << 8) |
-          (size_t)in[3];
+  count = ((size_t)in[0] << 24) | ((size_t)in[1] << 16) |
+          ((size_t)in[2] << 8) | (size_t)in[3];
   *out_length = count;
   if (count > capacity) {
     return DS_ERR_OVERFLOW;

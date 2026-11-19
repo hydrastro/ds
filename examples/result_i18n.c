@@ -25,8 +25,9 @@ static ds_status_t double_count(const ds_result_value_t *input, void *user,
   ds_schema_t schema;
   size_t value = *(const size_t *)input->data;
   (void)user;
-  if (value > (size_t)-1 / 2)
+  if (value > (size_t)-1 / 2) {
     return DS_ERR_OVERFLOW;
+  }
   value *= 2;
   ds_schema_init(&schema, sizeof(value));
   return ds_result_value_from_schema(out, &value, &schema, NULL);
@@ -42,8 +43,9 @@ static ds_status_t accept_count(const ds_result_value_t *input, void *user,
                     *(const size_t *)input->data);
   /* A warning does not turn a successful domain result into an error.
    * ok retains input's owner; no borrowed pointer into a temporary result. */
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_result_ok(out, input, &log, config);
+  }
   ds_diagnostics_destroy(&log);
   return st;
 }
@@ -56,13 +58,15 @@ static ds_status_t format_files(const ds_i18n_request_t *request,
   for (i = 0; i < request->arg_count; i++) {
     if (request->args[i].name != NULL &&
         strcmp(request->args[i].name, "count") == 0 &&
-        request->args[i].type == DS_ARG_SIZE)
+        request->args[i].type == DS_ARG_SIZE) {
       count = request->args[i].value.size;
+    }
   }
-  if (strcmp(request->locale, "it") == 0)
+  if (strcmp(request->locale, "it") == 0) {
     text = count == 1 ? "{count} file pronto" : "{count} file pronti";
-  else
+  } else {
     text = count == 1 ? "{count} file ready" : "{count} files ready";
+  }
   return ds_i18n_interpolate(writer, text, request->args, request->arg_count);
 }
 
@@ -73,21 +77,22 @@ static void print_event(ds_diagnostic_sink_t *sink,
   ds_status_t st;
   ds_i18n_text_init(&text, NULL);
   st = ds_i18n_render_diagnostic(translator, event, &text);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     printf("  %s\n", ds_i18n_text_cstr(&text));
-  else
+  } else {
     fprintf(stderr, "diagnostic rendering failed: %d\n", (int)st);
+  }
   ds_i18n_text_destroy(&text);
 }
 
-#define TRY(call)                                                              \
-  do {                                                                         \
-    st = (call);                                                               \
-    if (DS_FAILED(st)) {                                                       \
-      fprintf(stderr, "%s failed: %d\n", #call, (int)st);                      \
-      result = 1;                                                              \
-      goto cleanup;                                                            \
-    }                                                                          \
+#define TRY(call)                                                             \
+  do {                                                                        \
+    st = (call);                                                              \
+    if (DS_FAILED(st)) {                                                      \
+      fprintf(stderr, "%s failed: %d\n", #call, (int)st);                     \
+      result = 1;                                                             \
+      goto cleanup;                                                           \
+    }                                                                         \
   } while (0)
 
 int main(void) {

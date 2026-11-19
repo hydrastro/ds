@@ -222,7 +222,8 @@ static size_t bdd_cof(const ds_bdd_t *m, size_t n, size_t level, int hi) {
   return hi ? m->high[n] : m->low[n];
 }
 
-ds_status_t ds_bdd_ite(ds_bdd_t *m, size_t f, size_t g, size_t h, size_t *out) {
+ds_status_t ds_bdd_ite(ds_bdd_t *m, size_t f, size_t g, size_t h,
+                       size_t *out) {
   size_t top = 0;
   size_t ret = BDD_NONE;
   size_t *fr;
@@ -444,7 +445,8 @@ ds_status_t ds_bdd_forall(ds_bdd_t *m, size_t f, size_t v, size_t *out) {
   return st;
 }
 
-bool ds_bdd_eval(const ds_bdd_t *m, size_t f, const unsigned char *assignment) {
+bool ds_bdd_eval(const ds_bdd_t *m, size_t f,
+                 const unsigned char *assignment) {
   if (m == NULL || assignment == NULL || !bdd_valid(m, f)) {
     return false;
   }

@@ -56,8 +56,8 @@ static bool ld_valid_degrees(const size_t *degree, size_t n) {
   return reached == n;
 }
 
-ds_status_t ds_louds_from_degrees(ds_louds_t *t, const size_t *degree, size_t n,
-                                  const ds_rs_ops_t *ops,
+ds_status_t ds_louds_from_degrees(ds_louds_t *t, const size_t *degree,
+                                  size_t n, const ds_rs_ops_t *ops,
                                   ds_context_t *context) {
   if (t == NULL || (degree == NULL && n > 0)) {
     return DS_ERR_NULL;
@@ -69,8 +69,9 @@ ds_status_t ds_louds_from_degrees(ds_louds_t *t, const size_t *degree, size_t n,
   return ld_build(t, degree, n, ops, context);
 }
 
-ds_status_t ds_louds_from_parents(ds_louds_t *t, const size_t *parent, size_t n,
-                                  size_t *out_number, const ds_rs_ops_t *ops,
+ds_status_t ds_louds_from_parents(ds_louds_t *t, const size_t *parent,
+                                  size_t n, size_t *out_number,
+                                  const ds_rs_ops_t *ops,
                                   ds_context_t *context) {
   size_t *start = NULL; /* n + 1: children of v at kids[start[v] ..) */
   size_t *kids = NULL;  /* n */
@@ -228,16 +229,18 @@ size_t ds_louds_next_sibling(const ds_louds_t *t, size_t v) {
   if (t == NULL || v == 0 || v >= t->n) {
     return DS_LOUDS_NONE;
   }
-  return ds_rs_access(&t->bits, ds_rs_select1(&t->bits, v) + 1) ? v + 1
-                                                                : DS_LOUDS_NONE;
+  return ds_rs_access(&t->bits, ds_rs_select1(&t->bits, v) + 1)
+             ? v + 1
+             : DS_LOUDS_NONE;
 }
 
 size_t ds_louds_prev_sibling(const ds_louds_t *t, size_t v) {
   if (t == NULL || v == 0 || v >= t->n) {
     return DS_LOUDS_NONE;
   }
-  return ds_rs_access(&t->bits, ds_rs_select1(&t->bits, v) - 1) ? v - 1
-                                                                : DS_LOUDS_NONE;
+  return ds_rs_access(&t->bits, ds_rs_select1(&t->bits, v) - 1)
+             ? v - 1
+             : DS_LOUDS_NONE;
 }
 
 size_t ds_louds_child_rank(const ds_louds_t *t, size_t v) {

@@ -86,8 +86,8 @@ void ds_gview_floyd_warshall(double *dist, size_t n, size_t *out_next);
 /* ---- priority-queue algorithms with a chosen queue and scratch ----------
  *
  * The *_with variants run Dijkstra, Prim and A* on any graph view with
- * the priority queue the caller picks from dsa/structures/pq_iface.h, so a CSR,
- * implicit or matrix graph can use any queue without first being copied
+ * the priority queue the caller picks from dsa/structures/pq_iface.h, so a
+ * CSR, implicit or matrix graph can use any queue without first being copied
  * into an owning graph. Each vertex is pushed when first reached and
  * decreased through its handle afterwards: Dijkstra makes at most V pushes
  * and pops and E decreases, so it inherits the backend's costs

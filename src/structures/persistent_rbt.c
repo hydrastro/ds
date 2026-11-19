@@ -30,8 +30,8 @@ static void *prbt_clone_key(ds_prbt_t *tree, void *key);
 static void *prbt_clone_value(ds_prbt_t *tree, void *value);
 static void prbt_destroy_key(ds_prbt_t *tree, void *key);
 static void prbt_destroy_value(ds_prbt_t *tree, void *value);
-static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key, void *value,
-                                        bool red);
+static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key,
+                                        void *value, bool red);
 static size_t prbt_node_size(ds_prbt_node_t *node);
 static void prbt_update_size(ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_node_copy(ds_prbt_t *tree, ds_prbt_node_t *node);
@@ -43,7 +43,8 @@ static void prbt_set_left(ds_prbt_t *tree, ds_prbt_node_t *node,
 static void prbt_set_right(ds_prbt_t *tree, ds_prbt_node_t *node,
                            ds_prbt_node_t *right);
 static ds_prbt_node_t *prbt_rotate_left(ds_prbt_t *tree, ds_prbt_node_t *node);
-static ds_prbt_node_t *prbt_rotate_right(ds_prbt_t *tree, ds_prbt_node_t *node);
+static ds_prbt_node_t *prbt_rotate_right(ds_prbt_t *tree,
+                                         ds_prbt_node_t *node);
 static bool prbt_color_flip(ds_prbt_t *tree, ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_fixup(ds_prbt_t *tree, ds_prbt_node_t *node);
 static ds_prbt_node_t *prbt_move_red_left(ds_prbt_t *tree,
@@ -117,8 +118,8 @@ static void prbt_update_size(ds_prbt_node_t *node) {
   }
 }
 
-static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key, void *value,
-                                        bool red) {
+static ds_prbt_node_t *prbt_node_create(ds_prbt_t *tree, void *key,
+                                        void *value, bool red) {
   ds_prbt_node_t *node;
 
   node =
@@ -210,7 +211,8 @@ static void prbt_set_right(ds_prbt_t *tree, ds_prbt_node_t *node,
   }
 }
 
-static ds_prbt_node_t *prbt_rotate_left(ds_prbt_t *tree, ds_prbt_node_t *node) {
+static ds_prbt_node_t *prbt_rotate_left(ds_prbt_t *tree,
+                                        ds_prbt_node_t *node) {
   ds_prbt_node_t *pivot;
   ds_prbt_node_t *pivot_left;
 
@@ -430,8 +432,8 @@ static ds_prbt_node_t *prbt_max_node(ds_prbt_node_t *node) {
   return node;
 }
 
-static ds_prbt_node_t *prbt_delete_min_rec(ds_prbt_t *tree,
-                                           ds_prbt_node_t *node, bool *failed) {
+static ds_prbt_node_t *
+prbt_delete_min_rec(ds_prbt_t *tree, ds_prbt_node_t *node, bool *failed) {
   ds_prbt_node_t *copy;
   ds_prbt_node_t *child;
 
@@ -469,7 +471,8 @@ static ds_prbt_node_t *prbt_delete_min_rec(ds_prbt_t *tree,
 }
 
 static ds_prbt_node_t *prbt_remove_rec(ds_prbt_t *tree, ds_prbt_node_t *node,
-                                       void *key, bool *removed, bool *failed) {
+                                       void *key, bool *removed,
+                                       bool *failed) {
   ds_prbt_node_t *copy;
   ds_prbt_node_t *child;
   ds_prbt_node_t *min;
@@ -789,7 +792,8 @@ static bool prbt_validate_node(ds_prbt_t *tree, ds_prbt_node_t *node,
   return true;
 }
 
-static size_t prbt_rank_node(ds_prbt_t *tree, ds_prbt_node_t *node, void *key) {
+static size_t prbt_rank_node(ds_prbt_t *tree, ds_prbt_node_t *node,
+                             void *key) {
   size_t rank;
   int cmp;
 
@@ -1052,7 +1056,8 @@ ds_status_t ds_prbt_predecessor(ds_prbt_t *tree, ds_prbt_version_t *version,
   if (out_value != NULL) {
     *out_value = NULL;
   }
-  if (tree == NULL || version == NULL || out_key == NULL || out_value == NULL) {
+  if (tree == NULL || version == NULL || out_key == NULL ||
+      out_value == NULL) {
     return DS_ERR_NULL;
   }
   node = prbt_predecessor_node(tree, version->root, key);
@@ -1074,7 +1079,8 @@ ds_status_t ds_prbt_successor(ds_prbt_t *tree, ds_prbt_version_t *version,
   if (out_value != NULL) {
     *out_value = NULL;
   }
-  if (tree == NULL || version == NULL || out_key == NULL || out_value == NULL) {
+  if (tree == NULL || version == NULL || out_key == NULL ||
+      out_value == NULL) {
     return DS_ERR_NULL;
   }
   node = prbt_successor_node(tree, version->root, key);
@@ -1086,8 +1092,8 @@ ds_status_t ds_prbt_successor(ds_prbt_t *tree, ds_prbt_version_t *version,
   return DS_OK;
 }
 
-ds_status_t ds_prbt_rank(ds_prbt_t *tree, ds_prbt_version_t *version, void *key,
-                         size_t *out_rank) {
+ds_status_t ds_prbt_rank(ds_prbt_t *tree, ds_prbt_version_t *version,
+                         void *key, size_t *out_rank) {
   if (out_rank != NULL) {
     *out_rank = 0U;
   }

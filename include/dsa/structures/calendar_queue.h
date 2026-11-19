@@ -77,8 +77,8 @@ ds_status_t ds_calendar_queue_pop(ds_calendar_queue_t *queue, double *out_time,
                                   void *out_elem);
 /* The earliest event without removing it; advances the calendar. The
  * payload pointer stays valid until the next push or pop. */
-ds_status_t ds_calendar_queue_peek(ds_calendar_queue_t *queue, double *out_time,
-                                   void **out_elem);
+ds_status_t ds_calendar_queue_peek(ds_calendar_queue_t *queue,
+                                   double *out_time, void **out_elem);
 
 size_t ds_calendar_queue_size(const ds_calendar_queue_t *queue);
 bool ds_calendar_queue_is_empty(const ds_calendar_queue_t *queue);

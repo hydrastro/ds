@@ -16,22 +16,27 @@ static ds_treap_t *tr_create(int (*compare)(ds_treap_node_t *,
                              unsigned long seed, ds_context_t *context,
                              const ds_treap_config_t *config) {
   ds_treap_t *t;
-  if (compare == NULL && config == NULL)
+  if (compare == NULL && config == NULL) {
     return NULL;
-  if (config != NULL)
+  }
+  if (config != NULL) {
     context = config->context;
-  if (context == NULL)
+  }
+  if (context == NULL) {
     context = ds_default_context();
+  }
   t = (ds_treap_t *)ds_context_alloc(context, sizeof(*t));
-  if (t == NULL)
+  if (t == NULL) {
     return NULL;
+  }
   memset(t, 0, sizeof(*t));
   t->context = context != NULL ? context : ds_default_context();
 
   t->compare = compare;
   t->seed = seed & 0xffffffffUL;
-  if (t->seed == 0)
+  if (t->seed == 0) {
     t->seed = 0x9e3779b9UL;
+  }
   if (config != NULL) {
     t->compare_with = config->compare;
     t->user = config->user;
@@ -52,17 +57,20 @@ static ds_treap_t *tr_create(int (*compare)(ds_treap_node_t *,
 }
 
 void ds_treap_config_init(ds_treap_config_t *config) {
-  if (config != NULL)
+  if (config != NULL) {
     memset(config, 0, sizeof(*config));
+  }
 }
 
 ds_status_t ds_treap_create_with(const ds_treap_config_t *config,
                                  ds_treap_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (config == NULL || config->compare == NULL)
+  if (config == NULL || config->compare == NULL) {
     return DS_ERR_NULL;
+  }
   *out = tr_create(NULL, config->seed, NULL, config);
   return *out == NULL ? DS_ERR_ALLOC : DS_OK;
 }
@@ -75,8 +83,9 @@ ds_treap_t *ds_treap_create(int (*compare)(ds_treap_node_t *,
 
 static unsigned long treap_random(ds_treap_t *t) {
   unsigned long x;
-  if (t->priority != NULL)
+  if (t->priority != NULL) {
     return t->priority(t->priority_user);
+  }
   x = t->seed;
   x ^= (x << 13) & 0xffffffffUL;
   x ^= x >> 17;
@@ -132,10 +141,12 @@ ds_status_t ds_treap_insert_ex(ds_treap_t *treap, ds_treap_node_t *node) {
   ds_treap_node_t *current;
   ds_treap_node_t *parent;
   int cmp;
-  if (treap == NULL || node == NULL)
+  if (treap == NULL || node == NULL) {
     return DS_ERR_NULL;
-  if (node == treap->nil)
+  }
+  if (node == treap->nil) {
     return DS_ERR_INVALID;
+  }
   current = treap->root;
   parent = treap->nil;
   cmp = 0;
@@ -150,8 +161,9 @@ ds_status_t ds_treap_insert_ex(ds_treap_t *treap, ds_treap_node_t *node) {
       return DS_EXISTS;
     }
   }
-  if (treap->size == (size_t)-1)
+  if (treap->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   node->parent = parent;
   node->left = treap->nil;
   node->right = treap->nil;
@@ -270,23 +282,27 @@ static ds_treap_node_t *tr_next(const ds_treap_t *t, ds_treap_node_t *n,
                                 ds_treap_node_t *stop) {
   if (n->right != t->nil) {
     n = n->right;
-    while (n->left != t->nil)
+    while (n->left != t->nil) {
       n = n->left;
+    }
     return n;
   }
-  while (n->parent != stop && n == n->parent->right)
+  while (n->parent != stop && n == n->parent->right) {
     n = n->parent;
+  }
   return n->parent == stop ? t->nil : n->parent;
 }
 
 void ds_treap_inorder_walk(ds_treap_t *t, ds_treap_node_t *node,
                            void (*callback)(ds_treap_node_t *)) {
   ds_treap_node_t *stop;
-  if (t == NULL || node == NULL || node == t->nil || callback == NULL)
+  if (t == NULL || node == NULL || node == t->nil || callback == NULL) {
     return;
+  }
   stop = node->parent;
-  while (node->left != t->nil)
+  while (node->left != t->nil) {
     node = node->left;
+  }
   while (node != t->nil) {
     callback(node);
     node = tr_next(t, node, stop);
@@ -295,23 +311,28 @@ void ds_treap_inorder_walk(ds_treap_t *t, ds_treap_node_t *node,
 
 void ds_treap_inorder_walk_tree(ds_treap_t *t,
                                 void (*callback)(ds_treap_node_t *)) {
-  if (t != NULL)
+  if (t != NULL) {
     ds_treap_inorder_walk(t, t->root, callback);
+  }
 }
 
 ds_status_t ds_treap_walk_with(ds_treap_t *t, ds_treap_visit_fn visit,
                                void *user) {
   ds_treap_node_t *node;
-  if (t == NULL || visit == NULL)
+  if (t == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   node = t->root;
-  if (node != t->nil)
-    while (node->left != t->nil)
+  if (node != t->nil) {
+    while (node->left != t->nil) {
       node = node->left;
+    }
+  }
   while (node != t->nil) {
     ds_status_t st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     node = tr_next(t, node, t->nil);
   }
   return DS_OK;
@@ -320,8 +341,9 @@ ds_status_t ds_treap_walk_with(ds_treap_t *t, ds_treap_visit_fn visit,
 static void tr_destroy(ds_treap_t *t, void (*direct)(ds_treap_node_t *),
                        ds_treap_destroy_fn destroy, void *user) {
   ds_treap_node_t *node, *parent;
-  if (t == NULL)
+  if (t == NULL) {
     return;
+  }
   node = t->root;
   while (node != t->nil) {
     if (node->left != t->nil) {
@@ -334,16 +356,18 @@ static void tr_destroy(ds_treap_t *t, void (*direct)(ds_treap_node_t *),
     }
     parent = node->parent;
     if (parent != t->nil) {
-      if (parent->left == node)
+      if (parent->left == node) {
         parent->left = t->nil;
-      else
+      } else {
         parent->right = t->nil;
+      }
     }
     node->parent = node->left = node->right = NULL;
-    if (destroy != NULL)
+    if (destroy != NULL) {
       destroy(node, user);
-    else if (direct != NULL)
+    } else if (direct != NULL) {
       direct(node);
+    }
     node = parent;
   }
   tr_free(t, t->nil);
@@ -372,14 +396,18 @@ static ds_status_t tr_copy_node(const ds_treap_t *source, ds_treap_t *dest,
                                 ds_treap_node_t **out) {
   ds_treap_node_t *copy = NULL;
   ds_status_t st = DS_OK;
-  if (callbacks->clone != NULL)
+  if (callbacks->clone != NULL) {
     st = callbacks->clone(node, callbacks->user, &copy);
-  else
+  } else {
     copy = callbacks->direct(node);
-  if (st != DS_OK)
+  }
+  if (st != DS_OK) {
     return st < DS_OK ? st : DS_ERR_CALLBACK;
-  if (copy == NULL || copy == node || copy == source->nil || copy == dest->nil)
+  }
+  if (copy == NULL || copy == node || copy == source->nil ||
+      copy == dest->nil) {
     return DS_ERR_CALLBACK;
+  }
   copy->priority = node->priority;
   copy->left = copy->right = dest->nil;
   copy->parent = parent;
@@ -402,8 +430,9 @@ static ds_status_t tr_clone(const ds_treap_t *t,
   config.priority = t->priority;
   config.priority_user = t->priority_user;
   copy = tr_create(t->compare, t->seed, t->context, &config);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   if (t->root == t->nil) {
     *out = copy;
     return DS_OK;
@@ -414,21 +443,24 @@ static ds_status_t tr_clone(const ds_treap_t *t,
   while (st == DS_OK) {
     if (src->left != t->nil && dst->left == copy->nil) {
       st = tr_copy_node(t, copy, src->left, dst, callbacks, &dst->left);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         break;
+      }
       src = src->left;
       dst = dst->left;
     } else if (src->right != t->nil && dst->right == copy->nil) {
       st = tr_copy_node(t, copy, src->right, dst, callbacks, &dst->right);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         break;
+      }
       src = src->right;
       dst = dst->right;
     } else {
       src = src->parent;
       dst = dst->parent;
-      if (src == t->nil)
+      if (src == t->nil) {
         break;
+      }
     }
   }
   if (st != DS_OK) {
@@ -443,11 +475,13 @@ ds_status_t ds_treap_clone_with(const ds_treap_t *t, ds_treap_clone_fn clone,
                                 ds_treap_destroy_fn destroy, void *user,
                                 ds_treap_t **out) {
   tr_clone_callbacks_t callbacks;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (t == NULL || clone == NULL || destroy == NULL)
+  if (t == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   memset(&callbacks, 0, sizeof(callbacks));
   callbacks.clone = clone;
   callbacks.destroy = destroy;
@@ -459,8 +493,9 @@ ds_treap_t *ds_treap_clone(ds_treap_t *t,
                            ds_treap_node_t *(*clone)(ds_treap_node_t *)) {
   ds_treap_t *out = NULL;
   tr_clone_callbacks_t callbacks;
-  if (t == NULL || clone == NULL)
+  if (t == NULL || clone == NULL) {
     return NULL;
+  }
   memset(&callbacks, 0, sizeof(callbacks));
   callbacks.direct = clone;
   (void)tr_clone(t, &callbacks, &out);
@@ -472,11 +507,13 @@ ds_status_t ds_treap_clone_ex(const ds_treap_t *t,
                               void (*destroy)(ds_treap_node_t *),
                               ds_treap_t **out) {
   tr_clone_callbacks_t callbacks;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (t == NULL || clone == NULL || destroy == NULL)
+  if (t == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   memset(&callbacks, 0, sizeof(callbacks));
   callbacks.direct = clone;
   callbacks.release = destroy;
@@ -486,16 +523,20 @@ ds_status_t ds_treap_clone_ex(const ds_treap_t *t,
 ds_status_t ds_treap_find_ex(ds_treap_t *t, ds_treap_node_t *key,
                              ds_treap_node_t **out) {
   ds_treap_node_t *node;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (t == NULL || key == NULL)
+  if (t == NULL || key == NULL) {
     return DS_ERR_NULL;
-  if (key == t->nil)
+  }
+  if (key == t->nil) {
     return DS_ERR_INVALID;
+  }
   node = ds_treap_search(t, key);
-  if (node == t->nil)
+  if (node == t->nil) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -503,16 +544,20 @@ ds_status_t ds_treap_find_ex(ds_treap_t *t, ds_treap_node_t *key,
 ds_status_t ds_treap_remove_ex(ds_treap_t *t, ds_treap_node_t *key,
                                ds_treap_node_t **out) {
   ds_treap_node_t *node;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (t == NULL || key == NULL)
+  if (t == NULL || key == NULL) {
     return DS_ERR_NULL;
-  if (key == t->nil)
+  }
+  if (key == t->nil) {
     return DS_ERR_INVALID;
+  }
   node = ds_treap_remove(t, key);
-  if (node == t->nil)
+  if (node == t->nil) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }

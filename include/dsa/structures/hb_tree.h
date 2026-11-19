@@ -200,8 +200,9 @@ typedef struct ds_gbd_tree {
 } ds_gbd_tree_t;
 
 /* fanout >= 4 (0: 16). */
-ds_status_t ds_gbd_tree_init(ds_gbd_tree_t *t, size_t dim, const double *domain,
-                             size_t fanout, ds_context_t *context);
+ds_status_t ds_gbd_tree_init(ds_gbd_tree_t *t, size_t dim,
+                             const double *domain, size_t fanout,
+                             ds_context_t *context);
 void ds_gbd_tree_destroy(ds_gbd_tree_t *t);
 size_t ds_gbd_tree_size(const ds_gbd_tree_t *t);
 size_t ds_gbd_tree_height(const ds_gbd_tree_t *t);

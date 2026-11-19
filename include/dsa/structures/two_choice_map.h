@@ -82,8 +82,8 @@ ds_status_t ds_two_choice_map_remove(ds_two_choice_map_t *m, const void *key,
 /* Largest bucket load (the quantity the choices keep small). */
 size_t ds_two_choice_map_max_load(const ds_two_choice_map_t *m);
 void ds_two_choice_map_foreach(const ds_two_choice_map_t *m,
-                               bool (*visit)(const void *key, const void *value,
-                                             void *user),
+                               bool (*visit)(const void *key,
+                                             const void *value, void *user),
                                void *user);
 
 #ifdef __cplusplus

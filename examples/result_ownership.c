@@ -59,30 +59,38 @@ int main(void) {
   memset(&event, 0, sizeof(event));
   event.id = "sample/read";
   event.level = DS_DIAG_INFO;
-  for (i = 0; i < 40 && st == DS_OK; ++i)
+  for (i = 0; i < 40 && st == DS_OK; ++i) {
     st = ds_diagnostics_add(&diagnostics, &event);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_result_value_from_schema(&payload, &sample, &schema, &context);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_result_ok(&source, &payload, &diagnostics, &config);
+  }
   ds_result_value_release(&payload);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_result_map(&source, count_view, NULL, &view);
+  }
   ds_result_destroy(&source);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   st = ds_result_unwrap(&view, &value);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Count after releasing original owner handle: %d\n",
          *(const int *)value);
   /* Joining the same immutable log twice keeps both occurrences in order. */
   st = ds_result_zip(&view, &view, keep_left, NULL, NULL, &view);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   st = ds_diagnostic_log_walk(&view.diagnostics, print_count, &visited);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Shared log records visited: %lu\n", (unsigned long)visited);
 
   ds_arena_init(&arena, NULL, 0);
@@ -91,25 +99,30 @@ int main(void) {
   ds_result_config_init(&config, &exhausted);
   /* An empty borrowed Result needs no allocation, even with zero capacity. */
   st = ds_result_err_ptr(&empty, NULL, NULL, &config);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("NULL domain error is valid: %s\n",
          ds_result_is_err(&empty) ? "yes" : "no");
   st = ds_result_ok_ptr(&destination, &fallback, NULL, NULL);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   st = ds_result_ok_ptr(&destination, &sample, &diagnostics, &config);
   printf("Creating a log in an exhausted context: %s\n", ds_status_name(st));
-  if (st != DS_ERR_ALLOC)
+  if (st != DS_ERR_ALLOC) {
     goto done;
+  }
   st = ds_result_unwrap(&destination, &value);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Previous output is still available: %d\n", *(const int *)value);
   exit_code = 0;
 done:
-  if (exit_code != 0)
+  if (exit_code != 0) {
     fprintf(stderr, "Operation failed: %s\n", ds_status_name(st));
+  }
   ds_result_value_release(&payload);
   ds_result_destroy(&source);
   ds_result_destroy(&view);

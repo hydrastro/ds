@@ -95,7 +95,8 @@ void ds_binary_insertion_sort(void *base, size_t count, size_t elem_size,
     /* upper bound keeps equal elements in order (stable) */
     while (lo < hi) {
       mid = lo + (hi - lo) / 2;
-      if (compare(AT(base, i, elem_size), AT(base, mid, elem_size), user) < 0) {
+      if (compare(AT(base, i, elem_size), AT(base, mid, elem_size), user) <
+          0) {
         hi = mid;
       } else {
         lo = mid + 1;

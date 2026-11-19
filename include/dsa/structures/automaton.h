@@ -91,12 +91,12 @@ ds_status_t ds_nfa_add_state(ds_nfa_t *nfa, bool accepting, size_t *out_state);
 ds_status_t ds_nfa_add_transition(ds_nfa_t *nfa, size_t from, size_t symbol,
                                   size_t to);
 ds_status_t ds_nfa_set_start(ds_nfa_t *nfa, size_t state);
-ds_status_t ds_nfa_accepts(const ds_nfa_t *nfa, const size_t *symbols, size_t n,
-                           bool *out_accepts);
+ds_status_t ds_nfa_accepts(const ds_nfa_t *nfa, const size_t *symbols,
+                           size_t n, bool *out_accepts);
 /* out is initialised here. DS_ERR_OVERFLOW when more than max_states DFA
  * states would be needed (0: no cap). */
-ds_status_t ds_nfa_to_dfa(const ds_nfa_t *nfa, ds_dfa_t *out, size_t max_states,
-                          ds_context_t *context);
+ds_status_t ds_nfa_to_dfa(const ds_nfa_t *nfa, ds_dfa_t *out,
+                          size_t max_states, ds_context_t *context);
 /* out: a new NFA accepting L(a) | L(b) (same alphabet). */
 ds_status_t ds_nfa_union(const ds_nfa_t *a, const ds_nfa_t *b, ds_nfa_t *out,
                          ds_context_t *context);
@@ -108,8 +108,9 @@ ds_status_t ds_dfa_minimize(const ds_dfa_t *dfa, ds_dfa_t *out,
 ds_status_t ds_dfa_equivalent(const ds_dfa_t *a, const ds_dfa_t *b,
                               bool *out_equal, ds_context_t *context);
 /* Reachable part of the product; table as above. */
-ds_status_t ds_dfa_product(const ds_dfa_t *a, const ds_dfa_t *b, unsigned table,
-                           ds_dfa_t *out, ds_context_t *context);
+ds_status_t ds_dfa_product(const ds_dfa_t *a, const ds_dfa_t *b,
+                           unsigned table, ds_dfa_t *out,
+                           ds_context_t *context);
 
 /* ---- transducers ---------------------------------------------------- */
 
@@ -139,7 +140,8 @@ typedef struct ds_moore {
 ds_status_t ds_moore_init(ds_moore_t *m, size_t alphabet,
                           ds_context_t *context);
 void ds_moore_destroy(ds_moore_t *m);
-ds_status_t ds_moore_add_state(ds_moore_t *m, size_t output, size_t *out_state);
+ds_status_t ds_moore_add_state(ds_moore_t *m, size_t output,
+                               size_t *out_state);
 ds_status_t ds_moore_set_transition(ds_moore_t *m, size_t from, size_t symbol,
                                     size_t to);
 /* out receives n + 1 symbols (the start state's output first). */

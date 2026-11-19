@@ -133,7 +133,8 @@ ds_status_t ds_dc_trie_prefix(const ds_dc_trie_t *t,
 /* left/right: n entries, (size_t)-1 for no child. false also when the
  * links do not form a tree rooted at root. */
 bool ds_binary_tree_is_stack_tree(const size_t *left, const size_t *right,
-                                  size_t n, size_t root, ds_context_t *context);
+                                  size_t n, size_t root,
+                                  ds_context_t *context);
 /* internal >= 1 internal nodes, 2 internal + 1 nodes in all (a full binary
  * tree): left/right need that many entries; the root is node 0. */
 ds_status_t ds_stack_tree_build(size_t internal, size_t *left, size_t *right);

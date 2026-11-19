@@ -425,8 +425,8 @@ const void *ds_zipper_value(const ds_zipper_store_t *s, ds_zipper_t z) {
   return ds_zipper_tree_value(s, z.focus);
 }
 
-ds_status_t ds_zipper_set(ds_zipper_store_t *s, ds_zipper_t z, const void *elem,
-                          ds_zipper_t *out) {
+ds_status_t ds_zipper_set(ds_zipper_store_t *s, ds_zipper_t z,
+                          const void *elem, ds_zipper_t *out) {
   size_t n;
   ds_status_t st;
   if (s == NULL || elem == NULL || out == NULL) {

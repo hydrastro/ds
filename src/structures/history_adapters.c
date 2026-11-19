@@ -4,8 +4,9 @@
 
 ds_status_t ds_history_file_init(ds_history_file_t *a, FILE *stream,
                                  bool take_ownership, size_t limit) {
-  if (a == NULL)
+  if (a == NULL) {
     return DS_ERR_NULL;
+  }
   memset(a, 0, sizeof(*a));
   a->stream = stream;
   a->owns_stream = take_ownership;
@@ -17,26 +18,32 @@ ds_status_t ds_history_file_init(ds_history_file_t *a, FILE *stream,
 ds_status_t ds_history_file_open(ds_history_file_t *a, const char *path,
                                  const char *mode, size_t limit) {
   FILE *stream;
-  if (a == NULL)
+  if (a == NULL) {
     return DS_ERR_NULL;
+  }
   memset(a, 0, sizeof(*a));
-  if (path == NULL || mode == NULL)
+  if (path == NULL || mode == NULL) {
     return a->status = DS_ERR_NULL;
+  }
   if (strcmp(mode, "rb") != 0 && strcmp(mode, "wb") != 0 &&
       strcmp(mode, "ab") != 0 && strcmp(mode, "r+b") != 0 &&
-      strcmp(mode, "w+b") != 0 && strcmp(mode, "a+b") != 0)
+      strcmp(mode, "w+b") != 0 && strcmp(mode, "a+b") != 0) {
     return a->status = DS_ERR_INVALID;
+  }
   stream = fopen(path, mode);
-  if (stream == NULL)
+  if (stream == NULL) {
     return a->status = DS_ERR_STATE;
+  }
   return ds_history_file_init(a, stream, true, limit);
 }
 
 static bool hf_ready(ds_history_file_t *a, const void *data, size_t n) {
-  if (a == NULL)
+  if (a == NULL) {
     return false;
-  if (a->status != DS_OK)
+  }
+  if (a->status != DS_OK) {
     return false;
+  }
   if (a->stream == NULL || (data == NULL && n != 0)) {
     a->status = DS_ERR_NULL;
     return false;
@@ -53,8 +60,9 @@ static bool hf_ready(ds_history_file_t *a, const void *data, size_t n) {
 bool ds_history_file_write(const void *data, size_t size, void *archive) {
   ds_history_file_t *a = (ds_history_file_t *)archive;
   size_t wrote;
-  if (!hf_ready(a, data, size))
+  if (!hf_ready(a, data, size)) {
     return false;
+  }
   wrote = size == 0 ? 0 : fwrite(data, 1, size, a->stream);
   a->transferred += wrote;
   if (wrote != size) {
@@ -67,8 +75,9 @@ bool ds_history_file_write(const void *data, size_t size, void *archive) {
 bool ds_history_file_read(void *data, size_t size, void *archive) {
   ds_history_file_t *a = (ds_history_file_t *)archive;
   size_t got;
-  if (!hf_ready(a, data, size))
+  if (!hf_ready(a, data, size)) {
     return false;
+  }
   got = size == 0 ? 0 : fread(data, 1, size, a->stream);
   a->transferred += got;
   if (got != size) {
@@ -79,18 +88,22 @@ bool ds_history_file_read(void *data, size_t size, void *archive) {
 }
 
 ds_status_t ds_history_file_flush(ds_history_file_t *a) {
-  if (a == NULL || a->stream == NULL)
+  if (a == NULL || a->stream == NULL) {
     return DS_ERR_NULL;
-  if (a->status == DS_OK && fflush(a->stream) != 0)
+  }
+  if (a->status == DS_OK && fflush(a->stream) != 0) {
     a->status = DS_ERR_STATE;
+  }
   return a->status;
 }
 
 ds_status_t ds_history_file_rewind(ds_history_file_t *a) {
-  if (a == NULL || a->stream == NULL)
+  if (a == NULL || a->stream == NULL) {
     return DS_ERR_NULL;
-  if (fseek(a->stream, 0L, SEEK_SET) != 0)
+  }
+  if (fseek(a->stream, 0L, SEEK_SET) != 0) {
     return a->status = DS_ERR_STATE;
+  }
   clearerr(a->stream);
   a->transferred = 0;
   a->status = DS_OK;
@@ -99,12 +112,14 @@ ds_status_t ds_history_file_rewind(ds_history_file_t *a) {
 
 ds_status_t ds_history_file_close(ds_history_file_t *a) {
   ds_status_t st;
-  if (a == NULL)
+  if (a == NULL) {
     return DS_ERR_NULL;
+  }
   st = a->status;
   if (a->stream != NULL && a->owns_stream && fclose(a->stream) != 0 &&
-      st == DS_OK)
+      st == DS_OK) {
     st = DS_ERR_STATE;
+  }
   a->stream = NULL;
   a->owns_stream = false;
   a->status = st;
@@ -119,14 +134,17 @@ ds_status_t
 ds_history_serialize_file(ds_history_t *history, ds_history_file_t *archive,
                           ds_history_payload_write_func_t write_payload,
                           void *payload_user) {
-  if (history == NULL || archive == NULL || write_payload == NULL)
+  if (history == NULL || archive == NULL || write_payload == NULL) {
     return DS_ERR_NULL;
-  if (archive->status != DS_OK)
+  }
+  if (archive->status != DS_OK) {
     return archive->status;
+  }
   if (!ds_history_serialize_portable(history, ds_history_file_write,
                                      write_payload, archive, payload_user)) {
-    if (archive->status == DS_OK)
+    if (archive->status == DS_OK) {
       archive->status = DS_ERR_CALLBACK;
+    }
     return archive->status;
   }
   return ds_history_file_flush(archive);
@@ -137,13 +155,16 @@ ds_status_t ds_history_deserialize_file(
     ds_history_payload_read_ex_func_t read_payload, void *payload_user,
     const ds_history_load_options_t *options, ds_history_t **out) {
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (archive == NULL)
+  if (archive == NULL) {
     return DS_ERR_NULL;
-  if (archive->status != DS_OK)
+  }
+  if (archive->status != DS_OK) {
     return archive->status;
+  }
   st = ds_history_deserialize_portable_ex(ops, config, ds_history_file_read,
                                           read_payload, archive, payload_user,
                                           options, out);
@@ -152,8 +173,9 @@ ds_status_t ds_history_deserialize_file(
     *out = NULL;
     return archive->status;
   }
-  if (st != DS_OK)
+  if (st != DS_OK) {
     archive->status = st;
+  }
   return st;
 }
 
@@ -175,10 +197,12 @@ static unsigned long hk_hash(const void *key, void *user) {
   const unsigned char *p = (const unsigned char *)key;
   unsigned long h = 2166136261UL;
   size_t i;
-  if (s->config->hash != NULL)
+  if (s->config->hash != NULL) {
     return s->config->hash(key, s->config->user);
-  for (i = 0; i < s->config->key_size; i++)
+  }
+  for (i = 0; i < s->config->key_size; i++) {
     h = ((h ^ p[i]) * 16777619UL) & 0xffffffffUL;
+  }
   return h;
 }
 
@@ -198,11 +222,13 @@ static bool hk_index(const ds_history_operation_t *op, void *user) {
   hk_record_t old, incoming;
   void *p;
   ds_status_t st;
-  if (op->time < s->lo || op->time > s->hi)
+  if (op->time < s->lo || op->time > s->hi) {
     return true;
+  }
   st = s->config->project(op, s->key, s->config->key_size, s->config->user);
-  if (st == DS_NOT_FOUND)
+  if (st == DS_NOT_FOUND) {
     return true;
+  }
   if (st != DS_OK) {
     s->error = st < DS_OK ? st : DS_ERR_CALLBACK;
     return false;
@@ -210,8 +236,9 @@ static bool hk_index(const ds_history_operation_t *op, void *user) {
   p = ds_map_get(&s->map, s->key);
   if (p != NULL) {
     memcpy(&old, p, sizeof(old));
-    if (!hk_later(op, &old.operation))
+    if (!hk_later(op, &old.operation)) {
       return true;
+    }
   }
   incoming.operation = *op;
   incoming.target = true;
@@ -240,8 +267,9 @@ static unsigned int hk_policy(ds_history_branch_t *target,
   (void)payload;
   st = s->config->project(incoming, s->key, s->config->key_size,
                           s->config->user);
-  if (st == DS_NOT_FOUND)
+  if (st == DS_NOT_FOUND) {
     return DS_HISTORY_MERGE_SKIP;
+  }
   if (st != DS_OK) {
     s->error = st < DS_OK ? st : DS_ERR_CALLBACK;
     return DS_HISTORY_MERGE_STOP;
@@ -256,12 +284,13 @@ static unsigned int hk_policy(ds_history_branch_t *target,
         s->error = st < DS_OK ? st : DS_ERR_CALLBACK;
         return DS_HISTORY_MERGE_STOP;
       }
-    } else if (old.target && s->config->conflict == DS_HISTORY_KEEP_TARGET)
+    } else if (old.target && s->config->conflict == DS_HISTORY_KEEP_TARGET) {
       action = DS_HISTORY_MERGE_SKIP;
-    else if (s->config->conflict == DS_HISTORY_LATEST_OPERATION)
+    } else if (s->config->conflict == DS_HISTORY_LATEST_OPERATION) {
       action = hk_later(incoming, &old.operation) ? DS_HISTORY_MERGE_TAKE
                                                   : DS_HISTORY_MERGE_SKIP;
-    else if (old.target && s->config->conflict == DS_HISTORY_REJECT_CONFLICT) {
+    } else if (old.target &&
+               s->config->conflict == DS_HISTORY_REJECT_CONFLICT) {
       s->error = DS_ERR_STATE;
       return DS_HISTORY_MERGE_STOP;
     }
@@ -279,8 +308,9 @@ static unsigned int hk_policy(ds_history_branch_t *target,
 }
 
 void ds_history_keyed_merge_init(ds_history_keyed_merge_t *config) {
-  if (config == NULL)
+  if (config == NULL) {
     return;
+  }
   memset(config, 0, sizeof(*config));
   config->conflict = DS_HISTORY_LATEST_OPERATION;
   config->target_through_time = ULONG_MAX;
@@ -294,25 +324,29 @@ ds_status_t ds_history_branch_merge_keyed(
   hk_state_t state;
   ds_history_branch_t *branch;
   ds_status_t st;
-  if (out_merged != NULL)
+  if (out_merged != NULL) {
     *out_merged = 0;
+  }
   if (target == NULL || source == NULL || config == NULL ||
-      config->project == NULL || out_merged == NULL)
+      config->project == NULL || out_merged == NULL) {
     return DS_ERR_NULL;
+  }
   if (config->key_size == 0 ||
       config->target_from_time > config->target_through_time ||
       config->conflict < DS_HISTORY_KEEP_TARGET ||
       config->conflict > DS_HISTORY_REJECT_CONFLICT ||
-      (config->equal != NULL && config->hash == NULL))
+      (config->equal != NULL && config->hash == NULL)) {
     return DS_ERR_INVALID;
+  }
   memset(&state, 0, sizeof(state));
   state.config = config;
   state.lo = config->target_from_time;
   state.hi = config->target_through_time;
   state.key =
       (unsigned char *)ds_context_alloc(config->context, config->key_size);
-  if (state.key == NULL)
+  if (state.key == NULL) {
     return DS_ERR_ALLOC;
+  }
   st = ds_map_init(&state.map, config->map, config->key_size,
                    sizeof(hk_record_t), hk_hash, hk_equal, &state,
                    config->context);
@@ -320,20 +354,25 @@ ds_status_t ds_history_branch_merge_keyed(
     for (branch = target; branch != NULL && state.error == DS_OK;
          branch = ds_history_branch_parent(branch)) {
       (void)ds_history_branch_export_ops(branch, hk_index, &state);
-      if (!config->include_ancestors)
+      if (!config->include_ancestors) {
         break;
-      if (ds_history_branch_fork_time(branch) < state.hi)
+      }
+      if (ds_history_branch_fork_time(branch) < state.hi) {
         state.hi = ds_history_branch_fork_time(branch);
-      if (state.hi < state.lo)
+      }
+      if (state.hi < state.lo) {
         break;
+      }
     }
     st = state.error;
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = ds_history_branch_merge_with_ex(target, source, from_time,
                                            through_time, flags, hk_policy,
                                            &state, out_merged);
-    if (state.error != DS_OK)
+    }
+    if (state.error != DS_OK) {
       st = state.error;
+    }
     ds_map_destroy(&state.map);
   }
   ds_context_free(config->context, state.key);
@@ -344,14 +383,18 @@ ds_status_t ds_history_record_key(const ds_history_operation_t *operation,
                                   void *key, size_t key_size, void *user) {
   const ds_history_keyed_record_t *record;
   (void)user;
-  if (operation == NULL || key == NULL || operation->payload == NULL)
+  if (operation == NULL || key == NULL || operation->payload == NULL) {
     return DS_ERR_NULL;
+  }
   record = (const ds_history_keyed_record_t *)operation->payload;
-  if (record->key_size != key_size)
+  if (record->key_size != key_size) {
     return DS_ERR_INVALID;
-  if (record->key == NULL && key_size != 0)
+  }
+  if (record->key == NULL && key_size != 0) {
     return DS_ERR_NULL;
-  if (key_size != 0)
+  }
+  if (key_size != 0) {
     memcpy(key, record->key, key_size);
+  }
   return DS_OK;
 }

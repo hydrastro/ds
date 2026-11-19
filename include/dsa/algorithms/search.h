@@ -63,7 +63,8 @@ ds_status_t ds_binary_search(const void *base, size_t count, size_t elem_size,
 size_t ds_exponential_search(const void *base, size_t count, size_t elem_size,
                              const void *key, ds_compare_func_t compare,
                              void *user);
-size_t ds_interpolation_search_long(const long *values, size_t count, long key);
+size_t ds_interpolation_search_long(const long *values, size_t count,
+                                    long key);
 
 /* Maps an element (or the key) to a number for interpolation. */
 typedef double (*ds_numeric_func_t)(const void *elem, void *user);
@@ -78,8 +79,8 @@ size_t ds_fibonacci_search(const void *base, size_t count, size_t elem_size,
 size_t ds_ternary_search(const void *base, size_t count, size_t elem_size,
                          const void *key, ds_compare_func_t compare,
                          void *user);
-size_t ds_interpolation_sequential_search_long(const long *values, size_t count,
-                                               long key);
+size_t ds_interpolation_sequential_search_long(const long *values,
+                                               size_t count, long key);
 /* compare decides, numeric(elem) and numeric(key) only place the probe. */
 size_t ds_interpolation_sequential_search(const void *base, size_t count,
                                           size_t elem_size, const void *key,
@@ -91,8 +92,8 @@ size_t ds_ternary_search_peak(const void *base, size_t count, size_t elem_size,
                               ds_compare_func_t compare, void *user);
 /* Stops when the bracket is narrower than tolerance (or after 300
  * rounds); returns its midpoint. */
-double ds_ternary_search_min(ds_real_func_t f, void *user, double lo, double hi,
-                             double tolerance);
+double ds_ternary_search_min(ds_real_func_t f, void *user, double lo,
+                             double hi, double tolerance);
 /* First indexes of key1 and key2 (count when absent) in one pass over
  * unsorted data. */
 void ds_bond_search(const void *base, size_t count, size_t elem_size,

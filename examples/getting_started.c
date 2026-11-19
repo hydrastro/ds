@@ -13,16 +13,18 @@ int main(void) {
   ds_vec_t numbers;
   size_t i;
 
-  if (DS_FAILED(ds_vec_init(&numbers, sizeof(int), NULL)))
+  if (DS_FAILED(ds_vec_init(&numbers, sizeof(int), NULL))) {
     return 1;
+  }
   if (DS_FAILED(ds_vec_append(&numbers, values, 3))) {
     ds_vec_destroy(&numbers);
     return 1;
   }
 
   ds_vec_sort(&numbers, compare_ints, NULL);
-  for (i = 0; i < ds_vec_size(&numbers); ++i)
+  for (i = 0; i < ds_vec_size(&numbers); ++i) {
     printf("%d\n", *(const int *)ds_vec_at(&numbers, i));
+  }
 
   ds_vec_destroy(&numbers);
   return 0;

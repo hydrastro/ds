@@ -1471,8 +1471,9 @@ typedef struct pqt {
 
 static pqt_node_t *pqt_node(const void *slot) {
   pqt_node_t *node = NULL;
-  if (slot != NULL)
+  if (slot != NULL) {
     memcpy(&node, slot, sizeof(node));
+  }
   return node;
 }
 
@@ -1507,19 +1508,22 @@ static ds_status_t pqt_init(void *pq, size_t size, ds_pq_compare_fn compare,
   ds_status_t st;
   memset(h, 0, sizeof(*h));
   st = pq_base_init(&h->b, sizeof(pqt_node_t), size, compare, user, context);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   h->shadow = shadow;
   if (shadow) {
     st = ds_shadow_heap_init(&h->heap.shadow, sizeof(pqt_node_t *),
                              pqt_compare, h, 0, context);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       ds_shadow_heap_set_move_callback(&h->heap.shadow, pqt_moved, h);
+    }
   } else {
     st = ds_min_max_heap_init(&h->heap.minmax, sizeof(pqt_node_t *),
                               pqt_compare, h, context);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       ds_min_max_heap_set_move_callback(&h->heap.minmax, pqt_moved, h);
+    }
   }
   return st;
 }
@@ -1539,23 +1543,27 @@ static ds_status_t pqt_init_shadow(void *pq, size_t size,
 static void pqt_destroy(void *pq) {
   pqt_t *h = (pqt_t *)pq;
   size_t i, n = pqt_size(h);
-  if (h->shadow)
+  if (h->shadow) {
     ds_shadow_heap_set_move_callback(&h->heap.shadow, NULL, NULL);
-  else
+  } else {
     ds_min_max_heap_set_move_callback(&h->heap.minmax, NULL, NULL);
-  for (i = 0; i < n; i++)
+  }
+  for (i = 0; i < n; i++) {
     ds_context_free(h->b.context, pqt_at(h, i));
-  if (h->shadow)
+  }
+  if (h->shadow) {
     ds_shadow_heap_destroy(&h->heap.shadow);
-  else
+  } else {
     ds_min_max_heap_destroy(&h->heap.minmax);
+  }
 }
 
 static ds_status_t pqt_reserve(void *pq, size_t extra) {
   pqt_t *h = (pqt_t *)pq;
   size_t need;
-  if (!ds_size_add(pqt_size(h), extra, &need))
+  if (!ds_size_add(pqt_size(h), extra, &need)) {
     return DS_ERR_OVERFLOW;
+  }
   return h->shadow ? ds_shadow_heap_reserve(&h->heap.shadow, need)
                    : ds_vec_reserve(&h->heap.minmax.items, need);
 }
@@ -1565,16 +1573,18 @@ static ds_status_t pqt_push(void *pq, const void *item,
   pqt_t *h = (pqt_t *)pq;
   pqt_node_t *node = (pqt_node_t *)pq_node_new(&h->b, item);
   ds_status_t st;
-  if (node == NULL)
+  if (node == NULL) {
     return DS_ERR_ALLOC;
+  }
   st = h->shadow ? ds_shadow_heap_push(&h->heap.shadow, &node)
                  : ds_min_max_heap_push(&h->heap.minmax, &node);
   if (st != DS_OK) {
     ds_context_free(h->b.context, node);
     return st;
   }
-  if (handle != NULL)
+  if (handle != NULL) {
     *handle = (ds_pq_handle_t)(void *)node;
+  }
   return DS_OK;
 }
 
@@ -1591,8 +1601,9 @@ static ds_status_t pqt_pop(void *pq, void *out) {
   pqt_node_t *node = NULL;
   ds_status_t st = h->shadow ? ds_shadow_heap_pop(&h->heap.shadow, &node)
                              : ds_min_max_heap_pop_min(&h->heap.minmax, &node);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     pq_take(&h->b, node, out);
+  }
   return st;
 }
 
@@ -1605,8 +1616,9 @@ static ds_status_t pqt_update(void *pq, ds_pq_handle_t handle,
                               const void *item) {
   pqt_t *h = (pqt_t *)pq;
   pqt_node_t *node = (pqt_node_t *)(void *)handle;
-  if (!pqt_valid(h, node))
+  if (!pqt_valid(h, node)) {
     return DS_ERR_INVALID;
+  }
   memmove(pq_item(&h->b, node), item, h->b.item_size);
   return h->shadow ? ds_shadow_heap_repair_at(&h->heap.shadow, node->index)
                    : ds_min_max_heap_repair_at(&h->heap.minmax, node->index);
@@ -1616,13 +1628,15 @@ static ds_status_t pqt_remove(void *pq, ds_pq_handle_t handle, void *out) {
   pqt_t *h = (pqt_t *)pq;
   pqt_node_t *node = (pqt_node_t *)(void *)handle;
   ds_status_t st;
-  if (!pqt_valid(h, node))
+  if (!pqt_valid(h, node)) {
     return DS_ERR_INVALID;
+  }
   st = h->shadow
            ? ds_shadow_heap_remove_at(&h->heap.shadow, node->index, NULL)
            : ds_min_max_heap_remove_at(&h->heap.minmax, node->index, NULL);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     pq_take(&h->b, node, out);
+  }
   return st;
 }
 

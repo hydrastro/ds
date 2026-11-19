@@ -50,7 +50,8 @@ void ds_tm_destroy(ds_tm_t *tm) {
   memset(tm, 0, sizeof(*tm));
 }
 
-ds_status_t ds_tm_set_kind(ds_tm_t *tm, size_t state, ds_tm_state_kind_t kind) {
+ds_status_t ds_tm_set_kind(ds_tm_t *tm, size_t state,
+                           ds_tm_state_kind_t kind) {
   if (tm == NULL) {
     return DS_ERR_NULL;
   }
@@ -429,7 +430,8 @@ void ds_tm_config_destroy(ds_tm_config_t *cfg) {
   }
 }
 
-unsigned char ds_tm_tape_get(const ds_tm_config_t *cfg, size_t tape, long pos) {
+unsigned char ds_tm_tape_get(const ds_tm_config_t *cfg, size_t tape,
+                             long pos) {
   if (cfg == NULL || tape >= cfg->tapes) {
     return 0;
   }
@@ -478,7 +480,8 @@ static size_t tm_read_key(const ds_tm_t *tm, const ds_tm_config_t *cfg) {
   size_t k = 0;
   size_t i;
   for (i = tm->tapes; i-- > 0;) {
-    k = k * tm->symbols + tm_cell(&cfg->tape[i], cfg->tape[i].head, cfg->blank);
+    k = k * tm->symbols +
+        tm_cell(&cfg->tape[i], cfg->tape[i].head, cfg->blank);
   }
   return k;
 }
@@ -501,7 +504,8 @@ static bool tm_halted(const ds_tm_t *tm, ds_tm_config_t *cfg) {
   return false;
 }
 
-static ds_status_t tm_apply(const ds_tm_t *tm, ds_tm_config_t *cfg, size_t tr) {
+static ds_status_t tm_apply(const ds_tm_t *tm, ds_tm_config_t *cfg,
+                            size_t tr) {
   size_t i;
   for (i = 0; i < tm->tapes; i++) {
     ds_tm_tape_t *t = &cfg->tape[i];
@@ -556,8 +560,8 @@ ds_status_t ds_tm_step(ds_tm_t *tm, ds_tm_config_t *cfg) {
   return st;
 }
 
-ds_status_t ds_tm_run(ds_tm_t *tm, ds_tm_config_t *cfg, unsigned long max_steps,
-                      ds_tm_outcome_t *out) {
+ds_status_t ds_tm_run(ds_tm_t *tm, ds_tm_config_t *cfg,
+                      unsigned long max_steps, ds_tm_outcome_t *out) {
   unsigned long k;
   if (tm == NULL || cfg == NULL) {
     return DS_ERR_NULL;
@@ -629,7 +633,8 @@ ds_status_t ds_tm_accepts(ds_tm_t *tm, const unsigned char *input,
       }
       key = tm_read_key(tm, &cur[i]);
       for (tr = tm_lower(tm, cur[i].state, key);
-           tr < tm->count && tm->from[tr] == cur[i].state && tm->key[tr] == key;
+           tr < tm->count && tm->from[tr] == cur[i].state &&
+           tm->key[tr] == key;
            tr++) {
         if (nnxt == max_configs) {
           overflow = true;
@@ -750,7 +755,8 @@ static int bb_run(const unsigned char *table, size_t n, unsigned long max,
 }
 
 ds_status_t ds_tm_busy_beaver_search(size_t n, unsigned long max_steps,
-                                     unsigned long *sigma, unsigned long *steps,
+                                     unsigned long *sigma,
+                                     unsigned long *steps,
                                      unsigned long *undecided,
                                      ds_context_t *context) {
   unsigned char *stack;

@@ -26,8 +26,9 @@ ds_stack_t *ds_stack_create(ds_context_t *context) {
   return stack_create_internal(context);
 }
 ds_status_t ds_stack_create_context(ds_context_t *context, ds_stack_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out =
       stack_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -80,8 +81,9 @@ static void stack_destroy_internal(ds_stack_t *stack,
 }
 void ds_stack_destroy_with(ds_stack_t *container, ds_stack_destroy_fn destroy,
                            void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     stack_destroy_internal(container, destroy, user);
+  }
 }
 static void stack_destroy_direct(ds_stack_node_t *node, void *user) {
   void (**destroy)(ds_stack_node_t *) = (void (**)(ds_stack_node_t *))user;
@@ -257,13 +259,15 @@ ds_status_t ds_stack_walk_with(ds_stack_t *container, ds_stack_visit_fn visit,
   size_t i;
   ds_stack_node_t *node;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   node = container->top;
   for (i = 0; i < container->size; ++i) {
     st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     node = node->next;
   }
   return DS_OK;
@@ -273,8 +277,9 @@ ds_status_t ds_stack_find_with(ds_stack_t *container, ds_stack_node_t *key,
                                ds_stack_node_t **out) {
   size_t i;
   ds_stack_node_t *node;
-  if (container == NULL || key == NULL || compare == NULL || out == NULL)
+  if (container == NULL || key == NULL || compare == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   node = container->top;
   for (i = 0; i < container->size; ++i) {
     if (compare(node, key, user) == 0) {
@@ -296,14 +301,17 @@ ds_status_t ds_stack_clone_with(const ds_stack_t *container,
   ds_stack_node_t *new_node;
   ds_stack_node_t *last;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   copy = stack_create_internal(context != NULL ? context : container->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   last = copy->nil;
   node = container->top;
   for (i = 0; i < container->size; ++i) {
@@ -314,10 +322,11 @@ ds_status_t ds_stack_clone_with(const ds_stack_t *container,
       return st < 0 ? st : DS_ERR_CALLBACK;
     }
     new_node->next = copy->nil;
-    if (last == copy->nil)
+    if (last == copy->nil) {
       copy->top = new_node;
-    else
+    } else {
       last->next = new_node;
+    }
     last = new_node;
     copy->size += 1;
     node = node->next;
@@ -327,21 +336,26 @@ ds_status_t ds_stack_clone_with(const ds_stack_t *container,
 }
 
 ds_status_t ds_stack_push_ex(ds_stack_t *container, ds_stack_node_t *node) {
-  if (container == NULL || node == NULL)
+  if (container == NULL || node == NULL) {
     return DS_ERR_NULL;
-  if (node == container->nil)
+  }
+  if (node == container->nil) {
     return DS_ERR_INVALID;
-  if (container->size == (size_t)-1)
+  }
+  if (container->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   ds_stack_push(container, node);
   return DS_OK;
 }
 
 ds_status_t ds_stack_pop_ex(ds_stack_t *container, ds_stack_node_t **out) {
-  if (container == NULL || out == NULL)
+  if (container == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (container->size == 0)
+  }
+  if (container->size == 0) {
     return DS_EMPTY;
+  }
   *out = ds_stack_pop(container);
   return DS_OK;
 }
@@ -350,10 +364,12 @@ ds_status_t ds_stack_remove_ex(ds_stack_t *container,
                                ds_stack_node_t *target) {
   size_t i;
   ds_stack_node_t *node;
-  if (container == NULL || target == NULL)
+  if (container == NULL || target == NULL) {
     return DS_ERR_NULL;
-  if (target == container->nil)
+  }
+  if (target == container->nil) {
     return DS_ERR_INVALID;
+  }
   node = container->top;
   for (i = 0; i < container->size; ++i) {
     if (node == target) {
@@ -370,10 +386,12 @@ ds_status_t ds_stack_walk_reverse_with(ds_stack_t *container,
   ds_stack_node_t *node, *next, *rev, *first;
   size_t i;
   ds_status_t st = DS_OK;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
-  if (container->size == 0)
+  }
+  if (container->size == 0) {
     return DS_OK;
+  }
   first = container->top;
   node = first;
   rev = container->nil;
@@ -389,8 +407,9 @@ ds_status_t ds_stack_walk_reverse_with(ds_stack_t *container,
     next = node->next;
     node->next = rev;
     rev = node;
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = visit(node, user);
+    }
     node = next;
   }
   return st;

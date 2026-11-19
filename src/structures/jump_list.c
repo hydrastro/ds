@@ -219,11 +219,11 @@ ds_status_t ds_jump_list_insert(ds_jump_list_t *l, const void *elem) {
     if (l->nodes == l->capacity) {
       size_t nc = l->capacity < 8 ? 16 : l->capacity * 2;
       void *q;
-#define JL_RE(field, type, per)                                                \
-  q = ds_context_realloc(l->context, l->field, nc * (per));                    \
-  if (q == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define JL_RE(field, type, per)                                               \
+  q = ds_context_realloc(l->context, l->field, nc * (per));                   \
+  if (q == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   l->field = (type *)q;
       JL_RE(data, unsigned char, l->elem_size)
       JL_RE(next, size_t, sizeof(size_t))

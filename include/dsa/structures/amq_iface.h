@@ -191,7 +191,8 @@ ds_status_t ds_amq_load(ds_amq_t *f, const void *in, size_t len,
 /* the same with the given backend, whose id must be the image's
  * (DS_ERR_INVALID otherwise) */
 ds_status_t ds_amq_load_with(ds_amq_t *f, const ds_amq_ops_t *ops,
-                             const void *in, size_t len, ds_context_t *context);
+                             const void *in, size_t len,
+                             ds_context_t *context);
 
 #ifdef __cplusplus
 }

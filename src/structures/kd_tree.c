@@ -66,8 +66,8 @@ static void kd_build(ds_kd_tree_t *t, size_t lo, size_t hi, size_t depth) {
   }
 }
 
-static ds_status_t kd_setup(ds_kd_tree_t *t, const double *points, size_t count,
-                            size_t dims) {
+static ds_status_t kd_setup(ds_kd_tree_t *t, const double *points,
+                            size_t count, size_t dims) {
   size_t i;
   if (t == NULL || (points == NULL && count > 0)) {
     return DS_ERR_NULL;
@@ -249,8 +249,8 @@ typedef struct kd_range {
   void *user;
 } kd_range_t;
 
-static bool kd_box_search(const ds_kd_tree_t *t, const kd_range_t *r, size_t lo,
-                          size_t hi, size_t depth) {
+static bool kd_box_search(const ds_kd_tree_t *t, const kd_range_t *r,
+                          size_t lo, size_t hi, size_t depth) {
   size_t mid;
   size_t axis;
   size_t d;

@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ---- distances ----------------------------------------------------------- */
+/* ---- distances -----------------------------------------------------------
+ */
 
 double ds_geo_euclidean(const double *a, const double *b, size_t dim) {
   double s = 0;
@@ -102,7 +103,8 @@ double ds_geo_hausdorff(const double *a, size_t na, const double *b, size_t nb,
   return x > y ? x : y;
 }
 
-/* ---- predicates ---------------------------------------------------------- */
+/* ---- predicates ----------------------------------------------------------
+ */
 
 /* the adaptive exact predicate: exact sign, approximate magnitude */
 double ds_geo_orient(ds_point2_t a, ds_point2_t b, ds_point2_t c) {
@@ -121,7 +123,8 @@ double ds_geo_orient(ds_point2_t a, ds_point2_t b, ds_point2_t c) {
 static int geo_sign(double v) { return (v > 0) - (v < 0); }
 
 static bool geo_on_segment(ds_point2_t a, ds_point2_t b, ds_point2_t p) {
-  return (p.x >= (a.x < b.x ? a.x : b.x)) && (p.x <= (a.x > b.x ? a.x : b.x)) &&
+  return (p.x >= (a.x < b.x ? a.x : b.x)) &&
+         (p.x <= (a.x > b.x ? a.x : b.x)) &&
          (p.y >= (a.y < b.y ? a.y : b.y)) && (p.y <= (a.y > b.y ? a.y : b.y));
 }
 
@@ -173,14 +176,15 @@ int ds_geo_point_in_polygon(const ds_point2_t *poly, size_t n, ds_point2_t p) {
   return winding != 0 ? 1 : 0;
 }
 
-void ds_geo_bisector(ds_point2_t p, ds_point2_t q, double *out_a, double *out_b,
-                     double *out_c) {
+void ds_geo_bisector(ds_point2_t p, ds_point2_t q, double *out_a,
+                     double *out_b, double *out_c) {
   *out_a = q.x - p.x;
   *out_b = q.y - p.y;
   *out_c = ((q.x * q.x + q.y * q.y) - (p.x * p.x + p.y * p.y)) / 2;
 }
 
-/* ---- convex hull --------------------------------------------------------- */
+/* ---- convex hull ---------------------------------------------------------
+ */
 
 /* qsort has no user pointer, so sort index arrays with a local merge sort
  * that takes the points explicitly. */
@@ -315,8 +319,8 @@ static size_t geo_andrew(const ds_point2_t *p, const size_t *u, size_t n,
   return k - 1; /* the first point was appended again */
 }
 
-static size_t geo_graham(const ds_point2_t *p, size_t *u, size_t *tmp, size_t n,
-                         size_t pivot_pos, size_t *out) {
+static size_t geo_graham(const ds_point2_t *p, size_t *u, size_t *tmp,
+                         size_t n, size_t pivot_pos, size_t *out) {
   size_t pivot = u[pivot_pos];
   size_t k = 0;
   size_t i;
@@ -575,7 +579,8 @@ out:
   return status;
 }
 
-/* ---- rotating calipers --------------------------------------------------- */
+/* ---- rotating calipers ---------------------------------------------------
+ */
 
 static double geo_area2(ds_point2_t a, ds_point2_t b, ds_point2_t c) {
   return fabs(ds_geo_orient(a, b, c));
@@ -693,9 +698,9 @@ double ds_geo_min_area_rect(const ds_point2_t *poly, size_t n,
     len = sqrt(ux * ux + uy * uy);
     ux /= len;
     uy /= len;
-#define CAL_PROJ(q)                                                            \
+#define CAL_PROJ(q)                                                           \
   ((poly[q].x - poly[i].x) * ux + (poly[q].y - poly[i].y) * uy)
-#define CAL_HGT(q)                                                             \
+#define CAL_HGT(q)                                                            \
   (-(poly[q].x - poly[i].x) * uy + (poly[q].y - poly[i].y) * ux)
     if (i == 0) {
       r = t = l = i1;
@@ -768,7 +773,8 @@ void ds_geo_bounding_box(const ds_point2_t *points, size_t n,
   }
 }
 
-/* ---- closest pair -------------------------------------------------------- */
+/* ---- closest pair --------------------------------------------------------
+ */
 
 typedef struct geo_cp {
   const ds_point2_t *p;
@@ -893,7 +899,8 @@ ds_status_t ds_geo_closest_pair(const ds_point2_t *points, size_t n,
   return DS_OK;
 }
 
-/* ---- polygons ------------------------------------------------------------ */
+/* ---- polygons ------------------------------------------------------------
+ */
 
 /* Clip convex polygon src (count m) by the half-plane left of a -> b. */
 static size_t geo_clip(const ds_point2_t *src, size_t m, ds_point2_t a,
@@ -1021,7 +1028,8 @@ bool ds_geo_orthogonally_convex(const ds_point2_t *poly, size_t n) {
   return geo_monotone(poly, n, true) && geo_monotone(poly, n, false);
 }
 
-/* ---- optimal convex polygon triangulation -------------------------------- */
+/* ---- optimal convex polygon triangulation --------------------------------
+ */
 
 static double geo_perimeter(const ds_point2_t *poly, size_t i, size_t j,
                             size_t k, void *user) {
@@ -1108,7 +1116,8 @@ ds_status_t ds_geo_optimal_triangulation(const ds_point2_t *poly, size_t n,
   return DS_OK;
 }
 
-/* ---- slope selection ----------------------------------------------------- */
+/* ---- slope selection -----------------------------------------------------
+ */
 
 typedef struct geo_key {
   double a;
@@ -1252,7 +1261,8 @@ out:
   return status;
 }
 
-/* ---- rasterizing --------------------------------------------------------- */
+/* ---- rasterizing ---------------------------------------------------------
+ */
 
 void ds_geo_bresenham_line(long x0, long y0, long x1, long y1,
                            ds_geo_plot_func_t plot, void *user) {
@@ -1366,7 +1376,8 @@ void ds_geo_wu_line(double x0, double y0, double x1, double y1,
   xgap = geo_rfpart(x0 + 0.5);
   xpx1 = xend;
   geo_wu_plot(plot, user, steep, xpx1, floor(yend), geo_rfpart(yend) * xgap);
-  geo_wu_plot(plot, user, steep, xpx1, floor(yend) + 1, geo_fpart(yend) * xgap);
+  geo_wu_plot(plot, user, steep, xpx1, floor(yend) + 1,
+              geo_fpart(yend) * xgap);
   intery = yend + gradient;
   xend = floor(x1 + 0.5);
   yend = y1 + gradient * (xend - x1);

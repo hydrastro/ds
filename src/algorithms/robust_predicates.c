@@ -394,10 +394,11 @@ double ds_incircle(const double *a, const double *b, const double *c,
 
 /* 3x3 minor z1*m23 - z2*m13 + z3*m12 style: h = s1*x*m1 + s2*y*m2 + s3*z*m3,
  * h holds 192 */
-static size_t rp_minor3(const double *x, size_t xl, const double *m1, size_t l1,
-                        double s1, const double *y, size_t yl, const double *m2,
-                        size_t l2, double s2, const double *z, size_t zl,
-                        const double *m3, size_t l3, double s3, double *h) {
+static size_t rp_minor3(const double *x, size_t xl, const double *m1,
+                        size_t l1, double s1, const double *y, size_t yl,
+                        const double *m2, size_t l2, double s2,
+                        const double *z, size_t zl, const double *m3,
+                        size_t l3, double s3, double *h) {
   double t1[64], t2[64], t3[64], s12[128];
   size_t n1 = rp_scale2(x, xl, m1, l1, s1, t1);
   size_t n2 = rp_scale2(y, yl, m2, l2, s2, t2);
@@ -468,8 +469,8 @@ static ds_status_t rp_insphere_exact(const double *a, const double *b,
       scr_need = need;
     }
   }
-  buf = (double *)ds_context_alloc(context,
-                                   (2 * tot + tot + scr_need) * sizeof(double));
+  buf = (double *)ds_context_alloc(context, (2 * tot + tot + scr_need) *
+                                                sizeof(double));
   if (buf == NULL) {
     return DS_ERR_ALLOC;
   }

@@ -142,16 +142,20 @@ ds_status_t ds_bplus_tree_create_context(int order, bool bstar,
                                          ds_bplus_tree_compare_fn compare,
                                          void *user, ds_context_t *context,
                                          ds_bplus_tree_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (compare == NULL)
+  if (compare == NULL) {
     return DS_ERR_NULL;
-  if (order < 3)
+  }
+  if (order < 3) {
     return DS_ERR_RANGE;
+  }
   if (order > (INT_MAX - 2) / 2 ||
-      (size_t)order > (size_t)-1 / sizeof(void *) - 2)
+      (size_t)order > (size_t)-1 / sizeof(void *) - 2) {
     return DS_ERR_OVERFLOW;
+  }
   *out = bplus_tree_create_internal(
       order, bstar, NULL, context != NULL ? context : ds_default_context(),
       compare, user);
@@ -532,8 +536,9 @@ static bool bplus_sibling_room(ds_bplus_tree_t *tree,
                                ds_bplus_tree_internal_node_t *node) {
   ds_bplus_tree_internal_node_t *parent = node->parent;
   int i;
-  if (parent == NULL)
+  if (parent == NULL) {
     return false;
+  }
   for (i = 0; i <= parent->num_keys && parent->children[i] != node; i++) {
   }
   return (i > 0 && parent->children[i - 1]->num_keys < bplus_max_keys(tree)) ||
@@ -543,12 +548,15 @@ static bool bplus_sibling_room(ds_bplus_tree_t *tree,
 
 static void bplus_plan_free(ds_bplus_tree_t *tree, bplus_plan_t *plan) {
   size_t i;
-  for (i = plan->used; i < plan->count; i++)
+  for (i = plan->used; i < plan->count; i++) {
     bplus_free_node(tree, plan->nodes[i]);
-  if (plan->keys != NULL)
+  }
+  if (plan->keys != NULL) {
     ds_context_free(tree->context, plan->keys);
-  if (plan->kids != NULL)
+  }
+  if (plan->kids != NULL) {
     ds_context_free(tree->context, plan->kids);
+  }
 }
 
 static ds_status_t bplus_prepare(ds_bplus_tree_t *tree,
@@ -558,8 +566,9 @@ static ds_status_t bplus_prepare(ds_bplus_tree_t *tree,
   memset(plan, 0, sizeof(*plan));
   while (node != NULL && node->num_keys == bplus_max_keys(tree)) {
     ds_bplus_tree_internal_node_t *fresh;
-    if (tree->bstar && bplus_sibling_room(tree, node))
+    if (tree->bstar && bplus_sibling_room(tree, node)) {
       break;
+    }
     if (plan->count >= BPLUS_PLAN_NODES - 1) {
       bplus_plan_free(tree, plan);
       return DS_ERR_OVERFLOW;
@@ -570,8 +579,9 @@ static ds_status_t bplus_prepare(ds_bplus_tree_t *tree,
       return DS_ERR_ALLOC;
     }
     plan->nodes[plan->count++] = fresh;
-    if (tree->bstar && node->parent != NULL)
+    if (tree->bstar && node->parent != NULL) {
       scratch = true;
+    }
     node = node->parent;
     if (node == NULL) {
       fresh = bplus_create_node(tree, false);
@@ -608,8 +618,9 @@ ds_status_t ds_bplus_tree_insert_ex(ds_bplus_tree_t *tree,
   int pos;
   bplus_plan_t plan;
   ds_status_t st;
-  if (tree == NULL || data == NULL)
+  if (tree == NULL || data == NULL) {
     return DS_ERR_NULL;
+  }
   if (data == tree->nil) {
     return DS_ERR_INVALID;
   }
@@ -624,11 +635,13 @@ ds_status_t ds_bplus_tree_insert_ex(ds_bplus_tree_t *tree,
       bplus_tree_compare(tree, data, leaf->keys[pos]) == 0) {
     return DS_EXISTS;
   }
-  if (tree->size == (size_t)-1)
+  if (tree->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   st = bplus_prepare(tree, leaf, &plan);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   for (i = leaf->num_keys; i > pos; i--) {
     leaf->keys[i] = leaf->keys[i - 1];
   }
@@ -722,8 +735,9 @@ static void bplus_tree_destroy_internal(ds_bplus_tree_t *tree,
 }
 void ds_bplus_tree_destroy_with(ds_bplus_tree_t *container,
                                 ds_bplus_tree_destroy_fn destroy, void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     bplus_tree_destroy_internal(container, destroy, user);
+  }
 }
 static void bplus_tree_destroy_direct(ds_bplus_tree_node_t *node, void *user) {
   void (**destroy)(ds_bplus_tree_node_t *) =
@@ -749,12 +763,14 @@ static ds_status_t bplus_clone_records(
     for (i = 0; i < leaf->num_keys; i++) {
       ds_bplus_tree_node_t *copy = clone_node(leaf->keys[i]);
       ds_status_t st;
-      if (copy == NULL)
+      if (copy == NULL) {
         return DS_ERR_CALLBACK;
+      }
       st = ds_bplus_tree_insert_ex(new_tree, copy);
       if (st != DS_OK) {
-        if (destroy_clone != NULL)
+        if (destroy_clone != NULL) {
           destroy_clone(copy);
+        }
         return st == DS_EXISTS ? DS_ERR_CALLBACK : st;
       }
     }
@@ -1026,14 +1042,17 @@ ds_status_t ds_bplus_tree_walk_with(const ds_bplus_tree_t *container,
   ds_bplus_tree_internal_node_t *leaf;
   int i;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
-  for (leaf = container->head; leaf != NULL; leaf = leaf->next)
+  }
+  for (leaf = container->head; leaf != NULL; leaf = leaf->next) {
     for (i = 0; i < leaf->num_keys; ++i) {
       st = visit(leaf->keys[i], user);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         return st;
+      }
     }
+  }
   return DS_OK;
 }
 
@@ -1041,13 +1060,16 @@ ds_status_t ds_bplus_tree_find_ex(ds_bplus_tree_t *container,
                                   ds_bplus_tree_node_t *key,
                                   ds_bplus_tree_node_t **out) {
   ds_bplus_tree_node_t *node;
-  if (container == NULL || key == NULL || out == NULL)
+  if (container == NULL || key == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (key == container->nil)
+  }
+  if (key == container->nil) {
     return DS_ERR_INVALID;
+  }
   node = ds_bplus_tree_search(container, key);
-  if (node == container->nil)
+  if (node == container->nil) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -1056,12 +1078,15 @@ ds_status_t ds_bplus_tree_remove_ex(ds_bplus_tree_t *container,
                                     ds_bplus_tree_node_t *key,
                                     ds_bplus_tree_node_t **out) {
   ds_bplus_tree_node_t *node;
-  if (container == NULL || key == NULL || out == NULL)
+  if (container == NULL || key == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (key == container->nil)
+  }
+  if (key == container->nil) {
     return DS_ERR_INVALID;
-  if (!ds_bplus_tree_remove(container, key, &node))
+  }
+  if (!ds_bplus_tree_remove(container, key, &node)) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -1077,8 +1102,9 @@ static ds_status_t bplus_tree_clone_visit(ds_bplus_tree_node_t *source,
   bplus_tree_clone_policy_t *policy = (bplus_tree_clone_policy_t *)user;
   ds_bplus_tree_node_t *node = NULL;
   ds_status_t st = policy->clone(source, &node, policy->user);
-  if (st != DS_OK || node == NULL)
+  if (st != DS_OK || node == NULL) {
     return st < 0 ? st : DS_ERR_CALLBACK;
+  }
   st = ds_bplus_tree_insert_ex(policy->copy, node);
   if (st != DS_OK) {
     policy->destroy(node, policy->user);
@@ -1093,17 +1119,20 @@ ds_status_t ds_bplus_tree_clone_with(const ds_bplus_tree_t *container,
                                      ds_bplus_tree_t **out) {
   bplus_tree_clone_policy_t policy;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   policy.copy = bplus_tree_create_internal(
       container->order, container->bstar, container->compare,
       context != NULL ? context : container->context, container->compare_with,
       container->compare_user);
-  if (policy.copy == NULL)
+  if (policy.copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   policy.clone = clone;
   policy.destroy = destroy;
   policy.user = user;
@@ -1124,21 +1153,27 @@ ds_status_t ds_bplus_tree_range_with(ds_bplus_tree_t *tree,
   ds_bplus_tree_internal_node_t *leaf;
   ds_status_t st;
   int i;
-  if (tree == NULL || low == NULL || high == NULL || visit == NULL)
+  if (tree == NULL || low == NULL || high == NULL || visit == NULL) {
     return DS_ERR_NULL;
-  if (low == tree->nil || high == tree->nil)
+  }
+  if (low == tree->nil || high == tree->nil) {
     return DS_ERR_INVALID;
-  if (bplus_tree_compare(tree, low, high) > 0)
+  }
+  if (bplus_tree_compare(tree, low, high) > 0) {
     return DS_ERR_RANGE;
+  }
   for (leaf = bplus_find_leaf(tree, low); leaf != NULL; leaf = leaf->next) {
     for (i = 0; i < leaf->num_keys; ++i) {
-      if (bplus_tree_compare(tree, leaf->keys[i], low) < 0)
+      if (bplus_tree_compare(tree, leaf->keys[i], low) < 0) {
         continue;
-      if (bplus_tree_compare(tree, leaf->keys[i], high) > 0)
+      }
+      if (bplus_tree_compare(tree, leaf->keys[i], high) > 0) {
         return DS_OK;
+      }
       st = visit(leaf->keys[i], user);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         return st;
+      }
     }
   }
   return DS_OK;

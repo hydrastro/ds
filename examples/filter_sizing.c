@@ -26,16 +26,18 @@ int main(void) {
     ds_bloom_filter_t *filter =
         ds_bloom_filter_create(inserted, targets[j], NULL);
     size_t positives = 0;
-    if (filter == NULL)
+    if (filter == NULL) {
       return 1;
+    }
     for (i = 0; i < inserted; i++) {
       sprintf(key, "present:%lu", (unsigned long)i);
       ds_bloom_filter_add(filter, key, strlen(key));
     }
     for (i = 0; i < probes; i++) {
       sprintf(key, "absent:%lu", (unsigned long)i);
-      if (ds_bloom_filter_maybe_contains(filter, key, strlen(key)))
+      if (ds_bloom_filter_maybe_contains(filter, key, strlen(key))) {
         positives++;
+      }
     }
     printf("Bloom: %lu bits, %lu probes/key, target %.4f, estimate %.4f, "
            "observed %.4f (%lu/%lu absent keys)\n",
@@ -47,8 +49,9 @@ int main(void) {
   }
 
   st = ds_signature_file_init(&signatures, 128, 4, NULL, NULL, NULL);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return 1;
+  }
   for (i = 0; i < records; i++) {
     char storage[8][64];
     const unsigned char *words[8];
@@ -60,8 +63,9 @@ int main(void) {
       lengths[j] = strlen(storage[j]);
     }
     st = ds_signature_file_add(&signatures, words, lengths, 8, NULL);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       goto cleanup;
+    }
     density += ds_signature_file_density(&signatures, i);
     predicted += pow(ds_signature_file_density(&signatures, i), 4.0);
   }
@@ -73,8 +77,9 @@ int main(void) {
     length = strlen(key);
     st = ds_signature_file_query(&signatures, &word, &length, 1,
                                  count_candidate, &candidates);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       goto cleanup;
+    }
   }
   printf("Signatures: 128 bits/record, 8 words/record, 4 probes/word\n"
          "  mean density %.4f, independent-probe estimate %.5f, "
@@ -84,7 +89,8 @@ int main(void) {
          (unsigned long)candidates, (unsigned long)(records * queries));
 cleanup:
   ds_signature_file_destroy(&signatures);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     fprintf(stderr, "signature operation failed: %d\n", (int)st);
+  }
   return st == DS_OK ? 0 : 1;
 }

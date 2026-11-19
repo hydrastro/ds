@@ -62,11 +62,13 @@ size_t ds_two_choice_map_size(const ds_two_choice_map_t *m) {
   return m == NULL ? 0 : m->size;
 }
 
-static unsigned char *tc_key(const ds_two_choice_map_t *m, size_t b, size_t j) {
+static unsigned char *tc_key(const ds_two_choice_map_t *m, size_t b,
+                             size_t j) {
   return m->keys + (b * m->bucket_size + j) * m->key_size;
 }
 
-static unsigned char *tc_val(const ds_two_choice_map_t *m, size_t b, size_t j) {
+static unsigned char *tc_val(const ds_two_choice_map_t *m, size_t b,
+                             size_t j) {
   return m->values + (b * m->bucket_size + j) * m->value_size;
 }
 
@@ -168,7 +170,8 @@ static ds_status_t tc_rehash(ds_two_choice_map_t *m, size_t buckets) {
       return DS_ERR_OVERFLOW;
     }
     n.buckets = buckets;
-    n.keys = (unsigned char *)ds_context_alloc(m->context, cells * m->key_size);
+    n.keys =
+        (unsigned char *)ds_context_alloc(m->context, cells * m->key_size);
     n.values = (unsigned char *)ds_context_alloc(
         m->context, m->value_size > 0 ? cells * m->value_size : 1);
     n.load = (size_t *)ds_context_calloc(m->context, buckets, sizeof(size_t));
@@ -297,8 +300,8 @@ size_t ds_two_choice_map_max_load(const ds_two_choice_map_t *m) {
 }
 
 void ds_two_choice_map_foreach(const ds_two_choice_map_t *m,
-                               bool (*visit)(const void *key, const void *value,
-                                             void *user),
+                               bool (*visit)(const void *key,
+                                             const void *value, void *user),
                                void *user) {
   size_t b;
   size_t j;

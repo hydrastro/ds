@@ -48,11 +48,13 @@ ds_pairing_heap_t *ds_pairing_heap_create(
 ds_status_t ds_pairing_heap_create_context(ds_pairing_heap_compare_fn compare,
                                            void *user, ds_context_t *context,
                                            ds_pairing_heap_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (compare == NULL)
+  if (compare == NULL) {
     return DS_ERR_NULL;
+  }
 
   *out = pairing_heap_create_internal(
       NULL, context != NULL ? context : ds_default_context(), compare, user);
@@ -215,16 +217,20 @@ size_t ds_pairing_heap_size(ds_pairing_heap_t *heap) {
 
 ds_status_t ds_pairing_heap_merge_ex(ds_pairing_heap_t *heap,
                                      ds_pairing_heap_t *other) {
-  if (heap == NULL || other == NULL)
+  if (heap == NULL || other == NULL) {
     return DS_ERR_NULL;
-  if (heap == other)
+  }
+  if (heap == other) {
     return DS_ERR_INVALID;
+  }
   if (heap->compare != other->compare ||
       heap->compare_with != other->compare_with ||
-      heap->compare_user != other->compare_user)
+      heap->compare_user != other->compare_user) {
     return DS_ERR_INVALID;
-  if (other->size > (size_t)-1 - heap->size)
+  }
+  if (other->size > (size_t)-1 - heap->size) {
     return DS_ERR_OVERFLOW;
+  }
   heap->root = pairing_heap_link(heap, heap->root, other->root);
   heap->size += other->size;
   other->root = NULL;
@@ -236,10 +242,12 @@ void ds_pairing_heap_merge(ds_pairing_heap_t *heap, ds_pairing_heap_t *other) {
 }
 ds_status_t ds_pairing_heap_extract_ex(ds_pairing_heap_t *heap,
                                        ds_pairing_heap_node_t **out) {
-  if (heap == NULL || out == NULL)
+  if (heap == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (heap->size == 0)
+  }
+  if (heap->size == 0) {
     return DS_EMPTY;
+  }
   *out = ds_pairing_heap_extract(heap);
   return DS_OK;
 }
@@ -299,8 +307,9 @@ static void pairing_heap_destroy_internal(ds_pairing_heap_t *heap,
 void ds_pairing_heap_destroy_with(ds_pairing_heap_t *container,
                                   ds_pairing_heap_destroy_fn destroy,
                                   void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     pairing_heap_destroy_internal(container, destroy, user);
+  }
 }
 static void pairing_heap_destroy_direct(ds_pairing_heap_node_t *node,
                                         void *user) {
@@ -320,33 +329,40 @@ ds_status_t ds_pairing_heap_walk_with(const ds_pairing_heap_t *container,
                                       void *user) {
   ds_pairing_heap_node_t *node;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   node = container->root;
   while (node != NULL) {
     st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     if (node->child != NULL) {
       node = node->child;
       continue;
     }
-    while (node != NULL && node->sibling == NULL)
+    while (node != NULL && node->sibling == NULL) {
       node = pairing_heap_parent(node);
-    if (node != NULL)
+    }
+    if (node != NULL) {
       node = node->sibling;
+    }
   }
   return DS_OK;
 }
 
 ds_status_t ds_pairing_heap_insert_ex(ds_pairing_heap_t *container,
                                       ds_pairing_heap_node_t *node) {
-  if (container == NULL || node == NULL)
+  if (container == NULL || node == NULL) {
     return DS_ERR_NULL;
-  if (node == container->nil)
+  }
+  if (node == container->nil) {
     return DS_ERR_INVALID;
-  if (container->size == (size_t)-1)
+  }
+  if (container->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   ds_pairing_heap_insert(container, node);
   return DS_OK;
 }
@@ -362,8 +378,9 @@ static ds_status_t pairing_heap_clone_visit(ds_pairing_heap_node_t *source,
   pairing_heap_clone_policy_t *policy = (pairing_heap_clone_policy_t *)user;
   ds_pairing_heap_node_t *node = NULL;
   ds_status_t st = policy->clone(source, &node, policy->user);
-  if (st != DS_OK || node == NULL)
+  if (st != DS_OK || node == NULL) {
     return st < 0 ? st : DS_ERR_CALLBACK;
+  }
   st = ds_pairing_heap_insert_ex(policy->copy, node);
   if (st != DS_OK) {
     policy->destroy(node, policy->user);
@@ -378,16 +395,19 @@ ds_status_t ds_pairing_heap_clone_with(const ds_pairing_heap_t *container,
                                        ds_pairing_heap_t **out) {
   pairing_heap_clone_policy_t policy;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   policy.copy = pairing_heap_create_internal(
       container->compare, context != NULL ? context : container->context,
       container->compare_with, container->compare_user);
-  if (policy.copy == NULL)
+  if (policy.copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   policy.clone = clone;
   policy.destroy = destroy;
   policy.user = user;

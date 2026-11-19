@@ -201,7 +201,8 @@ ds_status_t ds_ekd_tree_remove(ds_ekd_tree_t *t, const double *box,
 ds_status_t ds_ekd_tree_query(ds_ekd_tree_t *t, const double *box,
                               ds_kdb_visit_func_t visit, void *user);
 
-/* ---- skd-tree ------------------------------------------------------------ */
+/* ---- skd-tree ------------------------------------------------------------
+ */
 
 typedef struct ds_skd_tree {
   size_t dim;
@@ -241,8 +242,8 @@ ds_status_t ds_skd_tree_query(ds_skd_tree_t *t, const double *box,
 ds_status_t ds_skd_tree_query_point(ds_skd_tree_t *t, const double *point,
                                     ds_kdb_visit_func_t visit, void *user);
 /* k nearest boxes by box distance, closest first. */
-ds_status_t ds_skd_tree_nearest(ds_skd_tree_t *t, const double *point, size_t k,
-                                size_t *out_values, double *out_dist,
+ds_status_t ds_skd_tree_nearest(ds_skd_tree_t *t, const double *point,
+                                size_t k, size_t *out_values, double *out_dist,
                                 size_t *out_found);
 /* Bounds are exact, centroids follow the cuts, the count matches. */
 bool ds_skd_tree_valid(const ds_skd_tree_t *t);

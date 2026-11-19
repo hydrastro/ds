@@ -20,8 +20,8 @@
  *
  * Insertion order follows a Hilbert curve over the bounding box (via
  * dsa/algorithms/space_order.h) and the containing triangle is found by a walk
- * from the previous insertion, which keeps walks short on typical inputs: about
- * O(n log n) time in practice; a step bound falls back to a scan, so no
+ * from the previous insertion, which keeps walks short on typical inputs:
+ * about O(n log n) time in practice; a step bound falls back to a scan, so no
  * input can make a walk loop.
  *
  * Duplicates: a point equal to an earlier one is not inserted and belongs

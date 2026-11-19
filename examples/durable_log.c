@@ -3,8 +3,8 @@
  * tables, manifest and write-ahead log in a page store. The store here is
  * dsa/structures/fault_store.h over the in-memory one, which acts like a disk
  * with a volatile write cache: writes wait in the cache until a sync, and a
- * power cut throws away the cache (or, worse, keeps a random part of it). After
- * every cut the tree is reopened from what reached "the disk", and every
+ * power cut throws away the cache (or, worse, keeps a random part of it).
+ * After every cut the tree is reopened from what reached "the disk", and every
  * update that a completed ds_lsm_sync or flush covered is still there.
  */
 #include <dsa.h>

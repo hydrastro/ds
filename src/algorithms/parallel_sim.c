@@ -195,9 +195,10 @@ static void pr_scan_task(size_t t, void *arg) {
 }
 
 ds_status_t ds_pram_list_scan_on(const ds_executor_t *ex, const size_t *next,
-                                 size_t n, const void *values, size_t elem_size,
-                                 ds_pram_op_func_t op, void *user, void *out,
-                                 size_t *out_rounds, ds_context_t *context) {
+                                 size_t n, const void *values,
+                                 size_t elem_size, ds_pram_op_func_t op,
+                                 void *user, void *out, size_t *out_rounds,
+                                 ds_context_t *context) {
   pr_scan_t j;
   size_t *nbuf;
   unsigned char *vbuf;
@@ -298,9 +299,9 @@ static void pr_roots_task(size_t t, void *arg) {
   j->flag[t] = changed;
 }
 
-ds_status_t ds_pram_find_roots_on(const ds_executor_t *ex, const size_t *parent,
-                                  size_t n, size_t *root, size_t *out_rounds,
-                                  ds_context_t *context) {
+ds_status_t ds_pram_find_roots_on(const ds_executor_t *ex,
+                                  const size_t *parent, size_t n, size_t *root,
+                                  size_t *out_rounds, ds_context_t *context) {
   pr_jump_t j;
   size_t *buf;
   size_t i;
@@ -695,8 +696,8 @@ ds_status_t ds_pram_expr_eval_on(const ds_executor_t *ex, const size_t *left,
       if (left[i] != PR_NONE || right[i] != PR_NONE) {
         return DS_ERR_INVALID;
       }
-    } else if ((op[i] != DS_PRAM_ADD && op[i] != DS_PRAM_MUL) || left[i] >= n ||
-               right[i] >= n) {
+    } else if ((op[i] != DS_PRAM_ADD && op[i] != DS_PRAM_MUL) ||
+               left[i] >= n || right[i] >= n) {
       return DS_ERR_INVALID;
     }
   }

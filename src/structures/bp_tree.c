@@ -38,18 +38,19 @@ static const signed char bp_fmin[256] = {
 
 /* the greatest prefix excess after 1 to 8 bits */
 static const signed char bp_fmax[256] = {
-    -1, 1, 0,  2, -1, 1, 1,  3, -1, 1, 0,  2, 0,  2, 2,  4, -1, 1, 0,  2, -1, 1,
-    1,  3, -1, 1, 1,  3, 1,  3, 3,  5, -1, 1, 0,  2, -1, 1, 1,  3, -1, 1, 0,  2,
-    0,  2, 2,  4, -1, 1, 0,  2, 0,  2, 2,  4, 0,  2, 2,  4, 2,  4, 4,  6, -1, 1,
-    0,  2, -1, 1, 1,  3, -1, 1, 0,  2, 0,  2, 2,  4, -1, 1, 0,  2, -1, 1, 1,  3,
-    -1, 1, 1,  3, 1,  3, 3,  5, -1, 1, 0,  2, -1, 1, 1,  3, -1, 1, 1,  3, 1,  3,
-    3,  5, -1, 1, 1,  3, 1,  3, 3,  5, 1,  3, 3,  5, 3,  5, 5,  7, -1, 1, 0,  2,
-    -1, 1, 1,  3, -1, 1, 0,  2, 0,  2, 2,  4, -1, 1, 0,  2, -1, 1, 1,  3, -1, 1,
-    1,  3, 1,  3, 3,  5, -1, 1, 0,  2, -1, 1, 1,  3, -1, 1, 0,  2, 0,  2, 2,  4,
-    -1, 1, 0,  2, 0,  2, 2,  4, 0,  2, 2,  4, 2,  4, 4,  6, -1, 1, 0,  2, -1, 1,
-    1,  3, -1, 1, 0,  2, 0,  2, 2,  4, -1, 1, 0,  2, 0,  2, 2,  4, 0,  2, 2,  4,
-    2,  4, 4,  6, -1, 1, 0,  2, 0,  2, 2,  4, 0,  2, 2,  4, 2,  4, 4,  6, 0,  2,
-    2,  4, 2,  4, 4,  6, 2,  4, 4,  6, 4,  6, 6,  8};
+    -1, 1, 0, 2, -1, 1, 1, 3, -1, 1, 0, 2, 0,  2, 2, 4, -1, 1, 0, 2,
+    -1, 1, 1, 3, -1, 1, 1, 3, 1,  3, 3, 5, -1, 1, 0, 2, -1, 1, 1, 3,
+    -1, 1, 0, 2, 0,  2, 2, 4, -1, 1, 0, 2, 0,  2, 2, 4, 0,  2, 2, 4,
+    2,  4, 4, 6, -1, 1, 0, 2, -1, 1, 1, 3, -1, 1, 0, 2, 0,  2, 2, 4,
+    -1, 1, 0, 2, -1, 1, 1, 3, -1, 1, 1, 3, 1,  3, 3, 5, -1, 1, 0, 2,
+    -1, 1, 1, 3, -1, 1, 1, 3, 1,  3, 3, 5, -1, 1, 1, 3, 1,  3, 3, 5,
+    1,  3, 3, 5, 3,  5, 5, 7, -1, 1, 0, 2, -1, 1, 1, 3, -1, 1, 0, 2,
+    0,  2, 2, 4, -1, 1, 0, 2, -1, 1, 1, 3, -1, 1, 1, 3, 1,  3, 3, 5,
+    -1, 1, 0, 2, -1, 1, 1, 3, -1, 1, 0, 2, 0,  2, 2, 4, -1, 1, 0, 2,
+    0,  2, 2, 4, 0,  2, 2, 4, 2,  4, 4, 6, -1, 1, 0, 2, -1, 1, 1, 3,
+    -1, 1, 0, 2, 0,  2, 2, 4, -1, 1, 0, 2, 0,  2, 2, 4, 0,  2, 2, 4,
+    2,  4, 4, 6, -1, 1, 0, 2, 0,  2, 2, 4, 0,  2, 2, 4, 2,  4, 4, 6,
+    0,  2, 2, 4, 2,  4, 4, 6, 2,  4, 4, 6, 4,  6, 6, 8};
 
 /* the least prefix excess after 0 to 7 bits */
 static const signed char bp_bmin[256] = {
@@ -165,8 +166,8 @@ static size_t bp_scan_fwd(const ds_parens_t *p, size_t from, size_t to,
 
 /* scan down with *cur the excess of the prefix of length hi: the last
  * prefix length k in [lo, hi) whose excess is target */
-static size_t bp_scan_bwd(const ds_parens_t *p, size_t hi, size_t lo, long *cur,
-                          long target) {
+static size_t bp_scan_bwd(const ds_parens_t *p, size_t hi, size_t lo,
+                          long *cur, long target) {
   size_t x = hi;
   while (x > lo && x % 8 != 0) {
     x--;
@@ -526,8 +527,8 @@ ds_status_t ds_parens_build(ds_parens_t *p, const unsigned long *words,
       p->words[n / W] &= (1UL << (n % W)) - 1UL; /* no stray bits */
     }
   }
-  st = ds_rs_build(&p->rs, rs_ops != NULL ? rs_ops : ds_rs_plain(), p->words, n,
-                   context);
+  st = ds_rs_build(&p->rs, rs_ops != NULL ? rs_ops : ds_rs_plain(), p->words,
+                   n, context);
   if (st != DS_OK) {
     ds_context_free(context, p->words);
     ds_context_free(context, p->mn);

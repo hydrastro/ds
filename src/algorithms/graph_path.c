@@ -27,7 +27,8 @@ static void *gp_alloc(ds_context_t *ctx, size_t count, size_t size) {
   return ds_context_alloc(ctx, count * size);
 }
 
-/* ---- a small lazy-deletion binary heap ----------------------------------- */
+/* ---- a small lazy-deletion binary heap -----------------------------------
+ */
 
 typedef struct gp_heap {
   double *key;
@@ -185,7 +186,8 @@ static ds_status_t gp_dijkstra(const ds_gview_t *g, size_t source,
   return status;
 }
 
-/* ---- Johnson ------------------------------------------------------------- */
+/* ---- Johnson -------------------------------------------------------------
+ */
 
 ds_status_t ds_gview_johnson(const ds_gview_t *g, double *out_dist,
                              ds_context_t *context) {
@@ -234,8 +236,8 @@ ds_status_t ds_gview_johnson(const ds_gview_t *g, double *out_dist,
     goto out;
   }
   for (s = 0; s < n && status == DS_OK; s++) {
-    status = gp_dijkstra(g, s, GP_NONE, h, NULL, NULL, NULL, dist, parent, NULL,
-                         done, context);
+    status = gp_dijkstra(g, s, GP_NONE, h, NULL, NULL, NULL, dist, parent,
+                         NULL, done, context);
     for (v = 0; v < n; v++) {
       out_dist[s * n + v] =
           dist[v] < HUGE_VAL ? dist[v] - h[s] + h[v] : HUGE_VAL;
@@ -249,7 +251,8 @@ out:
   return status;
 }
 
-/* ---- DAG paths ----------------------------------------------------------- */
+/* ---- DAG paths -----------------------------------------------------------
+ */
 
 ds_status_t ds_gview_dag_shortest(const ds_gview_t *g, size_t source,
                                   bool longest, double *out_dist,
@@ -312,7 +315,8 @@ ds_status_t ds_gview_dag_shortest(const ds_gview_t *g, size_t source,
   return DS_OK;
 }
 
-/* ---- best-first / A* ----------------------------------------------------- */
+/* ---- best-first / A* -----------------------------------------------------
+ */
 
 ds_status_t ds_gview_best_first(const ds_gview_t *g, size_t source,
                                 size_t target, ds_gview_heuristic_func_t h,
@@ -391,7 +395,8 @@ ds_status_t ds_gview_best_first(const ds_gview_t *g, size_t source,
   return target == GP_NONE || reached ? DS_OK : DS_NOT_FOUND;
 }
 
-/* ---- Yen's k shortest paths ---------------------------------------------- */
+/* ---- Yen's k shortest paths ----------------------------------------------
+ */
 
 typedef struct gp_path {
   size_t start;  /* first vertex in the vertex pool */
@@ -546,24 +551,24 @@ ds_status_t ds_gview_k_shortest(const ds_gview_t *g, size_t source,
     goto out;
   }
 
-#define GP_SPUR(from)                                                          \
-  do {                                                                         \
-    status = gp_dijkstra(g, (from), target, NULL, bv, be, offsets, dist,       \
-                         parent, pedge, done, context);                        \
-    sl = 0;                                                                    \
-    if (status == DS_OK && dist[target] < HUGE_VAL) {                          \
-      for (v = target; v != GP_NONE; v = parent[v]) {                          \
-        sl++;                                                                  \
-      }                                                                        \
-      q = sl;                                                                  \
-      for (v = target; v != GP_NONE; v = parent[v]) {                          \
-        q--;                                                                   \
-        sv[q] = v;                                                             \
-        if (q > 0) {                                                           \
-          se[q - 1] = pedge[v];                                                \
-        }                                                                      \
-      }                                                                        \
-    }                                                                          \
+#define GP_SPUR(from)                                                         \
+  do {                                                                        \
+    status = gp_dijkstra(g, (from), target, NULL, bv, be, offsets, dist,      \
+                         parent, pedge, done, context);                       \
+    sl = 0;                                                                   \
+    if (status == DS_OK && dist[target] < HUGE_VAL) {                         \
+      for (v = target; v != GP_NONE; v = parent[v]) {                         \
+        sl++;                                                                 \
+      }                                                                       \
+      q = sl;                                                                 \
+      for (v = target; v != GP_NONE; v = parent[v]) {                         \
+        q--;                                                                  \
+        sv[q] = v;                                                            \
+        if (q > 0) {                                                          \
+          se[q - 1] = pedge[v];                                               \
+        }                                                                     \
+      }                                                                       \
+    }                                                                         \
   } while (0)
 
   GP_SPUR(source);
@@ -597,9 +602,9 @@ ds_status_t ds_gview_k_shortest(const ds_gview_t *g, size_t source,
       }
       GP_SPUR(spur);
       if (status == DS_OK && sl > 0) {
-        status =
-            gp_paths_add(&B, gp_verts(&A, prev_start), gp_edges(&A, prev_start),
-                         i, sv, se, sl, rootcost + dist[target]);
+        status = gp_paths_add(&B, gp_verts(&A, prev_start),
+                              gp_edges(&A, prev_start), i, sv, se, sl,
+                              rootcost + dist[target]);
         if (status == DS_OK) {
           /* drop duplicates of accepted or pending paths */
           dup = false;
@@ -662,7 +667,8 @@ out:
   return status == DS_STOP ? DS_OK : status;
 }
 
-/* ---- all simple paths ---------------------------------------------------- */
+/* ---- all simple paths ----------------------------------------------------
+ */
 
 ds_status_t ds_gview_simple_paths(const ds_gview_t *g, size_t source,
                                   size_t target, ds_gview_path_func_t visit,
@@ -735,7 +741,8 @@ out:
   return status == DS_STOP ? DS_OK : status;
 }
 
-/* ---- minimum spanning arborescence (Chu-Liu/Edmonds) --------------------- */
+/* ---- minimum spanning arborescence (Chu-Liu/Edmonds) ---------------------
+ */
 
 typedef struct gp_arc {
   size_t from;
@@ -973,7 +980,8 @@ out:
   return status;
 }
 
-/* ---- minimum spanning forests -------------------------------------------- */
+/* ---- minimum spanning forests --------------------------------------------
+ */
 
 static size_t gp_find(size_t *parent, size_t x) {
   while (parent[x] != x) {
@@ -1137,7 +1145,8 @@ ds_status_t ds_boruvka(size_t n, const size_t *u, const size_t *v,
   return DS_OK;
 }
 
-/* ---- Chinese postman ----------------------------------------------------- */
+/* ---- Chinese postman -----------------------------------------------------
+ */
 
 typedef struct gp_ugraph {
   size_t n;
@@ -1252,8 +1261,8 @@ ds_status_t ds_chinese_postman(size_t n, const size_t *u, const size_t *v,
     goto out;
   }
   for (i = 0; i < k && status == DS_OK; i++) {
-    status = gp_dijkstra(&view, odd[i], GP_NONE, NULL, NULL, NULL, ug.off, dist,
-                         parent, pedge, done, context);
+    status = gp_dijkstra(&view, odd[i], GP_NONE, NULL, NULL, NULL, ug.off,
+                         dist, parent, pedge, done, context);
     for (j = 0; j < k; j++) {
       pd[i * k + j] = dist[odd[j]];
     }

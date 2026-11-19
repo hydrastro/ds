@@ -91,8 +91,9 @@ static ds_status_t mt_clear(size_t tape, void *state) {
 const ds_ext_tape_ops_t ds_ext_memory_tape_ops = {
     mt_write, mt_read, mt_read_backward, mt_rewind, mt_clear};
 
-ds_status_t ds_ext_memory_tapes_init(ds_ext_memory_tapes_t *tapes, size_t count,
-                                     size_t elem_size, ds_context_t *context) {
+ds_status_t ds_ext_memory_tapes_init(ds_ext_memory_tapes_t *tapes,
+                                     size_t count, size_t elem_size,
+                                     ds_context_t *context) {
   if (tapes == NULL) {
     return DS_ERR_NULL;
   }
@@ -1158,7 +1159,8 @@ ds_status_t ds_ext_sort(const ds_ext_sort_config_t *config,
   d->inputs = inputs;
   d->next = 0;
   d->cascade = config->merge == DS_EXT_CASCADE;
-  d->target = (size_t *)ds_context_calloc(context, 3 * e.tapes, sizeof(size_t));
+  d->target =
+      (size_t *)ds_context_calloc(context, 3 * e.tapes, sizeof(size_t));
   if (d->target == NULL) {
     st = DS_ERR_ALLOC;
     goto out;

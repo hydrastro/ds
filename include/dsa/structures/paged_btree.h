@@ -62,9 +62,9 @@
  * Crash recovery comes from the store: on a page store with
  * DS_PAGE_STORE_ATOMIC_SYNC (dsa/structures/wal_store.h), ds_pbtree_sync
  * followed by ds_pager_flush is an atomic commit, and after a crash the tree
- * opens as of the last flush that completed (discard the pager, open the store,
- * then a pager and the tree on it again). Pages the pager evicts between
- * commits are part of the next commit.
+ * opens as of the last flush that completed (discard the pager, open the
+ * store, then a pager and the tree on it again). Pages the pager evicts
+ * between commits are part of the next commit.
  *
  * Split buffers come from the pager's context.
  */

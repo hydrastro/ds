@@ -38,8 +38,8 @@
  * Element policies are those of dsa/structures/persistent_vector.h: plain
  * bytes, owned resources (copy_elem and destroy_elem: every leaf owns its
  * copies, a leaf built from others clones the elements it takes, and pop_back
- * and remove hand out a clone), or copy only. destroy_elem without copy_elem is
- * rejected. Memory comes from the context; no locking.
+ * and remove hand out a clone), or copy only. destroy_elem without copy_elem
+ * is rejected. Memory comes from the context; no locking.
  */
 
 #include <dsa/core/context.h>
@@ -105,7 +105,8 @@ ds_status_t ds_rrb_push_front(const ds_rrb_t *vec, const void *elem,
                               ds_rrb_t *out);
 /* out_elem (optional) receives the element (a clone for owned ones);
  * DS_EMPTY on an empty vector */
-ds_status_t ds_rrb_pop_back(const ds_rrb_t *vec, void *out_elem, ds_rrb_t *out);
+ds_status_t ds_rrb_pop_back(const ds_rrb_t *vec, void *out_elem,
+                            ds_rrb_t *out);
 /* a and b must share the config */
 ds_status_t ds_rrb_concat(const ds_rrb_t *a, const ds_rrb_t *b, ds_rrb_t *out);
 /* elements [from, to); DS_ERR_RANGE unless from <= to <= size */

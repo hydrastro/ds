@@ -56,8 +56,8 @@ size_t ds_enfilade_count(const ds_enfilade_t *e);
 size_t ds_enfilade_width(const ds_enfilade_t *e);
 /* Inserts before item `index` (index = count appends). elem may point into
  * this enfilade; it is staged before growth. */
-ds_status_t ds_enfilade_insert(ds_enfilade_t *e, size_t index, const void *elem,
-                               size_t wid);
+ds_status_t ds_enfilade_insert(ds_enfilade_t *e, size_t index,
+                               const void *elem, size_t wid);
 ds_status_t ds_enfilade_remove(ds_enfilade_t *e, size_t index, void *out);
 /* Item at index: element pointer, its width and displacement. */
 ds_status_t ds_enfilade_at(const ds_enfilade_t *e, size_t index,

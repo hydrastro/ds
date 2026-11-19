@@ -128,10 +128,12 @@ static node_t *ett_merge(ds_ett_t *t, node_t *a, node_t *b) {
     tail = chosen;
   }
   *slot = a == NULL ? b : a;
-  if (*slot != NULL)
+  if (*slot != NULL) {
     (*slot)->parent = tail;
-  for (; tail != NULL; tail = tail->parent)
+  }
+  for (; tail != NULL; tail = tail->parent) {
     ett_update(t, tail);
+  }
   return root;
 }
 
@@ -161,10 +163,12 @@ static void ett_split(ds_ett_t *t, node_t *x, size_t k, node_t **l,
   }
   *ls = NULL;
   *rs = NULL;
-  for (; left != NULL; left = left->parent)
+  for (; left != NULL; left = left->parent) {
     ett_update(t, left);
-  for (; right != NULL; right = right->parent)
+  }
+  for (; right != NULL; right = right->parent) {
     ett_update(t, right);
+  }
 }
 
 static node_t *ett_root(node_t *x) {
@@ -454,7 +458,9 @@ ds_status_t ds_ett_cut(ds_ett_t *t, size_t u, size_t v) {
   return DS_OK;
 }
 
-size_t ds_ett_edge_count(const ds_ett_t *t) { return t == NULL ? 0 : t->edges; }
+size_t ds_ett_edge_count(const ds_ett_t *t) {
+  return t == NULL ? 0 : t->edges;
+}
 
 size_t ds_ett_component_count(const ds_ett_t *t) {
   return t == NULL ? 0 : t->n - t->edges;

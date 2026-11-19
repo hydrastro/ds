@@ -161,8 +161,9 @@ void ds_bingo_sort(void *base, size_t count, size_t elem_size,
                    ds_compare_func_t compare, void *user);
 
 bool ds_bogosort(void *base, size_t count, size_t elem_size,
-                 ds_compare_func_t compare, void *user, ds_random_func_t random,
-                 void *random_state, unsigned long max_steps);
+                 ds_compare_func_t compare, void *user,
+                 ds_random_func_t random, void *random_state,
+                 unsigned long max_steps);
 bool ds_bozo_sort(void *base, size_t count, size_t elem_size,
                   ds_compare_func_t compare, void *user,
                   ds_random_func_t random, void *random_state,

@@ -60,8 +60,10 @@ ds_status_t ds_sorted_array_insert(ds_sorted_array_t *a, const void *elem,
 ds_status_t ds_sorted_array_find(const ds_sorted_array_t *a, const void *key,
                                  size_t *out_index);
 /* First index whose element is >= key (lower) or > key (upper). */
-size_t ds_sorted_array_lower_bound(const ds_sorted_array_t *a, const void *key);
-size_t ds_sorted_array_upper_bound(const ds_sorted_array_t *a, const void *key);
+size_t ds_sorted_array_lower_bound(const ds_sorted_array_t *a,
+                                   const void *key);
+size_t ds_sorted_array_upper_bound(const ds_sorted_array_t *a,
+                                   const void *key);
 /* Removes the first element equal to key. */
 ds_status_t ds_sorted_array_remove(ds_sorted_array_t *a, const void *key,
                                    void *out);

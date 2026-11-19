@@ -45,11 +45,13 @@ ds_circular_buffer_t *ds_circular_buffer_create(size_t capacity,
 ds_status_t ds_circular_buffer_create_context(size_t capacity, bool overwrite,
                                               ds_context_t *context,
                                               ds_circular_buffer_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (capacity > (size_t)-1 / sizeof(ds_circular_buffer_node_t *))
+  if (capacity > (size_t)-1 / sizeof(ds_circular_buffer_node_t *)) {
     return DS_ERR_OVERFLOW;
+  }
   *out = circular_buffer_create_internal(
       capacity, overwrite, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -90,26 +92,32 @@ ds_circular_buffer_push_ex(ds_circular_buffer_t *buffer,
                            ds_circular_buffer_node_t *node,
                            ds_circular_buffer_node_t **out_evicted) {
   ds_circular_buffer_node_t *evicted = NULL;
-  if (buffer == NULL || node == NULL)
+  if (buffer == NULL || node == NULL) {
     return DS_ERR_NULL;
-  if (node == buffer->nil)
+  }
+  if (node == buffer->nil) {
     return DS_ERR_INVALID;
+  }
   if (buffer->size == buffer->capacity) {
-    if (!buffer->overwrite)
+    if (!buffer->overwrite) {
       return DS_ERR_OVERFLOW;
+    }
     evicted = buffer->data[buffer->head];
   }
   (void)ds_circular_buffer_push(buffer, node);
-  if (out_evicted != NULL)
+  if (out_evicted != NULL) {
     *out_evicted = evicted;
+  }
   return DS_OK;
 }
 ds_status_t ds_circular_buffer_pop_ex(ds_circular_buffer_t *buffer,
                                       ds_circular_buffer_node_t **out) {
-  if (buffer == NULL || out == NULL)
+  if (buffer == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (buffer->size == 0)
+  }
+  if (buffer->size == 0) {
     return DS_EMPTY;
+  }
   *out = ds_circular_buffer_pop(buffer);
   return DS_OK;
 }
@@ -190,8 +198,9 @@ circular_buffer_destroy_internal(ds_circular_buffer_t *buffer,
 void ds_circular_buffer_destroy_with(ds_circular_buffer_t *container,
                                      ds_circular_buffer_destroy_fn destroy,
                                      void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     circular_buffer_destroy_internal(container, destroy, user);
+  }
 }
 static void circular_buffer_destroy_direct(ds_circular_buffer_node_t *node,
                                            void *user) {
@@ -273,14 +282,16 @@ ds_status_t ds_circular_buffer_walk_with(ds_circular_buffer_t *container,
   size_t i, position;
   ds_circular_buffer_node_t *node;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   position = container->head;
   for (i = 0; i < container->size; ++i) {
     node = container->data[position];
     st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     position = position + 1 == container->capacity ? 0 : position + 1;
   }
   return DS_OK;
@@ -292,8 +303,9 @@ ds_status_t ds_circular_buffer_find_with(ds_circular_buffer_t *container,
                                          ds_circular_buffer_node_t **out) {
   size_t i, position;
   ds_circular_buffer_node_t *node;
-  if (container == NULL || key == NULL || compare == NULL || out == NULL)
+  if (container == NULL || key == NULL || compare == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   position = container->head;
   for (i = 0; i < container->size; ++i) {
     node = container->data[position];
@@ -316,16 +328,19 @@ ds_status_t ds_circular_buffer_clone_with(
   ds_circular_buffer_node_t *new_node;
 
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   copy = circular_buffer_create_internal(
       container->capacity, container->overwrite,
       context != NULL ? context : container->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
 
   position = container->head;
   for (i = 0; i < container->size; ++i) {
@@ -349,14 +364,16 @@ ds_circular_buffer_walk_reverse_with(ds_circular_buffer_t *container,
                                      void *user) {
   size_t i, position;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   position = container->tail;
   for (i = 0; i < container->size; ++i) {
     position = position == 0 ? container->capacity - 1 : position - 1;
     st = visit(container->data[position], user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   return DS_OK;
 }

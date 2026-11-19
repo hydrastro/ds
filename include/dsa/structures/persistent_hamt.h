@@ -39,9 +39,11 @@ extern "C" {
 #endif
 
 typedef size_t (*ds_phamt_hash_func_t)(const void *key, void *user);
-typedef bool (*ds_phamt_equal_func_t)(const void *a, const void *b, void *user);
+typedef bool (*ds_phamt_equal_func_t)(const void *a, const void *b,
+                                      void *user);
 typedef void (*ds_phamt_destroy_func_t)(void *ptr, void *user);
-typedef bool (*ds_phamt_visit_func_t)(const void *key, void *value, void *user);
+typedef bool (*ds_phamt_visit_func_t)(const void *key, void *value,
+                                      void *user);
 
 typedef struct ds_phamt_config {
   ds_phamt_hash_func_t hash;

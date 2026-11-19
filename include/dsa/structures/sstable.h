@@ -180,7 +180,8 @@ typedef struct ds_sstable_builder {
  * no filter, at most 32). */
 ds_status_t ds_sstable_builder_init(ds_sstable_builder_t *b, size_t block_size,
                                     size_t restart_interval,
-                                    size_t bits_per_key, ds_context_t *context);
+                                    size_t bits_per_key,
+                                    ds_context_t *context);
 void ds_sstable_builder_destroy(ds_sstable_builder_t *b);
 /* the same with a key order (NULL: bytewise); DS_ERR_INVALID for a
  * comparator without compare or a non-bytewise one with id 0 */
@@ -292,7 +293,8 @@ bool ds_sstable_may_contain(const ds_sstable_t *t, const void *key,
  * Memory tables borrow the image. Callback tables cache one lookup iterator:
  * the value lasts until their next get or close, using the opening context
  * (the context argument here is for memory-table key decoding). Synchronize
- * gets on the same callback table. Separate iterators have separate buffers. */
+ * gets on the same callback table. Separate iterators have separate buffers.
+ */
 ds_status_t ds_sstable_get(const ds_sstable_t *t, const void *key,
                            size_t key_len, const unsigned char **out_value,
                            size_t *out_value_len, bool *out_tombstone,
@@ -321,7 +323,8 @@ ds_status_t ds_sstable_iter_init(ds_sstable_iter_t *it, const ds_sstable_t *t,
                                  ds_context_t *context);
 void ds_sstable_iter_destroy(ds_sstable_iter_t *it);
 /* Iterator key/value views last until its next positioning call or destroy.
- * The table and immutable source must outlive it. No concurrent table close. */
+ * The table and immutable source must outlive it. No concurrent table close.
+ */
 ds_status_t ds_sstable_iter_first(ds_sstable_iter_t *it);
 /* The first entry with key >= the given key. */
 ds_status_t ds_sstable_iter_seek(ds_sstable_iter_t *it, const void *key,

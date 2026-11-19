@@ -32,8 +32,9 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
     return node;
   }
   mid = lo + (hi - lo) / 2;
-  if (ds_bitvector_create_context(length, wt->context, &node->bv) != DS_OK)
+  if (ds_bitvector_create_context(length, wt->context, &node->bv) != DS_OK) {
     node->bv = NULL;
+  }
   if (node->bv == NULL) {
     wavelet_destroy_node(wt, node);
     return NULL;
@@ -106,9 +107,11 @@ static ds_wavelet_tree_t *wavelet_tree_create_internal(const size_t *sequence,
       length > (size_t)-1 / sizeof(size_t)) {
     return NULL;
   }
-  for (i = 0; i < length; i++)
-    if (sequence[i] >= (sigma > 0 ? sigma : 1))
+  for (i = 0; i < length; i++) {
+    if (sequence[i] >= (sigma > 0 ? sigma : 1)) {
       return NULL;
+    }
+  }
   wt = (ds_wavelet_tree_t *)ds_context_alloc(context,
                                              sizeof(ds_wavelet_tree_t));
   if (wt == NULL) {
@@ -148,18 +151,24 @@ ds_status_t ds_wavelet_tree_create_context(const size_t *sequence,
                                            ds_context_t *context,
                                            ds_wavelet_tree_t **out) {
   size_t i;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (length > 0 && sequence == NULL)
+  if (length > 0 && sequence == NULL) {
     return DS_ERR_NULL;
-  if (length > (size_t)-1 / sizeof(size_t))
+  }
+  if (length > (size_t)-1 / sizeof(size_t)) {
     return DS_ERR_OVERFLOW;
-  if (sigma == 0 && length > 0)
+  }
+  if (sigma == 0 && length > 0) {
     return DS_ERR_INVALID;
-  for (i = 0; i < length; i++)
-    if (sequence[i] >= sigma)
+  }
+  for (i = 0; i < length; i++) {
+    if (sequence[i] >= sigma) {
       return DS_ERR_RANGE;
+    }
+  }
   *out = wavelet_tree_create_internal(sequence, length, sigma,
                                       context != NULL ? context
                                                       : ds_default_context());
@@ -304,42 +313,51 @@ void ds_wavelet_tree_destroy(ds_wavelet_tree_t *wt) {
 
 ds_status_t ds_wavelet_tree_access_ex(ds_wavelet_tree_t *tree, size_t index,
                                       size_t *out) {
-  if (tree == NULL || out == NULL)
+  if (tree == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (index >= tree->length)
+  }
+  if (index >= tree->length) {
     return DS_ERR_RANGE;
+  }
   *out = ds_wavelet_tree_access(tree, index);
   return DS_OK;
 }
 ds_status_t ds_wavelet_tree_rank_ex(ds_wavelet_tree_t *tree, size_t symbol,
                                     size_t count, size_t *out) {
-  if (tree == NULL || out == NULL)
+  if (tree == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (count > tree->length || symbol >= tree->sigma)
+  }
+  if (count > tree->length || symbol >= tree->sigma) {
     return DS_ERR_RANGE;
+  }
   *out = ds_wavelet_tree_rank(tree, symbol, count);
   return DS_OK;
 }
 ds_status_t ds_wavelet_tree_select_ex(ds_wavelet_tree_t *tree, size_t symbol,
                                       size_t ordinal, size_t *out) {
   size_t position;
-  if (tree == NULL || out == NULL)
+  if (tree == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (symbol >= tree->sigma)
+  }
+  if (symbol >= tree->sigma) {
     return DS_ERR_RANGE;
+  }
   position = ds_wavelet_tree_select(tree, symbol, ordinal);
-  if (position == DS_WAVELET_NPOS)
+  if (position == DS_WAVELET_NPOS) {
     return DS_NOT_FOUND;
+  }
   *out = position;
   return DS_OK;
 }
 ds_status_t ds_wavelet_tree_quantile_ex(ds_wavelet_tree_t *tree, size_t left,
                                         size_t right, size_t ordinal,
                                         size_t *out) {
-  if (tree == NULL || out == NULL)
+  if (tree == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (left > right || right > tree->length || ordinal >= right - left)
+  }
+  if (left > right || right > tree->length || ordinal >= right - left) {
     return DS_ERR_RANGE;
+  }
   *out = ds_wavelet_tree_quantile(tree, left, right, ordinal);
   return DS_OK;
 }

@@ -20,8 +20,9 @@ static ds_status_t validate(int value, int minimum, unsigned field,
   ds_status_t st;
   issues_t issue;
   ds_result_config_init(&config, context);
-  if (flat)
+  if (flat) {
     config.diagnostics.ops = *ds_diagnostic_log_flat_ops();
+  }
   ds_diagnostics_init_context(&diagnostics, context);
   ds_result_value_init(&payload);
   memset(&record, 0, sizeof(record));
@@ -31,14 +32,16 @@ static ds_status_t validate(int value, int minimum, unsigned field,
   if (st == DS_OK && value >= minimum) {
     ds_schema_init(&schema, sizeof(value));
     st = ds_result_value_from_schema(&payload, &value, &schema, context);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = ds_result_ok(&out->core, &payload, &diagnostics, &config);
+    }
   } else if (st == DS_OK) {
     issue.fields = field;
     ds_schema_init(&schema, sizeof(issue));
     st = ds_result_value_from_schema(&payload, &issue, &schema, context);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = ds_result_err(&out->core, &payload, &diagnostics, &config);
+    }
   }
   ds_result_value_release(&payload);
   ds_diagnostics_destroy(&diagnostics);
@@ -82,31 +85,37 @@ static ds_status_t run(int age, int quota, bool flat, bool right_flat,
   memset(&sink, 0, sizeof(sink));
   sink.emit = print_record;
   st = validate(age, 18, 1, "age", flat, context, &left);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = validate(quota, 0, 2, "quota", right_flat, context, &right);
+  }
   /* Inputs are already computed: no validation is skipped. Mixed backends
    * preserve order; the left Result chooses the output storage policy.
    * Replacing an input in place is supported. */
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_result_zip(&left.core, &right.core, add_values, combine_issues,
                        context, &left.core);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = validation_result_copy(&left, &saved);
+  }
   validation_result_destroy(&left);
   validation_result_destroy(&right);
   if (st == DS_OK) {
     printf("age=%d, quota=%d, log=%s: ", age, quota, flat ? "flat" : "RRB");
     if (ds_result_is_ok(&saved.core)) {
       st = validation_result_unwrap(&saved, &number);
-      if (st == DS_OK)
+      if (st == DS_OK) {
         printf("accepted, sum=%d\n", *number);
+      }
     } else {
       st = validation_result_error(&saved, &issues);
-      if (st == DS_OK)
+      if (st == DS_OK) {
         printf("invalid field mask=%u\n", issues->fields);
+      }
     }
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = ds_result_drain_to(&saved.core, &sink);
+    }
   }
   validation_result_destroy(&saved);
   return st;
@@ -123,17 +132,21 @@ int main(void) {
   ds_context_use_debug_allocator(&context, &debug);
   for (i = 0; i < sizeof(inputs) / sizeof(inputs[0]) && st == DS_OK; ++i) {
     st = run(inputs[i][0], inputs[i][1], false, false, &context);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = run(inputs[i][0], inputs[i][1], true, true, &context);
+    }
   }
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = run(24, 10, false, true, &context);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = run(24, 10, true, false, &context);
+  }
   ds_debug_allocator_get_stats(&debug, &stats);
   printf("Live bytes after releasing Results: %lu\n",
          (unsigned long)stats.bytes_live);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     fprintf(stderr, "Operation failed: %s\n", ds_status_name(st));
+  }
   return st != DS_OK || stats.bytes_live != 0;
 }

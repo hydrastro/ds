@@ -47,9 +47,9 @@ typedef struct ds_binomial_heap_node {
   unsigned int order;
 } ds_binomial_heap_node_t;
 
-typedef int (*ds_binomial_heap_compare_func_t)(const ds_binomial_heap_node_t *a,
-                                               const ds_binomial_heap_node_t *b,
-                                               void *user);
+typedef int (*ds_binomial_heap_compare_func_t)(
+    const ds_binomial_heap_node_t *a, const ds_binomial_heap_node_t *b,
+    void *user);
 /* Visitor: return DS_OK to continue or anything else (e.g. DS_STOP) to stop;
  * that status is then returned by the walk. */
 typedef ds_status_t (*ds_binomial_heap_visit_func_t)(
@@ -74,7 +74,8 @@ ds_binomial_heap_node_t *ds_binomial_heap_peek(const ds_binomial_heap_t *heap);
 ds_binomial_heap_node_t *ds_binomial_heap_pop(ds_binomial_heap_t *heap);
 /* Move every node of `other` into `heap`; `other` is left empty. Both heaps
  * must order nodes the same way. */
-void ds_binomial_heap_meld(ds_binomial_heap_t *heap, ds_binomial_heap_t *other);
+void ds_binomial_heap_meld(ds_binomial_heap_t *heap,
+                           ds_binomial_heap_t *other);
 void ds_binomial_heap_decrease(ds_binomial_heap_t *heap,
                                ds_binomial_heap_node_t *node);
 void ds_binomial_heap_update(ds_binomial_heap_t *heap,

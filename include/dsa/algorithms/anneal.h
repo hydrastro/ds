@@ -86,8 +86,8 @@ typedef struct ds_anneal_problem {
   double (*propose)(const void *state, void *move, ds_rng_t *rng, void *user);
   void (*apply)(void *state, const void *move, void *user);
   /* optional: return true to stop */
-  bool (*stop)(size_t iteration, double temperature, double energy, double best,
-               void *user);
+  bool (*stop)(size_t iteration, double temperature, double energy,
+               double best, void *user);
   void *user;
   /* states owning memory (all three or none): construct dst in raw memory
    * as a copy of src; assign src to the state dst; release a state */

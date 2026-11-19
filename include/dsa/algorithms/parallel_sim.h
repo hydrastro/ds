@@ -89,12 +89,13 @@ ds_status_t ds_pram_list_rank_on(const ds_executor_t *ex, const size_t *next,
                                  size_t n, size_t *rank, size_t *out_rounds,
                                  ds_context_t *context);
 ds_status_t ds_pram_list_scan_on(const ds_executor_t *ex, const size_t *next,
-                                 size_t n, const void *values, size_t elem_size,
-                                 ds_pram_op_func_t op, void *user, void *out,
-                                 size_t *out_rounds, ds_context_t *context);
-ds_status_t ds_pram_find_roots_on(const ds_executor_t *ex, const size_t *parent,
-                                  size_t n, size_t *root, size_t *out_rounds,
-                                  ds_context_t *context);
+                                 size_t n, const void *values,
+                                 size_t elem_size, ds_pram_op_func_t op,
+                                 void *user, void *out, size_t *out_rounds,
+                                 ds_context_t *context);
+ds_status_t ds_pram_find_roots_on(const ds_executor_t *ex,
+                                  const size_t *parent, size_t n, size_t *root,
+                                  size_t *out_rounds, ds_context_t *context);
 ds_status_t ds_pram_list_contract_rank_on(const ds_executor_t *ex,
                                           const size_t *next, size_t n,
                                           size_t *rank, unsigned long seed,

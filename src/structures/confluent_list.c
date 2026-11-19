@@ -115,11 +115,11 @@ static ds_status_t cl_grow(ds_confluent_store_t *s) {
                                                        : sizeof(size_t))) {
     return DS_ERR_OVERFLOW;
   }
-#define CL_GROW(field, type)                                                   \
-  p = ds_context_realloc(s->context, s->field, nc * sizeof(type));             \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define CL_GROW(field, type)                                                  \
+  p = ds_context_realloc(s->context, s->field, nc * sizeof(type));            \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   s->field = (type *)p
   CL_GROW(left, size_t);
   CL_GROW(right, size_t);
@@ -414,8 +414,8 @@ static unsigned char *cl_copy_elem(ds_confluent_store_t *s, const void *e) {
   return b;
 }
 
-ds_status_t ds_confluent_set(ds_confluent_store_t *s, size_t list, size_t index,
-                             const void *elem, size_t *out) {
+ds_status_t ds_confluent_set(ds_confluent_store_t *s, size_t list,
+                             size_t index, const void *elem, size_t *out) {
   cl_t c;
   unsigned char *e;
   size_t res;

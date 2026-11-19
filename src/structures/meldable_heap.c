@@ -1,6 +1,7 @@
 #include <dsa/structures/meldable_heap.h>
 
-/* ---- policies ------------------------------------------------------------ */
+/* ---- policies ------------------------------------------------------------
+ */
 
 static size_t mh_aux(const ds_meldable_heap_node_t *node) {
   return node == NULL ? 0 : node->aux;
@@ -47,7 +48,8 @@ static const ds_meldable_heap_policy_t mh_leftist = {"leftist", mh_leftist_fix,
 static const ds_meldable_heap_policy_t mh_weight = {"weight-biased",
                                                     mh_weight_fix, 1};
 static const ds_meldable_heap_policy_t mh_skew = {"skew", mh_skew_fix, 0};
-static const ds_meldable_heap_policy_t mh_random = {"random", mh_random_fix, 0};
+static const ds_meldable_heap_policy_t mh_random = {"random", mh_random_fix,
+                                                    0};
 
 const ds_meldable_heap_policy_t *ds_meldable_heap_leftist_policy(void) {
   return &mh_leftist;
@@ -62,7 +64,8 @@ const ds_meldable_heap_policy_t *ds_meldable_heap_random_policy(void) {
   return &mh_random;
 }
 
-/* ---- core ---------------------------------------------------------------- */
+/* ---- core ----------------------------------------------------------------
+ */
 
 static int mh_cmp(const ds_meldable_heap_t *heap,
                   const ds_meldable_heap_node_t *a,
@@ -166,7 +169,8 @@ void ds_meldable_heap_push(ds_meldable_heap_t *heap,
   heap->size++;
 }
 
-ds_meldable_heap_node_t *ds_meldable_heap_peek(const ds_meldable_heap_t *heap) {
+ds_meldable_heap_node_t *
+ds_meldable_heap_peek(const ds_meldable_heap_t *heap) {
   return heap->root;
 }
 

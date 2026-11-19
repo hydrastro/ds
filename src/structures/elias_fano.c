@@ -94,8 +94,8 @@ static void *ef_alloc_array(ds_context_t *context, size_t count, size_t size) {
  * offsets of every DS_EF_SUB-th occurrence, and a sub-block spanning
  * DS_EF_LONG_SUB bits or more stores its DS_EF_SUB offsets. Every other
  * sub-block is scanned: fewer than DS_EF_LONG_SUB bits. */
-static ds_status_t ef_sel_build(ds_elias_fano_t *ef, ds_ef_select_t *s, int bit,
-                                size_t count) {
+static ds_status_t ef_sel_build(ds_elias_fano_t *ef, ds_ef_select_t *s,
+                                int bit, size_t count) {
   ds_context_t *ctx = ef->context;
   size_t i;
   size_t k;
@@ -152,7 +152,8 @@ static ds_status_t ef_sel_build(ds_elias_fano_t *ef, ds_ef_select_t *s, int bit,
       if (s->is_long[b]) {
         s->lpos[s->dir[b] + r] = i;
       } else if (r % DS_EF_SUB == 0) {
-        s->sub[b * EF_SUBS + r / DS_EF_SUB] = (unsigned short)(i - s->start[b]);
+        s->sub[b * EF_SUBS + r / DS_EF_SUB] =
+            (unsigned short)(i - s->start[b]);
       }
       k++;
     }
@@ -257,7 +258,8 @@ static size_t ef_select(const ds_elias_fano_t *ef, size_t k, int bit) {
 
 ds_status_t ds_elias_fano_build(ds_elias_fano_t *ef,
                                 const unsigned long *values, size_t n,
-                                unsigned long universe, ds_context_t *context) {
+                                unsigned long universe,
+                                ds_context_t *context) {
   size_t i;
   size_t words;
   unsigned l = 0;
@@ -290,8 +292,8 @@ ds_status_t ds_elias_fano_build(ds_elias_fano_t *ef,
   ef->context = context != NULL ? context : ds_default_context();
   ef->high_bits = n + (size_t)(universe >> l) + 1;
   words = ef->high_bits / EF_W + 2;
-  ef->high =
-      (unsigned long *)ds_context_calloc(context, words, sizeof(unsigned long));
+  ef->high = (unsigned long *)ds_context_calloc(context, words,
+                                                sizeof(unsigned long));
   ef->low = (unsigned long *)ds_context_calloc(context, (n * l) / EF_W + 2,
                                                sizeof(unsigned long));
   if (ef->high == NULL || ef->low == NULL) {

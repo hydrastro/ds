@@ -62,18 +62,18 @@ size_t ds_merge(const void *a, size_t a_count, const void *b, size_t b_count,
                 size_t elem_size, ds_compare_func_t compare, void *user,
                 void *out);
 size_t ds_set_union(const void *a, size_t a_count, const void *b,
-                    size_t b_count, size_t elem_size, ds_compare_func_t compare,
-                    void *user, void *out);
+                    size_t b_count, size_t elem_size,
+                    ds_compare_func_t compare, void *user, void *out);
 size_t ds_set_intersection(const void *a, size_t a_count, const void *b,
                            size_t b_count, size_t elem_size,
                            ds_compare_func_t compare, void *user, void *out);
 size_t ds_set_difference(const void *a, size_t a_count, const void *b,
                          size_t b_count, size_t elem_size,
                          ds_compare_func_t compare, void *user, void *out);
-size_t ds_set_symmetric_difference(const void *a, size_t a_count, const void *b,
-                                   size_t b_count, size_t elem_size,
-                                   ds_compare_func_t compare, void *user,
-                                   void *out);
+size_t ds_set_symmetric_difference(const void *a, size_t a_count,
+                                   const void *b, size_t b_count,
+                                   size_t elem_size, ds_compare_func_t compare,
+                                   void *user, void *out);
 bool ds_includes(const void *a, size_t a_count, const void *b, size_t b_count,
                  size_t elem_size, ds_compare_func_t compare, void *user);
 

@@ -161,7 +161,8 @@ static size_t sg_rebuild(ds_scapegoat_tree_t *t, size_t v) {
   return sg_build(t, 0, n);
 }
 
-ds_status_t ds_scapegoat_tree_insert(ds_scapegoat_tree_t *t, const void *elem) {
+ds_status_t ds_scapegoat_tree_insert(ds_scapegoat_tree_t *t,
+                                     const void *elem) {
   size_t v;
   size_t depth = 0;
   size_t n;

@@ -11,8 +11,9 @@ static long seg_identity(const ds_segment_tree_t *st) {
 }
 static bool seg_combine(const ds_segment_tree_t *st, long a, long b,
                         long *out) {
-  if (st->op == DS_SEGMENT_TREE_SUM)
+  if (st->op == DS_SEGMENT_TREE_SUM) {
     return ds_long_add(a, b, out);
+  }
   *out = st->op == DS_SEGMENT_TREE_MIN ? (a < b ? a : b) : (a > b ? a : b);
   return true;
 }
@@ -30,17 +31,20 @@ static bool seg_scaled(long base, long value, size_t count, long *out) {
     return true;
   }
   n = (unsigned long)count;
-  if ((size_t)n != count)
+  if ((size_t)n != count) {
     return false;
+  }
   magnitude = seg_magnitude(value);
-  if (magnitude > ULONG_MAX / n)
+  if (magnitude > ULONG_MAX / n) {
     return false;
+  }
   product = magnitude * n;
   magnitude = seg_magnitude(base);
   negative = value < 0;
   if ((base < 0) == negative) {
-    if (product > ULONG_MAX - magnitude)
+    if (product > ULONG_MAX - magnitude) {
       return false;
+    }
     product += magnitude;
   } else if (product >= magnitude) {
     product -= magnitude;
@@ -49,12 +53,14 @@ static bool seg_scaled(long base, long value, size_t count, long *out) {
     negative = base < 0;
   }
   limit = negative ? seg_magnitude(LONG_MIN) : (unsigned long)LONG_MAX;
-  if (product > limit)
+  if (product > limit) {
     return false;
-  if (negative && product == seg_magnitude(LONG_MIN))
+  }
+  if (negative && product == seg_magnitude(LONG_MIN)) {
     *out = LONG_MIN;
-  else
+  } else {
     *out = negative ? -(long)product : (long)product;
+  }
   return true;
 }
 
@@ -84,16 +90,19 @@ static ds_status_t seg_record(seg_journal_t *journal, size_t node) {
   if (journal->size == journal->capacity) {
     size_t capacity;
     seg_snapshot_t *data;
-    if (journal->capacity > (size_t)-1 / 2 / sizeof(*data))
+    if (journal->capacity > (size_t)-1 / 2 / sizeof(*data)) {
       return DS_ERR_OVERFLOW;
+    }
     capacity = journal->capacity * 2;
     data = (seg_snapshot_t *)ds_context_alloc(st->context,
                                               capacity * sizeof(*data));
-    if (data == NULL)
+    if (data == NULL) {
       return DS_ERR_ALLOC;
+    }
     memcpy(data, journal->data, journal->size * sizeof(*data));
-    if (journal->data != journal->local)
+    if (journal->data != journal->local) {
       ds_context_free(st->context, journal->data);
+    }
     journal->data = data;
     journal->capacity = capacity;
   }
@@ -121,8 +130,9 @@ static void seg_journal_end(seg_journal_t *journal, bool rollback) {
       st->maximum[node] = entry->maximum;
     }
   }
-  if (journal->data != journal->local)
+  if (journal->data != journal->local) {
     ds_context_free(st->context, journal->data);
+  }
 }
 static ds_status_t seg_apply(seg_journal_t *journal, size_t node, size_t count,
                              long value, bool assign) {
@@ -132,8 +142,9 @@ static ds_status_t seg_apply(seg_journal_t *journal, size_t node, size_t count,
   ds_status_t status;
   if (assign) {
     if (!seg_scaled(0, value, st->op == DS_SEGMENT_TREE_SUM ? count : 1,
-                    &aggregate))
+                    &aggregate)) {
       return DS_ERR_OVERFLOW;
+    }
     minimum = maximum = value;
     set = value;
     add = 0;
@@ -142,17 +153,20 @@ static ds_status_t seg_apply(seg_journal_t *journal, size_t node, size_t count,
     if (!ds_long_add(st->minimum[node], value, &minimum) ||
         !ds_long_add(st->maximum[node], value, &maximum) ||
         !seg_scaled(st->tree[node], value,
-                    st->op == DS_SEGMENT_TREE_SUM ? count : 1, &aggregate))
+                    st->op == DS_SEGMENT_TREE_SUM ? count : 1, &aggregate)) {
       return DS_ERR_OVERFLOW;
+    }
     has_set = st->has_set[node];
     add = st->lazy_add[node];
     set = st->lazy_set[node];
     if (count > 1) {
       if (has_set) {
-        if (!ds_long_add(set, value, &set))
+        if (!ds_long_add(set, value, &set)) {
           return DS_ERR_OVERFLOW;
-      } else if (!ds_long_add(add, value, &add))
+        }
+      } else if (!ds_long_add(add, value, &add)) {
         return DS_ERR_OVERFLOW;
+      }
     }
   }
   if (count == 1) {
@@ -161,8 +175,9 @@ static ds_status_t seg_apply(seg_journal_t *journal, size_t node, size_t count,
     add = 0;
   }
   status = seg_record(journal, node);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   st->tree[node] = aggregate;
   st->minimum[node] = minimum;
   st->maximum[node] = maximum;
@@ -175,31 +190,37 @@ static ds_status_t seg_push(seg_journal_t *journal, size_t node, size_t left,
                             size_t mid, size_t right) {
   ds_segment_tree_t *st = journal->tree;
   ds_status_t status;
-  if (!st->has_set[node] && st->lazy_add[node] == 0)
+  if (!st->has_set[node] && st->lazy_add[node] == 0) {
     return DS_OK;
+  }
   if (st->has_set[node]) {
     status =
         seg_apply(journal, 2 * node, mid - left + 1, st->lazy_set[node], true);
-    if (status != DS_OK)
+    if (status != DS_OK) {
       return status;
+    }
     status = seg_apply(journal, 2 * node + 1, right - mid, st->lazy_set[node],
                        true);
-    if (status != DS_OK)
+    if (status != DS_OK) {
       return status;
+    }
   }
   if (st->lazy_add[node] != 0) {
     status = seg_apply(journal, 2 * node, mid - left + 1, st->lazy_add[node],
                        false);
-    if (status != DS_OK)
+    if (status != DS_OK) {
       return status;
+    }
     status = seg_apply(journal, 2 * node + 1, right - mid, st->lazy_add[node],
                        false);
-    if (status != DS_OK)
+    if (status != DS_OK) {
       return status;
+    }
   }
   status = seg_record(journal, node);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   st->has_set[node] = false;
   st->lazy_set[node] = 0;
   st->lazy_add[node] = 0;
@@ -215,14 +236,17 @@ static ds_status_t seg_build(ds_segment_tree_t *st, const long *values,
   }
   mid = left + (right - left) / 2;
   status = seg_build(st, values, node * 2, left, mid);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   status = seg_build(st, values, node * 2 + 1, mid + 1, right);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   if (!seg_combine(st, st->tree[node * 2], st->tree[node * 2 + 1],
-                   &st->tree[node]))
+                   &st->tree[node])) {
     return DS_ERR_OVERFLOW;
+  }
   st->minimum[node] = st->minimum[node * 2] < st->minimum[node * 2 + 1]
                           ? st->minimum[node * 2]
                           : st->minimum[node * 2 + 1];
@@ -239,17 +263,21 @@ static ds_status_t seg_create_internal(const long *values, size_t n,
   ds_status_t status;
   size_t capacity, i;
   *out = NULL;
-  if (values == NULL && n != 0)
+  if (values == NULL && n != 0) {
     return DS_ERR_NULL;
+  }
   if (op != DS_SEGMENT_TREE_SUM && op != DS_SEGMENT_TREE_MIN &&
-      op != DS_SEGMENT_TREE_MAX)
+      op != DS_SEGMENT_TREE_MAX) {
     return DS_ERR_INVALID;
-  if (n > (size_t)-1 / 4 / sizeof(long) || n > (size_t)-1 / 4 / sizeof(bool))
+  }
+  if (n > (size_t)-1 / 4 / sizeof(long) || n > (size_t)-1 / 4 / sizeof(bool)) {
     return DS_ERR_OVERFLOW;
+  }
   capacity = (n == 0 ? 1 : n) * 4;
   st = (ds_segment_tree_t *)ds_context_alloc(context, sizeof(*st));
-  if (st == NULL)
+  if (st == NULL) {
     return DS_ERR_ALLOC;
+  }
   st->context = context != NULL ? context : ds_default_context();
 
   st->n = n;
@@ -285,8 +313,9 @@ ds_status_t ds_segment_tree_create_context(const long *values, size_t n,
                                            ds_segment_tree_op_t op,
                                            ds_context_t *context,
                                            ds_segment_tree_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   return seg_create_internal(
       values, n, op, context != NULL ? context : ds_default_context(), out);
 }
@@ -305,26 +334,34 @@ static ds_status_t seg_update(seg_journal_t *journal, size_t node, size_t left,
   size_t mid;
   long aggregate;
   ds_status_t status;
-  if (right < ql || qr < left)
+  if (right < ql || qr < left) {
     return DS_OK;
-  if (ql <= left && right <= qr)
+  }
+  if (ql <= left && right <= qr) {
     return seg_apply(journal, node, right - left + 1, value, assign);
+  }
   mid = left + (right - left) / 2;
   status = seg_push(journal, node, left, mid, right);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   status = seg_update(journal, node * 2, left, mid, ql, qr, value, assign);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   status =
       seg_update(journal, node * 2 + 1, mid + 1, right, ql, qr, value, assign);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
-  if (!seg_combine(st, st->tree[node * 2], st->tree[node * 2 + 1], &aggregate))
+  }
+  if (!seg_combine(st, st->tree[node * 2], st->tree[node * 2 + 1],
+                   &aggregate)) {
     return DS_ERR_OVERFLOW;
+  }
   status = seg_record(journal, node);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   st->tree[node] = aggregate;
   st->minimum[node] = st->minimum[node * 2] < st->minimum[node * 2 + 1]
                           ? st->minimum[node * 2]
@@ -338,10 +375,12 @@ static ds_status_t seg_update_checked(ds_segment_tree_t *st, size_t left,
                                       size_t right, long value, bool assign) {
   seg_journal_t journal;
   ds_status_t status;
-  if (st == NULL)
+  if (st == NULL) {
     return DS_ERR_NULL;
-  if (left > right || right >= st->n)
+  }
+  if (left > right || right >= st->n) {
     return DS_ERR_RANGE;
+  }
   seg_journal_init(&journal, st);
   status = seg_update(&journal, 1, 0, st->n - 1, left, right, value, assign);
   seg_journal_end(&journal, status != DS_OK);
@@ -379,14 +418,17 @@ static ds_status_t seg_query(seg_journal_t *journal, size_t node, size_t left,
   }
   mid = left + (right - left) / 2;
   status = seg_push(journal, node, left, mid, right);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   status = seg_query(journal, node * 2, left, mid, ql, qr, &a);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   status = seg_query(journal, node * 2 + 1, mid + 1, right, ql, qr, &b);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   return seg_combine(journal->tree, a, b, out) ? DS_OK : DS_ERR_OVERFLOW;
 }
 ds_status_t ds_segment_tree_query_ex(ds_segment_tree_t *st, size_t left,
@@ -394,21 +436,25 @@ ds_status_t ds_segment_tree_query_ex(ds_segment_tree_t *st, size_t left,
   seg_journal_t journal;
   ds_status_t status;
   long result;
-  if (st == NULL || out == NULL)
+  if (st == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (left > right || right >= st->n)
+  }
+  if (left > right || right >= st->n) {
     return DS_ERR_RANGE;
+  }
   seg_journal_init(&journal, st);
   status = seg_query(&journal, 1, 0, st->n - 1, left, right, &result);
   seg_journal_end(&journal, true);
-  if (status == DS_OK)
+  if (status == DS_OK) {
     *out = result;
+  }
   return status;
 }
 long ds_segment_tree_query(ds_segment_tree_t *st, size_t left, size_t right) {
   long result;
-  if (st == NULL)
+  if (st == NULL) {
     return 0;
+  }
   result = seg_identity(st);
   (void)ds_segment_tree_query_ex(st, left, right, &result);
   return result;
@@ -417,19 +463,26 @@ size_t ds_segment_tree_size(ds_segment_tree_t *st) {
   return st != NULL ? st->n : 0;
 }
 void ds_segment_tree_destroy(ds_segment_tree_t *st) {
-  if (st == NULL)
+  if (st == NULL) {
     return;
-  if (st->tree != NULL)
+  }
+  if (st->tree != NULL) {
     ds_context_free(st->context, st->tree);
-  if (st->lazy_add != NULL)
+  }
+  if (st->lazy_add != NULL) {
     ds_context_free(st->context, st->lazy_add);
-  if (st->lazy_set != NULL)
+  }
+  if (st->lazy_set != NULL) {
     ds_context_free(st->context, st->lazy_set);
-  if (st->minimum != NULL)
+  }
+  if (st->minimum != NULL) {
     ds_context_free(st->context, st->minimum);
-  if (st->maximum != NULL)
+  }
+  if (st->maximum != NULL) {
     ds_context_free(st->context, st->maximum);
-  if (st->has_set != NULL)
+  }
+  if (st->has_set != NULL) {
     ds_context_free(st->context, st->has_set);
+  }
   ds_context_free(st->context, st);
 }

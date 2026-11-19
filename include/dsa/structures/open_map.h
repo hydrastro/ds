@@ -95,7 +95,7 @@ typedef struct ds_open_map {
 } ds_open_map_t;
 
 /* Bytes for a caller block holding `capacity` slots. */
-#define DS_OPEN_MAP_BUFFER_SIZE(capacity, key_size, value_size)                \
+#define DS_OPEN_MAP_BUFFER_SIZE(capacity, key_size, value_size)               \
   (ds_open_map_buffer_size((capacity), (key_size), (value_size)))
 
 const ds_open_map_probe_t *ds_open_map_linear_probe(void);

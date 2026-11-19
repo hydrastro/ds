@@ -19,11 +19,11 @@
  * Memory comes from the ds_context_t.
  *
  * Laws: as for dsa/structures/implicit_treap.h. combine is associative and
- * never called with out aliasing an input; the reversed aggregate is maintained
- * with the same combine in mirrored order, so rerooting keeps non-commutative
- * path aggregates exact; path tags are uniform per-element actions
- * (tag_apply_summary must agree with applying the tag to every element,
- * for forward and reversed aggregates, and tag_compose must be
+ * never called with out aliasing an input; the reversed aggregate is
+ * maintained with the same combine in mirrored order, so rerooting keeps
+ * non-commutative path aggregates exact; path tags are uniform per-element
+ * actions (tag_apply_summary must agree with applying the tag to every
+ * element, for forward and reversed aggregates, and tag_compose must be
  * sequential application). A path aggregate is ordered from the first
  * vertex named in the query to the second.
  *
@@ -97,7 +97,8 @@ size_t ds_lct_lca(ds_lct_t *t, size_t u, size_t v);
 ds_status_t ds_lct_path_query(ds_lct_t *t, size_t u, size_t v,
                               void *out_summary);
 /* apply a tag to every vertex of the u..v path */
-ds_status_t ds_lct_path_apply(ds_lct_t *t, size_t u, size_t v, const void *tag);
+ds_status_t ds_lct_path_apply(ds_lct_t *t, size_t u, size_t v,
+                              const void *tag);
 /* vertices on the u..v path */
 size_t ds_lct_path_length(ds_lct_t *t, size_t u, size_t v);
 ds_status_t ds_lct_get(ds_lct_t *t, size_t v, void *out_elem);

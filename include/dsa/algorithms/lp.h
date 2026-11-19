@@ -58,7 +58,8 @@ typedef enum ds_lp_result {
 
 /* x: cols; dual (rows, may be NULL): d objective / d b_i. Finite input only.
  * Numerical overflow/breakdown returns DS_ERR_STATE. Floating-point simplex
- * uses fixed tolerances; it does not provide exact feasibility certificates. */
+ * uses fixed tolerances; it does not provide exact feasibility certificates.
+ */
 ds_status_t ds_lp_solve(const ds_lp_t *lp, double *x, double *dual,
                         double *out_objective, ds_lp_result_t *out_result,
                         ds_context_t *context);
@@ -90,9 +91,10 @@ typedef enum ds_milp_method {
  * processes the root. LIMIT may have no incumbent: x/objective are unchanged
  * in that case. On errors, an earlier incumbent may already be in x.
  * RELAXATION_UNBOUNDED means the continuous relaxation is unbounded, not that
- * an integer feasible point/ray was established. A prior incumbent is retained.
- * Cutting stops before a nonintegral added row's slack could be treated as an
- * integer; branch and bound continues from the cuts already made. */
+ * an integer feasible point/ray was established. A prior incumbent is
+ * retained. Cutting stops before a nonintegral added row's slack could be
+ * treated as an integer; branch and bound continues from the cuts already
+ * made. */
 ds_status_t ds_milp_solve(const ds_lp_t *lp, const unsigned char *integer,
                           ds_milp_method_t method, size_t budget, double *x,
                           double *out_objective, ds_lp_result_t *out_result,

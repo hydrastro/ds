@@ -2,9 +2,9 @@
  * Intrusive singly linked list.
  *
  * The defining idea of an intrusive container: you embed the library's node
- * struct as a member of your own struct, hand the address of that member to the
- * list, and recover your struct from a node pointer with CAST(). The list never
- * allocates your elements, so you stay in full control of their memory.
+ * struct as a member of your own struct, hand the address of that member to
+ * the list, and recover your struct from a node pointer with CAST(). The list
+ * never allocates your elements, so you stay in full control of their memory.
  */
 #include <dsa.h>
 #include <stdio.h>

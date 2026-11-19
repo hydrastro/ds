@@ -28,8 +28,9 @@ ds_queue_t *ds_queue_create(ds_context_t *context) {
   return queue_create_internal(context);
 }
 ds_status_t ds_queue_create_context(ds_context_t *context, ds_queue_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out =
       queue_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -100,8 +101,9 @@ static void queue_destroy_internal(ds_queue_t *queue,
 }
 void ds_queue_destroy_with(ds_queue_t *container, ds_queue_destroy_fn destroy,
                            void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     queue_destroy_internal(container, destroy, user);
+  }
 }
 static void queue_destroy_direct(ds_queue_node_t *node, void *user) {
   void (**destroy)(ds_queue_node_t *) = (void (**)(ds_queue_node_t *))user;
@@ -281,13 +283,15 @@ ds_status_t ds_queue_walk_with(ds_queue_t *container, ds_queue_visit_fn visit,
   size_t i;
   ds_queue_node_t *node;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   node = container->head;
   for (i = 0; i < container->size; ++i) {
     st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     node = node->next;
   }
   return DS_OK;
@@ -297,8 +301,9 @@ ds_status_t ds_queue_find_with(ds_queue_t *container, ds_queue_node_t *key,
                                ds_queue_node_t **out) {
   size_t i;
   ds_queue_node_t *node;
-  if (container == NULL || key == NULL || compare == NULL || out == NULL)
+  if (container == NULL || key == NULL || compare == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   node = container->head;
   for (i = 0; i < container->size; ++i) {
     if (compare(node, key, user) == 0) {
@@ -320,14 +325,17 @@ ds_status_t ds_queue_clone_with(const ds_queue_t *container,
   ds_queue_node_t *new_node;
 
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   copy = queue_create_internal(context != NULL ? context : container->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
 
   node = container->head;
   for (i = 0; i < container->size; ++i) {
@@ -345,21 +353,26 @@ ds_status_t ds_queue_clone_with(const ds_queue_t *container,
 }
 
 ds_status_t ds_queue_enqueue_ex(ds_queue_t *container, ds_queue_node_t *node) {
-  if (container == NULL || node == NULL)
+  if (container == NULL || node == NULL) {
     return DS_ERR_NULL;
-  if (node == container->nil)
+  }
+  if (node == container->nil) {
     return DS_ERR_INVALID;
-  if (container->size == (size_t)-1)
+  }
+  if (container->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   ds_queue_enqueue(container, node);
   return DS_OK;
 }
 
 ds_status_t ds_queue_dequeue_ex(ds_queue_t *container, ds_queue_node_t **out) {
-  if (container == NULL || out == NULL)
+  if (container == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (container->size == 0)
+  }
+  if (container->size == 0) {
     return DS_EMPTY;
+  }
   *out = ds_queue_dequeue(container);
   return DS_OK;
 }
@@ -368,10 +381,12 @@ ds_status_t ds_queue_remove_ex(ds_queue_t *container,
                                ds_queue_node_t *target) {
   size_t i;
   ds_queue_node_t *node;
-  if (container == NULL || target == NULL)
+  if (container == NULL || target == NULL) {
     return DS_ERR_NULL;
-  if (target == container->nil)
+  }
+  if (target == container->nil) {
     return DS_ERR_INVALID;
+  }
   node = container->head;
   for (i = 0; i < container->size; ++i) {
     if (node == target) {
@@ -388,10 +403,12 @@ ds_status_t ds_queue_walk_reverse_with(ds_queue_t *container,
   ds_queue_node_t *node, *next, *rev, *first;
   size_t i;
   ds_status_t st = DS_OK;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
-  if (container->size == 0)
+  }
+  if (container->size == 0) {
     return DS_OK;
+  }
   first = container->head;
   node = first;
   rev = container->nil;
@@ -407,8 +424,9 @@ ds_status_t ds_queue_walk_reverse_with(ds_queue_t *container,
     next = node->next;
     node->next = rev;
     rev = node;
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = visit(node, user);
+    }
     node = next;
   }
   return st;

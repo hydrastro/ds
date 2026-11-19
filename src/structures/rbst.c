@@ -19,8 +19,9 @@ static void rb_fix(ds_rbst_t *t, size_t v) {
 
 static unsigned long rb_bits(ds_rbst_t *t) {
   unsigned long x;
-  if (t->random != NULL)
+  if (t->random != NULL) {
     return t->random(t->random_state) & 0x7FFFFFFFUL;
+  }
   x = t->seed;
   x ^= (x << 13) & 0xFFFFFFFFUL;
   x ^= x >> 17;
@@ -126,8 +127,9 @@ static ds_status_t rb_node(ds_rbst_t *t, const void *elem, size_t *out) {
       }
       t->size = (size_t *)p;
       p = ds_context_realloc(t->context, t->parent, cap * sizeof(size_t));
-      if (p == NULL)
+      if (p == NULL) {
         return DS_ERR_ALLOC;
+      }
       t->parent = (size_t *)p;
       t->capacity = cap;
     }
@@ -162,10 +164,12 @@ static void rb_split(ds_rbst_t *t, size_t v, const void *key, size_t *lo,
     v = next;
   }
   *lo = *hi = RB_NONE;
-  for (; left != RB_NONE; left = t->parent[left])
+  for (; left != RB_NONE; left = t->parent[left]) {
     rb_fix(t, left);
-  for (; right != RB_NONE; right = t->parent[right])
+  }
+  for (; right != RB_NONE; right = t->parent[right]) {
     rb_fix(t, right);
+  }
 }
 
 static size_t rb_join(ds_rbst_t *t, size_t a, size_t b) {
@@ -187,10 +191,12 @@ static size_t rb_join(ds_rbst_t *t, size_t a, size_t b) {
     tail = chosen;
   }
   *slot = a == RB_NONE ? b : a;
-  if (*slot != RB_NONE)
+  if (*slot != RB_NONE) {
     t->parent[*slot] = tail;
-  for (; tail != RB_NONE; tail = t->parent[tail])
+  }
+  for (; tail != RB_NONE; tail = t->parent[tail]) {
     rb_fix(t, tail);
+  }
   return root;
 }
 
@@ -212,10 +218,12 @@ static size_t rb_insert(ds_rbst_t *t, size_t root, size_t n) {
   while (v != RB_NONE) {
     if (rb_rand(t, t->size[v] + 1) == 0) {
       rb_split(t, v, rb_at(t, n), &t->left[n], &t->right[n]);
-      if (t->left[n] != RB_NONE)
+      if (t->left[n] != RB_NONE) {
         t->parent[t->left[n]] = n;
-      if (t->right[n] != RB_NONE)
+      }
+      if (t->right[n] != RB_NONE) {
         t->parent[t->right[n]] = n;
+      }
       rb_fix(t, n);
       break;
     }
@@ -226,8 +234,9 @@ static size_t rb_insert(ds_rbst_t *t, size_t root, size_t n) {
   }
   *slot = n;
   t->parent[n] = parent;
-  for (; parent != RB_NONE; parent = t->parent[parent])
+  for (; parent != RB_NONE; parent = t->parent[parent]) {
     rb_fix(t, parent);
+  }
   return root;
 }
 
@@ -235,52 +244,64 @@ ds_status_t ds_rbst_insert(ds_rbst_t *t, const void *elem) {
   size_t n;
   ds_stage_t staged;
   ds_status_t st;
-  if (t == NULL || elem == NULL)
+  if (t == NULL || elem == NULL) {
     return DS_ERR_NULL;
-  if (rb_contains(t, elem))
+  }
+  if (rb_contains(t, elem)) {
     return DS_EXISTS;
-  if (ds_rbst_size(t) == (size_t)-1)
+  }
+  if (ds_rbst_size(t) == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   st = ds_stage_copy(&staged, t->context, true, elem, t->elem_size, NULL, 0);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   st = rb_node(t, staged.key, &n);
   ds_stage_release(&staged);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   t->root = rb_insert(t, t->root, n);
   return DS_OK;
 }
 
 ds_status_t ds_rbst_remove(ds_rbst_t *t, const void *key, void *out) {
   size_t v, parent, replacement;
-  if (t == NULL || key == NULL)
+  if (t == NULL || key == NULL) {
     return DS_ERR_NULL;
+  }
   v = t->root;
   while (v != RB_NONE) {
     int c = t->compare(key, rb_at(t, v), t->user);
-    if (c == 0)
+    if (c == 0) {
       break;
+    }
     v = c < 0 ? t->left[v] : t->right[v];
   }
-  if (v == RB_NONE)
+  if (v == RB_NONE) {
     return DS_NOT_FOUND;
+  }
   parent = t->parent[v];
-  if (out != NULL)
+  if (out != NULL) {
     memmove(out, rb_at(t, v), t->elem_size);
+  }
   replacement = rb_join(t, t->left[v], t->right[v]);
-  if (replacement != RB_NONE)
+  if (replacement != RB_NONE) {
     t->parent[replacement] = parent;
-  if (parent == RB_NONE)
+  }
+  if (parent == RB_NONE) {
     t->root = replacement;
-  else if (t->left[parent] == v)
+  } else if (t->left[parent] == v) {
     t->left[parent] = replacement;
-  else
+  } else {
     t->right[parent] = replacement;
+  }
   t->left[v] = t->free_list;
   t->free_list = v;
-  for (; parent != RB_NONE; parent = t->parent[parent])
+  for (; parent != RB_NONE; parent = t->parent[parent]) {
     rb_fix(t, parent);
+  }
   return DS_OK;
 }
 
@@ -356,28 +377,33 @@ size_t ds_rbst_rank(const ds_rbst_t *t, const void *key) {
 
 size_t ds_rbst_height(const ds_rbst_t *t) {
   size_t v, previous = RB_NONE, depth = 1, height = 0;
-  if (t == NULL)
+  if (t == NULL) {
     return 0;
+  }
   v = t->root;
   while (v != RB_NONE) {
     size_t next;
     if (previous == t->parent[v]) {
-      if (depth > height)
+      if (depth > height) {
         height = depth;
-      if (t->left[v] != RB_NONE)
+      }
+      if (t->left[v] != RB_NONE) {
         next = t->left[v];
-      else if (t->right[v] != RB_NONE)
+      } else if (t->right[v] != RB_NONE) {
         next = t->right[v];
-      else
+      } else {
         next = t->parent[v];
-    } else if (previous == t->left[v] && t->right[v] != RB_NONE)
+      }
+    } else if (previous == t->left[v] && t->right[v] != RB_NONE) {
       next = t->right[v];
-    else
+    } else {
       next = t->parent[v];
-    if (next == t->parent[v])
+    }
+    if (next == t->parent[v]) {
       depth--;
-    else
+    } else {
       depth++;
+    }
     previous = v;
     v = next;
   }
@@ -391,19 +417,22 @@ static ds_status_t rb_copy(ds_rbst_t *dst, const ds_rbst_t *src, size_t root,
   size_t s = root, d, child, next;
   ds_status_t st;
   *out = RB_NONE;
-  if (root == RB_NONE)
+  if (root == RB_NONE) {
     return DS_OK;
+  }
   st = rb_node(dst, rb_at(src, s), &d);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   *out = d;
   for (;;) {
     dst->size[d] = src->size[s];
     if (src->left[s] != RB_NONE) {
       next = src->left[s];
       st = rb_node(dst, rb_at(src, next), &child);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         return st;
+      }
       dst->left[d] = child;
       dst->parent[child] = d;
       s = next;
@@ -414,8 +443,9 @@ static ds_status_t rb_copy(ds_rbst_t *dst, const ds_rbst_t *src, size_t root,
       if (src->right[s] != RB_NONE) {
         next = src->right[s];
         st = rb_node(dst, rb_at(src, next), &child);
-        if (st != DS_OK)
+        if (st != DS_OK) {
           return st;
+        }
         dst->right[d] = child;
         dst->parent[child] = d;
         s = next;
@@ -424,12 +454,14 @@ static ds_status_t rb_copy(ds_rbst_t *dst, const ds_rbst_t *src, size_t root,
       }
       for (;;) {
         size_t old = s;
-        if (s == root)
+        if (s == root) {
           return DS_OK;
+        }
         s = src->parent[s];
         d = dst->parent[d];
-        if (src->left[s] == old)
+        if (src->left[s] == old) {
           break;
+        }
       }
     }
   }
@@ -508,8 +540,9 @@ ds_status_t ds_rbst_join(ds_rbst_t *t, ds_rbst_t *other) {
       return DS_ERR_INVALID;
     }
   }
-  if (ds_rbst_size(other) > (size_t)-1 - ds_rbst_size(t))
+  if (ds_rbst_size(other) > (size_t)-1 - ds_rbst_size(t)) {
     return DS_ERR_OVERFLOW;
+  }
   st = rb_copy(t, other, other->root, &copy);
   if (st != DS_OK) {
     rb_free_subtree(t, copy);
@@ -524,44 +557,54 @@ ds_status_t ds_rbst_join(ds_rbst_t *t, ds_rbst_t *other) {
 
 static size_t rb_first(const ds_rbst_t *t) {
   size_t v = t->root;
-  if (v != RB_NONE)
-    while (t->left[v] != RB_NONE)
+  if (v != RB_NONE) {
+    while (t->left[v] != RB_NONE) {
       v = t->left[v];
+    }
+  }
   return v;
 }
 static size_t rb_next(const ds_rbst_t *t, size_t v) {
   if (t->right[v] != RB_NONE) {
     v = t->right[v];
-    while (t->left[v] != RB_NONE)
+    while (t->left[v] != RB_NONE) {
       v = t->left[v];
+    }
     return v;
   }
-  while (t->parent[v] != RB_NONE && t->right[t->parent[v]] == v)
+  while (t->parent[v] != RB_NONE && t->right[t->parent[v]] == v) {
     v = t->parent[v];
+  }
   return t->parent[v];
 }
 void ds_rbst_foreach(const ds_rbst_t *t,
                      bool (*visit)(const void *elem, void *user), void *user) {
   size_t v;
-  if (t == NULL || visit == NULL)
+  if (t == NULL || visit == NULL) {
     return;
-  for (v = rb_first(t); v != RB_NONE; v = rb_next(t, v))
-    if (!visit(rb_at(t, v), user))
+  }
+  for (v = rb_first(t); v != RB_NONE; v = rb_next(t, v)) {
+    if (!visit(rb_at(t, v), user)) {
       break;
+    }
+  }
 }
 bool ds_rbst_valid(const ds_rbst_t *t) {
   size_t v, previous = RB_NONE;
-  if (t == NULL)
+  if (t == NULL) {
     return false;
-  if (t->root != RB_NONE && t->parent[t->root] != RB_NONE)
+  }
+  if (t->root != RB_NONE && t->parent[t->root] != RB_NONE) {
     return false;
+  }
   for (v = rb_first(t); v != RB_NONE; v = rb_next(t, v)) {
     if ((previous != RB_NONE &&
          t->compare(rb_at(t, previous), rb_at(t, v), t->user) >= 0) ||
         (t->left[v] != RB_NONE && t->parent[t->left[v]] != v) ||
         (t->right[v] != RB_NONE && t->parent[t->right[v]] != v) ||
-        t->size[v] != rb_size(t, t->left[v]) + rb_size(t, t->right[v]) + 1)
+        t->size[v] != rb_size(t, t->left[v]) + rb_size(t, t->right[v]) + 1) {
       return false;
+    }
     previous = v;
   }
   return true;

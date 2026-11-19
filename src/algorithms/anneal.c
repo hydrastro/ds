@@ -110,8 +110,9 @@ static double an_next_temperature(const ds_anneal_config_t *c, size_t stage,
   case DS_ANNEAL_GEOMETRIC:
     return t * c->factor;
   case DS_ANNEAL_LINEAR: {
-    double frac =
-        c->max_iterations == 0 ? 1.0 : (double)done / (double)c->max_iterations;
+    double frac = c->max_iterations == 0
+                      ? 1.0
+                      : (double)done / (double)c->max_iterations;
     return frac >= 1.0 ? 0.0 : t0 * (1.0 - frac);
   }
   case DS_ANNEAL_LOGARITHMIC:

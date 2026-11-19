@@ -4,10 +4,11 @@
 /* A reference implementation of Snyder's theoretical jelly-fish shape.
  * floor(sqrt(n)) items form a balanced binary-search-tree body; its external
  * gaps lead to sorted singly-linked tentacles containing the remaining items.
- * Each tentacle has at most ceil((n-body)/(body+1)) items. Lookups use the body
- * then one tentacle: O(log n + sqrt(n)). A caller-selected ordered backend can
- * replace the body; its lookup/build costs then replace the binary-tree costs.
- * The default body is deterministic and balanced, with no random priorities.
+ * Each tentacle has at most ceil((n-body)/(body+1)) items. Lookups use the
+ * body then one tentacle: O(log n + sqrt(n)). A caller-selected ordered
+ * backend can replace the body; its lookup/build costs then replace the
+ * binary-tree costs. The default body is deterministic and balanced, with no
+ * random priorities.
  *
  * This is an inspectable reference, not a new performance claim for updates:
  * inserting/deleting rebuilds the entire shape in O(n), plus the chosen body's
@@ -45,9 +46,11 @@ ds_status_t ds_jellyfish_init(ds_jellyfish_t *tree,
 void ds_jellyfish_destroy(ds_jellyfish_t *tree);
 /* Unsorted keys; duplicate keys reject the assignment with DS_ERR_INVALID.
  * values is count*value_size bytes; NULL zeroes values. Input may borrow from
- * the old tree. Only a successful assignment invalidates old borrowed views. */
-ds_status_t ds_jellyfish_assign(ds_jellyfish_t *tree, const unsigned long *keys,
-                                const void *values, size_t count);
+ * the old tree. Only a successful assignment invalidates old borrowed views.
+ */
+ds_status_t ds_jellyfish_assign(ds_jellyfish_t *tree,
+                                const unsigned long *keys, const void *values,
+                                size_t count);
 /* DS_OK inserts; DS_EXISTS replaces. NULL value zeroes the payload. */
 ds_status_t ds_jellyfish_put(ds_jellyfish_t *tree, unsigned long key,
                              const void *value);
@@ -59,8 +62,8 @@ size_t ds_jellyfish_size(const ds_jellyfish_t *tree);
 ds_status_t ds_jellyfish_shape(const ds_jellyfish_t *tree,
                                ds_jellyfish_shape_t *out_shape);
 /* Full traversal is in key order. Tentacle traversal omits body items.
- * The first non-DS_OK visitor status stops/propagates. Visitors must not mutate
- * this tree, including value replacement, while the walk is active. */
+ * The first non-DS_OK visitor status stops/propagates. Visitors must not
+ * mutate this tree, including value replacement, while the walk is active. */
 ds_status_t ds_jellyfish_for_each(const ds_jellyfish_t *tree,
                                   ds_ordered_visit_fn visit, void *user);
 ds_status_t ds_jellyfish_tentacle(const ds_jellyfish_t *tree, size_t index,

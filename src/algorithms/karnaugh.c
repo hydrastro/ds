@@ -16,7 +16,9 @@ typedef struct km_search {
   bool stopped;
 } km_search_t;
 
-static size_t km_cells(const ds_kmap_t *m) { return (size_t)1 << m->variables; }
+static size_t km_cells(const ds_kmap_t *m) {
+  return (size_t)1 << m->variables;
+}
 static bool km_member(const unsigned long *bits, size_t index) {
   return (bits[index / 32] & (1UL << (index % 32))) != 0;
 }
@@ -40,23 +42,27 @@ ds_status_t ds_kmap_init(ds_kmap_t *m, size_t variables, size_t row_variables,
   ds_kmap_t stage;
   unsigned int seen = 0;
   size_t i, bit;
-  if (m == NULL || values == NULL)
+  if (m == NULL || values == NULL) {
     return DS_ERR_NULL;
-  if (variables > DS_KMAP_MAX_VARIABLES || row_variables > variables)
+  }
+  if (variables > DS_KMAP_MAX_VARIABLES || row_variables > variables) {
     return DS_ERR_RANGE;
+  }
   memset(&stage, 0, sizeof(stage));
   stage.variables = variables;
   stage.row_variables = row_variables;
   for (i = 0; i < variables; i++) {
     bit = order != NULL ? order[i] : i;
-    if (bit >= variables || (seen & (1u << bit)) != 0)
+    if (bit >= variables || (seen & (1u << bit)) != 0) {
       return DS_ERR_INVALID;
+    }
     seen |= 1u << bit;
     stage.order[i] = bit;
   }
   for (i = 0; i < km_cells(&stage); i++) {
-    if (values[i] > DS_KMAP_DONT_CARE)
+    if (values[i] > DS_KMAP_DONT_CARE) {
       return DS_ERR_INVALID;
+    }
     stage.values[i] = values[i];
   }
   *m = stage;
@@ -65,34 +71,43 @@ ds_status_t ds_kmap_init(ds_kmap_t *m, size_t variables, size_t row_variables,
 ds_status_t ds_kmap_assignment(const ds_kmap_t *m, size_t row, size_t column,
                                size_t *out) {
   size_t i, bits, assignment = 0;
-  if (m == NULL || out == NULL)
+  if (m == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   if (row >= ((size_t)1 << m->row_variables) ||
-      column >= ((size_t)1 << (m->variables - m->row_variables)))
+      column >= ((size_t)1 << (m->variables - m->row_variables))) {
     return DS_ERR_RANGE;
+  }
   bits = (row ^ (row >> 1)) | ((column ^ (column >> 1)) << m->row_variables);
-  for (i = 0; i < m->variables; i++)
-    if ((bits & ((size_t)1 << i)) != 0)
+  for (i = 0; i < m->variables; i++) {
+    if ((bits & ((size_t)1 << i)) != 0) {
       assignment |= (size_t)1 << m->order[i];
+    }
+  }
   *out = assignment;
   return DS_OK;
 }
 static size_t km_ungray(size_t gray) {
   size_t result = 0;
-  for (; gray != 0; gray >>= 1)
+  for (; gray != 0; gray >>= 1) {
     result ^= gray;
+  }
   return result;
 }
 ds_status_t ds_kmap_coordinates(const ds_kmap_t *m, size_t assignment,
                                 size_t *out_row, size_t *out_column) {
   size_t i, bits = 0;
-  if (m == NULL || out_row == NULL || out_column == NULL)
+  if (m == NULL || out_row == NULL || out_column == NULL) {
     return DS_ERR_NULL;
-  if (assignment >= km_cells(m))
+  }
+  if (assignment >= km_cells(m)) {
     return DS_ERR_RANGE;
-  for (i = 0; i < m->variables; i++)
-    if ((assignment & ((size_t)1 << m->order[i])) != 0)
+  }
+  for (i = 0; i < m->variables; i++) {
+    if ((assignment & ((size_t)1 << m->order[i])) != 0) {
       bits |= (size_t)1 << i;
+    }
+  }
   *out_row = km_ungray(bits & (((size_t)1 << m->row_variables) - 1));
   *out_column = km_ungray(bits >> m->row_variables);
   return DS_OK;
@@ -108,12 +123,15 @@ static bool km_valid(const ds_kmap_t *m, bool target, unsigned int mask,
   size_t i;
   covered[0] = covered[1] = 0;
   for (i = 0; i < km_cells(m); i++) {
-    if ((i & mask) != value)
+    if ((i & mask) != value) {
       continue;
-    if (m->values[i] == DS_KMAP_DONT_CARE)
+    }
+    if (m->values[i] == DS_KMAP_DONT_CARE) {
       continue;
-    if ((m->values[i] != 0) != target)
+    }
+    if ((m->values[i] != 0) != target) {
       return false;
+    }
     km_set(covered, i);
   }
   return covered[0] != 0 || covered[1] != 0;
@@ -134,9 +152,11 @@ static void km_greedy(km_search_t *s) {
     for (i = 0; i < s->candidate_count; i++) {
       const km_candidate_t *c = &s->candidates[i];
       size_t gain = 0;
-      for (j = 0; j < s->cells; j++)
-        if (km_member(c->cover, j) && !km_member(covered, j))
+      for (j = 0; j < s->cells; j++) {
+        if (km_member(c->cover, j) && !km_member(covered, j)) {
           gain++;
+        }
+      }
       if (gain != 0 &&
           (best_gain == 0 ||
            c->cube.cost * best_gain < s->candidates[best].cube.cost * gain ||
@@ -163,8 +183,9 @@ static void km_search(km_search_t *s, const unsigned long *covered,
     s->stopped = true;
     return;
   }
-  if (s->nodes < (size_t)-1)
+  if (s->nodes < (size_t)-1) {
     s->nodes++;
+  }
   if (km_complete(s, covered)) {
     if (km_better(s, cost, depth, literals)) {
       memcpy(s->best, s->selected, depth * sizeof(size_t));
@@ -174,30 +195,38 @@ static void km_search(km_search_t *s, const unsigned long *covered,
     }
     return;
   }
-  if (cost > s->best_cost || (cost == s->best_cost && depth >= s->best_count))
+  if (cost > s->best_cost ||
+      (cost == s->best_cost && depth >= s->best_count)) {
     return;
+  }
   for (j = 0; j < s->cells; j++) {
     size_t choices = 0;
-    if (!km_member(s->required, j) || km_member(covered, j))
+    if (!km_member(s->required, j) || km_member(covered, j)) {
       continue;
-    for (i = 0; i < s->candidate_count; i++)
+    }
+    for (i = 0; i < s->candidate_count; i++) {
       if (km_member(s->candidates[i].cover, j) &&
-          s->candidates[i].cube.cost <= s->best_cost - cost)
+          s->candidates[i].cube.cost <= s->best_cost - cost) {
         choices++;
+      }
+    }
     if (choices < fewest) {
       point = j;
       fewest = choices;
     }
   }
-  if (fewest == 0)
+  if (fewest == 0) {
     return;
+  }
   for (i = 0; i < s->candidate_count && !s->stopped; i++) {
     const km_candidate_t *c = &s->candidates[i];
     unsigned long next[2];
-    if (cost > s->best_cost)
+    if (cost > s->best_cost) {
       return;
-    if (!km_member(c->cover, point) || c->cube.cost > s->best_cost - cost)
+    }
+    if (!km_member(c->cover, point) || c->cube.cost > s->best_cost - cost) {
       continue;
+    }
     next[0] = covered[0] | c->cover[0];
     next[1] = covered[1] | c->cover[1];
     s->selected[depth] = i;
@@ -215,19 +244,23 @@ ds_status_t ds_kmap_minimize(const ds_kmap_t *m, bool target,
   unsigned long covered[2] = {0, 0};
   size_t capacity = 1, i;
   ds_status_t st = DS_OK;
-  if (m == NULL || out == NULL)
+  if (m == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (m->variables > DS_KMAP_MAX_VARIABLES)
+  }
+  if (m->variables > DS_KMAP_MAX_VARIABLES) {
     return DS_ERR_RANGE;
+  }
   if (p == NULL) {
     ds_kmap_policy_init(&defaults);
     p = &defaults;
   }
-  for (i = 0; i < m->variables; i++)
+  for (i = 0; i < m->variables; i++) {
     capacity *= 3;
+  }
   s = (km_search_t *)ds_context_calloc(context, 1, sizeof(*s));
-  if (s == NULL)
+  if (s == NULL) {
     return DS_ERR_ALLOC;
+  }
   s->candidates = (km_candidate_t *)ds_context_alloc(
       context, capacity * sizeof(km_candidate_t));
   if (s->candidates == NULL) {
@@ -236,9 +269,11 @@ ds_status_t ds_kmap_minimize(const ds_kmap_t *m, bool target,
   }
   s->cells = km_cells(m);
   s->budget = p->node_budget;
-  for (i = 0; i < s->cells; i++)
-    if (m->values[i] != DS_KMAP_DONT_CARE && (m->values[i] != 0) == target)
+  for (i = 0; i < s->cells; i++) {
+    if (m->values[i] != DS_KMAP_DONT_CARE && (m->values[i] != 0) == target) {
       km_set(s->required, i);
+    }
+  }
   for (mask = 0; mask < s->cells; mask++) {
     value = mask;
     for (;;) {
@@ -254,14 +289,16 @@ ds_status_t ds_kmap_minimize(const ds_kmap_t *m, bool target,
             unsigned int bit = 1u << i;
             unsigned long ignored[2];
             if ((mask & bit) != 0 &&
-                km_valid(m, target, mask & ~bit, value & ~bit, ignored))
+                km_valid(m, target, mask & ~bit, value & ~bit, ignored)) {
               prime = false;
+            }
           }
         } else {
           st = p->cost(&c.cube, &c.cube.cost, p->user);
           if (st != DS_OK) {
-            if (st > DS_OK)
+            if (st > DS_OK) {
               st = DS_ERR_CALLBACK;
+            }
             goto done;
           }
           if (c.cube.cost > ULONG_MAX / s->cells) {
@@ -269,11 +306,13 @@ ds_status_t ds_kmap_minimize(const ds_kmap_t *m, bool target,
             goto done;
           }
         }
-        if (prime)
+        if (prime) {
           s->candidates[s->candidate_count++] = c;
+        }
       }
-      if (value == 0)
+      if (value == 0) {
         break;
+      }
       value = (value - 1) & mask;
     }
   }
@@ -287,8 +326,9 @@ ds_status_t ds_kmap_minimize(const ds_kmap_t *m, bool target,
       st = DS_ERR_ALLOC;
       goto done;
     }
-    for (i = 0; i < s->best_count; i++)
+    for (i = 0; i < s->best_count; i++) {
       result.cubes[i] = s->candidates[s->best[i]].cube;
+    }
   }
   result.context = context;
   result.variables = m->variables;
@@ -309,12 +349,15 @@ ds_status_t ds_kmap_evaluate(const ds_kmap_cover_t *c, size_t assignment,
                              bool *out) {
   size_t i;
   bool found = false;
-  if (c == NULL || out == NULL)
+  if (c == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (assignment >= ((size_t)1 << c->variables))
+  }
+  if (assignment >= ((size_t)1 << c->variables)) {
     return DS_ERR_RANGE;
-  for (i = 0; i < c->count && !found; i++)
+  }
+  for (i = 0; i < c->count && !found; i++) {
     found = (assignment & c->cubes[i].mask) == c->cubes[i].value;
+  }
   *out = found ? c->target : !c->target;
   return DS_OK;
 }

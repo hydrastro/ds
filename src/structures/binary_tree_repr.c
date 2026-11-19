@@ -3,7 +3,8 @@
 
 #define LC_NONE DS_LCRS_NONE
 
-/* ---- first child-next sibling trees -------------------------------------- */
+/* ---- first child-next sibling trees --------------------------------------
+ */
 
 ds_status_t ds_lcrs_tree_init(ds_lcrs_tree_t *t, size_t elem_size,
                               ds_context_t *context) {
@@ -194,7 +195,8 @@ ds_status_t ds_lcrs_tree_add_last_child(ds_lcrs_tree_t *t, size_t parent,
 }
 
 ds_status_t ds_lcrs_tree_add_sibling_after(ds_lcrs_tree_t *t, size_t node,
-                                           const void *elem, size_t *out_node) {
+                                           const void *elem,
+                                           size_t *out_node) {
   size_t v;
   ds_status_t st;
   if (t == NULL || elem == NULL) {
@@ -499,7 +501,8 @@ ds_status_t ds_lcrs_tree_from_parents(ds_lcrs_tree_t *t, const size_t *parents,
   return DS_OK;
 }
 
-/* ---- doubly-chained tree (de la Briandais trie) -------------------------- */
+/* ---- doubly-chained tree (de la Briandais trie) --------------------------
+ */
 
 #define DC_NONE (~(size_t)0)
 
@@ -783,7 +786,8 @@ done:
   return st;
 }
 
-/* ---- stack trees ------------------------------------------------------------
+/* ---- stack trees
+ * ------------------------------------------------------------
  */
 
 bool ds_binary_tree_is_stack_tree(const size_t *left, const size_t *right,

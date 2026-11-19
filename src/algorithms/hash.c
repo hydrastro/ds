@@ -277,7 +277,8 @@ unsigned long ds_crc32c(unsigned long crc, const void *data, size_t length) {
   return hash_crc(hash_crc32c_table, crc, data, length);
 }
 
-unsigned long ds_adler32(unsigned long adler, const void *data, size_t length) {
+unsigned long ds_adler32(unsigned long adler, const void *data,
+                         size_t length) {
   const unsigned char *p = (const unsigned char *)data;
   unsigned long a = adler & 0xFFFFUL;
   unsigned long b = (adler >> 16) & 0xFFFFUL;

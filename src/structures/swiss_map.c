@@ -79,8 +79,9 @@ static unsigned char *sw_key(const ds_swiss_map_t *map, size_t i) {
 }
 
 static unsigned char *sw_value(const ds_swiss_map_t *map, size_t i) {
-  return map->config.value_size == 0 ? sw_key(map, i)
-                                     : map->values + i * map->config.value_size;
+  return map->config.value_size == 0
+             ? sw_key(map, i)
+             : map->values + i * map->config.value_size;
 }
 
 static void sw_set_ctrl(ds_swiss_map_t *map, size_t i, unsigned int c) {
@@ -193,7 +194,8 @@ void ds_swiss_map_compact(ds_swiss_map_t *map) {
       sw_set_ctrl(map, target, (unsigned int)(h & 0x7FUL));
       memcpy(sw_key(map, target), sw_key(map, i), map->config.key_size);
       if (map->config.value_size > 0) {
-        memcpy(sw_value(map, target), sw_value(map, i), map->config.value_size);
+        memcpy(sw_value(map, target), sw_value(map, i),
+               map->config.value_size);
       }
       sw_set_ctrl(map, i, SW_EMPTY);
     } else {
@@ -401,7 +403,8 @@ static void *sw_emplace(ds_swiss_map_t *map, const void *key,
         (map->fixed || map->size <= map->capacity / 32 * 25)) {
       ds_swiss_map_compact(map);
     } else {
-      status = map->fixed ? DS_ERR_OVERFLOW : sw_resize(map, map->capacity * 2);
+      status =
+          map->fixed ? DS_ERR_OVERFLOW : sw_resize(map, map->capacity * 2);
       if (status != DS_OK) {
         *out_status = status;
         return NULL;

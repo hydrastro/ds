@@ -33,11 +33,13 @@ ds_status_t ds_multiflow_build(const ds_multiflow_spec_t *s,
   ds_lp_owned_t *p = &m.program;
   size_t flows, cols, rows, conservation, bounds, cells, k, e, row;
   if (s == NULL || out == NULL || (s->arc_count > 0 && s->arcs == NULL) ||
-      (s->commodity_count > 0 && s->demands == NULL))
+      (s->commodity_count > 0 && s->demands == NULL)) {
     return DS_ERR_NULL;
+  }
   if (s->goal != DS_MULTIFLOW_MAX_THROUGHPUT &&
-      s->goal != DS_MULTIFLOW_MIN_COST)
+      s->goal != DS_MULTIFLOW_MIN_COST) {
     return DS_ERR_INVALID;
+  }
   if (!ds_size_mul(s->commodity_count, s->arc_count, &flows) ||
       !ds_size_add(flows, s->commodity_count, &cols) ||
       !ds_size_mul(s->commodity_count, s->vertex_count, &conservation) ||
@@ -47,38 +49,47 @@ ds_status_t ds_multiflow_build(const ds_multiflow_spec_t *s,
       cells > (size_t)-1 / sizeof(double) ||
       rows > (size_t)-1 / sizeof(double) ||
       rows > (size_t)-1 / sizeof(ds_lp_sense_t) ||
-      cols > (size_t)-1 / sizeof(double))
+      cols > (size_t)-1 / sizeof(double)) {
     return DS_ERR_OVERFLOW;
-  if (s->max_coefficients != 0 && cells > s->max_coefficients)
+  }
+  if (s->max_coefficients != 0 && cells > s->max_coefficients) {
     return DS_ERR_RANGE;
+  }
   for (e = 0; e < s->arc_count; e++) {
     const ds_multiflow_arc_t *a = &s->arcs[e];
-    if (a->from >= s->vertex_count || a->to >= s->vertex_count)
+    if (a->from >= s->vertex_count || a->to >= s->vertex_count) {
       return DS_ERR_RANGE;
-    if (!mf_finite(a->capacity) || a->capacity < 0.0 || !mf_finite(a->cost))
+    }
+    if (!mf_finite(a->capacity) || a->capacity < 0.0 || !mf_finite(a->cost)) {
       return DS_ERR_INVALID;
+    }
   }
   for (k = 0; k < s->commodity_count; k++) {
     const ds_multiflow_demand_t *d = &s->demands[k];
-    if (d->source >= s->vertex_count || d->sink >= s->vertex_count)
+    if (d->source >= s->vertex_count || d->sink >= s->vertex_count) {
       return DS_ERR_RANGE;
+    }
     if (d->source == d->sink || !mf_finite(d->minimum) ||
         !mf_finite(d->maximum) || !mf_finite(d->weight) || d->minimum < 0.0 ||
-        d->maximum < d->minimum || d->weight < 0.0)
+        d->maximum < d->minimum || d->weight < 0.0) {
       return DS_ERR_INVALID;
+    }
   }
-  if (s->costs != NULL)
-    for (e = 0; e < flows; e++)
-      if (!mf_finite(s->costs[e]))
+  if (s->costs != NULL) {
+    for (e = 0; e < flows; e++) {
+      if (!mf_finite(s->costs[e])) {
         return DS_ERR_INVALID;
+      }
+    }
+  }
   memset(&m, 0, sizeof(m));
   p->context = context != NULL ? context : ds_default_context();
   p->a = (double *)ds_context_calloc(context, cells > 0 ? cells : 1,
                                      sizeof(double));
-  p->b =
-      (double *)ds_context_calloc(context, rows > 0 ? rows : 1, sizeof(double));
-  p->c =
-      (double *)ds_context_calloc(context, cols > 0 ? cols : 1, sizeof(double));
+  p->b = (double *)ds_context_calloc(context, rows > 0 ? rows : 1,
+                                     sizeof(double));
+  p->c = (double *)ds_context_calloc(context, cols > 0 ? cols : 1,
+                                     sizeof(double));
   p->sense = (ds_lp_sense_t *)ds_context_alloc(
       context, (rows > 0 ? rows : 1) * sizeof(ds_lp_sense_t));
   m.integer =
@@ -98,8 +109,9 @@ ds_status_t ds_multiflow_build(const ds_multiflow_spec_t *s,
   p->lp.c = p->c;
   p->lp.sense = p->sense;
   p->lp.maximize = s->goal == DS_MULTIFLOW_MAX_THROUGHPUT;
-  for (row = 0; row < conservation; row++)
+  for (row = 0; row < conservation; row++) {
     p->sense[row] = DS_LP_EQ;
+  }
   for (e = 0; e < s->arc_count; e++) {
     row = conservation + e;
     p->sense[row] = DS_LP_LE;
@@ -120,8 +132,9 @@ ds_status_t ds_multiflow_build(const ds_multiflow_spec_t *s,
       p->a[(row + a->from) * cols + col] += 1.0;
       p->a[(row + a->to) * cols + col] -= 1.0;
       p->a[(conservation + e) * cols + col] = 1.0;
-      if (!p->lp.maximize)
+      if (!p->lp.maximize) {
         p->c[col] = s->costs != NULL ? s->costs[col] : a->cost;
+      }
       m.integer[col] = d->integral ? 1 : 0;
     }
     row = conservation + s->arc_count + 2 * k;
@@ -142,20 +155,24 @@ static bool mf_validate(const ds_multiflow_model_t *m, double *x, double tol,
   size_t i, j;
   double obj = 0.0;
   for (j = 0; j < lp->cols; j++) {
-    if (!mf_finite(x[j]) || x[j] < -tol)
+    if (!mf_finite(x[j]) || x[j] < -tol) {
       return false;
+    }
     if (m->integer[j]) {
       double rounded = floor(x[j] + 0.5);
-      if (fabs(rounded - x[j]) > tol)
+      if (fabs(rounded - x[j]) > tol) {
         return false;
+      }
       x[j] = rounded;
     }
-    if (x[j] < 0.0)
+    if (x[j] < 0.0) {
       x[j] = 0.0;
+    }
     obj += lp->c[j] * x[j];
   }
-  if (!mf_finite(obj))
+  if (!mf_finite(obj)) {
     return false;
+  }
   for (i = 0; i < lp->rows; i++) {
     double lhs = 0.0, scale = 1.0 + fabs(lp->b[i]), error;
     for (j = 0; j < lp->cols; j++) {
@@ -167,8 +184,9 @@ static bool mf_validate(const ds_multiflow_model_t *m, double *x, double tol,
     if (!mf_finite(lhs) || !mf_finite(scale) || !mf_finite(error) ||
         (lp->sense[i] == DS_LP_LE && error > tol * scale) ||
         (lp->sense[i] == DS_LP_GE && error < -tol * scale) ||
-        (lp->sense[i] == DS_LP_EQ && fabs(error) > tol * scale))
+        (lp->sense[i] == DS_LP_EQ && fabs(error) > tol * scale)) {
       return false;
+    }
   }
   *objective = obj;
   return true;
@@ -187,46 +205,55 @@ ds_status_t ds_multiflow_solve(const ds_multiflow_model_t *m,
   size_t j, flow_count;
   bool untouched = true;
   ds_status_t st;
-  if (m == NULL || out == NULL)
+  if (m == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   if (p == NULL) {
     ds_multiflow_policy_init(&defaults);
     p = &defaults;
   }
   if (!(p->tolerance > 0.0 && p->tolerance < 0.5) ||
       (p->method != DS_MILP_BRANCH_AND_BOUND &&
-       p->method != DS_MILP_CUTTING_PLANE))
+       p->method != DS_MILP_CUTTING_PLANE)) {
     return DS_ERR_INVALID;
+  }
   lp = &m->program.lp;
   context = m->program.context;
-  if (m->integer == NULL || lp->c == NULL)
+  if (m->integer == NULL || lp->c == NULL) {
     return DS_ERR_STATE;
+  }
   x = (double *)ds_context_alloc(context, (lp->cols > 0 ? lp->cols : 1) *
                                               sizeof(double));
-  if (x == NULL)
+  if (x == NULL) {
     return DS_ERR_ALLOC;
-  for (j = 0; j < lp->cols; j++)
+  }
+  for (j = 0; j < lp->cols; j++) {
     x[j] = -DBL_MAX;
+  }
   result.result = DS_LP_LIMIT;
   result.has_solution = false;
   result.objective = 0.0;
-  if (p->solve != NULL)
+  if (p->solve != NULL) {
     st = p->solve(lp, m->has_integer ? m->integer : NULL, p->method,
                   p->node_budget, x, &objective, &result.result, p->user,
                   context);
-  else if (m->has_integer)
-    st = ds_milp_solve(lp, m->integer, p->method, p->node_budget, x, &objective,
-                       &result.result, context);
-  else
+  } else if (m->has_integer) {
+    st = ds_milp_solve(lp, m->integer, p->method, p->node_budget, x,
+                       &objective, &result.result, context);
+  } else {
     st = ds_lp_solve(lp, x, NULL, &objective, &result.result, context);
+  }
   if (st != DS_OK) {
-    if (st > DS_OK)
+    if (st > DS_OK) {
       st = DS_ERR_CALLBACK;
+    }
     goto done;
   }
-  for (j = 0; j < lp->cols; j++)
-    if (x[j] > -DBL_MAX || !mf_finite(x[j]))
+  for (j = 0; j < lp->cols; j++) {
+    if (x[j] > -DBL_MAX || !mf_finite(x[j])) {
       untouched = false;
+    }
+  }
   if (result.result == DS_LP_OPTIMAL ||
       ((result.result == DS_LP_LIMIT ||
         result.result == DS_LP_RELAXATION_UNBOUNDED) &&
@@ -245,10 +272,12 @@ ds_status_t ds_multiflow_solve(const ds_multiflow_model_t *m,
   }
   if (result.has_solution) {
     flow_count = m->commodity_count * m->arc_count;
-    if (flows != NULL && flow_count > 0)
+    if (flows != NULL && flow_count > 0) {
       memcpy(flows, x, flow_count * sizeof(double));
-    if (delivered != NULL && m->commodity_count > 0)
+    }
+    if (delivered != NULL && m->commodity_count > 0) {
       memcpy(delivered, x + flow_count, m->commodity_count * sizeof(double));
+    }
   }
   *out = result;
 done:

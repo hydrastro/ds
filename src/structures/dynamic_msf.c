@@ -739,9 +739,9 @@ ds_status_t ds_dyn_msf_init(ds_dyn_msf_t *g, size_t n, ds_context_t *context) {
   g->stamp = (size_t *)ds_context_calloc(context, n, sizeof(size_t));
   g->virt = (size_t *)ds_context_calloc(context, n, sizeof(size_t));
   g->local_id = (size_t *)ds_context_calloc(context, n, sizeof(size_t));
-  if (g->node == NULL || g->path == NULL || g->tag == NULL || g->lazy == NULL ||
-      g->slot == NULL || g->stamp == NULL || g->virt == NULL ||
-      g->local_id == NULL) {
+  if (g->node == NULL || g->path == NULL || g->tag == NULL ||
+      g->lazy == NULL || g->slot == NULL || g->stamp == NULL ||
+      g->virt == NULL || g->local_id == NULL) {
     ds_dyn_msf_destroy(g);
     return DS_ERR_ALLOC;
   }
@@ -982,7 +982,9 @@ double ds_dyn_msf_weight(const ds_dyn_msf_t *g) {
   return g == NULL ? 0.0 : ds_xsum_value(&g->weight);
 }
 
-bool ds_dyn_msf_broken(const ds_dyn_msf_t *g) { return g != NULL && g->broken; }
+bool ds_dyn_msf_broken(const ds_dyn_msf_t *g) {
+  return g != NULL && g->broken;
+}
 
 /* Kruskal over the live edges into in_forest (one byte per id) */
 static ds_status_t dy_kruskal(ds_dyn_msf_t *g, unsigned char *in_forest) {

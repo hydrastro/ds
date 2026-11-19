@@ -42,8 +42,8 @@ ds_status_t ds_geo_min_circle(const double *xy, size_t n, unsigned long seed,
 /* The line through (px, py) with direction (dx, dy). */
 ds_status_t ds_geo_center_on_line(const double *xy, size_t n, double px,
                                   double py, double dx, double dy,
-                                  double *out_cx, double *out_cy, double *out_r,
-                                  ds_context_t *context);
+                                  double *out_cx, double *out_cy,
+                                  double *out_r, ds_context_t *context);
 /* abc: m constraints a x + b y <= c (3 doubles each). DS_NOT_FOUND when
  * infeasible, DS_ERR_RANGE when unbounded (out gets a feasible point far
  * along the improving direction). */

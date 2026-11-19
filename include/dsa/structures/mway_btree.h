@@ -30,7 +30,8 @@ extern "C" {
 #define DS_MWAY_2_3 3
 #define DS_MWAY_2_3_4 4
 
-typedef int (*ds_mway_compare_func_t)(const void *a, const void *b, void *user);
+typedef int (*ds_mway_compare_func_t)(const void *a, const void *b,
+                                      void *user);
 
 typedef struct ds_mway_btree {
   unsigned char *keys; /* m slots per node (one spare for splitting) */

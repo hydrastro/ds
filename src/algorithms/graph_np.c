@@ -15,7 +15,8 @@ static ds_status_t np_mul(size_t a, size_t b, size_t *out) {
   return DS_OK;
 }
 
-/* ---- Bron-Kerbosch with pivoting, iterative ---------------------------------
+/* ---- Bron-Kerbosch with pivoting, iterative
+ * ---------------------------------
  */
 
 typedef struct np_bk {
@@ -372,8 +373,9 @@ ds_status_t ds_maximal_independent_set(const unsigned char *adj, size_t n,
   return DS_OK;
 }
 
-ds_status_t ds_min_vertex_cover(const unsigned char *adj, size_t n, size_t *out,
-                                size_t *out_size, ds_context_t *context) {
+ds_status_t ds_min_vertex_cover(const unsigned char *adj, size_t n,
+                                size_t *out, size_t *out_size,
+                                ds_context_t *context) {
   size_t *is;
   size_t k;
   size_t i;
@@ -435,7 +437,8 @@ ds_status_t ds_vertex_cover_approx(const unsigned char *adj, size_t n,
   return DS_OK;
 }
 
-/* ---- vertex colouring -------------------------------------------------------
+/* ---- vertex colouring
+ * -------------------------------------------------------
  */
 
 /* DSATUR order (and the greedy colouring it produces). */
@@ -588,7 +591,8 @@ static ds_status_t np_kcolor(const unsigned char *adj, size_t n, size_t k,
       pos++;
       if (pos < n) {
         next[pos] = 0;
-        maxc[pos] = maxc[pos - 1] > color[v] + 1 ? maxc[pos - 1] : color[v] + 1;
+        maxc[pos] =
+            maxc[pos - 1] > color[v] + 1 ? maxc[pos - 1] : color[v] + 1;
       }
       continue;
     }
@@ -602,7 +606,8 @@ static ds_status_t np_kcolor(const unsigned char *adj, size_t n, size_t k,
 }
 
 ds_status_t ds_k_coloring(const unsigned char *adj, size_t n, size_t k,
-                          size_t *color, size_t budget, ds_context_t *context) {
+                          size_t *color, size_t budget,
+                          ds_context_t *context) {
   size_t *scratch;
   unsigned char *used;
   size_t sq;
@@ -872,8 +877,8 @@ ds_status_t ds_edge_color(const unsigned char *adj, size_t n, size_t *ecolor,
 }
 
 ds_status_t ds_chromatic_index(const unsigned char *adj, size_t n,
-                               size_t *ecolor, size_t *out_index, size_t budget,
-                               ds_context_t *context) {
+                               size_t *ecolor, size_t *out_index,
+                               size_t budget, ds_context_t *context) {
   size_t *eu;
   size_t *ev;
   size_t *next;
@@ -1148,8 +1153,8 @@ static ds_status_t np_ham_bt(const unsigned char *adj, size_t n, bool cycle,
 }
 
 ds_status_t ds_hamiltonian(const unsigned char *adj, size_t n, bool cycle,
-                           ds_ham_method_t method, size_t *order, size_t budget,
-                           ds_context_t *context) {
+                           ds_ham_method_t method, size_t *order,
+                           size_t budget, ds_context_t *context) {
   if (n > 0 && (adj == NULL || order == NULL)) {
     return DS_ERR_NULL;
   }
@@ -1298,7 +1303,8 @@ out:
   return st;
 }
 
-/* ---- feedback vertex set ----------------------------------------------------
+/* ---- feedback vertex set
+ * ----------------------------------------------------
  */
 
 static size_t np_uf_find(size_t *uf, size_t x) {
@@ -1491,7 +1497,8 @@ ds_status_t ds_feedback_vertex_set(const unsigned char *adj, size_t n,
   return st;
 }
 
-/* ---- isomorphism ------------------------------------------------------------
+/* ---- isomorphism
+ * ------------------------------------------------------------
  */
 
 typedef struct np_iso {
@@ -1548,8 +1555,8 @@ static ds_status_t np_iso_run(np_iso_t *s, size_t *map, size_t budget,
   if (s->np == 0) {
     return DS_OK;
   }
-  next =
-      (size_t *)ds_context_alloc(context, (3 * s->np + s->nt) * sizeof(size_t));
+  next = (size_t *)ds_context_alloc(context,
+                                    (3 * s->np + s->nt) * sizeof(size_t));
   used = (unsigned char *)ds_context_calloc(context, s->nt + s->np, 1);
   if (next == NULL || used == NULL) {
     ds_context_free(context, next);
@@ -1638,9 +1645,9 @@ static ds_status_t np_iso_run(np_iso_t *s, size_t *map, size_t budget,
   return st;
 }
 
-ds_status_t ds_graph_isomorphism(const unsigned char *a, const unsigned char *b,
-                                 size_t n, size_t *map, size_t budget,
-                                 ds_context_t *context) {
+ds_status_t ds_graph_isomorphism(const unsigned char *a,
+                                 const unsigned char *b, size_t n, size_t *map,
+                                 size_t budget, ds_context_t *context) {
   np_iso_t s;
   size_t ea = 0;
   size_t eb = 0;
@@ -1685,7 +1692,8 @@ ds_status_t ds_subgraph_isomorphism(const unsigned char *pattern, size_t np,
   return np_iso_run(&s, map, budget, context);
 }
 
-/* ---- bisection --------------------------------------------------------------
+/* ---- bisection
+ * --------------------------------------------------------------
  */
 
 static double np_cut(const double *w, size_t n, const unsigned char *side) {

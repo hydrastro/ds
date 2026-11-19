@@ -100,7 +100,8 @@ void ds_arith_decoder_init(ds_arith_decoder_t *d, ds_bit_reader_t *in) {
 }
 
 ds_status_t ds_arith_decode(ds_arith_decoder_t *d,
-                            const ds_arith_model_t *model, size_t *out_symbol) {
+                            const ds_arith_model_t *model,
+                            size_t *out_symbol) {
   unsigned long range;
   unsigned long total;
   unsigned long cum;
@@ -167,14 +168,16 @@ static void am_add(ds_arith_adaptive_model_t *m, size_t i, unsigned long v) {
 
 static void am_range(size_t symbol, unsigned long *low, unsigned long *high,
                      void *state) {
-  const ds_arith_adaptive_model_t *m = (const ds_arith_adaptive_model_t *)state;
+  const ds_arith_adaptive_model_t *m =
+      (const ds_arith_adaptive_model_t *)state;
   *low = am_prefix(m, symbol);
   *high = am_prefix(m, symbol + 1);
 }
 
 static size_t am_find(unsigned long target, unsigned long *low,
                       unsigned long *high, void *state) {
-  const ds_arith_adaptive_model_t *m = (const ds_arith_adaptive_model_t *)state;
+  const ds_arith_adaptive_model_t *m =
+      (const ds_arith_adaptive_model_t *)state;
   size_t pos = 0;
   size_t step = m->top_bit;
   unsigned long acc = 0;
@@ -438,8 +441,8 @@ ds_status_t ds_lzw_compress(const unsigned char *in, size_t n,
   z.max = 1UL << max_bits;
   tsize = (size_t)1 << (max_bits + 1);
   z.mask = tsize - 1;
-  z.keys = (unsigned long *)ds_context_alloc(context,
-                                             2 * tsize * sizeof(unsigned long));
+  z.keys = (unsigned long *)ds_context_alloc(
+      context, 2 * tsize * sizeof(unsigned long));
   if (z.keys == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -477,7 +480,8 @@ ds_status_t ds_lzw_compress(const unsigned char *in, size_t n,
     /* the decoder has added the entry for the last code by now */
     st = ds_bit_writer_put(
         &w, LZW_END,
-        lzw_width(n == 0 ? z.next : (z.next + 1 < z.max ? z.next + 1 : z.max)));
+        lzw_width(n == 0 ? z.next
+                         : (z.next + 1 < z.max ? z.next + 1 : z.max)));
   }
   ds_context_free(context, z.keys);
   if (st == DS_OK) {
@@ -914,9 +918,9 @@ static void star_put(star_out_t *o, unsigned char c) {
 
 ds_status_t ds_star_encode(const unsigned char *text, size_t n,
                            const unsigned char *const *words,
-                           const size_t *lens, size_t count, unsigned char *out,
-                           size_t capacity, size_t *out_length,
-                           ds_context_t *context) {
+                           const size_t *lens, size_t count,
+                           unsigned char *out, size_t capacity,
+                           size_t *out_length, ds_context_t *context) {
   star_dict_t s;
   star_out_t o;
   size_t i = 0;
@@ -979,9 +983,9 @@ ds_status_t ds_star_encode(const unsigned char *text, size_t n,
 
 ds_status_t ds_star_decode(const unsigned char *in, size_t n,
                            const unsigned char *const *words,
-                           const size_t *lens, size_t count, unsigned char *out,
-                           size_t capacity, size_t *out_length,
-                           ds_context_t *context) {
+                           const size_t *lens, size_t count,
+                           unsigned char *out, size_t capacity,
+                           size_t *out_length, ds_context_t *context) {
   star_dict_t s;
   star_out_t o;
   size_t i = 0;

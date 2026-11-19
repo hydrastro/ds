@@ -66,8 +66,8 @@ typedef struct ds_iblt {
 void ds_iblt_config_init(ds_iblt_config_t *config);
 size_t ds_iblt_buffer_size(const ds_iblt_config_t *config);
 ds_status_t ds_iblt_init(ds_iblt_t *iblt, const ds_iblt_config_t *config);
-ds_status_t ds_iblt_init_buffer(ds_iblt_t *iblt, const ds_iblt_config_t *config,
-                                void *buffer);
+ds_status_t ds_iblt_init_buffer(ds_iblt_t *iblt,
+                                const ds_iblt_config_t *config, void *buffer);
 void ds_iblt_destroy(ds_iblt_t *iblt);
 void ds_iblt_clear(ds_iblt_t *iblt);
 

@@ -197,7 +197,8 @@ size_t ds_wavelet_matrix_select(const ds_wavelet_matrix_t *wm, unsigned long c,
 }
 
 ds_status_t ds_wavelet_matrix_quantile(const ds_wavelet_matrix_t *wm, size_t l,
-                                       size_t r, size_t k, unsigned long *out) {
+                                       size_t r, size_t k,
+                                       unsigned long *out) {
   unsigned long v = 0;
   unsigned lv;
   if (wm == NULL || out == NULL) {

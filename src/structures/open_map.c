@@ -22,9 +22,11 @@ struct om_align_probe {
 };
 #define OM_ALIGN (offsetof(struct om_align_probe, u))
 
-/* ---- probe sequences ----------------------------------------------------- */
+/* ---- probe sequences -----------------------------------------------------
+ */
 
-static size_t om_linear(unsigned long hash, size_t i, size_t mask, void *user) {
+static size_t om_linear(unsigned long hash, size_t i, size_t mask,
+                        void *user) {
   (void)user;
   return ((size_t)hash + i) & mask;
 }
@@ -35,7 +37,8 @@ static size_t om_quadratic(unsigned long hash, size_t i, size_t mask,
   return ((size_t)hash + (i * (i + 1)) / 2) & mask;
 }
 
-static size_t om_double(unsigned long hash, size_t i, size_t mask, void *user) {
+static size_t om_double(unsigned long hash, size_t i, size_t mask,
+                        void *user) {
   size_t step = (size_t)((hash >> 16) ^ (hash >> 7)) | 1U;
   (void)user;
   return ((size_t)hash + i * step) & mask;
@@ -56,7 +59,8 @@ const ds_open_map_probe_t *ds_open_map_double_probe(void) {
   return &om_double_probe;
 }
 
-/* ---- helpers ------------------------------------------------------------- */
+/* ---- helpers -------------------------------------------------------------
+ */
 
 static unsigned long om_mix(unsigned long h) {
 #if ULONG_MAX > 0xFFFFFFFFUL
@@ -91,8 +95,9 @@ static unsigned char *om_key(const ds_open_map_t *map, size_t i) {
 }
 
 static unsigned char *om_value(const ds_open_map_t *map, size_t i) {
-  return map->config.value_size == 0 ? om_key(map, i)
-                                     : map->values + i * map->config.value_size;
+  return map->config.value_size == 0
+             ? om_key(map, i)
+             : map->values + i * map->config.value_size;
 }
 
 static void om_swap_bytes(unsigned char *a, unsigned char *b, size_t n) {
@@ -410,8 +415,8 @@ void ds_open_map_destroy(ds_open_map_t *map) {
   map->deleted = 0;
 }
 
-static void *om_emplace(ds_open_map_t *map, const void *key, bool *out_inserted,
-                        ds_status_t *out_status) {
+static void *om_emplace(ds_open_map_t *map, const void *key,
+                        bool *out_inserted, ds_status_t *out_status) {
   unsigned long h = om_mix(map->config.hash(key, map->config.user));
   size_t pos = map->capacity > 0 ? om_find(map, key, h) : OM_NONE;
   ds_status_t status;
@@ -545,7 +550,8 @@ void ds_open_map_clear(ds_open_map_t *map) {
 ds_status_t ds_open_map_reserve(ds_open_map_t *map, size_t count) {
   size_t c = map->capacity == 0 ? OM_MIN_CAPACITY : map->capacity;
   if (map->capacity > 0 && count <= om_max_load(map->capacity)) {
-    if (map->deleted > 0 && count > om_max_load(map->capacity) - map->deleted) {
+    if (map->deleted > 0 &&
+        count > om_max_load(map->capacity) - map->deleted) {
       ds_open_map_compact(map);
     }
     return DS_OK;

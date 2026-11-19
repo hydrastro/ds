@@ -429,8 +429,8 @@ static ds_status_t zdd_run(ds_zdd_t *m, unsigned op, size_t f, size_t g,
       if (res == ZDD_NONE) {
         /* cofactors at the top level */
         size_t lv;
-        if (fop == Z_SUB0 || fop == Z_SUB1 || fop == Z_CHANGE || fop == Z_MIN ||
-            fop == Z_MAX) {
+        if (fop == Z_SUB0 || fop == Z_SUB1 || fop == Z_CHANGE ||
+            fop == Z_MIN || fop == Z_MAX) {
           lv = zdd_level(m, a);
           fr[F_G0] = fr[F_G1] = DS_ZDD_EMPTY;
         } else {

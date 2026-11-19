@@ -44,7 +44,8 @@ static unsigned rs_select_word(unsigned long x, size_t k) {
   return rs_ctz(x);
 }
 
-static void *rs_array(ds_context_t *ctx, size_t count, size_t size, bool zero) {
+static void *rs_array(ds_context_t *ctx, size_t count, size_t size,
+                      bool zero) {
   size_t bytes;
   if (count == 0) {
     count = 1;
@@ -91,8 +92,8 @@ static size_t rsp_zeros_before_super(const rsp_t *p, size_t j) {
   return bits - p->super[j];
 }
 
-static ds_status_t rsp_build(void **state, const unsigned long *words, size_t n,
-                             ds_context_t *ctx) {
+static ds_status_t rsp_build(void **state, const unsigned long *words,
+                             size_t n, ds_context_t *ctx) {
   rsp_t *p = (rsp_t *)ds_context_calloc(ctx, 1, sizeof(rsp_t));
   size_t j, w, zeros;
   if (p == NULL) {
@@ -240,12 +241,12 @@ static const unsigned rrr_binom[RRR_B + 1][RRR_B + 1] = {
     {1U, 9U, 36U, 84U, 126U, 126U, 84U, 36U, 9U, 1U, 0U, 0U, 0U, 0U, 0U, 0U},
     {1U, 10U, 45U, 120U, 210U, 252U, 210U, 120U, 45U, 10U, 1U, 0U, 0U, 0U, 0U,
      0U},
-    {1U, 11U, 55U, 165U, 330U, 462U, 462U, 330U, 165U, 55U, 11U, 1U, 0U, 0U, 0U,
-     0U},
+    {1U, 11U, 55U, 165U, 330U, 462U, 462U, 330U, 165U, 55U, 11U, 1U, 0U, 0U,
+     0U, 0U},
     {1U, 12U, 66U, 220U, 495U, 792U, 924U, 792U, 495U, 220U, 66U, 12U, 1U, 0U,
      0U, 0U},
-    {1U, 13U, 78U, 286U, 715U, 1287U, 1716U, 1716U, 1287U, 715U, 286U, 78U, 13U,
-     1U, 0U, 0U},
+    {1U, 13U, 78U, 286U, 715U, 1287U, 1716U, 1716U, 1287U, 715U, 286U, 78U,
+     13U, 1U, 0U, 0U},
     {1U, 14U, 91U, 364U, 1001U, 2002U, 3003U, 3432U, 3003U, 2002U, 1001U, 364U,
      91U, 14U, 1U, 0U},
     {1U, 15U, 105U, 455U, 1365U, 3003U, 5005U, 6435U, 6435U, 5005U, 3003U,
@@ -328,8 +329,8 @@ static void rsr_destroy(void *state, ds_context_t *ctx) {
   ds_context_free(ctx, r);
 }
 
-static ds_status_t rsr_build(void **state, const unsigned long *words, size_t n,
-                             ds_context_t *ctx) {
+static ds_status_t rsr_build(void **state, const unsigned long *words,
+                             size_t n, ds_context_t *ctx) {
   rsr_t *r = (rsr_t *)ds_context_calloc(ctx, 1, sizeof(rsr_t));
   size_t b, pos = 0;
   if (r == NULL) {
@@ -472,8 +473,8 @@ static void rse_destroy(void *state, ds_context_t *ctx) {
   ds_context_free(ctx, e);
 }
 
-static ds_status_t rse_build(void **state, const unsigned long *words, size_t n,
-                             ds_context_t *ctx) {
+static ds_status_t rse_build(void **state, const unsigned long *words,
+                             size_t n, ds_context_t *ctx) {
   rse_t *e = (rse_t *)ds_context_calloc(ctx, 1, sizeof(rse_t));
   unsigned long *pos;
   size_t i, m = 0;
@@ -496,8 +497,8 @@ static ds_status_t rse_build(void **state, const unsigned long *words, size_t n,
     }
   }
   e->n = n;
-  st =
-      ds_elias_fano_build(&e->ef, pos, m, (unsigned long)(n == 0 ? 1 : n), ctx);
+  st = ds_elias_fano_build(&e->ef, pos, m, (unsigned long)(n == 0 ? 1 : n),
+                           ctx);
   ds_context_free(ctx, pos);
   if (st != DS_OK) {
     ds_context_free(ctx, e);

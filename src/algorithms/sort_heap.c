@@ -168,7 +168,8 @@ static void sh_heap_sift_down(const sh_ctx_t *c, size_t *heap, size_t n,
   }
 }
 
-static void sh_heap_push(const sh_ctx_t *c, size_t *heap, size_t *n, size_t v) {
+static void sh_heap_push(const sh_ctx_t *c, size_t *heap, size_t *n,
+                         size_t v) {
   size_t i = (*n)++;
   size_t p;
   heap[i] = v;

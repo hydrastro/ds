@@ -83,7 +83,8 @@ ds_status_t ds_gview_simple_paths(const ds_gview_t *g, size_t source,
  * DS_NOT_FOUND if some vertex is unreachable from root. */
 ds_status_t ds_gview_min_arborescence(const ds_gview_t *g, size_t root,
                                       size_t *out_parent_edge,
-                                      double *out_total, ds_context_t *context);
+                                      double *out_total,
+                                      ds_context_t *context);
 
 /* Minimum spanning forest of m edges (u[i], v[i], w[i]) on n vertices:
  * out_in_forest[i] = 1 for chosen edges; total weight in *out_total. */

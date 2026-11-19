@@ -318,7 +318,8 @@ static void mw_fix(ds_mway_btree_t *t, size_t p, size_t ci) {
     memmove(mw_key(t, r, 0), mw_key(t, r, 1), (t->count[r] - 1) * es);
     if (!t->leaf[c]) {
       mw_child(t, c)[t->count[c] + 1] = mw_child(t, r)[0];
-      memmove(mw_child(t, r), mw_child(t, r) + 1, t->count[r] * sizeof(size_t));
+      memmove(mw_child(t, r), mw_child(t, r) + 1,
+              t->count[r] * sizeof(size_t));
     }
     t->count[c]++;
     t->count[r]--;

@@ -50,10 +50,9 @@ ds_status_t ds_gview_single_destination(const ds_gview_t *g, size_t target,
                                         ds_context_t *context);
 
 /* visit(u, v) with u < v for each separation pair; return false to stop. */
-ds_status_t
-ds_gview_separation_pairs(const ds_gview_t *g,
-                          bool (*visit)(size_t u, size_t v, void *user),
-                          void *user, size_t *out_count, ds_context_t *context);
+ds_status_t ds_gview_separation_pairs(
+    const ds_gview_t *g, bool (*visit)(size_t u, size_t v, void *user),
+    void *user, size_t *out_count, ds_context_t *context);
 ds_status_t ds_gview_is_triconnected(const ds_gview_t *g, bool *out_result,
                                      ds_context_t *context);
 

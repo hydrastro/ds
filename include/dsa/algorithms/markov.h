@@ -93,13 +93,14 @@ ds_status_t ds_markov_stationary(const ds_markov_chain_t *chain, double *out);
  * classes and class_of as from ds_markov_classes (absorb has states * that
  * many entries; pass states * states to be safe); steps[i] = expected
  * steps to reach a recurrent state. Either output may be NULL. */
-ds_status_t ds_markov_absorption(const ds_markov_chain_t *chain, double *absorb,
-                                 double *steps);
+ds_status_t ds_markov_absorption(const ds_markov_chain_t *chain,
+                                 double *absorb, double *steps);
 /* target[i] true marks the set A. prob[i] = P(reach A from i), time[i] =
  * E[steps to reach A] (0 on A, HUGE_VAL if prob < 1). Either may be NULL. */
 ds_status_t ds_markov_hitting(const ds_markov_chain_t *chain,
                               const bool *target, double *prob, double *time);
-ds_status_t ds_markov_entropy_rate(const ds_markov_chain_t *chain, double *out);
+ds_status_t ds_markov_entropy_rate(const ds_markov_chain_t *chain,
+                                   double *out);
 
 #ifdef __cplusplus
 }

@@ -6,8 +6,9 @@ static unsigned char *mmh_ptr(const ds_min_max_heap_t *heap, size_t index) {
 }
 
 static void mmh_moved(ds_min_max_heap_t *heap, size_t index, size_t report) {
-  if (heap->moved != NULL)
+  if (heap->moved != NULL) {
     heap->moved(mmh_ptr(heap, index), report, heap->moved_user);
+  }
 }
 
 /* On min levels "better" means smaller; on max levels, larger. */
@@ -64,8 +65,9 @@ static void mmh_trickle_down(ds_min_max_heap_t *heap, size_t index,
   size_t limit;
   size_t parent;
   for (;;) {
-    if (n < 2 || index > (n - 2) / 2)
+    if (n < 2 || index > (n - 2) / 2) {
       return;
+    }
     first_child = 2 * index + 1;
     if (first_child >= n) {
       return;
@@ -137,8 +139,9 @@ ds_status_t ds_min_max_heap_push(ds_min_max_heap_t *heap, const void *elem) {
   size_t index;
   size_t parent;
   bool min_level;
-  if (heap == NULL || elem == NULL)
+  if (heap == NULL || elem == NULL) {
     return DS_ERR_NULL;
+  }
   status = ds_vec_push(&heap->items, elem);
   if (status != DS_OK) {
     return status;
@@ -180,18 +183,21 @@ const void *ds_min_max_heap_peek_max(const ds_min_max_heap_t *heap) {
 ds_status_t ds_min_max_heap_repair_at(ds_min_max_heap_t *heap, size_t index) {
   bool min_side;
   size_t parent;
-  if (heap == NULL)
+  if (heap == NULL) {
     return DS_ERR_NULL;
-  if (index >= heap->items.size)
+  }
+  if (index >= heap->items.size) {
     return DS_ERR_RANGE;
+  }
   min_side = mmh_is_min_level(index);
   if (index != 0) {
     parent = (index - 1) / 2;
     if (mmh_better(heap, index, parent, !min_side)) {
       mmh_swap(heap, index, parent);
       mmh_bubble_up(heap, parent, !min_side);
-    } else
+    } else {
       mmh_bubble_up(heap, index, min_side);
+    }
   }
   /* A crossing swap may leave the old opposite-level parent too large/small
    * for this subtree; a same-level bubble already preserves it. */
@@ -201,10 +207,12 @@ ds_status_t ds_min_max_heap_repair_at(ds_min_max_heap_t *heap, size_t index) {
 
 ds_status_t ds_min_max_heap_update_at(ds_min_max_heap_t *heap, size_t index,
                                       const void *elem) {
-  if (heap == NULL || elem == NULL)
+  if (heap == NULL || elem == NULL) {
     return DS_ERR_NULL;
-  if (index >= heap->items.size)
+  }
+  if (index >= heap->items.size) {
     return DS_ERR_RANGE;
+  }
   mmh_moved(heap, index, (size_t)-1);
   memmove(mmh_ptr(heap, index), elem, heap->items.elem_size);
   mmh_moved(heap, index, index);
@@ -214,10 +222,12 @@ ds_status_t ds_min_max_heap_update_at(ds_min_max_heap_t *heap, size_t index,
 ds_status_t ds_min_max_heap_remove_at(ds_min_max_heap_t *heap, size_t index,
                                       void *out) {
   size_t last, es;
-  if (heap == NULL)
+  if (heap == NULL) {
     return DS_ERR_NULL;
-  if (index >= heap->items.size)
+  }
+  if (index >= heap->items.size) {
     return DS_ERR_RANGE;
+  }
   last = heap->items.size - 1;
   es = heap->items.elem_size;
   if (out != NULL) {
@@ -236,8 +246,9 @@ ds_status_t ds_min_max_heap_remove_at(ds_min_max_heap_t *heap, size_t index,
 }
 
 ds_status_t ds_min_max_heap_pop_min(ds_min_max_heap_t *heap, void *out) {
-  if (heap == NULL)
+  if (heap == NULL) {
     return DS_ERR_NULL;
+  }
   if (heap->items.size == 0) {
     return DS_EMPTY;
   }
@@ -246,8 +257,9 @@ ds_status_t ds_min_max_heap_pop_min(ds_min_max_heap_t *heap, void *out) {
 
 ds_status_t ds_min_max_heap_pop_max(ds_min_max_heap_t *heap, void *out) {
   size_t index;
-  if (heap == NULL)
+  if (heap == NULL) {
     return DS_ERR_NULL;
+  }
   if (heap->items.size == 0) {
     return DS_EMPTY;
   }
@@ -265,11 +277,14 @@ bool ds_min_max_heap_is_empty(const ds_min_max_heap_t *heap) {
 
 void ds_min_max_heap_clear(ds_min_max_heap_t *heap) {
   size_t i;
-  if (heap == NULL)
+  if (heap == NULL) {
     return;
-  if (heap->moved != NULL)
-    for (i = 0; i < heap->items.size; i++)
+  }
+  if (heap->moved != NULL) {
+    for (i = 0; i < heap->items.size; i++) {
       mmh_moved(heap, i, (size_t)-1);
+    }
+  }
   ds_vec_clear(&heap->items);
 }
 
@@ -278,13 +293,16 @@ void ds_min_max_heap_set_move_callback(ds_min_max_heap_t *heap,
                                                      void *),
                                        void *user) {
   size_t i;
-  if (heap == NULL)
+  if (heap == NULL) {
     return;
+  }
   heap->moved = moved;
   heap->moved_user = user;
-  if (moved != NULL)
-    for (i = 0; i < heap->items.size; i++)
+  if (moved != NULL) {
+    for (i = 0; i < heap->items.size; i++) {
       mmh_moved(heap, i, i);
+    }
+  }
 }
 
 const void *ds_min_max_heap_at(const ds_min_max_heap_t *heap, size_t index) {

@@ -27,8 +27,9 @@ static int compare_hit(ds_bplus_tree_node_t *a, ds_bplus_tree_node_t *b) {
 static void add_hit(const ds_aho_corasick_match_t *match, void *user) {
   hit_index_t *index = (hit_index_t *)user;
   hit_t *hit;
-  if (index->status != DS_OK)
+  if (index->status != DS_OK) {
     return;
+  }
   if (index->used == sizeof(index->records) / sizeof(index->records[0])) {
     index->status = DS_ERR_RANGE;
     return;
@@ -38,8 +39,9 @@ static void add_hit(const ds_aho_corasick_match_t *match, void *user) {
   hit->offset = match->start;
   hit->pattern = match->pattern_id;
   index->status = ds_bplus_tree_insert_ex(index->tree, &hit->node);
-  if (index->status == DS_OK)
+  if (index->status == DS_OK) {
     index->used++;
+  }
 }
 
 static void show_hit(ds_bplus_tree_node_t *node) {
@@ -50,8 +52,9 @@ static void show_hit(ds_bplus_tree_node_t *node) {
 #define EDIT(call)                                                            \
   do {                                                                        \
     st = (call);                                                              \
-    if (DS_FAILED(st))                                                        \
+    if (DS_FAILED(st)) {                                                      \
       goto cleanup;                                                           \
+    }                                                                         \
   } while (0)
 
 int main(void) {
@@ -72,8 +75,9 @@ int main(void) {
     st = DS_ERR_ALLOC;
     goto cleanup;
   }
-  for (i = 0; i < 40; i++)
+  for (i = 0; i < 40; i++) {
     EDIT(ds_rope_append_ex(rope, line, strlen(line)));
+  }
   EDIT(ds_rope_insert_ex(rope, 0, "Draft: ", 7));
   EDIT(ds_rope_delete_ex(rope, 0, 7));
   EDIT(ds_rope_concat_ex(rope, footer));
@@ -98,15 +102,19 @@ int main(void) {
   high.offset = 99;
   ds_bplus_tree_range_walk(index.tree, &low.node, &high.node, show_hit);
 cleanup:
-  if (text != NULL)
+  if (text != NULL) {
     ds_context_free(rope->context, text);
-  if (index.tree != NULL)
+  }
+  if (index.tree != NULL) {
     ds_bplus_tree_destroy(index.tree, NULL);
-  if (matcher != NULL)
+  }
+  if (matcher != NULL) {
     ds_aho_corasick_destroy(matcher);
+  }
   ds_rope_destroy(rope);
   ds_rope_destroy(footer);
-  if (DS_FAILED(st))
+  if (DS_FAILED(st)) {
     fprintf(stderr, "text operation failed: %d\n", (int)st);
+  }
   return DS_FAILED(st) ? 1 : 0;
 }

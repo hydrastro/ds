@@ -21,9 +21,9 @@ extern "C" {
  * The pointer must address the named member of a live object of this type.
  * In C++ the type must be standard-layout. Use the CONST form for read-only
  * nodes; CAST is only suitable when the node is the first member. */
-#define DS_CONTAINER_OF(node, type, member)                                    \
+#define DS_CONTAINER_OF(node, type, member)                                   \
   ((type *)((unsigned char *)(node) - offsetof(type, member)))
-#define DS_CONTAINER_OF_CONST(node, type, member)                              \
+#define DS_CONTAINER_OF_CONST(node, type, member)                             \
   ((const type *)((const unsigned char *)(node) - offsetof(type, member)))
 
 #ifndef DS_VA_COPY
@@ -40,7 +40,7 @@ extern "C" {
 #elif defined(va_copy)
 #define DS_VA_COPY(dst, src) va_copy((dst), (src))
 #else
-#error                                                                         \
+#error                                                                        \
     "No va_copy/__va_copy available on this platform; cannot safely copy va_list under -std=c89."
 #endif
 #endif
@@ -51,7 +51,8 @@ extern "C" {
  * offers it (GCC, clang); nothing elsewhere */
 #ifndef DS_FORMAT_PRINTF
 #if defined(__GNUC__)
-#define DS_FORMAT_PRINTF(fmt, first) __attribute__((format(printf, fmt, first)))
+#define DS_FORMAT_PRINTF(fmt, first)                                          \
+  __attribute__((format(printf, fmt, first)))
 #else
 #define DS_FORMAT_PRINTF(fmt, first)
 #endif

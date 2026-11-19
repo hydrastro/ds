@@ -61,8 +61,9 @@ static size_t sd_interp(unsigned long k, unsigned long mn, unsigned long mx,
  * buckets + 1 entries; afterwards bucket b is [start(b), counts[b]) with
  * start(0) = 0 and start(b) = counts[b - 1]. */
 static ds_status_t sd_distribute(void *base, size_t count, size_t es,
-                                 sd_bucket_func_t bf, void *ctx, size_t buckets,
-                                 void *scratch, size_t *counts) {
+                                 sd_bucket_func_t bf, void *ctx,
+                                 size_t buckets, void *scratch,
+                                 size_t *counts) {
   size_t i;
   size_t b;
   size_t sum = 0;
@@ -349,7 +350,8 @@ ds_status_t ds_interpolation_sort(void *base, size_t count, size_t elem_size,
 ds_status_t ds_address_calculation_sort(void *base, size_t count,
                                         size_t elem_size, ds_key_func_t key,
                                         ds_compare_func_t compare, void *user,
-                                        size_t buckets, ds_context_t *context) {
+                                        size_t buckets,
+                                        ds_context_t *context) {
   size_t *head;
   size_t *next;
   unsigned char *scratch;
@@ -493,8 +495,9 @@ ds_status_t ds_flash_sort(void *base, size_t count, size_t elem_size,
 }
 
 ds_status_t ds_linear_probing_sort(void *base, size_t count, size_t elem_size,
-                                   ds_key_func_t key, ds_compare_func_t compare,
-                                   void *user, ds_context_t *context) {
+                                   ds_key_func_t key,
+                                   ds_compare_func_t compare, void *user,
+                                   ds_context_t *context) {
   unsigned char *table;
   unsigned char *used;
   unsigned long mn;
@@ -628,7 +631,8 @@ ds_distributive_partitioning_sort(void *base, size_t count, size_t elem_size,
       ds_insertion_sort(AT(a, lo, elem_size), len, elem_size, compare, user);
       continue;
     }
-    sd_key_range(AT(a, lo, elem_size), len, elem_size, key, user, &d.mn, &d.mx);
+    sd_key_range(AT(a, lo, elem_size), len, elem_size, key, user, &d.mn,
+                 &d.mx);
     if (d.mn == d.mx) {
       /* equal keys: only the comparator can still order them */
       ds_intro_sort(AT(a, lo, elem_size), len, elem_size, compare, user);
@@ -720,8 +724,8 @@ static size_t sd_bucket_of(ds_byte_at_func_t byte_at, const void *elem,
 }
 
 /* Compare two keys from `depth` on. */
-static int sd_bytes_cmp(ds_byte_at_func_t byte_at, const void *x, const void *y,
-                        size_t depth, void *user) {
+static int sd_bytes_cmp(ds_byte_at_func_t byte_at, const void *x,
+                        const void *y, size_t depth, void *user) {
   int bx;
   int by;
   for (;; depth++) {
@@ -1073,9 +1077,9 @@ ds_status_t ds_blind_sort(void *base, size_t count, size_t elem_size,
     /* blind descent to some leaf */
     node = root;
     while (nodes[node].depth != SD_NONE) {
-      c = sd_blind_find_child(
-          nodes, node,
-          sd_bucket_of(byte_at, CAT(a, i, elem_size), nodes[node].depth, user));
+      c = sd_blind_find_child(nodes, node,
+                              sd_bucket_of(byte_at, CAT(a, i, elem_size),
+                                           nodes[node].depth, user));
       node = c != SD_NONE ? c : nodes[node].child;
     }
     /* first differing depth against that leaf's key */
@@ -1105,9 +1109,9 @@ ds_status_t ds_blind_sort(void *base, size_t count, size_t elem_size,
     node = root;
     while (nodes[node].depth != SD_NONE && nodes[node].depth < d) {
       parent = node;
-      node = sd_blind_find_child(
-          nodes, node,
-          sd_bucket_of(byte_at, CAT(a, i, elem_size), nodes[node].depth, user));
+      node = sd_blind_find_child(nodes, node,
+                                 sd_bucket_of(byte_at, CAT(a, i, elem_size),
+                                              nodes[node].depth, user));
     }
     nodes[leaf].label = (size_t)(bx + 1);
     if (nodes[node].depth == d) {
@@ -1498,8 +1502,8 @@ ds_status_t ds_unshuffle_sort(void *base, size_t count, size_t elem_size,
   if (st == DS_OK) {
     size_t out = 0;
 #define SD_KEY(p) CAT(copy, sd_pile_at(&piles[p], piles[p].pos), elem_size)
-#define SD_LESS(a, b)                                                          \
-  (compare(SD_KEY(a), SD_KEY(b), user) < 0 ||                                  \
+#define SD_LESS(a, b)                                                         \
+  (compare(SD_KEY(a), SD_KEY(b), user) < 0 ||                                 \
    (compare(SD_KEY(a), SD_KEY(b), user) == 0 && (a) < (b)))
     for (k = 0; k < np; k++) {
       size_t j = hn++;

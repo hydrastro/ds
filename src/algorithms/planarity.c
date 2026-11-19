@@ -504,7 +504,8 @@ static int pl_partition(pl_t *p) {
           }
           hl = p->S[p->sp - 1].lh;
           hr = p->S[p->sp - 1].rh;
-          if (hl != PL_NONE && (hr == PL_NONE || p->lowpt[hl] > p->lowpt[hr])) {
+          if (hl != PL_NONE &&
+              (hr == PL_NONE || p->lowpt[hl] > p->lowpt[hr])) {
             p->ref[e] = hl;
           } else {
             p->ref[e] = hr;
@@ -647,7 +648,8 @@ static size_t pl_head(const pl_t *p, size_t h) {
 
 /* copy the rotation system out; vertices >= keep (an apex) are dropped
  * together with their edges, and their positions mark `outer` */
-static ds_status_t pl_export(pl_t *p, size_t keep, ds_planar_embedding_t *out) {
+static ds_status_t pl_export(pl_t *p, size_t keep,
+                             ds_planar_embedding_t *out) {
   size_t *where = p->aedge; /* half-edge -> output position */
   size_t v;
   size_t total = 0;
@@ -722,8 +724,8 @@ static ds_status_t pl_export(pl_t *p, size_t keep, ds_planar_embedding_t *out) {
 /* the distinct non-loop edges of a view, as (lo, hi) pairs with lo < hi;
  * room for `extra` more edges is reserved after them */
 static ds_status_t pl_collect(const ds_gview_t *g, size_t extra,
-                              ds_context_t *ctx, size_t **out_u, size_t **out_v,
-                              size_t *out_m) {
+                              ds_context_t *ctx, size_t **out_u,
+                              size_t **out_v, size_t *out_m) {
   size_t n = g->vertex_count;
   size_t total = 0;
   size_t v;
@@ -1129,8 +1131,8 @@ ds_status_t ds_kuratowski_classify(size_t vertices, const size_t *u,
   if (vertices > ((size_t)-1) / 8 || count > ((size_t)-1) / 8) {
     return DS_ERR_OVERFLOW;
   }
-  block =
-      (size_t *)pl_alloc(context, 4 * vertices + 1 + 2 * count, sizeof(size_t));
+  block = (size_t *)pl_alloc(context, 4 * vertices + 1 + 2 * count,
+                             sizeof(size_t));
   used = (unsigned char *)pl_alloc(context, count, 1);
   if (block == NULL || used == NULL) {
     ds_context_free(context, block);
@@ -1804,9 +1806,9 @@ ds_status_t ds_planarity_kuratowski(const ds_gview_t *g, size_t *out_u,
  */
 
 /* whether the kept edges plus cand[start .. end) form a planar graph */
-static int pl_prefix(pl_t *p, size_t vertices, const size_t *u, const size_t *v,
-                     const size_t *kept, size_t nk, const size_t *cand,
-                     size_t start, size_t end) {
+static int pl_prefix(pl_t *p, size_t vertices, const size_t *u,
+                     const size_t *v, const size_t *kept, size_t nk,
+                     const size_t *cand, size_t start, size_t end) {
   size_t k = 0;
   size_t j;
   if (vertices >= 3 && nk + (end - start) > 3 * vertices - 6) {

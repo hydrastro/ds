@@ -74,8 +74,9 @@ ds_status_t ds_knapsack_01(const size_t *weights, const double *values,
 }
 
 ds_status_t ds_knapsack_unbounded(const size_t *weights, const double *values,
-                                  size_t n, size_t capacity, size_t *out_counts,
-                                  double *out_value, ds_context_t *context) {
+                                  size_t n, size_t capacity,
+                                  size_t *out_counts, double *out_value,
+                                  ds_context_t *context) {
   double *best;
   size_t *pick;
   size_t i;
@@ -309,8 +310,8 @@ ds_status_t ds_cutting_stock(const double *lengths, const size_t *demand,
       sizes[k++] = lengths[i];
     }
   }
-  status =
-      ds_bin_packing(sizes, total, stock, policy, out_stock, out_bars, context);
+  status = ds_bin_packing(sizes, total, stock, policy, out_stock, out_bars,
+                          context);
   ds_context_free(context, sizes);
   return status;
 }

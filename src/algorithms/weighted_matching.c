@@ -841,7 +841,8 @@ static ds_status_t wm_solve(size_t n, const size_t *u, const size_t *v,
   s.queue = (long *)ds_context_alloc(context, bytes.queue);
   if (s.endpoint == NULL || s.nb_off == NULL || s.nb == NULL ||
       s.mate == NULL || s.childs == NULL || s.endps == NULL ||
-      s.bbest == NULL || s.dual == NULL || s.allow == NULL || s.queue == NULL) {
+      s.bbest == NULL || s.dual == NULL || s.allow == NULL ||
+      s.queue == NULL) {
     wm_free(&s);
     return DS_ERR_ALLOC;
   }
@@ -958,8 +959,8 @@ ds_status_t ds_matching_max_weight_ex(size_t n, const size_t *u,
   if (left && !exact) {
     /* integral weights whose duals outgrew the exact range: solve again
      * with the floating tolerance */
-    st = wm_solve(n, u, v, w, m, max_cardinality, out_mate, out_weight, context,
-                  false, false, &left, &mode);
+    st = wm_solve(n, u, v, w, m, max_cardinality, out_mate, out_weight,
+                  context, false, false, &left, &mode);
   }
   if (st == DS_OK && out_mode != NULL) {
     *out_mode = mode;

@@ -17,7 +17,8 @@
  * pointers through reserve. Edge member/value pointers remain valid until that
  * edge is removed, members are replaced, or the graph is destroyed. Map growth
  * does not move the separately allocated edge records. Payload bytes have no
- * ownership callbacks: resources referenced by those bytes remain caller-owned.
+ * ownership callbacks: resources referenced by those bytes remain
+ * caller-owned.
  */
 #include <dsa/structures/map_iface.h>
 #include <dsa/structures/vec.h>
@@ -49,11 +50,13 @@ ds_status_t ds_hypergraph_init(ds_hypergraph_t *graph,
                                const ds_hypergraph_config_t *config);
 void ds_hypergraph_destroy(ds_hypergraph_t *graph);
 /* Shrinking requires every removed vertex to have degree zero. */
-ds_status_t ds_hypergraph_resize_vertices(ds_hypergraph_t *graph, size_t count);
+ds_status_t ds_hypergraph_resize_vertices(ds_hypergraph_t *graph,
+                                          size_t count);
 size_t ds_hypergraph_vertex_count(const ds_hypergraph_t *graph);
 size_t ds_hypergraph_edge_count(const ds_hypergraph_t *graph);
-ds_status_t ds_hypergraph_insert(ds_hypergraph_t *graph, const size_t *vertices,
-                                 size_t count, const void *value,
+ds_status_t ds_hypergraph_insert(ds_hypergraph_t *graph,
+                                 const size_t *vertices, size_t count,
+                                 const void *value,
                                  ds_hyperedge_handle_t *out_edge);
 ds_status_t ds_hypergraph_set_members(ds_hypergraph_t *graph,
                                       ds_hyperedge_handle_t edge,

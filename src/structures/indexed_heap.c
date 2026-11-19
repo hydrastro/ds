@@ -9,7 +9,8 @@ static const unsigned char *iheap_key_of(const ds_indexed_heap_t *heap,
   return heap->keys + id * heap->key_size;
 }
 
-static int iheap_less(const ds_indexed_heap_t *heap, size_t a_id, size_t b_id) {
+static int iheap_less(const ds_indexed_heap_t *heap, size_t a_id,
+                      size_t b_id) {
   return heap->compare(iheap_key_of(heap, a_id), iheap_key_of(heap, b_id),
                        heap->user) < 0;
 }
@@ -127,8 +128,9 @@ ds_status_t ds_indexed_heap_init(ds_indexed_heap_t *heap,
 
 ds_status_t ds_indexed_heap_init_buffer(ds_indexed_heap_t *heap,
                                         const ds_indexed_heap_config_t *config,
-                                        size_t *heap_buffer, size_t *pos_buffer,
-                                        void *key_buffer, size_t max_ids) {
+                                        size_t *heap_buffer,
+                                        size_t *pos_buffer, void *key_buffer,
+                                        size_t max_ids) {
   ds_status_t status;
   size_t i;
   if (heap == NULL ||

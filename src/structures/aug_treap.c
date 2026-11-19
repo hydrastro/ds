@@ -83,10 +83,12 @@ static void aug_split(ds_aug_treap_t *t, ds_aug_node_t *n, const void *key,
     n = next;
   }
   *ls = *rs = NULL;
-  for (; left != NULL; left = left->parent)
+  for (; left != NULL; left = left->parent) {
     aug_pull(t, left);
-  for (; right != NULL; right = right->parent)
+  }
+  for (; right != NULL; right = right->parent) {
     aug_pull(t, right);
+  }
 }
 
 static ds_aug_node_t *aug_merge(ds_aug_treap_t *t, ds_aug_node_t *a,
@@ -109,10 +111,12 @@ static ds_aug_node_t *aug_merge(ds_aug_treap_t *t, ds_aug_node_t *a,
     tail = chosen;
   }
   *slot = a == NULL ? b : a;
-  if (*slot != NULL)
+  if (*slot != NULL) {
     (*slot)->parent = tail;
-  for (; tail != NULL; tail = tail->parent)
+  }
+  for (; tail != NULL; tail = tail->parent) {
     aug_pull(t, tail);
+  }
   return root;
 }
 
@@ -130,8 +134,9 @@ static ds_aug_node_t *aug_find(const ds_aug_treap_t *t, const void *key) {
 }
 
 static void aug_pull_path(ds_aug_treap_t *t, ds_aug_node_t *n) {
-  for (; n != NULL; n = n->parent)
+  for (; n != NULL; n = n->parent) {
     aug_pull(t, n);
+  }
 }
 
 static void aug_free(ds_aug_treap_t *t, ds_aug_node_t *n) {
@@ -243,8 +248,9 @@ static ds_status_t aug_store(ds_aug_treap_t *t, const void *key,
     }
     return DS_EXISTS;
   }
-  if (aug_count(t->root) == (size_t)-1)
+  if (aug_count(t->root) == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   n = (ds_aug_node_t *)ds_context_alloc(t->config.context, t->node_bytes);
   if (n == NULL) {
     return DS_ERR_ALLOC;
@@ -276,23 +282,28 @@ ds_status_t ds_aug_treap_put(ds_aug_treap_t *treap, const void *key,
 ds_status_t ds_aug_treap_remove(ds_aug_treap_t *t, const void *key,
                                 void *out_value) {
   ds_aug_node_t *found, *parent, *merged;
-  if (t == NULL || key == NULL)
+  if (t == NULL || key == NULL) {
     return DS_ERR_NULL;
+  }
   found = aug_find(t, key);
-  if (found == NULL)
+  if (found == NULL) {
     return DS_NOT_FOUND;
+  }
   parent = found->parent;
-  if (out_value != NULL && t->config.value_size > 0)
+  if (out_value != NULL && t->config.value_size > 0) {
     memmove(out_value, AUG_AT(found, t->value_offset), t->config.value_size);
+  }
   merged = aug_merge(t, found->left, found->right);
-  if (parent == NULL)
+  if (parent == NULL) {
     t->root = merged;
-  else if (parent->left == found)
+  } else if (parent->left == found) {
     parent->left = merged;
-  else
+  } else {
     parent->right = merged;
-  if (merged != NULL)
+  }
+  if (merged != NULL) {
     merged->parent = parent;
+  }
   aug_pull_path(t, parent);
   ds_context_free(t->config.context, found);
   return DS_OK;
@@ -384,26 +395,30 @@ static void aug_range(const ds_aug_treap_t *t, const ds_aug_node_t *n,
                       unsigned char *tmp, unsigned char *single) {
   const ds_aug_node_t *x;
   while (n != NULL) {
-    if (aug_cmp(t, aug_key(t, n), low) < 0)
+    if (aug_cmp(t, aug_key(t, n), low) < 0) {
       n = n->right;
-    else if (aug_cmp(t, aug_key(t, n), high) >= 0)
+    } else if (aug_cmp(t, aug_key(t, n), high) >= 0) {
       n = n->left;
-    else
+    } else {
       break;
+    }
   }
-  if (n == NULL)
+  if (n == NULL) {
     return;
+  }
   x = n->left;
   while (x != NULL) {
     if (aug_cmp(t, aug_key(t, x), low) >= 0) {
-      if (x->right != NULL)
+      if (x->right != NULL) {
         aug_acc_prepend(t, acc, aug_sum(t, x->right), tmp);
+      }
       t->config.summarize(single, aug_key(t, x), AUG_CAT(x, t->value_offset),
                           t->config.user);
       aug_acc_prepend(t, acc, single, tmp);
       x = x->left;
-    } else
+    } else {
       x = x->right;
+    }
   }
   t->config.summarize(single, aug_key(t, n), AUG_CAT(n, t->value_offset),
                       t->config.user);
@@ -411,14 +426,16 @@ static void aug_range(const ds_aug_treap_t *t, const ds_aug_node_t *n,
   x = n->right;
   while (x != NULL) {
     if (aug_cmp(t, aug_key(t, x), high) < 0) {
-      if (x->left != NULL)
+      if (x->left != NULL) {
         aug_acc_add(t, acc, aug_sum(t, x->left), tmp);
+      }
       t->config.summarize(single, aug_key(t, x), AUG_CAT(x, t->value_offset),
                           t->config.user);
       aug_acc_add(t, acc, single, tmp);
       x = x->right;
-    } else
+    } else {
       x = x->left;
+    }
   }
 }
 
@@ -450,28 +467,32 @@ ds_status_t ds_aug_treap_descend(const ds_aug_treap_t *t,
   ds_aug_node_t *n;
   ds_vec_t pending;
   ds_status_t st;
-  if (t == NULL || descend == NULL)
+  if (t == NULL || descend == NULL) {
     return DS_ERR_NULL;
+  }
   st = ds_vec_init(&pending, sizeof(n), t->config.context);
   n = t->root;
   while (st == DS_OK && (n != NULL || pending.size != 0)) {
     int flags;
-    if (n == NULL)
+    if (n == NULL) {
       (void)ds_vec_pop(&pending, &n);
-    flags =
-        descend(aug_key(t, n), AUG_AT(n, t->value_offset),
-                t->config.summary_size > 0 ? aug_sum(t, n->left) : NULL,
-                t->config.summary_size > 0 ? aug_sum(t, n->right) : NULL, user);
+    }
+    flags = descend(aug_key(t, n), AUG_AT(n, t->value_offset),
+                    t->config.summary_size > 0 ? aug_sum(t, n->left) : NULL,
+                    t->config.summary_size > 0 ? aug_sum(t, n->right) : NULL,
+                    user);
     if ((flags & DS_AUG_STOP) != 0) {
       st = DS_STOP;
       break;
     }
     if ((flags & DS_AUG_LEFT) != 0 && n->left != NULL) {
-      if ((flags & DS_AUG_RIGHT) != 0 && n->right != NULL)
+      if ((flags & DS_AUG_RIGHT) != 0 && n->right != NULL) {
         st = ds_vec_push(&pending, &n->right);
+      }
       n = n->left;
-    } else
+    } else {
       n = (flags & DS_AUG_RIGHT) != 0 ? n->right : NULL;
+    }
   }
   ds_vec_destroy(&pending);
   return st;
@@ -480,22 +501,28 @@ ds_status_t ds_aug_treap_descend(const ds_aug_treap_t *t,
 ds_status_t ds_aug_treap_visit(const ds_aug_treap_t *t,
                                ds_aug_visit_func_t visit, void *user) {
   ds_aug_node_t *n;
-  if (t == NULL || visit == NULL)
+  if (t == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   n = t->root;
-  if (n != NULL)
-    while (n->left != NULL)
+  if (n != NULL) {
+    while (n->left != NULL) {
       n = n->left;
+    }
+  }
   while (n != NULL) {
-    if (!visit(aug_key(t, n), AUG_AT(n, t->value_offset), user))
+    if (!visit(aug_key(t, n), AUG_AT(n, t->value_offset), user)) {
       return DS_STOP;
+    }
     if (n->right != NULL) {
       n = n->right;
-      while (n->left != NULL)
+      while (n->left != NULL) {
         n = n->left;
+      }
     } else {
-      while (n->parent != NULL && n == n->parent->right)
+      while (n->parent != NULL && n == n->parent->right) {
         n = n->parent;
+      }
       n = n->parent;
     }
   }

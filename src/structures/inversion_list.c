@@ -82,7 +82,8 @@ void ds_inversion_list_clear(ds_inversion_list_t *list) {
   }
 }
 
-ds_status_t ds_inversion_list_reserve(ds_inversion_list_t *list, size_t count) {
+ds_status_t ds_inversion_list_reserve(ds_inversion_list_t *list,
+                                      size_t count) {
   size_t cap;
   unsigned long *grown;
   if (list == NULL) {
@@ -139,8 +140,9 @@ ds_status_t ds_inversion_list_assign(ds_inversion_list_t *list,
  * (mode REMOVE). Boundaries < low and > high + 1 are kept; a boundary is
  * inserted at low (high + 1) when the state just before (from) it
  * differs from the target. */
-static ds_status_t il_assign_range(ds_inversion_list_t *list, unsigned long low,
-                                   unsigned long high, int mode) {
+static ds_status_t il_assign_range(ds_inversion_list_t *list,
+                                   unsigned long low, unsigned long high,
+                                   int mode) {
   size_t i;
   size_t j;
   size_t ins_lo;
@@ -187,7 +189,8 @@ static ds_status_t il_assign_range(ds_inversion_list_t *list, unsigned long low,
 }
 
 ds_status_t ds_inversion_list_add_range(ds_inversion_list_t *list,
-                                        unsigned long low, unsigned long high) {
+                                        unsigned long low,
+                                        unsigned long high) {
   return il_assign_range(list, low, high, IL_MODE_ADD);
 }
 
@@ -208,7 +211,8 @@ ds_status_t ds_inversion_list_remove(ds_inversion_list_t *list,
 }
 
 /* Insert value as a boundary, or cancel an equal one. */
-static void il_toggle_boundary(ds_inversion_list_t *list, unsigned long value) {
+static void il_toggle_boundary(ds_inversion_list_t *list,
+                               unsigned long value) {
   size_t p = il_lower_bound(list, value);
   if (p < list->count && list->bounds[p] == value) {
     memmove(list->bounds + p, list->bounds + p + 1,

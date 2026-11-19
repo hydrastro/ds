@@ -15,12 +15,14 @@ long ds_posix_write_cb(void *ud, const void *buf, size_t n) {
   while (off < n) {
     ssize_t w = write(fd, p + off, n - off);
     if (w < 0) {
-      if (errno == EINTR)
+      if (errno == EINTR) {
         continue;
+      }
       return off > 0 ? (long)off : -1;
     }
-    if (w == 0)
+    if (w == 0) {
       return off > 0 ? (long)off : -1;
+    }
     off += (size_t)w;
   }
   return (long)off;
@@ -59,20 +61,23 @@ long ds_posix_writev_cb(void *ud, const void *const *bufs, const size_t *lens,
     }
     w = writev(fd, vec, (int)n);
     if (w < 0) {
-      if (errno == EINTR)
+      if (errno == EINTR) {
         continue;
+      }
       return total > 0 ? (long)total : -1;
     }
-    if (w == 0)
+    if (w == 0) {
       return total > 0 ? (long)total : -1;
+    }
     total += (size_t)w;
     done = (size_t)w;
     while (i < count && done >= lens[i] - skip) {
       done -= lens[i] - skip;
       skip = 0;
       i++;
-      if (done == 0 && (i == count || lens[i] != 0))
+      if (done == 0 && (i == count || lens[i] != 0)) {
         break;
+      }
     }
     skip += done;
   }

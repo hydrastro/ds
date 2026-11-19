@@ -49,9 +49,9 @@ static double sa_del(const ds_edit_costs_t *c, unsigned char x) {
 
 ds_status_t ds_edit_script(const unsigned char *a, size_t n,
                            const unsigned char *b, size_t m,
-                           const ds_edit_costs_t *costs, unsigned char *out_ops,
-                           size_t *out_op_count, double *out_cost,
-                           ds_context_t *context) {
+                           const ds_edit_costs_t *costs,
+                           unsigned char *out_ops, size_t *out_op_count,
+                           double *out_cost, ds_context_t *context) {
   double *prev;
   double *cur;
   double *t;
@@ -1159,8 +1159,8 @@ ds_status_t ds_ratcliff_obershelp(const unsigned char *a, size_t n,
     if (ah <= al || bh <= bl) {
       continue;
     }
-    st = ds_longest_common_substring(a + al, ah - al, b + bl, bh - bl, &pa, &pb,
-                                     &len, context);
+    st = ds_longest_common_substring(a + al, ah - al, b + bl, bh - bl, &pa,
+                                     &pb, &len, context);
     if (st != DS_OK) {
       break;
     }

@@ -130,8 +130,9 @@ static ds_history_branch_t *history_branch_alloc(ds_history_t *history,
                                                  const char *name) {
   ds_history_branch_t *branch;
 
-  if (history->next_branch_id == 0 || history->next_branch_id == ULONG_MAX)
+  if (history->next_branch_id == 0 || history->next_branch_id == ULONG_MAX) {
     return NULL;
+  }
   branch = (ds_history_branch_t *)history_alloc(history, sizeof(*branch));
   if (branch == NULL) {
     return NULL;
@@ -635,12 +636,14 @@ static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
 ds_status_t ds_history_create_context(const ds_history_ops_t *ops,
                                       void *config, ds_context_t *context,
                                       ds_history_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
   if (ops == NULL || ops->create_state == NULL || ops->clone_state == NULL ||
-      ops->destroy_state == NULL || ops->apply == NULL)
+      ops->destroy_state == NULL || ops->apply == NULL) {
     return DS_ERR_NULL;
+  }
   *out = history_create(ops, config, context);
   return *out == NULL ? DS_ERR_ALLOC : DS_OK;
 }
@@ -682,10 +685,12 @@ void ds_history_set_checkpoint_interval(ds_history_t *history,
 }
 
 ds_status_t ds_history_transaction_begin_ex(ds_history_t *history) {
-  if (history == NULL)
+  if (history == NULL) {
     return DS_ERR_NULL;
-  if (history->transaction_depth == (size_t)-1)
+  }
+  if (history->transaction_depth == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   history->transaction_depth++;
   return DS_OK;
 }
@@ -897,18 +902,23 @@ ds_status_t ds_history_branch_insert_at_ex(ds_history_branch_t *branch,
                                            unsigned long *out_id) {
   ds_history_t *history;
   unsigned long id;
-  if (out_id != NULL)
+  if (out_id != NULL) {
     *out_id = 0;
-  if (branch == NULL || out_id == NULL)
+  }
+  if (branch == NULL || out_id == NULL) {
     return DS_ERR_NULL;
-  if (time < branch->fork_time)
+  }
+  if (time < branch->fork_time) {
     return DS_ERR_RANGE;
+  }
   history = branch->history;
   id = history->next_operation_id;
-  if (id == 0 || id == ULONG_MAX)
+  if (id == 0 || id == ULONG_MAX) {
     return DS_ERR_OVERFLOW;
-  if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0)
+  }
+  if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0) {
     return DS_ERR_ALLOC;
+  }
   *out_id = id;
   return DS_OK;
 }
@@ -924,15 +934,19 @@ unsigned long ds_history_branch_insert_at(ds_history_branch_t *branch,
 ds_status_t ds_history_branch_append_ex(ds_history_branch_t *branch, int kind,
                                         void *payload, unsigned long *out_id) {
   unsigned long time;
-  if (out_id != NULL)
+  if (out_id != NULL) {
     *out_id = 0;
-  if (branch == NULL || out_id == NULL)
+  }
+  if (branch == NULL || out_id == NULL) {
     return DS_ERR_NULL;
+  }
   time = history_branch_local_head_time(branch);
-  if (time < branch->fork_time)
+  if (time < branch->fork_time) {
     time = branch->fork_time;
-  if (time == ULONG_MAX)
+  }
+  if (time == ULONG_MAX) {
     return DS_ERR_OVERFLOW;
+  }
   return ds_history_branch_insert_at_ex(branch, time + 1, kind, payload,
                                         out_id);
 }
@@ -993,69 +1007,81 @@ ds_status_t ds_history_branch_merge_with_ex(
   struct ds_history_operation_node *op;
   unsigned long append_time;
   ds_status_t st = DS_OK;
-  if (out_merged != NULL)
+  if (out_merged != NULL) {
     *out_merged = 0;
-  if (target == NULL || source == NULL || out_merged == NULL)
+  }
+  if (target == NULL || source == NULL || out_merged == NULL) {
     return DS_ERR_NULL;
+  }
   if (target == source || target->history != source->history ||
       from_time > through_time ||
-      (flags & ~DS_HISTORY_MERGE_APPEND_AFTER_HEAD) != 0)
+      (flags & ~DS_HISTORY_MERGE_APPEND_AFTER_HEAD) != 0) {
     return DS_ERR_INVALID;
+  }
   history = target->history;
   append_time = history_branch_local_head_time(target);
-  if (append_time < target->fork_time)
+  if (append_time < target->fork_time) {
     append_time = target->fork_time;
+  }
   for (op = source->operations; op != NULL; op = op->next) {
     void *payload;
     bool cloned = history->ops.clone_payload != NULL;
     unsigned long time, id;
     int kind;
     unsigned int action = DS_HISTORY_MERGE_TAKE;
-    if (op->operation.time < from_time || op->operation.time > through_time)
+    if (op->operation.time < from_time || op->operation.time > through_time) {
       continue;
+    }
     if (history->ops.clone_payload != NULL) {
       payload = history->ops.clone_payload(
           op->operation.kind, op->operation.payload, history->clone_data);
-      if (payload == NULL && op->operation.payload != NULL)
+      if (payload == NULL && op->operation.payload != NULL) {
         return DS_ERR_CALLBACK;
+      }
     } else {
       if (history->ops.destroy_payload != NULL &&
-          op->operation.payload != NULL)
+          op->operation.payload != NULL) {
         return DS_ERR_UNSUPPORTED;
+      }
       payload = op->operation.payload;
     }
     time = op->operation.time;
     kind = op->operation.kind;
     if ((flags & DS_HISTORY_MERGE_APPEND_AFTER_HEAD) != 0) {
-      if (append_time == ULONG_MAX)
+      if (append_time == ULONG_MAX) {
         st = DS_ERR_OVERFLOW;
-      else
+      } else {
         time = append_time + 1;
+      }
     }
-    if (st == DS_OK && policy != NULL)
+    if (st == DS_OK && policy != NULL) {
       action = policy(target, source, &op->operation, &time, &kind, &payload,
                       policy_user);
+    }
     if (st == DS_OK) {
-      if (action == DS_HISTORY_MERGE_STOP)
+      if (action == DS_HISTORY_MERGE_STOP) {
         st = DS_STOP;
-      else if (action != DS_HISTORY_MERGE_SKIP &&
-               action != DS_HISTORY_MERGE_TAKE)
+      } else if (action != DS_HISTORY_MERGE_SKIP &&
+                 action != DS_HISTORY_MERGE_TAKE) {
         st = DS_ERR_CALLBACK;
-      else if (action == DS_HISTORY_MERGE_TAKE) {
+      } else if (action == DS_HISTORY_MERGE_TAKE) {
         st = ds_history_branch_insert_at_ex(target, time, kind, payload, &id);
         if (st == DS_OK) {
           (*out_merged)++;
-          if (time > append_time)
+          if (time > append_time) {
             append_time = time;
+          }
           continue;
         }
       }
     }
     if (history->ops.destroy_payload != NULL &&
-        (cloned || payload != op->operation.payload))
+        (cloned || payload != op->operation.payload)) {
       history->ops.destroy_payload(kind, payload);
-    if (st != DS_OK)
+    }
+    if (st != DS_OK) {
       return st;
+    }
   }
   return DS_OK;
 }
@@ -1542,8 +1568,9 @@ history_read_branch_ops(ds_history_branch_t *branch,
       return false;
     }
     payload = read_payload(id, time, kind, read, io_user, payload_user);
-    if (payload == NULL)
+    if (payload == NULL) {
       return false;
+    }
     if (history_branch_insert_with_id(branch, id, time, kind, payload) ==
         0UL) {
       if (history->ops.destroy_payload != NULL) {
@@ -1764,8 +1791,9 @@ void ds_history_archive_init(ds_history_archive_t *archive,
 
 ds_status_t ds_history_archive_init_ex(ds_history_archive_t *a,
                                        ds_context_t *context) {
-  if (a == NULL)
+  if (a == NULL) {
     return DS_ERR_NULL;
+  }
   memset(a, 0, sizeof(*a));
   a->context = context != NULL ? context : ds_default_context();
   return DS_OK;
@@ -1785,8 +1813,9 @@ static void history_archive_free(ds_history_archive_t *a, void *p) {
 }
 
 void ds_history_archive_destroy(ds_history_archive_t *a) {
-  if (a == NULL)
+  if (a == NULL) {
     return;
+  }
   history_archive_free(a, a->data);
   a->data = NULL;
   a->capacity = 0;
@@ -1794,8 +1823,9 @@ void ds_history_archive_destroy(ds_history_archive_t *a) {
 }
 
 void ds_history_archive_clear(ds_history_archive_t *a) {
-  if (a == NULL)
+  if (a == NULL) {
     return;
+  }
   a->size = 0;
   ds_history_archive_rewind(a);
 }
@@ -1820,8 +1850,9 @@ bool ds_history_archive_write(const void *data, size_t size, void *user) {
   ds_history_archive_t *a = (ds_history_archive_t *)user;
   unsigned char *next;
   size_t capacity, needed;
-  if (a == NULL || a->status != DS_OK)
+  if (a == NULL || a->status != DS_OK) {
     return false;
+  }
   if (data == NULL && size != 0) {
     a->status = DS_ERR_NULL;
     return false;
@@ -1846,10 +1877,12 @@ bool ds_history_archive_write(const void *data, size_t size, void *user) {
       a->status = DS_ERR_ALLOC;
       return false;
     }
-    if (a->size != 0)
+    if (a->size != 0) {
       memcpy(next, a->data, a->size);
-    if (size != 0)
+    }
+    if (size != 0) {
       memcpy(next + a->size, data, size);
+    }
     history_archive_free(a, a->data);
     a->data = next;
     a->capacity = capacity;
@@ -1862,8 +1895,9 @@ bool ds_history_archive_write(const void *data, size_t size, void *user) {
 
 bool ds_history_archive_read(void *data, size_t size, void *user) {
   ds_history_archive_t *a = (ds_history_archive_t *)user;
-  if (a == NULL || a->status != DS_OK)
+  if (a == NULL || a->status != DS_OK) {
     return false;
+  }
   if (data == NULL && size != 0) {
     a->status = DS_ERR_NULL;
     return false;
@@ -1872,8 +1906,9 @@ bool ds_history_archive_read(void *data, size_t size, void *user) {
     a->status = DS_ERR_INVALID;
     return false;
   }
-  if (size != 0)
+  if (size != 0) {
     memmove(data, a->data + a->offset, size);
+  }
   a->offset += size;
   return true;
 }
@@ -1902,8 +1937,9 @@ bool ds_history_serialize_portable(
 }
 
 void ds_history_load_options_init(ds_history_load_options_t *options) {
-  if (options != NULL)
+  if (options != NULL) {
     memset(options, 0, sizeof(*options));
+  }
 }
 
 ds_status_t ds_history_deserialize_portable_ex(
@@ -1919,11 +1955,13 @@ ds_status_t ds_history_deserialize_portable_ex(
   size_t branches, interval, i, total = 0;
   unsigned long next_operation, next_branch;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (ops == NULL || read == NULL || read_payload == NULL)
+  if (ops == NULL || read == NULL || read_payload == NULL) {
     return DS_ERR_NULL;
+  }
   if (options == NULL) {
     ds_history_load_options_init(&defaults);
     options = &defaults;
@@ -1935,27 +1973,33 @@ ds_status_t ds_history_deserialize_portable_ex(
       !ds_history_read_size(read, io_user, &branches) ||
       !ds_history_read_ulong(read, io_user, &next_operation) ||
       !ds_history_read_ulong(read, io_user, &next_branch) ||
-      !ds_history_read_size(read, io_user, &interval))
+      !ds_history_read_size(read, io_user, &interval)) {
     return DS_ERR_INVALID;
-  if (branches == 0 || next_operation == 0 || next_branch == 0)
+  }
+  if (branches == 0 || next_operation == 0 || next_branch == 0) {
     return DS_ERR_INVALID;
-  if (options->max_branches != 0 && branches > options->max_branches)
+  }
+  if (options->max_branches != 0 && branches > options->max_branches) {
     return DS_ERR_OVERFLOW;
+  }
   st = ds_history_create_context(ops, config, options->context, &h);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   h->checkpoint_interval = interval;
   st = ds_ordered_init(&branch_ids,
                        options->index_ops == NULL ? ds_ordered_ab_ops()
                                                   : options->index_ops,
                        sizeof(ds_history_branch_t *), options->context);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_ordered_init(&operation_ids,
                          options->index_ops == NULL ? ds_ordered_ab_ops()
                                                     : options->index_ops,
                          0, options->context);
-  if (st != DS_OK)
+  }
+  if (st != DS_OK) {
     goto done;
+  }
   for (i = 0; i < branches; i++) {
     unsigned long id, parent_id, fork, previous_time = 0, previous_id = 0;
     size_t name_len, count, j;
@@ -1967,20 +2011,23 @@ ds_status_t ds_history_deserialize_portable_ex(
     if (!ds_history_read_ulong(read, io_user, &id) ||
         !ds_history_read_ulong(read, io_user, &parent_id) ||
         !ds_history_read_ulong(read, io_user, &fork) ||
-        !ds_history_read_size(read, io_user, &name_len))
+        !ds_history_read_size(read, io_user, &name_len)) {
       goto done;
+    }
     if (id == 0 || id == ULONG_MAX ||
         ds_ordered_find(&branch_ids, id) != NULL ||
-        ((i == 0) != (parent_id == 0)) || name_len == (size_t)-1)
+        ((i == 0) != (parent_id == 0)) || name_len == (size_t)-1) {
       goto done;
+    }
     if (options->max_name_bytes != 0 && name_len > options->max_name_bytes) {
       st = DS_ERR_OVERFLOW;
       goto done;
     }
     if (parent_id != 0) {
       found = ds_ordered_find(&branch_ids, parent_id);
-      if (found == NULL)
+      if (found == NULL) {
         goto done;
+      }
       memcpy(&parent, found, sizeof(parent));
     }
     if (name_len != 0) {
@@ -2021,14 +2068,17 @@ ds_status_t ds_history_deserialize_portable_ex(
         goto done;
       }
     }
-    if (id >= h->next_branch_id)
+    if (id >= h->next_branch_id) {
       h->next_branch_id = id + 1;
+    }
     st = ds_ordered_insert(&branch_ids, id, &b);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       goto done;
+    }
     st = DS_ERR_INVALID;
-    if (!ds_history_read_size(read, io_user, &count))
+    if (!ds_history_read_size(read, io_user, &count)) {
       goto done;
+    }
     if (count > (size_t)-1 - total ||
         (options->max_operations != 0 &&
          (total > options->max_operations ||
@@ -2054,20 +2104,23 @@ ds_status_t ds_history_deserialize_portable_ex(
         goto done;
       }
       st = ds_ordered_insert(&operation_ids, op_id, NULL);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         goto done;
+      }
       st = read_payload(op_id, time, kind, read, io_user, payload_user,
                         &payload);
       if (st != DS_OK) {
-        if (st > DS_OK)
+        if (st > DS_OK) {
           st = DS_ERR_CALLBACK;
+        }
         goto done;
       }
       node =
           (struct ds_history_operation_node *)history_alloc(h, sizeof(*node));
       if (node == NULL) {
-        if (h->ops.destroy_payload != NULL)
+        if (h->ops.destroy_payload != NULL) {
           h->ops.destroy_payload(kind, payload);
+        }
         st = DS_ERR_ALLOC;
         goto done;
       }
@@ -2080,8 +2133,9 @@ ds_status_t ds_history_deserialize_portable_ex(
       tail = &node->next;
       previous_time = time;
       previous_id = op_id;
-      if (op_id >= h->next_operation_id)
+      if (op_id >= h->next_operation_id) {
         h->next_operation_id = op_id + 1;
+      }
     }
   }
   if (next_operation < h->next_operation_id ||
@@ -2121,8 +2175,9 @@ ds_history_t *ds_history_deserialize_portable(
   history_direct_reader_t reader;
   ds_history_load_options_t options;
   ds_history_t *out = NULL;
-  if (read_payload == NULL)
+  if (read_payload == NULL) {
     return NULL;
+  }
   ds_history_load_options_init(&options);
   options.context = context;
   reader.read = read_payload;
@@ -2138,15 +2193,19 @@ ds_status_t ds_history_branch_create_ex(ds_history_t *history,
                                         unsigned long fork_time,
                                         const char *name,
                                         ds_history_branch_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (history == NULL)
+  if (history == NULL) {
     return DS_ERR_NULL;
-  if (parent != NULL && parent->history != history)
+  }
+  if (parent != NULL && parent->history != history) {
     return DS_ERR_INVALID;
-  if (history->next_branch_id == 0 || history->next_branch_id == ULONG_MAX)
+  }
+  if (history->next_branch_id == 0 || history->next_branch_id == ULONG_MAX) {
     return DS_ERR_OVERFLOW;
+  }
   *out = ds_history_branch_create(history, parent, fork_time, name);
   return *out == NULL ? DS_ERR_ALLOC : DS_OK;
 }

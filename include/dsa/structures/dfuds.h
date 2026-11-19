@@ -46,8 +46,9 @@ typedef struct ds_dfuds {
 
 /* parent[i] is the parent of input node i (DS_BP_NONE for the root);
  * out_number (optional) receives each input node's preorder number */
-ds_status_t ds_dfuds_from_parents(ds_dfuds_t *t, const size_t *parent, size_t n,
-                                  size_t *out_number, const ds_rs_ops_t *rs_ops,
+ds_status_t ds_dfuds_from_parents(ds_dfuds_t *t, const size_t *parent,
+                                  size_t n, size_t *out_number,
+                                  const ds_rs_ops_t *rs_ops,
                                   ds_context_t *context);
 /* a DFUDS sequence of 2n bits (or 0 bits) */
 ds_status_t ds_dfuds_from_parens(ds_dfuds_t *t, const unsigned long *words,

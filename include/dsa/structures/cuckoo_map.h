@@ -43,7 +43,8 @@ extern "C" {
 #define DS_CUCKOO_MAP_MAX_WAYS 4
 #define DS_CUCKOO_MAP_MAX_SLOTS 8
 
-typedef unsigned long (*ds_cuckoo_map_hash_func_t)(const void *key, void *user);
+typedef unsigned long (*ds_cuckoo_map_hash_func_t)(const void *key,
+                                                   void *user);
 typedef bool (*ds_cuckoo_map_equal_func_t)(const void *a, const void *b,
                                            void *user);
 

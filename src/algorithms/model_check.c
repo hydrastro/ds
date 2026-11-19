@@ -300,7 +300,8 @@ static bool mc_is_binary(ds_ctl_op_t op) {
          (op >= DS_CTL_EU && op <= DS_CTL_AW);
 }
 
-ds_status_t ds_ctl_unary(ds_ctl_t *ctl, ds_ctl_op_t op, size_t a, size_t *out) {
+ds_status_t ds_ctl_unary(ds_ctl_t *ctl, ds_ctl_op_t op, size_t a,
+                         size_t *out) {
   if (ctl == NULL || out == NULL) {
     return DS_ERR_NULL;
   }
@@ -972,7 +973,8 @@ ds_status_t ds_ctl_check(ds_kripke_t *k, const ds_ctl_t *ctl, size_t formula,
       goto done;
     }
     buf[i] = out;
-    mc_eval(&w, op, mc_is_unary(op) || mc_is_binary(op) ? buf[ctl->a[i]] : NULL,
+    mc_eval(&w, op,
+            mc_is_unary(op) || mc_is_binary(op) ? buf[ctl->a[i]] : NULL,
             mc_is_binary(op) ? buf[ctl->b[i]] : NULL, ctl->a[i], out);
   }
 done:
@@ -1094,9 +1096,10 @@ ds_status_t ds_ctl_witness_until(ds_kripke_t *k, const bool *a, const bool *b,
   return st;
 }
 
-ds_status_t ds_ctl_witness_globally(ds_kripke_t *k, const bool *a, size_t start,
-                                    size_t *path, size_t capacity,
-                                    size_t *length, size_t *loop_at) {
+ds_status_t ds_ctl_witness_globally(ds_kripke_t *k, const bool *a,
+                                    size_t start, size_t *path,
+                                    size_t capacity, size_t *length,
+                                    size_t *loop_at) {
   mc_ws_t w;
   size_t *mem;
   bool *eg;
@@ -1175,7 +1178,8 @@ typedef struct mc_bfs {
 
 static bool mc_bfs_allowed(const mc_bfs_t *b, size_t s) {
   return (b->allow == NULL || b->allow[s]) &&
-         (b->comp == NULL || b->comp_id == MC_NONE || b->comp[s] == b->comp_id);
+         (b->comp == NULL || b->comp_id == MC_NONE ||
+          b->comp[s] == b->comp_id);
 }
 
 static bool mc_bfs_goal(const mc_bfs_t *b, size_t s) {
@@ -1187,10 +1191,10 @@ static bool mc_bfs_goal(const mc_bfs_t *b, size_t s) {
  * at least one edge is needed) to a goal, appended to path after its
  * first state: path[*len ..), counting past capacity. DS_ERR_STATE when
  * no goal is reachable. */
-static ds_status_t mc_bfs_append(ds_kripke_t *k, const mc_bfs_t *b, size_t from,
-                                 bool one_edge, size_t *parent, size_t *queue,
-                                 size_t *path, size_t capacity, size_t *len,
-                                 size_t *end) {
+static ds_status_t mc_bfs_append(ds_kripke_t *k, const mc_bfs_t *b,
+                                 size_t from, bool one_edge, size_t *parent,
+                                 size_t *queue, size_t *path, size_t capacity,
+                                 size_t *len, size_t *end) {
   size_t head = 0;
   size_t tail = 0;
   size_t found = MC_NONE;
@@ -1401,8 +1405,8 @@ ds_status_t ds_ctl_witness_globally_fair(ds_kripke_t *k, const bool *a,
   if (st == DS_OK) {
     spec.goal = NULL;
     spec.goal_state = r;
-    st = mc_bfs_append(k, &spec, cur, true, parent, queue, path, capacity, &len,
-                       &cur);
+    st = mc_bfs_append(k, &spec, cur, true, parent, queue, path, capacity,
+                       &len, &cur);
     len--; /* the loop ends by stepping back to r, which is not repeated */
   }
   if (st != DS_OK) {

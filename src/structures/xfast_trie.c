@@ -284,7 +284,8 @@ ds_status_t ds_xfast_insert(ds_xfast_t *t, unsigned long key,
   return DS_OK;
 }
 
-ds_status_t ds_xfast_remove(ds_xfast_t *t, unsigned long key, void *out_value) {
+ds_status_t ds_xfast_remove(ds_xfast_t *t, unsigned long key,
+                            void *out_value) {
   const unsigned char *s;
   xf_leaf_t links;
   unsigned l;

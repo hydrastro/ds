@@ -50,8 +50,9 @@ typedef struct ds_kmap_cover {
 
 /* order is a permutation of 0..variables-1; NULL uses natural bit order.
  * values has 2^variables entries. Output is unchanged on error. */
-ds_status_t ds_kmap_init(ds_kmap_t *map, size_t variables, size_t row_variables,
-                         const size_t *order, const unsigned char *values);
+ds_status_t ds_kmap_init(ds_kmap_t *map, size_t variables,
+                         size_t row_variables, const size_t *order,
+                         const unsigned char *values);
 ds_status_t ds_kmap_assignment(const ds_kmap_t *map, size_t row, size_t column,
                                size_t *out_assignment);
 ds_status_t ds_kmap_coordinates(const ds_kmap_t *map, size_t assignment,

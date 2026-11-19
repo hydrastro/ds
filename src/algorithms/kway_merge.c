@@ -17,8 +17,8 @@ static size_t km_round(size_t n) {
 }
 
 /* Layout: tree (2k size_t) | values (k * es) | alive (k bytes). */
-static int km_layout(size_t k, size_t es, size_t *out_values, size_t *out_alive,
-                     size_t *out_total) {
+static int km_layout(size_t k, size_t es, size_t *out_values,
+                     size_t *out_alive, size_t *out_total) {
   size_t tree;
   size_t values;
   size_t n = k == 0 ? 1 : k;
@@ -442,8 +442,8 @@ ds_status_t ds_kway_merge(const ds_kway_merge_config_t *config,
   tc.kind = config->policy == DS_MERGE_WINNER_TREE ? DS_TOURNAMENT_WINNER
                                                    : DS_TOURNAMENT_LOSER;
   if (config->buffer != NULL) {
-    st =
-        ds_tournament_init_buffer(&t, &tc, config->buffer, config->buffer_size);
+    st = ds_tournament_init_buffer(&t, &tc, config->buffer,
+                                   config->buffer_size);
   } else {
     st = ds_tournament_init(&t, &tc, context);
   }
@@ -475,13 +475,15 @@ static ds_status_t km_arrays_next(size_t source, void *out, void *user) {
   if (s->pos[source] >= s->counts[source]) {
     return DS_NOT_FOUND;
   }
-  memcpy(out, (const unsigned char *)s->arrays[source] + s->pos[source] * s->es,
+  memcpy(out,
+         (const unsigned char *)s->arrays[source] + s->pos[source] * s->es,
          s->es);
   s->pos[source]++;
   return DS_OK;
 }
 
-static ds_status_t km_arrays_emit(const void *elem, size_t source, void *user) {
+static ds_status_t km_arrays_emit(const void *elem, size_t source,
+                                  void *user) {
   km_arrays_t *s = (km_arrays_t *)user;
   (void)source;
   memcpy(s->out, elem, s->es);

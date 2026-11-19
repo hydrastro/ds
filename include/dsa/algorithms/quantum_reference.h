@@ -25,7 +25,8 @@ void ds_qref_config_init(ds_qref_config_t *config);
 
 /* A stable classical oracle. Boolean algorithms require output 0 or 1;
  * Simon requires output < 2^bits. Callback errors propagate unchanged.
- * Outputs publish only on DS_OK; RNG/callback side effects do not roll back. */
+ * Outputs publish only on DS_OK; RNG/callback side effects do not roll back.
+ */
 typedef ds_status_t (*ds_qref_oracle_fn)(size_t input, size_t *output,
                                          void *user);
 
@@ -80,7 +81,8 @@ ds_status_t ds_qref_shor_order(unsigned long base, unsigned long modulus,
  * and at most max_shots Fourier order samples. DS_NOT_FOUND for prime n,
  * DS_STOP on exhausted sampling, DS_ERR_RANGE for a simulation budget.
  * This is the factoring branch; discrete logarithms are not provided here. */
-ds_status_t ds_qref_shor_factor(unsigned long n, const ds_qref_config_t *config,
+ds_status_t ds_qref_shor_factor(unsigned long n,
+                                const ds_qref_config_t *config,
                                 unsigned long *out_factor);
 
 #ifdef __cplusplus

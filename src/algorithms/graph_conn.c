@@ -253,7 +253,8 @@ ds_status_t ds_gview_is_triconnected(const ds_gview_t *g, bool *out_result,
   size_t u;
   size_t comps;
   ds_status_t st;
-  if (g == NULL || out_result == NULL || g->degree == NULL || g->edge == NULL) {
+  if (g == NULL || out_result == NULL || g->degree == NULL ||
+      g->edge == NULL) {
     return DS_ERR_NULL;
   }
   *out_result = false;

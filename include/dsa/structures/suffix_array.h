@@ -36,8 +36,8 @@ extern "C" {
 ds_status_t ds_sa_build(const unsigned char *s, size_t n, size_t *out_sa,
                         ds_context_t *context);
 /* integer symbols s[i] < k (DS_ERR_INVALID otherwise) */
-ds_status_t ds_sa_build_int(const size_t *s, size_t n, size_t k, size_t *out_sa,
-                            ds_context_t *context);
+ds_status_t ds_sa_build_int(const size_t *s, size_t n, size_t k,
+                            size_t *out_sa, ds_context_t *context);
 /* out_isa[sa[i]] = i */
 void ds_sa_inverse(const size_t *sa, size_t n, size_t *out_isa);
 /* out_lcp[i]: the longest common prefix of the suffixes at ranks i - 1

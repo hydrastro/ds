@@ -73,7 +73,8 @@ static ds_status_t ms_resize(ds_multiset_t *m, size_t slots) {
       slots > ((size_t)-1) / sizeof(size_t)) {
     return DS_ERR_OVERFLOW;
   }
-  m->keys = (unsigned char *)ds_context_alloc(m->context, slots * m->elem_size);
+  m->keys =
+      (unsigned char *)ds_context_alloc(m->context, slots * m->elem_size);
   m->counts = (size_t *)ds_context_calloc(m->context, slots, sizeof(size_t));
   if (m->keys == NULL || m->counts == NULL) {
     ds_context_free(m->context, m->keys);
@@ -270,7 +271,8 @@ ds_status_t ds_multiset_intersect(ds_multiset_t *m,
   return DS_OK;
 }
 
-ds_status_t ds_multiset_subtract(ds_multiset_t *m, const ds_multiset_t *other) {
+ds_status_t ds_multiset_subtract(ds_multiset_t *m,
+                                 const ds_multiset_t *other) {
   size_t i;
   ds_status_t st = ms_check(m, other);
   for (i = 0; st == DS_OK && i < other->slots; i++) {

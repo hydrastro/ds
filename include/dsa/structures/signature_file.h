@@ -29,7 +29,8 @@ extern "C" {
 /* Hash of a word for the given seed in 0..k-1; seeds should give independent
  * probes. The built-in hash costs O(word length + k) per codeword. */
 typedef size_t (*ds_signature_hash_func_t)(const unsigned char *word,
-                                           size_t len, size_t seed, void *user);
+                                           size_t len, size_t seed,
+                                           void *user);
 
 typedef struct ds_signature_file {
   unsigned char *rows; /* records x row_bytes */

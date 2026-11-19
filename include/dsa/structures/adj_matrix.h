@@ -55,7 +55,8 @@ void ds_adj_matrix_destroy(ds_adj_matrix_t *m);
 /* add u -> v (and v -> u when undirected) with weight w: DS_OK when the
  * edge is new, DS_EXISTS when its weight was replaced; DS_ERR_RANGE for a
  * vertex out of range */
-ds_status_t ds_adj_matrix_set(ds_adj_matrix_t *m, size_t u, size_t v, double w);
+ds_status_t ds_adj_matrix_set(ds_adj_matrix_t *m, size_t u, size_t v,
+                              double w);
 /* DS_OK, or DS_NOT_FOUND when there is no such edge */
 ds_status_t ds_adj_matrix_remove(ds_adj_matrix_t *m, size_t u, size_t v);
 bool ds_adj_matrix_has(const ds_adj_matrix_t *m, size_t u, size_t v);

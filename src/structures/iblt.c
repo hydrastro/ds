@@ -170,8 +170,8 @@ ds_status_t ds_iblt_init(ds_iblt_t *iblt, const ds_iblt_config_t *config) {
   return ib_setup(iblt, config, block);
 }
 
-ds_status_t ds_iblt_init_buffer(ds_iblt_t *iblt, const ds_iblt_config_t *config,
-                                void *buffer) {
+ds_status_t ds_iblt_init_buffer(ds_iblt_t *iblt,
+                                const ds_iblt_config_t *config, void *buffer) {
   ds_status_t status;
   if (iblt == NULL || buffer == NULL) {
     return DS_ERR_NULL;
@@ -218,7 +218,8 @@ static void ib_apply(ds_iblt_t *t, const void *key, const void *value,
     t->hash_sums[c] ^= check;
     ib_xor(ib_ksum(t, c), (const unsigned char *)key, t->config.key_size);
     if (t->config.value_size > 0) {
-      ib_xor(ib_vsum(t, c), (const unsigned char *)value, t->config.value_size);
+      ib_xor(ib_vsum(t, c), (const unsigned char *)value,
+             t->config.value_size);
     }
   }
 }

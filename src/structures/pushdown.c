@@ -6,7 +6,8 @@
 
 ds_status_t ds_pda_init(ds_pda_t *pda, size_t states, size_t input_symbols,
                         size_t stack_symbols, size_t start, size_t start_stack,
-                        ds_pda_acceptance_t acceptance, ds_context_t *context) {
+                        ds_pda_acceptance_t acceptance,
+                        ds_context_t *context) {
   if (pda == NULL) {
     return DS_ERR_NULL;
   }
@@ -102,8 +103,9 @@ ds_status_t ds_pda_add(ds_pda_t *pda, size_t from, size_t input, size_t pop,
   st = pd_reserve(pda->context, (void **)&pda->transitions, &pda->capacity,
                   pda->count + 1, sizeof(ds_pda_transition_t));
   if (st == DS_OK) {
-    st = pd_reserve(pda->context, (void **)&pda->push_pool, &pda->push_capacity,
-                    pda->push_used + push_length, sizeof(size_t));
+    st =
+        pd_reserve(pda->context, (void **)&pda->push_pool, &pda->push_capacity,
+                   pda->push_used + push_length, sizeof(size_t));
   }
   if (st == DS_OK) {
     st = pd_reserve(pda->context, (void **)&pda->output_pool,
@@ -123,7 +125,8 @@ ds_status_t ds_pda_add(ds_pda_t *pda, size_t from, size_t input, size_t pop,
   t->output_offset = pda->output_used;
   t->output_length = output_length;
   if (push_length > 0) {
-    memcpy(pda->push_pool + pda->push_used, push, push_length * sizeof(size_t));
+    memcpy(pda->push_pool + pda->push_used, push,
+           push_length * sizeof(size_t));
   }
   if (output_length > 0) {
     memcpy(pda->output_pool + pda->output_used, output,
@@ -288,7 +291,8 @@ static ds_status_t pd_push_work(pd_solver_t *s, size_t v) {
   return st;
 }
 
-static ds_status_t pd_item(pd_solver_t *s, size_t call, size_t dot, size_t jr) {
+static ds_status_t pd_item(pd_solver_t *s, size_t call, size_t dot,
+                           size_t jr) {
   size_t idx;
   bool fresh;
   ds_status_t st = pd_hash_get(&s->items, call, dot, jr, &idx, &fresh);
@@ -424,9 +428,9 @@ typedef struct pd_build {
   ds_context_t *ctx;
 } pd_build_t;
 
-static ds_status_t pd_emit(pd_build_t *b, size_t from, size_t input, size_t pop,
-                           size_t to, const size_t *push, size_t length,
-                           size_t extra) {
+static ds_status_t pd_emit(pd_build_t *b, size_t from, size_t input,
+                           size_t pop, size_t to, const size_t *push,
+                           size_t length, size_t extra) {
   size_t i;
   size_t total = length + (extra != PD_NONE ? 1 : 0);
   size_t cap = b->cap;
@@ -597,7 +601,8 @@ ds_status_t ds_pda_accepts(const ds_pda_t *pda, const size_t *input,
   st = pd_call(&s, pda->states, pda->stack_symbols, &start_call);
   while (st == DS_OK && s.work_n > 0) {
     size_t v = s.work[--s.work_n];
-    st = v % 2 == 0 ? pd_process_item(&s, v / 2) : pd_process_result(&s, v / 2);
+    st =
+        v % 2 == 0 ? pd_process_item(&s, v / 2) : pd_process_result(&s, v / 2);
   }
   if (st == DS_OK) {
     st = pd_hash_get(&s.results, start_call, length * s.q + pda->states + 2, 0,
@@ -700,8 +705,8 @@ ds_status_t ds_pda_run(const ds_pda_t *pda, const size_t *input, size_t length,
     if (t->pop != PD_EPS) {
       depth--;
     }
-    st = pd_reserve(pda->context, (void **)&stack, &cap, depth + t->push_length,
-                    sizeof(size_t));
+    st = pd_reserve(pda->context, (void **)&stack, &cap,
+                    depth + t->push_length, sizeof(size_t));
     if (st != DS_OK) {
       break;
     }

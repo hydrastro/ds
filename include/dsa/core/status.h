@@ -21,10 +21,13 @@ typedef enum ds_status {
   DS_ERR_STATE = -7,
   DS_ERR_CALLBACK = -8,
   DS_ERR_UNSUPPORTED = -9,
-  DS_ERR_INTERNAL = -10
+  DS_ERR_INTERNAL = -10,
+  DS_ERR_IO = -11
 } ds_status_t;
 
+/* Nonnegative includes absence and early stop: no output value is implied. */
 #define DS_SUCCEEDED(status) ((status) >= 0)
+#define DS_IS_OK(status) ((status) == DS_OK)
 #define DS_FAILED(status) ((status) < 0)
 
 const char *ds_status_name(ds_status_t status);

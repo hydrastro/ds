@@ -48,8 +48,9 @@ ds_bloom_filter_t *ds_bloom_filter_create(size_t expected_items,
                                           ds_context_t *context) {
   size_t bits, hashes;
   if (bloom_dimensions(expected_items, false_positive_rate, &bits, &hashes) !=
-      DS_OK)
+      DS_OK) {
     return NULL;
+  }
   return ds_bloom_filter_create_with_params(bits, hashes, context);
 }
 
@@ -99,13 +100,16 @@ ds_bloom_filter_t *ds_bloom_filter_create_with_params(size_t bits,
 ds_status_t ds_bloom_filter_create_params_context(size_t bits, size_t hashes,
                                                   ds_context_t *context,
                                                   ds_bloom_filter_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (bits == 0 || hashes == 0)
+  if (bits == 0 || hashes == 0) {
     return DS_ERR_RANGE;
-  if (bits > (size_t)-1 - DS_BLOOM_BITS_PER_WORD)
+  }
+  if (bits > (size_t)-1 - DS_BLOOM_BITS_PER_WORD) {
     return DS_ERR_OVERFLOW;
+  }
   *out = bloom_create_internal(
       bits, hashes, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -115,14 +119,17 @@ ds_status_t ds_bloom_filter_create_context(size_t expected, double rate,
                                            ds_bloom_filter_t **out) {
   size_t bits, hashes;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (expected == 0 || !(rate > 0.0 && rate < 1.0))
+  if (expected == 0 || !(rate > 0.0 && rate < 1.0)) {
     return DS_ERR_RANGE;
+  }
   st = bloom_dimensions(expected, rate, &bits, &hashes);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   return ds_bloom_filter_create_params_context(bits, hashes, context, out);
 }
 
@@ -240,40 +247,48 @@ ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter) {
 }
 
 void ds_bloom_filter_destroy(ds_bloom_filter_t *filter) {
-  if (filter == NULL)
+  if (filter == NULL) {
     return;
+  }
   ds_context_free(filter->context, filter->words);
   ds_context_free(filter->context, filter);
 }
 
 ds_status_t ds_bloom_filter_add_ex(ds_bloom_filter_t *filter, const void *key,
                                    size_t length) {
-  if (filter == NULL || (key == NULL && length != 0))
+  if (filter == NULL || (key == NULL && length != 0)) {
     return DS_ERR_NULL;
-  if (filter->num_items == (size_t)-1)
+  }
+  if (filter->num_items == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   ds_bloom_filter_add(filter, key, length);
   return DS_OK;
 }
 ds_status_t ds_bloom_filter_contains_ex(ds_bloom_filter_t *filter,
                                         const void *key, size_t length,
                                         bool *out) {
-  if (filter == NULL || out == NULL || (key == NULL && length != 0))
+  if (filter == NULL || out == NULL || (key == NULL && length != 0)) {
     return DS_ERR_NULL;
+  }
   *out = ds_bloom_filter_maybe_contains(filter, key, length);
   return DS_OK;
 }
 ds_status_t ds_bloom_filter_union_ex(ds_bloom_filter_t *filter,
                                      ds_bloom_filter_t *other) {
-  if (filter == NULL || other == NULL)
+  if (filter == NULL || other == NULL) {
     return DS_ERR_NULL;
-  if (filter == other)
+  }
+  if (filter == other) {
     return DS_OK;
+  }
   if (filter->num_bits != other->num_bits ||
-      filter->num_hashes != other->num_hashes)
+      filter->num_hashes != other->num_hashes) {
     return DS_ERR_INVALID;
-  if (other->num_items > (size_t)-1 - filter->num_items)
+  }
+  if (other->num_items > (size_t)-1 - filter->num_items) {
     return DS_ERR_OVERFLOW;
+  }
   (void)ds_bloom_filter_union(filter, other);
   return DS_OK;
 }
@@ -282,17 +297,21 @@ ds_status_t ds_bloom_filter_clone_with(const ds_bloom_filter_t *filter,
                                        ds_bloom_filter_t **out) {
   ds_bloom_filter_t *copy;
   size_t i;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (filter == NULL)
+  if (filter == NULL) {
     return DS_ERR_NULL;
+  }
   copy = bloom_create_internal(filter->num_bits, filter->num_hashes,
                                context != NULL ? context : filter->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
-  for (i = 0; i < filter->num_words; ++i)
+  }
+  for (i = 0; i < filter->num_words; ++i) {
     copy->words[i] = filter->words[i];
+  }
   copy->num_items = filter->num_items;
   *out = copy;
   return DS_OK;

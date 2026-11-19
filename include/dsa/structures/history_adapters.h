@@ -10,10 +10,11 @@ extern "C" {
 #endif
 
 /* Checked FILE adapter for the history serializer callbacks. limit is a total
- * transfer budget, zero for unlimited. An error is sticky until rewind succeeds
- * or the adapter is initialized again. The stream position belongs to this
- * adapter while in use; externally synchronize it. flush is C fflush and is
- * valid after output (not on a read-only stream). This is not fsync durability.
+ * transfer budget, zero for unlimited. An error is sticky until rewind
+ * succeeds or the adapter is initialized again. The stream position belongs to
+ * this adapter while in use; externally synchronize it. flush is C fflush and
+ * is valid after output (not on a read-only stream). This is not fsync
+ * durability.
  */
 typedef struct ds_history_file {
   FILE *stream;
@@ -25,7 +26,8 @@ typedef struct ds_history_file {
 
 ds_status_t ds_history_file_init(ds_history_file_t *archive, FILE *stream,
                                  bool take_ownership, size_t limit);
-/* Modes: rb, wb, ab, r+b, w+b, a+b. Write modes have normal fopen semantics. */
+/* Modes: rb, wb, ab, r+b, w+b, a+b. Write modes have normal fopen semantics.
+ */
 ds_status_t ds_history_file_open(ds_history_file_t *archive, const char *path,
                                  const char *mode, size_t limit);
 bool ds_history_file_write(const void *data, size_t size, void *archive);

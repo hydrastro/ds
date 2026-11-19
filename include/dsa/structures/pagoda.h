@@ -59,7 +59,8 @@ ds_status_t ds_pagoda_peek(const ds_pagoda_pool_t *pool, ds_pagoda_t q,
                            void *out);
 ds_status_t ds_pagoda_pop(ds_pagoda_pool_t *pool, ds_pagoda_t *q, void *out);
 /* *q receives every element of *other; *other becomes empty. */
-void ds_pagoda_meld(ds_pagoda_pool_t *pool, ds_pagoda_t *q, ds_pagoda_t *other);
+void ds_pagoda_meld(ds_pagoda_pool_t *pool, ds_pagoda_t *q,
+                    ds_pagoda_t *other);
 
 #ifdef __cplusplus
 }

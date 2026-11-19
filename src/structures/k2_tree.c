@@ -181,8 +181,8 @@ ds_status_t ds_k2_tree_build(ds_k2_tree_t *t, size_t n, size_t k,
     goto done;
   }
   /* rank directory over T */
-  t->t_rank = (size_t *)ds_context_alloc(context,
-                                         (t->t_bits / 32 + 2) * sizeof(size_t));
+  t->t_rank = (size_t *)ds_context_alloc(context, (t->t_bits / 32 + 2) *
+                                                      sizeof(size_t));
   if (t->t_rank == NULL) {
     st = DS_ERR_ALLOC;
     goto done;
@@ -322,7 +322,8 @@ ds_status_t ds_k2_tree_range(const ds_k2_tree_t *t, size_t r0, size_t r1,
       for (a = alo; a <= ahi && st == DS_OK; a++) {
         for (b = blo; b <= bhi && st == DS_OK; b++) {
           size_t pos = f.base + a * t->k + b;
-          if (k2_bit(t->l, pos - t->t_bits) && !visit(f.r + a, f.c + b, user)) {
+          if (k2_bit(t->l, pos - t->t_bits) &&
+              !visit(f.r + a, f.c + b, user)) {
             st = DS_STOP;
           }
         }

@@ -68,7 +68,8 @@ int main(void) {
   for (i = 0; i < N; i++) {
     next_of[perm[i]] = i + 1 < N ? perm[i + 1] : DS_PRAM_NONE;
   }
-  if (ds_pram_list_rank_on(&ex, next_of, N, rank_a, &rounds_a, NULL) != DS_OK ||
+  if (ds_pram_list_rank_on(&ex, next_of, N, rank_a, &rounds_a, NULL) !=
+          DS_OK ||
       ds_pram_list_rank(next_of, N, rank_b, &rounds_b, NULL) != DS_OK) {
     return 1;
   }

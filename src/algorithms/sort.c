@@ -49,8 +49,8 @@ static void sort_insertion_range(unsigned char *a, size_t lo, size_t hi,
   }
 }
 
-static void sort_sift_down(unsigned char *a, size_t root, size_t end, size_t es,
-                           ds_compare_func_t compare, void *user) {
+static void sort_sift_down(unsigned char *a, size_t root, size_t end,
+                           size_t es, ds_compare_func_t compare, void *user) {
   size_t child;
   for (;;) {
     if (end < 2 || root > (end - 2) / 2) {
@@ -188,7 +188,8 @@ void ds_shell_sort(void *base, size_t count, size_t elem_size,
       for (j = i; j >= gap && compare(AT(a, j - gap, elem_size),
                                       AT(a, j, elem_size), user) > 0;
            j -= gap) {
-        ds_elem_swap(AT(a, j - gap, elem_size), AT(a, j, elem_size), elem_size);
+        ds_elem_swap(AT(a, j - gap, elem_size), AT(a, j, elem_size),
+                     elem_size);
       }
     }
   }

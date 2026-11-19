@@ -33,9 +33,9 @@
  *                       superblocks: O(log n + 32).
  *   ds_rs_elias_fano()  the positions of the ones in Elias-Fano form
  *                       (dsa/structures/elias_fano.h): about m(2 + log(n/m))
- * bits for m ones plus its select directories, best for sparse vectors. select1
- * O(1); rank1 and access one next_geq, O(1 + log b) for the b ones sharing a
- * high part; select0 binary searches the ones, O(log m).
+ * bits for m ones plus its select directories, best for sparse vectors.
+ * select1 O(1); rank1 and access one next_geq, O(1 + log b) for the b ones
+ * sharing a high part; select0 binary searches the ones, O(log m).
  *
  * The tables the backends use are constants: independent instances share
  * no mutable state.

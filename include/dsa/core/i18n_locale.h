@@ -10,7 +10,8 @@ extern "C" {
 /* Exact ASCII decimal view: [+-]digits[.digits]. At least one integral digit;
  * no exponent, whitespace, NaN or infinity. Views borrow the input. Keeping
  * visible fraction digits distinguishes 1, 1.0 and 1.00 for plural selection.
- * Only views returned by decimal_parse should be passed to policy callbacks. */
+ * Only views returned by decimal_parse should be passed to policy callbacks.
+ */
 typedef struct ds_i18n_decimal {
   const char *integer;
   size_t integer_digits;
@@ -53,8 +54,8 @@ typedef struct ds_i18n_number_policy {
   const char *group_separator;
   const char *minus_sign;
   const char *plus_sign;
-  size_t primary_group;        /* rightmost group, 0 disables grouping */
-  size_t secondary_group;      /* repeated groups to its left, 0 uses primary */
+  size_t primary_group;   /* rightmost group, 0 disables grouping */
+  size_t secondary_group; /* repeated groups to its left, 0 uses primary */
   size_t minimum_group_digits; /* minimum integral width before grouping */
   bool show_plus;
 } ds_i18n_number_policy_t;
@@ -62,7 +63,8 @@ typedef struct ds_i18n_number_policy {
  * No rounding, digit substitution, currency or binary-float conversion occurs.
  * All supplied digits, including leading/trailing zeros, are preserved. */
 void ds_i18n_number_policy_init(ds_i18n_number_policy_t *policy);
-ds_status_t ds_i18n_format_number(ds_i18n_writer_t *writer, const char *decimal,
+ds_status_t ds_i18n_format_number(ds_i18n_writer_t *writer,
+                                  const char *decimal,
                                   const ds_i18n_number_policy_t *policy);
 
 typedef struct ds_i18n_datetime {
@@ -79,8 +81,8 @@ ds_status_t ds_i18n_format_datetime(ds_i18n_writer_t *writer,
                                     const char *pattern);
 
 /* Ready-to-register formatter. The descriptor, forms and callback user remain
- * caller-owned. count_argument accepts CSTR (exact decimal), INT, UINT or SIZE;
- * DOUBLE is rejected because it cannot retain visible decimal precision.
+ * caller-owned. count_argument accepts CSTR (exact decimal), INT, UINT or
+ * SIZE; DOUBLE is rejected because it cannot retain visible decimal precision.
  * Missing selected forms fall back to OTHER, which must be present.
  * Forms use the core's single-pass interpolation. The selected catalog locale
  * is available to custom formatter implementations in the request. */

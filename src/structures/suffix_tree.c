@@ -23,7 +23,8 @@ static size_t st_hash(size_t node, size_t sym, size_t mask) {
   return k & mask;
 }
 
-static size_t st_find_slot(const ds_suffix_tree_t *t, size_t node, size_t sym) {
+static size_t st_find_slot(const ds_suffix_tree_t *t, size_t node,
+                           size_t sym) {
   size_t i = st_hash(node, sym, t->hash_size - 1);
   while (t->hval[i] != ST_NONE &&
          (t->hkey_node[i] != node || t->hkey_sym[i] != sym)) {

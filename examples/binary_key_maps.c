@@ -9,10 +9,12 @@ static void show_key(const unsigned char *key, size_t length, void *value,
   size_t i;
   (void)user;
   printf("  %d: ", *(int *)value);
-  for (i = 0; i < length; i++)
+  for (i = 0; i < length; i++) {
     printf("%02x", (unsigned)key[i]);
-  if (length == 0)
+  }
+  if (length == 0) {
     printf("(empty)");
+  }
   putchar('\n');
 }
 
@@ -42,14 +44,17 @@ int main(void) {
   }
   for (i = 0; i < 4; i++) {
     st = ds_art_insert_ex(art, keys[i], lengths[i], &values[i]);
-    if (DS_FAILED(st))
+    if (DS_FAILED(st)) {
       goto cleanup;
+    }
     st = ds_radix_trie_insert_ex(radix, keys[i], lengths[i], &values[i]);
-    if (DS_FAILED(st))
+    if (DS_FAILED(st)) {
       goto cleanup;
+    }
     st = ds_hamt_insert_ex(hamt, keys[i], lengths[i], &values[i]);
-    if (DS_FAILED(st))
+    if (DS_FAILED(st)) {
       goto cleanup;
+    }
   }
   puts("ART byte order:");
   ds_art_walk(art, show_key, NULL);
@@ -61,11 +66,13 @@ int main(void) {
   /* These different strings share the 32-bit FNV-1a hash 0x5e4daa9d.
    * A collision list must keep both exact keys available. */
   st = ds_hamt_insert_ex(hamt, "costarring", 10, &values[4]);
-  if (DS_FAILED(st))
+  if (DS_FAILED(st)) {
     goto cleanup;
+  }
   st = ds_hamt_insert_ex(hamt, "liquid", 6, &values[5]);
-  if (DS_FAILED(st))
+  if (DS_FAILED(st)) {
     goto cleanup;
+  }
   printf("Same hash, separate values: costarring=%d, liquid=%d\n",
          *(int *)ds_hamt_get(hamt, "costarring", 10),
          *(int *)ds_hamt_get(hamt, "liquid", 6));
@@ -78,9 +85,11 @@ cleanup:
     result = 1;
   }
   ds_art_destroy(art, NULL);
-  if (radix != NULL)
+  if (radix != NULL) {
     ds_radix_trie_destroy(radix, NULL);
-  if (hamt != NULL)
+  }
+  if (hamt != NULL) {
     ds_hamt_destroy(hamt, NULL);
+  }
   return result;
 }

@@ -39,12 +39,12 @@ ds_status_t ds_i18n_catalog_file_write(void *stream, const void *buffer,
  * Blank lines and lines starting with # are ignored; CRLF is accepted.
  * JSON is one flat object of string keys and string values, for the supplied
  * locale/domain. JSON escapes and paired UTF-16 surrogate escapes are decoded.
- * Both formats require valid UTF-8 and reject embedded NUL. No BOM is accepted.
- * Later duplicate entries replace earlier ones. Loads are atomic: parsing or
- * allocation failures leave the translator unchanged, with *out_count = 0.
- * A load stages its input and a catalog copy; it is not a streaming database.
- * locale/domain are ignored for TSV and required for JSON. out_count may be
- * NULL.
+ * Both formats require valid UTF-8 and reject embedded NUL. No BOM is
+ * accepted. Later duplicate entries replace earlier ones. Loads are atomic:
+ * parsing or allocation failures leave the translator unchanged, with
+ * *out_count = 0. A load stages its input and a catalog copy; it is not a
+ * streaming database. locale/domain are ignored for TSV and required for JSON.
+ * out_count may be NULL.
  */
 ds_status_t ds_i18n_catalog_load_memory(ds_i18n_t *translator,
                                         ds_i18n_catalog_format_t format,

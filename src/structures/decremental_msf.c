@@ -351,8 +351,8 @@ static size_t dm_find(size_t *parent, size_t x) {
 /* Kruskal over the live edges: in_forest[e] for each; NULL scratch on
  * failure */
 static ds_status_t dm_kruskal(const ds_dmsf_t *g, unsigned char *in_forest) {
-  size_t *order = (size_t *)ds_context_alloc(g->context, (2 * g->m + g->n + 1) *
-                                                             sizeof(size_t));
+  size_t *order = (size_t *)ds_context_alloc(
+      g->context, (2 * g->m + g->n + 1) * sizeof(size_t));
   size_t *tmp;
   size_t *parent;
   size_t k = 0;
@@ -740,8 +740,8 @@ ds_status_t ds_dmsf_rebuild(ds_dmsf_t *g) {
 /* ---- invariants ---- */
 
 /* the heap at (x, level): order, links, members; its size to *count */
-static bool dm_check_heap(ds_dmsf_t *g, size_t x, unsigned level, size_t *stack,
-                          size_t *count) {
+static bool dm_check_heap(ds_dmsf_t *g, size_t x, unsigned level,
+                          size_t *stack, size_t *count) {
   size_t root = dm_head(g, x, level, DM_NONTREE);
   size_t top = 0;
   *count = 0;
@@ -793,7 +793,8 @@ bool ds_dmsf_check(ds_dmsf_t *g) {
   ds_xsum_init(&total);
   in_forest = (unsigned char *)ds_context_alloc(g->context, g->m + 1);
   stack = (size_t *)ds_context_alloc(g->context, (g->m + 1) * sizeof(size_t));
-  if (in_forest == NULL || stack == NULL || dm_kruskal(g, in_forest) != DS_OK) {
+  if (in_forest == NULL || stack == NULL ||
+      dm_kruskal(g, in_forest) != DS_OK) {
     ds_context_free(g->context, in_forest);
     ds_context_free(g->context, stack);
     return false;

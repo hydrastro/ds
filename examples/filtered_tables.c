@@ -2,9 +2,9 @@
  * Approximate-membership filters as values: saved as images, loaded back,
  * and carried inside SSTables and LSM trees.
  *
- * Any dsa/structures/amq_iface.h backend that supports images can be written to
- * bytes and restored after a full check. An SSTable stores such an image as its
- * filter block (format version 3) and an LSM tree builds every table's
+ * Any dsa/structures/amq_iface.h backend that supports images can be written
+ * to bytes and restored after a full check. An SSTable stores such an image as
+ * its filter block (format version 3) and an LSM tree builds every table's
  * filter with the backend in its configuration.
  */
 #include <dsa.h>

@@ -791,8 +791,9 @@ static void sst_index_view(const ds_sstable_t *t, ds_sstable_t *view) {
 }
 
 static const unsigned char *sst_filter_bytes(const ds_sstable_t *t) {
-  if (t->filter_len == 0)
+  if (t->filter_len == 0) {
     return NULL;
+  }
   return t->reader == NULL
              ? t->data + t->filter_off
              : t->reader->metadata + (t->filter_off - t->reader->data_end);
@@ -805,17 +806,20 @@ static size_t sst_data_end(const ds_sstable_t *t) {
 static ds_status_t sst_source_read(const ds_sstable_source_t *source,
                                    size_t offset, void *buf, size_t count) {
   ds_status_t st;
-  if (!sst_range(offset, count, source->length))
+  if (!sst_range(offset, count, source->length)) {
     return DS_ERR_INVALID;
-  if (count == 0)
+  }
+  if (count == 0) {
     return DS_OK;
+  }
   st = source->read(source->user, offset, buf, count);
   return st > DS_OK ? DS_ERR_CALLBACK : st;
 }
 
 void ds_sstable_source_init(ds_sstable_source_t *source) {
-  if (source != NULL)
+  if (source != NULL) {
     memset(source, 0, sizeof(*source));
+  }
 }
 
 /* restart array of a block [off, off + size) that must lie below limit */
@@ -845,26 +849,31 @@ static ds_status_t sst_footer(ds_sstable_t *t, const unsigned char *tail,
   const unsigned char *f;
   size_t foot, body;
   if (!sst_cmp_valid(cmp) || len < SST_FOOTER_V1 || len > SST_MAXLEN ||
-      tail_len < SST_FOOTER_V1)
+      tail_len < SST_FOOTER_V1) {
     return DS_ERR_INVALID;
-  if (cmp == NULL)
+  }
+  if (cmp == NULL) {
     cmp = &sst_bytewise;
+  }
   magic = sst_get_u32(tail + tail_len - 4);
-  if (magic == SST_MAGIC_V3)
+  if (magic == SST_MAGIC_V3) {
     foot = SST_FOOTER_V3;
-  else if (magic == SST_MAGIC_V2)
+  } else if (magic == SST_MAGIC_V2) {
     foot = SST_FOOTER_V2;
-  else if (magic == SST_MAGIC_V1)
+  } else if (magic == SST_MAGIC_V1) {
     foot = SST_FOOTER_V1;
-  else
+  } else {
     return DS_ERR_INVALID;
-  if (tail_len < foot || len < foot)
+  }
+  if (tail_len < foot || len < foot) {
     return DS_ERR_INVALID;
+  }
   f = tail + tail_len - foot;
   t->version = magic == SST_MAGIC_V3 ? 3U : magic == SST_MAGIC_V2 ? 2U : 1U;
   id = t->version == 1 ? 0 : sst_get_u32(f + 20);
-  if (id != cmp->id)
+  if (id != cmp->id) {
     return DS_ERR_INVALID;
+  }
   if (t->version == 3) {
     kind = sst_get_u32(f + 24);
     have_kind = true;
@@ -878,17 +887,21 @@ static ds_status_t sst_footer(ds_sstable_t *t, const unsigned char *tail,
   t->entries = (size_t)sst_get_u32(f + 16);
   t->cmp = *cmp;
   if (!sst_range(t->index_off, t->index_len, body) || t->index_len < 4 ||
-      (t->filter_len != 0 && (t->filter_off < t->index_off + t->index_len ||
-                              !sst_range(t->filter_off, t->filter_len, body))))
+      (t->filter_len != 0 &&
+       (t->filter_off < t->index_off + t->index_len ||
+        !sst_range(t->filter_off, t->filter_len, body)))) {
     return DS_ERR_INVALID;
-  if (!have_kind)
+  }
+  if (!have_kind) {
     kind =
         t->filter_len >= 2 ? DS_SSTABLE_FILTER_BLOOM : DS_SSTABLE_FILTER_NONE;
+  }
   t->keyed = (kind & DS_SSTABLE_FILTER_KEYED) != 0;
   kind &= ~(unsigned long)DS_SSTABLE_FILTER_KEYED;
   if (kind > DS_SSTABLE_FILTER_AMQ ||
-      (t->keyed && (cmp->id == 0 || kind == DS_SSTABLE_FILTER_NONE)))
+      (t->keyed && (cmp->id == 0 || kind == DS_SSTABLE_FILTER_NONE))) {
     return DS_ERR_INVALID;
+  }
   t->filter_kind = (unsigned)kind;
   *out_foot = foot;
   return DS_OK;
@@ -899,16 +912,19 @@ static ds_status_t sst_metadata(ds_sstable_t *t) {
   const unsigned char *f = sst_filter_bytes(t);
   size_t n, end;
   sst_index_view(t, &v);
-  if (!sst_block_restarts(&v, v.index_off, v.index_len, v.len, &n, &end))
+  if (!sst_block_restarts(&v, v.index_off, v.index_len, v.len, &n, &end)) {
     return DS_ERR_INVALID;
-  if (t->filter_kind == DS_SSTABLE_FILTER_NONE)
+  }
+  if (t->filter_kind == DS_SSTABLE_FILTER_NONE) {
     return t->version < 3 || t->filter_len == 0 ? DS_OK : DS_ERR_INVALID;
-  if (t->filter_kind == DS_SSTABLE_FILTER_BLOOM)
+  }
+  if (t->filter_kind == DS_SSTABLE_FILTER_BLOOM) {
     return t->filter_len >= 2 && t->filter_len - 1 <= (size_t)-1 / 8 &&
                    (unsigned long)(t->filter_len - 1) <= ULONG_MAX / 8 &&
                    f[0] >= 1 && f[0] <= 30
                ? DS_OK
                : DS_ERR_INVALID;
+  }
   if (t->filter_kind == DS_SSTABLE_FILTER_AMQ) {
     ds_amq_image_t info;
     ds_status_t st;
@@ -927,13 +943,16 @@ static ds_status_t sst_load_filter(ds_sstable_t *t, const ds_amq_ops_t *filter,
                                    ds_context_t *context) {
   const unsigned char *img;
   ds_status_t st;
-  if (t->filter_kind != DS_SSTABLE_FILTER_AMQ || (t->cmp.id != 0 && !t->keyed))
+  if (t->filter_kind != DS_SSTABLE_FILTER_AMQ ||
+      (t->cmp.id != 0 && !t->keyed)) {
     return DS_OK;
+  }
   img = sst_filter_bytes(t);
-  if (filter != NULL && filter->id == t->filter_id)
+  if (filter != NULL && filter->id == t->filter_id) {
     st = ds_amq_load_with(&t->amq, filter, img, t->filter_len, context);
-  else
+  } else {
     st = ds_amq_load(&t->amq, img, t->filter_len, context);
+  }
   return st == DS_ERR_UNSUPPORTED ? DS_OK : st;
 }
 
@@ -942,26 +961,30 @@ ds_status_t ds_sstable_open_cmp(ds_sstable_t *t, const void *data, size_t len,
   const unsigned char *p = (const unsigned char *)data;
   size_t foot;
   ds_status_t st;
-  if (t == NULL)
+  if (t == NULL) {
     return DS_ERR_NULL;
+  }
   memset(t, 0, sizeof(*t));
-  if (data == NULL)
+  if (data == NULL) {
     return DS_ERR_NULL;
+  }
   st = sst_footer(t, p, len, len, cmp, &foot);
   if (st == DS_OK) {
     unsigned long actual =
         t->version == 1
             ? sst_fnv(p, len - foot)
             : (sst_crc_update(0xFFFFFFFFUL, p, len - 8) ^ 0xFFFFFFFFUL);
-    if (sst_get_u32(p + len - 8) != actual)
+    if (sst_get_u32(p + len - 8) != actual) {
       st = DS_ERR_INVALID;
+    }
   }
   if (st == DS_OK) {
     t->data = p;
     st = sst_metadata(t);
   }
-  if (st != DS_OK)
+  if (st != DS_OK) {
     memset(t, 0, sizeof(*t));
+  }
   return st;
 }
 
@@ -970,10 +993,12 @@ ds_status_t ds_sstable_open_ex(ds_sstable_t *t, const void *data, size_t len,
                                const ds_amq_ops_t *filter,
                                ds_context_t *context) {
   ds_status_t st = ds_sstable_open_cmp(t, data, len, cmp);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = sst_load_filter(t, filter, context);
-  if (st != DS_OK && t != NULL)
+  }
+  if (st != DS_OK && t != NULL) {
     ds_sstable_close(t);
+  }
   return st;
 }
 
@@ -987,39 +1012,49 @@ ds_status_t ds_sstable_open_reader(ds_sstable_t *t,
   unsigned long checksum, expected;
   struct ds_sstable_reader *r;
   ds_status_t st;
-  if (t == NULL)
+  if (t == NULL) {
     return DS_ERR_NULL;
+  }
   memset(t, 0, sizeof(*t));
-  if (source == NULL || source->read == NULL)
+  if (source == NULL || source->read == NULL) {
     return DS_ERR_NULL;
-  if (source->length < SST_FOOTER_V1 || source->length > SST_MAXLEN)
+  }
+  if (source->length < SST_FOOTER_V1 || source->length > SST_MAXLEN) {
     return DS_ERR_INVALID;
+  }
   tail_len = source->length < sizeof(tail) ? source->length : sizeof(tail);
   st = sst_source_read(source, source->length - tail_len, tail, tail_len);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   st = sst_footer(t, tail, tail_len, source->length, cmp, &foot);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto fail;
+  }
   span = t->version == 1 ? t->len - foot : t->len - 8;
   checksum = t->version == 1 ? 2166136261UL : 0xFFFFFFFFUL;
   expected = sst_get_u32(tail + tail_len - 8);
   for (pos = 0; pos < span;) {
     size_t n = span - pos, i;
-    if (n > sizeof(scratch))
+    if (n > sizeof(scratch)) {
       n = sizeof(scratch);
+    }
     st = sst_source_read(source, pos, scratch, n);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       goto fail;
+    }
     if (t->version == 1) {
-      for (i = 0; i < n; i++)
+      for (i = 0; i < n; i++) {
         checksum = ((checksum ^ scratch[i]) * 16777619UL) & 0xFFFFFFFFUL;
-    } else
+      }
+    } else {
       checksum = sst_crc_update(checksum, scratch, n);
+    }
     pos += n;
   }
-  if (t->version != 1)
+  if (t->version != 1) {
     checksum ^= 0xFFFFFFFFUL;
+  }
   if (checksum != expected) {
     st = DS_ERR_INVALID;
     goto fail;
@@ -1027,8 +1062,9 @@ ds_status_t ds_sstable_open_reader(ds_sstable_t *t,
   /* Retain the index and optional filter, including any format-permitted gap.
    */
   meta_len = t->index_len;
-  if (t->filter_len != 0)
+  if (t->filter_len != 0) {
     meta_len = t->filter_off + t->filter_len - t->index_off;
+  }
   if (source->max_metadata_bytes != 0 &&
       meta_len > source->max_metadata_bytes) {
     st = DS_ERR_OVERFLOW;
@@ -1051,20 +1087,24 @@ ds_status_t ds_sstable_open_reader(ds_sstable_t *t,
     goto fail;
   }
   st = sst_source_read(source, t->index_off, r->metadata, meta_len);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = sst_metadata(t);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = sst_load_filter(t, filter, context);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     return DS_OK;
+  }
 fail:
   ds_sstable_close(t);
   return st;
 }
 
 void ds_sstable_close(ds_sstable_t *t) {
-  if (t == NULL)
+  if (t == NULL) {
     return;
+  }
   ds_amq_destroy(&t->amq);
   if (t->reader != NULL) {
     struct ds_sstable_reader *r = t->reader;
@@ -1115,8 +1155,9 @@ size_t ds_sstable_blocks(const ds_sstable_t *t) {
   size_t n;
   size_t e;
   ds_sstable_t v;
-  if (!sst_is_open(t))
+  if (!sst_is_open(t)) {
     return 0;
+  }
   sst_index_view(t, &v);
   if (!sst_block_restarts(&v, v.index_off, v.index_len, v.len, &n, &e)) {
     return 0;
@@ -1304,13 +1345,15 @@ ds_status_t ds_sstable_get(const ds_sstable_t *t, const void *key,
   } else {
     it = &local;
     st = ds_sstable_iter_init(it, t, context);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   st = ds_stage_copy(&arg, it->context, true, key, key_len, NULL, 0);
   if (st != DS_OK) {
-    if (t->reader == NULL)
+    if (t->reader == NULL) {
       ds_sstable_iter_destroy(it);
+    }
     return st;
   }
   key = arg.key;
@@ -1331,8 +1374,9 @@ ds_status_t ds_sstable_get(const ds_sstable_t *t, const void *key,
       }
     }
   }
-  if (t->reader == NULL)
+  if (t->reader == NULL) {
     ds_sstable_iter_destroy(it);
+  }
   ds_stage_release(&arg);
   return st;
 }
@@ -1388,21 +1432,25 @@ static ds_status_t sst_iter_read(ds_sstable_iter_t *it, size_t off,
   if (t->reader != NULL) {
     ds_status_t st;
     if (t->reader->source.max_block_bytes != 0 &&
-        size > t->reader->source.max_block_bytes)
+        size > t->reader->source.max_block_bytes) {
       return DS_ERR_OVERFLOW;
+    }
     if (size > it->block_cap) {
       void *p = ds_context_realloc(it->context, it->block_data, size);
-      if (p == NULL)
+      if (p == NULL) {
         return DS_ERR_ALLOC;
+      }
       it->block_data = (unsigned char *)p;
       it->block_cap = size;
     }
     st = sst_source_read(&t->reader->source, off, it->block_data, size);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     *local_off = 0;
-  } else
+  } else {
     *local_off = off;
+  }
   sst_iter_view(it, v);
   return DS_OK;
 }
@@ -1463,17 +1511,20 @@ static ds_status_t sst_iter_block(ds_sstable_iter_t *it, size_t b) {
       return DS_ERR_INVALID;
     }
     st = sst_iter_read(it, off, size, &block, &local);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
-    if (!sst_block_restarts(&block, local, size, block.index_off, &rc, &ee))
+    }
+    if (!sst_block_restarts(&block, local, size, block.index_off, &rc, &ee)) {
       return DS_ERR_INVALID;
+    }
     it->block = b;
     it->block_off = off;
     it->block_len = ee;
     it->pos = local;
     it->key_len = 0;
-    if (it->pos < ee)
+    if (it->pos < ee) {
       return sst_iter_load(it);
+    }
   }
   it->valid = false;
   return DS_OK;
@@ -1532,8 +1583,9 @@ static ds_status_t sst_iter_seek(ds_sstable_iter_t *it, const void *key,
     return st;
   }
   st = sst_iter_read(it, off, size, &view, &local);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   t = &view;
   if (!sst_block_restarts(t, local, size, t->index_off, &rc, &ee)) {
     return DS_ERR_INVALID;
@@ -1570,8 +1622,9 @@ ds_status_t ds_sstable_iter_seek(ds_sstable_iter_t *it, const void *key,
                                  size_t key_len) {
   ds_stage_t arg;
   ds_status_t st;
-  if (it == NULL || (key == NULL && key_len != 0))
+  if (it == NULL || (key == NULL && key_len != 0)) {
     return DS_ERR_NULL;
+  }
   st = ds_stage_copy(&arg, it->context, true, key, key_len, NULL, 0);
   if (st != DS_OK) {
     it->valid = false;
@@ -1766,9 +1819,10 @@ ds_status_t ds_sstable_verify(const ds_sstable_t *table, bool check_filter,
       ds_sstable_t block;
       size_t local;
       st = sst_iter_read(&reader, off, size, &block, &local);
-      if (st == DS_OK)
+      if (st == DS_OK) {
         st = sst_verify_block(&block, local, size, check_filter, t, &prev,
                               &cur, &have_prev, &count, context);
+      }
     }
     /* the index key is the block's last key */
     if (st == DS_OK &&

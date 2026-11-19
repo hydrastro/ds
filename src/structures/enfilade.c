@@ -85,10 +85,12 @@ static void en_split(ds_enfilade_t *e, size_t v, size_t k, size_t *a,
     v = next;
   }
   *ls = *rs = EN_NONE;
-  for (; left != EN_NONE; left = e->parent[left])
+  for (; left != EN_NONE; left = e->parent[left]) {
     en_fix(e, left);
-  for (; right != EN_NONE; right = e->parent[right])
+  }
+  for (; right != EN_NONE; right = e->parent[right]) {
     en_fix(e, right);
+  }
 }
 
 static size_t en_join(ds_enfilade_t *e, size_t a, size_t b) {
@@ -110,10 +112,12 @@ static size_t en_join(ds_enfilade_t *e, size_t a, size_t b) {
     tail = chosen;
   }
   *slot = a == EN_NONE ? b : a;
-  if (*slot != EN_NONE)
+  if (*slot != EN_NONE) {
     e->parent[*slot] = tail;
-  for (; tail != EN_NONE; tail = e->parent[tail])
+  }
+  for (; tail != EN_NONE; tail = e->parent[tail]) {
     en_fix(e, tail);
+  }
   return root;
 }
 
@@ -141,11 +145,11 @@ static ds_status_t en_node(ds_enfilade_t *e, size_t *out) {
         cap > ((size_t)-1) / sizeof(unsigned long)) {
       return DS_ERR_OVERFLOW;
     }
-#define EN_GROW(field, type)                                                   \
-  p = ds_context_realloc(e->context, e->field, cap * sizeof(type));            \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define EN_GROW(field, type)                                                  \
+  p = ds_context_realloc(e->context, e->field, cap * sizeof(type));           \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   e->field = (type *)p;
     EN_GROW(wid, size_t)
     EN_GROW(sum, size_t)
@@ -166,8 +170,8 @@ static ds_status_t en_node(ds_enfilade_t *e, size_t *out) {
   return DS_OK;
 }
 
-ds_status_t ds_enfilade_insert(ds_enfilade_t *e, size_t index, const void *elem,
-                               size_t wid) {
+ds_status_t ds_enfilade_insert(ds_enfilade_t *e, size_t index,
+                               const void *elem, size_t wid) {
   size_t n;
   size_t a;
   size_t b;
@@ -180,8 +184,9 @@ ds_status_t ds_enfilade_insert(ds_enfilade_t *e, size_t index, const void *elem,
     return DS_ERR_RANGE;
   }
   st = ds_stage_copy(&staged, e->context, true, elem, e->elem_size, NULL, 0);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   st = en_node(e, &n);
   if (st != DS_OK) {
     ds_stage_release(&staged);
@@ -333,8 +338,8 @@ ds_status_t ds_enfilade_rearrange(ds_enfilade_t *e, size_t from, size_t to,
   if (e == NULL) {
     return DS_ERR_NULL;
   }
-  if (from > to || to > ds_enfilade_count(e) || before > ds_enfilade_count(e) ||
-      (before > from && before < to)) {
+  if (from > to || to > ds_enfilade_count(e) ||
+      before > ds_enfilade_count(e) || (before > from && before < to)) {
     return DS_ERR_RANGE;
   }
   en_split(e, e->root, from, &a, &m);
@@ -352,23 +357,29 @@ ds_status_t ds_enfilade_rearrange(ds_enfilade_t *e, size_t from, size_t to,
 void ds_enfilade_foreach(const ds_enfilade_t *e, ds_enfilade_visit_func_t f,
                          void *user) {
   size_t v, dsp = 0;
-  if (e == NULL || f == NULL)
+  if (e == NULL || f == NULL) {
     return;
+  }
   v = e->root;
-  if (v != EN_NONE)
-    while (e->left[v] != EN_NONE)
+  if (v != EN_NONE) {
+    while (e->left[v] != EN_NONE) {
       v = e->left[v];
+    }
+  }
   while (v != EN_NONE) {
-    if (!f(e->data + v * e->elem_size, e->wid[v], dsp, user))
+    if (!f(e->data + v * e->elem_size, e->wid[v], dsp, user)) {
       return;
+    }
     dsp = en_add(dsp, e->wid[v]);
     if (e->right[v] != EN_NONE) {
       v = e->right[v];
-      while (e->left[v] != EN_NONE)
+      while (e->left[v] != EN_NONE) {
         v = e->left[v];
+      }
     } else {
-      while (e->parent[v] != EN_NONE && v == e->right[e->parent[v]])
+      while (e->parent[v] != EN_NONE && v == e->right[e->parent[v]]) {
         v = e->parent[v];
+      }
       v = e->parent[v];
     }
   }

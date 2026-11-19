@@ -58,13 +58,15 @@ typedef enum ds_hull_algorithm {
   DS_HULL_QUICKHULL = 3
 } ds_hull_algorithm_t;
 
-/* ---- distances ----------------------------------------------------------- */
+/* ---- distances -----------------------------------------------------------
+ */
 
 double ds_geo_euclidean(const double *a, const double *b, size_t dim);
 double ds_geo_manhattan(const double *a, const double *b, size_t dim);
 double ds_geo_chebyshev(const double *a, const double *b, size_t dim);
 /* L_p distance, p >= 1 (p = HUGE_VAL gives Chebyshev). */
-double ds_geo_minkowski(const double *a, const double *b, size_t dim, double p);
+double ds_geo_minkowski(const double *a, const double *b, size_t dim,
+                        double p);
 /* Distance between two dim-dimensional points. */
 typedef double (*ds_geo_metric_func_t)(const double *a, const double *b,
                                        size_t dim, void *user);
@@ -74,7 +76,8 @@ double ds_geo_hausdorff(const double *a, size_t na, const double *b, size_t nb,
                         size_t dim, bool directed, ds_geo_metric_func_t metric,
                         void *user);
 
-/* ---- predicates ---------------------------------------------------------- */
+/* ---- predicates ----------------------------------------------------------
+ */
 
 /* > 0 counter-clockwise, < 0 clockwise, 0 collinear; exact sign. */
 double ds_geo_orient(ds_point2_t a, ds_point2_t b, ds_point2_t c);
@@ -86,10 +89,11 @@ double ds_geo_polygon_area2(const ds_point2_t *poly, size_t n);
 /* 1 inside, 0 outside, -1 on the boundary. */
 int ds_geo_point_in_polygon(const ds_point2_t *poly, size_t n, ds_point2_t p);
 /* Perpendicular bisector of p and q as a x + b y = c. */
-void ds_geo_bisector(ds_point2_t p, ds_point2_t q, double *out_a, double *out_b,
-                     double *out_c);
+void ds_geo_bisector(ds_point2_t p, ds_point2_t q, double *out_a,
+                     double *out_b, double *out_c);
 
-/* ---- hulls and calipers -------------------------------------------------- */
+/* ---- hulls and calipers --------------------------------------------------
+ */
 
 /* Indices of the hull vertices in counter-clockwise order, starting at the
  * lowest-then-leftmost point, collinear points excluded. out_hull needs n
@@ -111,7 +115,8 @@ ds_status_t ds_geo_closest_pair(const ds_point2_t *points, size_t n,
                                 double *out_distance, size_t *out_i,
                                 size_t *out_j, ds_context_t *context);
 
-/* ---- polygons ------------------------------------------------------------ */
+/* ---- polygons ------------------------------------------------------------
+ */
 
 /* Kernel of a simple polygon (counter-clockwise): the region from which
  * every point of the polygon is visible. Written to out (capacity n + 4);
@@ -142,7 +147,8 @@ ds_status_t ds_geo_slope_selection(const ds_point2_t *points, size_t n,
                                    size_t k, double *out_slope,
                                    ds_context_t *context);
 
-/* ---- rasterizing --------------------------------------------------------- */
+/* ---- rasterizing ---------------------------------------------------------
+ */
 
 typedef void (*ds_geo_plot_func_t)(long x, long y, void *user);
 typedef void (*ds_geo_plot_aa_func_t)(long x, long y, double intensity,

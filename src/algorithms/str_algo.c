@@ -4,9 +4,11 @@
 
 int ds__in_set(unsigned char c, const unsigned char *set, size_t n) {
   size_t i;
-  for (i = 0; i < n; ++i)
-    if (c == set[i])
+  for (i = 0; i < n; ++i) {
+    if (c == set[i]) {
       return 1;
+    }
+  }
   return 0;
 }
 
@@ -83,8 +85,9 @@ long ds_mem_find(const void *haystack, size_t n, const void *needle, size_t m,
   const unsigned char *y;
   const unsigned char *x = (const unsigned char *)needle;
   size_t ell, per, s1, p1, s2, p2, i, j;
-  if (!needle || m == 0u)
+  if (!needle || m == 0u) {
     return -1;
+  }
   if (start > n) {
     return -1;
   }
@@ -162,8 +165,9 @@ long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start) {
   size_t i, len;
   unsigned char skip[256];
   long ret = -1;
-  if (!s || !needle || n == 0u)
+  if (!s || !needle || n == 0u) {
     return -1;
+  }
   len = s->len;
   if (start > len ||
       n > len - start) { /* also an empty string's NULL buffer */
@@ -178,10 +182,12 @@ long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start) {
   if (n > 255u) {
     return ds_str_find_twoway(s, needle, n, start);
   }
-  for (i = 0; i < 256; ++i)
+  for (i = 0; i < 256; ++i) {
     skip[i] = (unsigned char)n;
-  for (i = 0; i < n - 1; ++i)
+  }
+  for (i = 0; i < n - 1; ++i) {
     skip[pat[i]] = (unsigned char)(n - 1 - i);
+  }
   h = (const unsigned char *)s->buf;
   i = start;
   while (i + n <= len) {
@@ -197,11 +203,13 @@ long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start) {
 
 int ds_str_ltrim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
   size_t i = 0u, len;
-  if (!s)
+  if (!s) {
     return -1;
+  }
   len = s->len;
-  while (i < len && ds__in_set((unsigned char)s->buf[i], set, set_n))
+  while (i < len && ds__in_set((unsigned char)s->buf[i], set, set_n)) {
     ++i;
+  }
   if (i) {
     memmove(s->buf, s->buf + i, len - i);
     s->len = len - i;
@@ -212,11 +220,13 @@ int ds_str_ltrim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
 
 int ds_str_rtrim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
   size_t len;
-  if (!s)
+  if (!s) {
     return -1;
+  }
   len = s->len;
-  while (len && ds__in_set((unsigned char)s->buf[len - 1], set, set_n))
+  while (len && ds__in_set((unsigned char)s->buf[len - 1], set, set_n)) {
     --len;
+  }
   if (len != s->len) { /* an empty string may have no buffer at all */
     s->len = len;
     s->buf[len] = '\0';
@@ -225,18 +235,21 @@ int ds_str_rtrim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
 }
 
 int ds_str_trim_set(ds_str_t *s, const unsigned char *set, size_t set_n) {
-  if (ds_str_rtrim_set(s, set, set_n) != 0)
+  if (ds_str_rtrim_set(s, set, set_n) != 0) {
     return -1;
+  }
   return ds_str_ltrim_set(s, set, set_n);
 }
 
 int ds_str_ltrim_pred(ds_str_t *s, ds_byte_pred pred) {
   size_t i = 0u, len;
-  if (!s || !pred)
+  if (!s || !pred) {
     return -1;
+  }
   len = s->len;
-  while (i < len && pred((unsigned char)s->buf[i]))
+  while (i < len && pred((unsigned char)s->buf[i])) {
     ++i;
+  }
   if (i) {
     memmove(s->buf, s->buf + i, len - i);
     s->len = len - i;
@@ -247,11 +260,13 @@ int ds_str_ltrim_pred(ds_str_t *s, ds_byte_pred pred) {
 
 int ds_str_rtrim_pred(ds_str_t *s, ds_byte_pred pred) {
   size_t len;
-  if (!s || !pred)
+  if (!s || !pred) {
     return -1;
+  }
   len = s->len;
-  while (len && pred((unsigned char)s->buf[len - 1]))
+  while (len && pred((unsigned char)s->buf[len - 1])) {
     --len;
+  }
   if (len != s->len) { /* an empty string may have no buffer at all */
     s->len = len;
     s->buf[len] = '\0';
@@ -260,16 +275,18 @@ int ds_str_rtrim_pred(ds_str_t *s, ds_byte_pred pred) {
 }
 
 int ds_str_trim_pred(ds_str_t *s, ds_byte_pred pred) {
-  if (ds_str_rtrim_pred(s, pred) != 0)
+  if (ds_str_rtrim_pred(s, pred) != 0) {
     return -1;
+  }
   return ds_str_ltrim_pred(s, pred);
 }
 
 void ds_str_split_each_c(ds_str_t *s, unsigned char sep, ds_str_token_cb cb,
                          void *ud) {
   size_t i = 0u, start = 0u, len;
-  if (!s || !cb)
+  if (!s || !cb) {
     return;
+  }
   len = s->len;
   for (i = 0; i < len; ++i) {
     if ((unsigned char)s->buf[i] == sep) {
@@ -284,8 +301,9 @@ void ds_str_split_each_substr(ds_str_t *s, const void *sep, size_t nsep,
                               ds_str_token_cb cb, void *ud) {
   size_t pos = 0u;
   long at;
-  if (!s || !cb || !sep || nsep == 0u)
+  if (!s || !cb || !sep || nsep == 0u) {
     return;
+  }
   for (;;) {
     at = ds_str_find_twoway(s, sep, nsep, pos);
     if (at < 0) {
@@ -294,18 +312,21 @@ void ds_str_split_each_substr(ds_str_t *s, const void *sep, size_t nsep,
     }
     cb(s->buf + pos, (size_t)at - pos, ud);
     pos = (size_t)at + nsep;
-    if (pos > s->len)
+    if (pos > s->len) {
       pos = s->len;
+    }
   }
 }
 
 int ds_str_join_c(ds_str_t *dst, ds_str_t **parts, size_t count,
                   const void *sep, size_t nsep) {
   size_t i;
-  if (!dst)
+  if (!dst) {
     return -1;
-  if (!parts || count == 0)
+  }
+  if (!parts || count == 0) {
     return 0;
+  }
   for (i = 0; i < count; ++i) {
     if (i) {
       if (ds_str_append(dst, sep, nsep) != 0) {
@@ -322,22 +343,28 @@ int ds_str_join_c(ds_str_t *dst, ds_str_t **parts, size_t count,
 }
 
 int ds_str_starts_with(ds_str_t *s, const void *prefix, size_t n) {
-  if (!s || !prefix)
+  if (!s || !prefix) {
     return 0;
-  if (s->len < n)
+  }
+  if (s->len < n) {
     return 0;
-  if (n == 0u) /* an empty string may have no buffer at all */
+  }
+  if (n == 0u) { /* an empty string may have no buffer at all */
     return 1;
+  }
   return memcmp(s->buf, prefix, n) == 0;
 }
 
 int ds_str_ends_with(ds_str_t *s, const void *suffix, size_t n) {
-  if (!s || !suffix)
+  if (!s || !suffix) {
     return 0;
-  if (s->len < n)
+  }
+  if (s->len < n) {
     return 0;
-  if (n == 0u)
+  }
+  if (n == 0u) {
     return 1;
+  }
   return memcmp(s->buf + (s->len - n), suffix, n) == 0;
 }
 
@@ -345,16 +372,19 @@ long ds_str_count(ds_str_t *s, const void *needle, size_t n) {
   size_t pos = 0u;
   long c = 0;
   long at;
-  if (!s || !needle || n == 0u)
+  if (!s || !needle || n == 0u) {
     return 0;
+  }
   for (;;) {
     at = ds_str_find_twoway(s, needle, n, pos);
-    if (at < 0)
+    if (at < 0) {
       break;
+    }
     ++c;
     pos = (size_t)at + n;
-    if (pos > s->len)
+    if (pos > s->len) {
       break;
+    }
   }
   return c;
 }
@@ -363,12 +393,14 @@ int ds_str_replace_all(ds_str_t *s, const void *from, size_t nfrom,
                        const void *to, size_t nto) {
   size_t pos = 0u;
   long at;
-  if (!s || !from || nfrom == 0u)
+  if (!s || !from || nfrom == 0u) {
     return -1;
+  }
   while (1) {
     at = ds_str_find_twoway(s, from, nfrom, pos);
-    if (at < 0)
+    if (at < 0) {
       break;
+    }
     if (ds_str_erase(s, (size_t)at, nfrom) != 0) {
       return -1;
     }
@@ -391,14 +423,17 @@ int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
   ds_str_t *out;
   size_t last = 0u;
 
-  if (!s || !from || nfrom == 0u)
+  if (!s || !from || nfrom == 0u) {
     return -1;
+  }
 
   if (s->context != NULL) {
-    if (ds_str_create_context(s->context, &out) != DS_OK)
+    if (ds_str_create_context(s->context, &out) != DS_OK) {
       return -1;
-  } else
+    }
+  } else {
     out = ds_str_create(s->context);
+  }
   if (!out) {
     return -1;
   }
@@ -438,12 +473,14 @@ int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
 
     pos = (size_t)at + nfrom;
     last = pos;
-    if (pos > s->len)
+    if (pos > s->len) {
       pos = s->len;
+    }
   }
 
-  if (s->buf)
+  if (s->buf) {
     ds_context_free(s->context, s->buf);
+  }
   s->buf = out->buf;
   s->len = out->len;
   s->cap = out->cap;
@@ -451,7 +488,8 @@ int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
   out->len = 0u;
   out->cap = 0u;
   ds_str_destroy(out);
-  if (s->buf)
+  if (s->buf) {
     s->buf[s->len] = '\0';
+  }
   return 0;
 }

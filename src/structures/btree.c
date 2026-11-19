@@ -124,15 +124,18 @@ static void bt_node_free(ds_btree_t *tree, ds_btree_internal_node_t *node) {
 ds_status_t ds_btree_create_context(int degree, ds_context_t *context,
                                     ds_btree_t **out) {
   ds_btree_t *tree;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
   if (degree < 2 || degree > INT_MAX / 2 ||
-      (size_t)degree > ((size_t)-1 / sizeof(void *) - 1) / 2)
+      (size_t)degree > ((size_t)-1 / sizeof(void *) - 1) / 2) {
     return DS_ERR_RANGE;
+  }
   tree = btree_shell(degree, context);
-  if (tree == NULL)
+  if (tree == NULL) {
     return DS_ERR_ALLOC;
+  }
   tree->root = ds_btree_create_node(tree, true);
   if (tree->root == NULL) {
     bt_free(tree, tree->nil);
@@ -147,16 +150,19 @@ ds_status_t ds_btree_split_child_ex(ds_btree_t *tree,
                                     ds_btree_internal_node_t *parent,
                                     int index) {
   ds_btree_internal_node_t *sibling;
-  if (tree == NULL || parent == NULL)
+  if (tree == NULL || parent == NULL) {
     return DS_ERR_NULL;
+  }
   if (index < 0 || index > parent->num_keys || parent->is_leaf ||
       parent->num_keys >= 2 * tree->degree - 1 ||
       parent->children[index] == NULL ||
-      parent->children[index]->num_keys != 2 * tree->degree - 1)
+      parent->children[index]->num_keys != 2 * tree->degree - 1) {
     return DS_ERR_INVALID;
+  }
   sibling = ds_btree_create_node(tree, true);
-  if (sibling == NULL)
+  if (sibling == NULL) {
     return DS_ERR_ALLOC;
+  }
   bt_split(tree, parent, index, sibling);
   return DS_OK;
 }
@@ -176,30 +182,37 @@ static ds_status_t bt_insert(ds_btree_t *tree, ds_btree_internal_node_t *root,
   ds_btree_internal_node_t *node, *staged = NULL, *next;
   size_t need = 0;
   int i, lo, hi;
-  if (tree == NULL || root == NULL || data == NULL || compare == NULL)
+  if (tree == NULL || root == NULL || data == NULL || compare == NULL) {
     return DS_ERR_NULL;
+  }
   if (data == tree->nil ||
-      (!whole_tree && root->num_keys == 2 * tree->degree - 1))
+      (!whole_tree && root->num_keys == 2 * tree->degree - 1)) {
     return DS_ERR_INVALID;
-  if (whole_tree && tree->size == (size_t)-1)
+  }
+  if (whole_tree && tree->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
-  if (root->num_keys == 2 * tree->degree - 1)
+  }
+  if (root->num_keys == 2 * tree->degree - 1) {
     need++; /* new root, in addition to its sibling below */
+  }
   for (node = root;;) {
     lo = 0;
     hi = node->num_keys - 1;
     if (node->num_keys == 2 * tree->degree - 1) {
       need++;
-      if (compare(data, node->data[tree->degree - 1], user) <= 0)
+      if (compare(data, node->data[tree->degree - 1], user) <= 0) {
         hi = tree->degree - 2;
-      else
+      } else {
         lo = tree->degree;
+      }
     }
-    if (node->is_leaf)
+    if (node->is_leaf) {
       break;
+    }
     i = hi;
-    while (i >= lo && compare(data, node->data[i], user) < 0)
+    while (i >= lo && compare(data, node->data[i], user) < 0) {
       i--;
+    }
     node = node->children[i + 1];
   }
   while (need != 0) {
@@ -233,15 +246,17 @@ static ds_status_t bt_insert(ds_btree_t *tree, ds_btree_internal_node_t *root,
   }
   while (!node->is_leaf) {
     i = node->num_keys - 1;
-    while (i >= 0 && compare(data, node->data[i], user) < 0)
+    while (i >= 0 && compare(data, node->data[i], user) < 0) {
       i--;
+    }
     i++;
     if (node->children[i]->num_keys == 2 * tree->degree - 1) {
       next = staged;
       staged = staged->parent;
       bt_split(tree, node, i, next);
-      if (compare(data, node->data[i], user) > 0)
+      if (compare(data, node->data[i], user) > 0) {
         i++;
+      }
     }
     node = node->children[i];
   }
@@ -253,8 +268,9 @@ static ds_status_t bt_insert(ds_btree_t *tree, ds_btree_internal_node_t *root,
   node->data[i + 1] = data;
   data->internal = node;
   node->num_keys++;
-  if (whole_tree)
+  if (whole_tree) {
     tree->size++;
+  }
   return DS_OK;
 }
 
@@ -281,8 +297,9 @@ ds_status_t ds_btree_insert_ex(ds_btree_t *tree, ds_btree_node_t *data,
                                int (*compare)(ds_btree_node_t *,
                                               ds_btree_node_t *)) {
   bt_direct_compare_t c;
-  if (compare == NULL)
+  if (compare == NULL) {
     return DS_ERR_NULL;
+  }
   c.compare = compare;
   return ds_btree_insert_with(tree, data, bt_compare_direct, &c);
 }
@@ -292,8 +309,9 @@ void ds_btree_insert_non_full(ds_btree_t *tree, ds_btree_internal_node_t *node,
                               int (*compare)(ds_btree_node_t *,
                                              ds_btree_node_t *)) {
   bt_direct_compare_t c;
-  if (compare == NULL)
+  if (compare == NULL) {
     return;
+  }
   c.compare = compare;
   (void)bt_insert(tree, node, data, bt_compare_direct, &c, false);
 }
@@ -308,11 +326,13 @@ ds_status_t ds_btree_find_with(ds_btree_t *tree, ds_btree_node_t *key,
                                ds_btree_node_t **out) {
   ds_btree_internal_node_t *node;
   int i, cmp;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (tree == NULL || key == NULL || compare == NULL)
+  if (tree == NULL || key == NULL || compare == NULL) {
     return DS_ERR_NULL;
+  }
   node = tree->root;
   for (;;) {
     for (i = 0; i < node->num_keys; i++) {
@@ -321,11 +341,13 @@ ds_status_t ds_btree_find_with(ds_btree_t *tree, ds_btree_node_t *key,
         *out = node->data[i];
         return DS_OK;
       }
-      if (cmp < 0)
+      if (cmp < 0) {
         break;
+      }
     }
-    if (node->is_leaf)
+    if (node->is_leaf) {
       return DS_NOT_FOUND;
+    }
     node = node->children[i];
   }
 }
@@ -517,8 +539,9 @@ void ds_btree_delete_node(ds_btree_t *tree, ds_btree_node_t *key) {
   ds_btree_internal_node_t *node;
   ds_btree_internal_node_t *borrowed_internal;
   ds_btree_node_t *borrowed;
-  if (tree == NULL || key == NULL || key == tree->nil)
+  if (tree == NULL || key == NULL || key == tree->nil) {
     return;
+  }
   node = key->internal;
   deleted = false;
   if (node == NULL) {
@@ -526,17 +549,20 @@ void ds_btree_delete_node(ds_btree_t *tree, ds_btree_node_t *key) {
   }
   {
     ds_btree_internal_node_t *root = node;
-    while (root->parent != NULL)
+    while (root->parent != NULL) {
       root = root->parent;
-    if (root != tree->root)
+    }
+    if (root != tree->root) {
       return;
+    }
   }
   i = 0;
   while (i < node->num_keys && node->data[i] != key) {
     i++;
   }
-  if (i == node->num_keys)
+  if (i == node->num_keys) {
     return;
+  }
   if (node->is_leaf) {
     for (i = i + 1; i < node->num_keys; i++) {
       node->data[i - 1] = node->data[i];
@@ -575,22 +601,26 @@ void ds_btree_delete_node(ds_btree_t *tree, ds_btree_node_t *key) {
   if (deleted && tree->size != 0U) {
     tree->size -= 1U;
   }
-  if (deleted)
+  if (deleted) {
     key->internal = NULL;
+  }
 }
 
 ds_status_t ds_btree_remove_ex(ds_btree_t *tree, ds_btree_node_t *node,
                                ds_btree_node_t **out) {
   size_t before;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (tree == NULL || node == NULL)
+  if (tree == NULL || node == NULL) {
     return DS_ERR_NULL;
+  }
   before = tree->size;
   ds_btree_delete_node(tree, node);
-  if (tree->size == before)
+  if (tree->size == before) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -598,8 +628,9 @@ ds_status_t ds_btree_remove_ex(ds_btree_t *tree, ds_btree_node_t *node,
 void ds_btree_destroy_node(ds_btree_t *tree, ds_btree_node_t *node,
                            void (*destroy)(ds_btree_node_t *)) {
   ds_btree_node_t *removed;
-  if (ds_btree_remove_ex(tree, node, &removed) == DS_OK && destroy != NULL)
+  if (ds_btree_remove_ex(tree, node, &removed) == DS_OK && destroy != NULL) {
     destroy(removed);
+  }
 }
 
 void ds_btree_destroy_recursive(ds_btree_t *tree,
@@ -616,8 +647,9 @@ void ds_btree_destroy_recursive(ds_btree_t *tree,
   }
   for (i = 0; i < node->num_keys; i++) {
     node->data[i]->internal = NULL;
-    if (destroy != NULL)
+    if (destroy != NULL) {
       destroy(node->data[i]);
+    }
   }
   bt_free(tree, node->children);
   bt_free(tree, node->data);
@@ -626,8 +658,9 @@ void ds_btree_destroy_recursive(ds_btree_t *tree,
 
 void ds_btree_destroy_tree(ds_btree_t *tree,
                            void (*destroy)(ds_btree_node_t *)) {
-  if (tree == NULL)
+  if (tree == NULL) {
     return;
+  }
   ds_btree_destroy_recursive(tree, tree->root, destroy);
   bt_free(tree, tree->nil);
   bt_free(tree, tree);
@@ -741,12 +774,14 @@ btree_clone_subtree(const ds_btree_t *tree, ds_btree_t *new_tree,
   for (i = 0; i < node->num_keys; i++) {
     ds_btree_node_t *key = NULL;
     ds_status_t status = DS_OK;
-    if (clone_with != NULL)
+    if (clone_with != NULL) {
       status = clone_with(node->data[i], user, &key);
-    else
+    } else {
       key = clone_node(node->data[i]);
-    if (status != DS_OK)
+    }
+    if (status != DS_OK) {
       return status < DS_OK ? status : DS_ERR_CALLBACK;
+    }
     if (key == NULL || key == node->data[i]) {
       return DS_ERR_CALLBACK;
     }
@@ -832,17 +867,20 @@ static ds_status_t bt_walk(ds_btree_internal_node_t *node,
                            ds_btree_visit_fn visit, void *user) {
   int i;
   ds_status_t st;
-  if (node == NULL)
+  if (node == NULL) {
     return DS_OK;
+  }
   for (i = 0; i < node->num_keys; i++) {
     if (!node->is_leaf) {
       st = bt_walk(node->children[i], visit, user);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         return st;
+      }
     }
     st = visit(node->data[i], user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   return node->is_leaf ? DS_OK : bt_walk(node->children[i], visit, user);
 }
@@ -856,15 +894,19 @@ ds_status_t ds_btree_walk_with(ds_btree_t *tree, ds_btree_visit_fn visit,
 static void bt_destroy(ds_btree_t *tree, ds_btree_internal_node_t *node,
                        ds_btree_destroy_fn destroy, void *user) {
   int i;
-  if (node == NULL)
+  if (node == NULL) {
     return;
-  if (!node->is_leaf)
-    for (i = 0; i <= node->num_keys; i++)
+  }
+  if (!node->is_leaf) {
+    for (i = 0; i <= node->num_keys; i++) {
       bt_destroy(tree, node->children[i], destroy, user);
+    }
+  }
   for (i = 0; i < node->num_keys; i++) {
     node->data[i]->internal = NULL;
-    if (destroy != NULL)
+    if (destroy != NULL) {
       destroy(node->data[i], user);
+    }
   }
   bt_node_free(tree, node);
 }
@@ -884,14 +926,17 @@ ds_status_t ds_btree_clone_with(const ds_btree_t *tree,
                                 ds_btree_t **out) {
   ds_btree_t *copy;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (tree == NULL || clone == NULL || destroy == NULL)
+  if (tree == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   copy = btree_shell(tree->degree, tree->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   st = btree_clone_subtree(tree, copy, tree->root, NULL, clone, user,
                            &copy->root);
   if (st != DS_OK) {

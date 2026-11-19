@@ -39,34 +39,42 @@ int main(void) {
   config.rng = &rng;
   config.max_states = 4096;
   config.max_shots = 64;
-  st = ds_qref_deutsch_jozsa(4, parity, NULL, &config, &constant, &probability);
-  if (st != DS_OK)
+  st =
+      ds_qref_deutsch_jozsa(4, parity, NULL, &config, &constant, &probability);
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Deutsch-Jozsa: %s; zero-state probability %.6f\n",
          constant ? "constant" : "balanced", probability);
   st = ds_qref_grover(3, marked, &target, DS_QREF_AUTO, &config, &found, &hit,
                       &probability);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Grover: measured %lu (%s); success probability %.6f\n",
          (unsigned long)found, hit ? "marked" : "unmarked", probability);
   st = ds_qref_simon(4, paired, &secret, &config, &found);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Simon: recovered XOR mask %lu\n", (unsigned long)found);
   st = ds_qref_simon(4, identity, NULL, &config, &found);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Simon, injective oracle: mask %lu\n", (unsigned long)found);
   st = ds_qref_shor_order(5, 33, &config, &order);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("Shor Fourier samples: order of 5 modulo 33 is %lu\n", order);
   st = ds_qref_shor_factor(33, &config, &factor);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     printf("Factorization: 33 = %lu * %lu\n", factor, 33 / factor);
+  }
 done:
-  if (st != DS_OK)
+  if (st != DS_OK) {
     fprintf(stderr, "interference: %s\n", ds_status_name(st));
+  }
   return st == DS_OK ? 0 : 1;
 }

@@ -15,8 +15,8 @@ extern "C" {
 #define DS_U8_REJECT_NONCHAR 0x02u
 #define DS_U8_REJECT_OVERLONG 0x04u
 #define DS_U8_REJECT_OUT_OF_RANGE 0x08u
-#define DS_U8_STRICT                                                           \
-  (DS_U8_REJECT_SURROGATE | DS_U8_REJECT_NONCHAR | DS_U8_REJECT_OVERLONG |     \
+#define DS_U8_STRICT                                                          \
+  (DS_U8_REJECT_SURROGATE | DS_U8_REJECT_NONCHAR | DS_U8_REJECT_OVERLONG |    \
    DS_U8_REJECT_OUT_OF_RANGE)
 
 #define DS_U8_REPLACEMENT_CHAR 0xFFFDu

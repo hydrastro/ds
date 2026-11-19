@@ -39,7 +39,10 @@ extern "C" {
 
 #define DS_PLOP_MAX_DIMS 16
 
-typedef enum ds_plop_split { DS_PLOP_MIDPOINT, DS_PLOP_MEDIAN } ds_plop_split_t;
+typedef enum ds_plop_split {
+  DS_PLOP_MIDPOINT,
+  DS_PLOP_MEDIAN
+} ds_plop_split_t;
 
 typedef struct ds_plop_bucket {
   unsigned char *records; /* (dims doubles + payload) each */
@@ -50,7 +53,7 @@ typedef struct ds_plop_bucket {
 typedef struct ds_plop_axis {
   double *bound; /* sorted lower bounds of the slices (bound[0] = -inf) */
   size_t *slice; /* slice id in that order */
-  size_t *born;  /* per slice id: expansion that created it (+1; 0 = initial) */
+  size_t *born; /* per slice id: expansion that created it (+1; 0 = initial) */
   size_t slices;
   size_t capacity;
   size_t pointer; /* next slice (in id order) to split this round */
@@ -101,7 +104,8 @@ ds_status_t ds_plop_find(const ds_plop_hash_t *h, const double *point,
 ds_status_t ds_plop_remove(ds_plop_hash_t *h, const double *point);
 /* records with lo[d] <= x[d] <= hi[d]; visit returns false to stop */
 ds_status_t ds_plop_range(const ds_plop_hash_t *h, const double *lo,
-                          const double *hi, ds_plop_visit_fn visit, void *user);
+                          const double *hi, ds_plop_visit_fn visit,
+                          void *user);
 size_t ds_plop_size(const ds_plop_hash_t *h);
 size_t ds_plop_buckets(const ds_plop_hash_t *h);
 /* overflow pages over all buckets */

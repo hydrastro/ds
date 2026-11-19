@@ -34,7 +34,8 @@ struct ds_ptrie {
 };
 
 static ds_ptrie_node_t *ptrie_node_create(ds_ptrie_t *trie);
-static ds_status_t ptrie_value_clone(ds_ptrie_t *trie, void *value, void **out);
+static ds_status_t ptrie_value_clone(ds_ptrie_t *trie, void *value,
+                                     void **out);
 static void ptrie_value_destroy(ds_ptrie_t *trie, void *value);
 static bool ptrie_node_retain(ds_ptrie_node_t *node);
 static void ptrie_node_release(ds_ptrie_t *trie, ds_ptrie_node_t *node);
@@ -90,16 +91,20 @@ static ds_status_t ptrie_value_clone(ds_ptrie_t *trie, void *value,
   *out = NULL;
   if (trie->config.clone_value_ex != NULL) {
     st = trie->config.clone_value_ex(value, trie->config.user, out);
-    if (st > DS_OK)
+    if (st > DS_OK) {
       st = DS_ERR_CALLBACK;
+    }
   } else if (trie->config.clone_value != NULL) {
     *out = trie->config.clone_value(value, trie->config.user);
-    if (*out == NULL && value != NULL)
+    if (*out == NULL && value != NULL) {
       st = DS_ERR_CALLBACK;
-  } else
+    }
+  } else {
     *out = value;
-  if (st != DS_OK)
+  }
+  if (st != DS_OK) {
     trie->error = st;
+  }
   return st;
 }
 
@@ -128,8 +133,9 @@ static ds_ptrie_node_t *ptrie_node_create(ds_ptrie_t *trie) {
 
 static bool ptrie_node_retain(ds_ptrie_node_t *node) {
   if (node != NULL) {
-    if (node->refs == ULONG_MAX)
+    if (node->refs == ULONG_MAX) {
       return false;
+    }
     node->refs++;
   }
   return true;
@@ -141,8 +147,9 @@ static bool ptrie_label(ds_ptrie_t *trie, ds_ptrie_node_t *node,
   unsigned char *copy = NULL;
   if (len != 0) {
     copy = (unsigned char *)ds_context_alloc(trie->config.context, len);
-    if (copy == NULL)
+    if (copy == NULL) {
       return false;
+    }
     memcpy(copy, bytes, len);
   }
   ds_context_free(trie->config.context, node->prefix);
@@ -334,8 +341,8 @@ static bool ptrie_set_child(ds_ptrie_t *trie, ds_ptrie_node_t *copy,
   if (child == NULL) {
     return true;
   }
-  added =
-      (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context, sizeof(*added));
+  added = (ds_ptrie_edge_t *)ds_context_alloc(trie->config.context,
+                                              sizeof(*added));
   if (added == NULL) {
     return false;
   }
@@ -476,10 +483,11 @@ static bool ptrie_path_push(ds_ptrie_t *trie, ptrie_path_frame_t **path,
       trie->error = DS_ERR_OVERFLOW;
       return false;
     }
-    grown =
-        ptrie_grow(trie->config.context, *path, cap, *used + 1, sizeof(**path));
-    if (grown == NULL)
+    grown = ptrie_grow(trie->config.context, *path, cap, *used + 1,
+                       sizeof(**path));
+    if (grown == NULL) {
       return false;
+    }
     *path = (ptrie_path_frame_t *)grown;
   }
   (*path)[*used].node = node;
@@ -495,16 +503,17 @@ ptrie_radix_leaf(ds_ptrie_t *trie, const unsigned char *suffix, size_t len) {
     ptrie_node_release(trie, node);
     return NULL;
   }
-  if (node != NULL)
+  if (node != NULL) {
     node->count = 1;
+  }
   /* Its value is installed only after every path copy has succeeded. */
   return node;
 }
 
 static ds_ptrie_node_t *ptrie_radix_insert(ds_ptrie_t *trie,
                                            ds_ptrie_node_t *root,
-                                           const unsigned char *key, size_t len,
-                                           void *value) {
+                                           const unsigned char *key,
+                                           size_t len, void *value) {
   ptrie_path_frame_t *path = NULL;
   size_t used = 0, cap = 0, pos = 0;
   ds_ptrie_node_t *node = root, *result = NULL, *leaf = NULL;
@@ -513,17 +522,20 @@ static ds_ptrie_node_t *ptrie_radix_insert(ds_ptrie_t *trie,
     size_t common = 0;
     ds_ptrie_edge_t *edge;
     while (common < node->prefix_len && common < len - pos &&
-           node->prefix[common] == key[pos + common])
+           node->prefix[common] == key[pos + common]) {
       common++;
+    }
     if (common != node->prefix_len) {
       ds_ptrie_node_t *old;
       unsigned char token = node->prefix[common];
       result = ptrie_node_create(trie);
-      if (result == NULL || !ptrie_label(trie, result, node->prefix, common))
+      if (result == NULL || !ptrie_label(trie, result, node->prefix, common)) {
         goto fail;
+      }
       old = ptrie_node_clone_shallow(trie, node);
-      if (old == NULL)
+      if (old == NULL) {
         goto fail;
+      }
       if (!ptrie_label(trie, old, node->prefix + common + 1,
                        node->prefix_len - common - 1) ||
           !ptrie_set_child(trie, result, token, old)) {
@@ -531,12 +543,13 @@ static ds_ptrie_node_t *ptrie_radix_insert(ds_ptrie_t *trie,
         goto fail;
       }
       pos += common;
-      if (pos == len)
+      if (pos == len) {
         leaf = result;
-      else {
+      } else {
         leaf = ptrie_radix_leaf(trie, key + pos + 1, len - pos - 1);
-        if (leaf == NULL)
+        if (leaf == NULL) {
           goto fail;
+        }
         if (!ptrie_set_child(trie, result, key[pos], leaf)) {
           ptrie_node_release(trie, leaf);
           goto fail;
@@ -553,10 +566,12 @@ static ds_ptrie_node_t *ptrie_radix_insert(ds_ptrie_t *trie,
     if (pos == len) {
       added = !node->terminal;
       result = ptrie_node_clone_shallow(trie, node);
-      if (result == NULL)
+      if (result == NULL) {
         goto fail;
-      if (result->terminal)
+      }
+      if (result->terminal) {
         ptrie_value_destroy(trie, result->value);
+      }
       result->terminal = false;
       result->value = NULL;
       leaf = result;
@@ -570,11 +585,13 @@ static ds_ptrie_node_t *ptrie_radix_insert(ds_ptrie_t *trie,
     edge = ptrie_edge_find(node->children, key[pos]);
     if (edge == NULL) {
       result = ptrie_node_clone_shallow(trie, node);
-      if (result == NULL)
+      if (result == NULL) {
         goto fail;
+      }
       leaf = ptrie_radix_leaf(trie, key + pos + 1, len - pos - 1);
-      if (leaf == NULL)
+      if (leaf == NULL) {
         goto fail;
+      }
       if (!ptrie_set_child(trie, result, key[pos], leaf)) {
         ptrie_node_release(trie, leaf);
         goto fail;
@@ -586,8 +603,9 @@ static ds_ptrie_node_t *ptrie_radix_insert(ds_ptrie_t *trie,
       result->count++;
       break;
     }
-    if (!ptrie_path_push(trie, &path, &used, &cap, node, key[pos]))
+    if (!ptrie_path_push(trie, &path, &used, &cap, node, key[pos])) {
       goto fail;
+    }
     pos++;
     node = edge->child;
   }
@@ -599,8 +617,9 @@ static ds_ptrie_node_t *ptrie_radix_insert(ds_ptrie_t *trie,
       goto fail;
     }
     copy = ptrie_node_clone_shallow(trie, frame->node);
-    if (copy == NULL)
+    if (copy == NULL) {
       goto fail;
+    }
     if (!ptrie_set_child(trie, copy, frame->token, result)) {
       ptrie_node_release(trie, copy);
       goto fail;
@@ -634,13 +653,16 @@ static bool ptrie_coalesce(ds_ptrie_t *trie, ds_ptrie_node_t **link) {
     }
     len = node->prefix_len + 1 + child->prefix_len;
     label = (unsigned char *)ds_context_alloc(trie->config.context, len);
-    if (label == NULL)
+    if (label == NULL) {
       return false;
-    if (node->prefix_len != 0)
+    }
+    if (node->prefix_len != 0) {
       memcpy(label, node->prefix, node->prefix_len);
+    }
     label[node->prefix_len] = node->children->token;
-    if (child->prefix_len != 0)
+    if (child->prefix_len != 0) {
       memcpy(label + node->prefix_len + 1, child->prefix, child->prefix_len);
+    }
     copy = ptrie_node_clone_shallow(trie, child);
     if (copy == NULL) {
       ds_context_free(trie->config.context, label);
@@ -657,8 +679,9 @@ static bool ptrie_coalesce(ds_ptrie_t *trie, ds_ptrie_node_t **link) {
 
 static ds_ptrie_node_t *ptrie_radix_remove(ds_ptrie_t *trie,
                                            ds_ptrie_node_t *root,
-                                           const unsigned char *key, size_t len,
-                                           bool prefix, size_t *removed) {
+                                           const unsigned char *key,
+                                           size_t len, bool prefix,
+                                           size_t *removed) {
   ptrie_path_frame_t *path = NULL;
   size_t used = 0, cap = 0, pos = 0, gone = 0;
   ds_ptrie_node_t *node = root, *result = NULL;
@@ -667,28 +690,35 @@ static ds_ptrie_node_t *ptrie_radix_remove(ds_ptrie_t *trie,
     size_t common = 0;
     ds_ptrie_edge_t *edge;
     while (common < node->prefix_len && common < len - pos &&
-           node->prefix[common] == key[pos + common])
+           node->prefix[common] == key[pos + common]) {
       common++;
+    }
     pos += common;
-    if (pos == len && (prefix || common == node->prefix_len))
+    if (pos == len && (prefix || common == node->prefix_len)) {
       break;
-    if (common != node->prefix_len || pos == len)
+    }
+    if (common != node->prefix_len || pos == len) {
       goto missing;
+    }
     edge = ptrie_edge_find(node->children, key[pos]);
-    if (edge == NULL)
+    if (edge == NULL) {
       goto missing;
-    if (!ptrie_path_push(trie, &path, &used, &cap, node, key[pos]))
+    }
+    if (!ptrie_path_push(trie, &path, &used, &cap, node, key[pos])) {
       goto fail;
+    }
     pos++;
     node = edge->child;
   }
-  if (prefix ? node->count == 0 : !node->terminal)
+  if (prefix ? node->count == 0 : !node->terminal) {
     goto missing;
+  }
   gone = prefix ? node->count : 1;
   if (!prefix) {
     result = ptrie_node_clone_shallow(trie, node);
-    if (result == NULL)
+    if (result == NULL) {
       goto fail;
+    }
     ptrie_value_destroy(trie, result->value);
     result->value = NULL;
     result->terminal = false;
@@ -696,14 +726,16 @@ static ds_ptrie_node_t *ptrie_radix_remove(ds_ptrie_t *trie,
     if (result->count == 0) {
       ptrie_node_release(trie, result);
       result = NULL;
-    } else if (used != 0 && !ptrie_coalesce(trie, &result))
+    } else if (used != 0 && !ptrie_coalesce(trie, &result)) {
       goto fail;
+    }
   }
   while (used != 0) {
     ptrie_path_frame_t *frame = &path[--used];
     ds_ptrie_node_t *copy = ptrie_node_clone_shallow(trie, frame->node);
-    if (copy == NULL)
+    if (copy == NULL) {
       goto fail;
+    }
     if (!ptrie_set_child(trie, copy, frame->token, result)) {
       ptrie_node_release(trie, copy);
       goto fail;
@@ -713,13 +745,16 @@ static ds_ptrie_node_t *ptrie_radix_remove(ds_ptrie_t *trie,
     if (used != 0 && copy->count == 0) {
       ptrie_node_release(trie, copy);
       result = NULL;
-    } else if (used != 0 && !ptrie_coalesce(trie, &result))
+    } else if (used != 0 && !ptrie_coalesce(trie, &result)) {
       goto fail;
+    }
   }
-  if (result == NULL)
+  if (result == NULL) {
     result = ptrie_node_create(trie);
-  if (result == NULL)
+  }
+  if (result == NULL) {
     goto fail;
+  }
   ds_context_free(trie->config.context, path);
   *removed = gone;
   return result;
@@ -750,25 +785,30 @@ static ds_ptrie_node_t *ptrie_find_match(ds_ptrie_node_t *node,
                                          const unsigned char *key, size_t len,
                                          bool prefix, size_t *matched) {
   size_t pos = 0;
-  if (node == NULL || (key == NULL && len != 0))
+  if (node == NULL || (key == NULL && len != 0)) {
     return NULL;
+  }
   for (;;) {
     size_t common = 0;
     ds_ptrie_edge_t *edge;
     while (common < node->prefix_len && common < len - pos &&
-           node->prefix[common] == key[pos + common])
+           node->prefix[common] == key[pos + common]) {
       common++;
+    }
     pos += common;
     if (pos == len && (prefix || common == node->prefix_len)) {
-      if (matched != NULL)
+      if (matched != NULL) {
         *matched = common;
+      }
       return node;
     }
-    if (common != node->prefix_len || pos == len)
+    if (common != node->prefix_len || pos == len) {
       return NULL;
+    }
     edge = ptrie_edge_find(node->children, key[pos++]);
-    if (edge == NULL)
+    if (edge == NULL) {
       return NULL;
+    }
     node = edge->child;
   }
 }
@@ -877,19 +917,23 @@ static ds_status_t ptrie_walk(ptrie_walk_t *walk, ds_ptrie_node_t *node,
   size_t cap = 16, top = 0;
   ds_status_t status = DS_OK;
   void *grown;
-  if (node == NULL || ptrie_path_position(walk, depth) != 0)
+  if (node == NULL || ptrie_path_position(walk, depth) != 0) {
     return DS_OK;
+  }
   if (node->terminal &&
       ptrie_key_in_range(walk->key, depth, walk->lower, walk->lower_len,
                          walk->upper, walk->upper_len) &&
-      !walk->visit(walk->key, depth, node->value, walk->user))
+      !walk->visit(walk->key, depth, node->value, walk->user)) {
     return DS_STOP;
-  if (node->children == NULL)
+  }
+  if (node->children == NULL) {
     return DS_OK;
+  }
   stack = (ptrie_walk_frame_t *)ds_context_alloc(walk->context,
                                                  cap * sizeof(*stack));
-  if (stack == NULL)
+  if (stack == NULL) {
     return DS_ERR_ALLOC;
+  }
   stack[top].edge = node->children;
   stack[top++].depth = depth;
   while (top != 0) {
@@ -909,7 +953,8 @@ static ds_status_t ptrie_walk(ptrie_walk_t *walk, ds_ptrie_node_t *node,
     }
     end = at + 1 + child->prefix_len;
     if (end > walk->key_capacity) {
-      grown = ptrie_grow(walk->context, walk->key, &walk->key_capacity, end, 1);
+      grown =
+          ptrie_grow(walk->context, walk->key, &walk->key_capacity, end, 1);
       if (grown == NULL) {
         status = DS_ERR_ALLOC;
         break;
@@ -917,13 +962,16 @@ static ds_status_t ptrie_walk(ptrie_walk_t *walk, ds_ptrie_node_t *node,
       walk->key = (unsigned char *)grown;
     }
     walk->key[at] = edge->token;
-    if (child->prefix_len != 0)
+    if (child->prefix_len != 0) {
       memcpy(walk->key + at + 1, child->prefix, child->prefix_len);
+    }
     position = ptrie_path_position(walk, end);
-    if (position > 0)
+    if (position > 0) {
       break;
-    if (position < 0)
+    }
+    if (position < 0) {
       continue;
+    }
     if (child->terminal &&
         ptrie_key_in_range(walk->key, end, walk->lower, walk->lower_len,
                            walk->upper, walk->upper_len) &&
@@ -933,7 +981,8 @@ static ds_status_t ptrie_walk(ptrie_walk_t *walk, ds_ptrie_node_t *node,
     }
     if (child->children != NULL) {
       if (top == cap) {
-        grown = ptrie_grow(walk->context, stack, &cap, top + 1, sizeof(*stack));
+        grown =
+            ptrie_grow(walk->context, stack, &cap, top + 1, sizeof(*stack));
         if (grown == NULL) {
           status = DS_ERR_ALLOC;
           break;
@@ -969,7 +1018,8 @@ static ds_ptrie_t *ptrie_create(const ds_ptrie_config_t *config) {
   trie->error = DS_OK;
   if ((trie->config.storage != DS_PTRIE_BYTES &&
        trie->config.storage != DS_PTRIE_RADIX) ||
-      (trie->config.destroy_value != NULL && trie->config.clone_value == NULL &&
+      (trie->config.destroy_value != NULL &&
+       trie->config.clone_value == NULL &&
        trie->config.clone_value_ex == NULL) ||
       (trie->config.clone_value != NULL &&
        trie->config.clone_value_ex != NULL)) {
@@ -1014,8 +1064,9 @@ static ds_ptrie_version_t *ptrie_insert_version(ds_ptrie_t *trie,
       (key == NULL && len != 0U)) {
     return NULL;
   }
-  if (ptrie_value_clone(trie, value, &stored_value) != DS_OK)
+  if (ptrie_value_clone(trie, value, &stored_value) != DS_OK) {
     return NULL;
+  }
   new_root = trie->config.storage == DS_PTRIE_RADIX
                  ? ptrie_radix_insert(trie, base->root, key, len, stored_value)
                  : ptrie_insert_path(trie, base->root, key, len, stored_value);
@@ -1076,8 +1127,8 @@ ptrie_remove_prefix_version(ds_ptrie_t *trie, ds_ptrie_version_t *base,
   new_root = trie->config.storage == DS_PTRIE_RADIX
                  ? ptrie_radix_remove(trie, base->root, prefix, prefix_len,
                                       true, &removed_count)
-                 : ptrie_remove_path(trie, base->root, prefix, prefix_len, true,
-                                     &removed_count);
+                 : ptrie_remove_path(trie, base->root, prefix, prefix_len,
+                                     true, &removed_count);
   if (new_root == NULL) {
     return NULL;
   }
@@ -1095,13 +1146,16 @@ ptrie_remove_prefix_version(ds_ptrie_t *trie, ds_ptrie_version_t *base,
 ds_status_t ds_ptrie_get(ds_ptrie_version_t *version, const unsigned char *key,
                          size_t len, void **out_value) {
   ds_ptrie_node_t *node;
-  if (out_value != NULL)
+  if (out_value != NULL) {
     *out_value = NULL;
-  if (version == NULL || out_value == NULL || (key == NULL && len != 0))
+  }
+  if (version == NULL || out_value == NULL || (key == NULL && len != 0)) {
     return DS_ERR_NULL;
+  }
   node = ptrie_find_match(version->root, key, len, false, NULL);
-  if (node == NULL || !node->terminal)
+  if (node == NULL || !node->terminal) {
     return DS_NOT_FOUND;
+  }
   *out_value = node->value;
   return DS_OK;
 }
@@ -1162,14 +1216,15 @@ static bool ptrie_copy_prefix_visit(const unsigned char *key, size_t len,
   new_len = state->destination_prefix_len + suffix_len;
   new_key = NULL;
   if (new_len != 0U) {
-    new_key =
-        (unsigned char *)ds_context_alloc(state->trie->config.context, new_len);
+    new_key = (unsigned char *)ds_context_alloc(state->trie->config.context,
+                                                new_len);
     if (new_key == NULL) {
       state->failed = true;
       return false;
     }
     if (state->destination_prefix_len != 0U) {
-      memcpy(new_key, state->destination_prefix, state->destination_prefix_len);
+      memcpy(new_key, state->destination_prefix,
+             state->destination_prefix_len);
     }
     if (suffix_len != 0U) {
       memcpy(new_key + state->destination_prefix_len,
@@ -1208,8 +1263,8 @@ static ds_ptrie_version_t *ptrie_copy_prefix_version(
     return NULL;
   }
 
-  if (ds_ptrie_count_prefix(source_version, source_prefix, source_prefix_len) ==
-      0U) {
+  if (ds_ptrie_count_prefix(source_version, source_prefix,
+                            source_prefix_len) == 0U) {
     return NULL;
   }
 
@@ -1230,8 +1285,9 @@ static ds_ptrie_version_t *ptrie_copy_prefix_version(
       ds_ptrie_visit_prefix(source_version, source_prefix, source_prefix_len,
                             ptrie_copy_prefix_visit, &state);
   if (status != DS_OK || state.failed || state.copied == 0U) {
-    if (status != DS_OK && status != DS_STOP)
+    if (status != DS_OK && status != DS_STOP) {
       trie->error = status;
+    }
     ds_ptrie_version_release(trie, state.current);
     return NULL;
   }
@@ -1279,8 +1335,8 @@ ptrie_move_prefix_version(ds_ptrie_t *trie, ds_ptrie_version_t *base,
   }
 
   removed_count = 0U;
-  removed = ds_ptrie_remove_prefix(trie, base, source_prefix, source_prefix_len,
-                                   &removed_count);
+  removed = ds_ptrie_remove_prefix(trie, base, source_prefix,
+                                   source_prefix_len, &removed_count);
   if (removed == NULL || removed_count == 0U) {
     return NULL;
   }
@@ -1305,37 +1361,45 @@ ds_status_t ds_ptrie_longest_prefix(ds_ptrie_version_t *version,
   size_t pos = 0, best_len = 0;
   void *best_value = NULL;
   bool found = false;
-  if (out_len != NULL)
+  if (out_len != NULL) {
     *out_len = 0;
-  if (out_value != NULL)
+  }
+  if (out_value != NULL) {
     *out_value = NULL;
+  }
   if (version == NULL || out_len == NULL || out_value == NULL ||
-      (key == NULL && len != 0))
+      (key == NULL && len != 0)) {
     return DS_ERR_NULL;
+  }
   node = version->root;
   for (;;) {
     size_t common = 0;
     ds_ptrie_edge_t *edge;
     while (common < node->prefix_len && common < len - pos &&
-           node->prefix[common] == key[pos + common])
+           node->prefix[common] == key[pos + common]) {
       common++;
-    if (common != node->prefix_len)
+    }
+    if (common != node->prefix_len) {
       break;
+    }
     pos += common;
     if (node->terminal) {
       best_value = node->value;
       best_len = pos;
       found = true;
     }
-    if (pos == len)
+    if (pos == len) {
       break;
+    }
     edge = ptrie_edge_find(node->children, key[pos++]);
-    if (edge == NULL)
+    if (edge == NULL) {
       break;
+    }
     node = edge->child;
   }
-  if (!found)
+  if (!found) {
     return DS_NOT_FOUND;
+  }
   *out_len = best_len;
   *out_value = best_value;
   return DS_OK;
@@ -1373,21 +1437,23 @@ ds_status_t ds_ptrie_visit_prefix(ds_ptrie_version_t *version,
     return DS_NOT_FOUND;
   }
 
-  if (node->prefix_len - matched > (size_t)-1 - prefix_len)
+  if (node->prefix_len - matched > (size_t)-1 - prefix_len) {
     return DS_ERR_OVERFLOW;
+  }
   full_len = prefix_len + node->prefix_len - matched;
   ptrie_walk_init(&walk, version, visit, user);
-  walk.key = (unsigned char *)ptrie_grow(walk.context, NULL, &walk.key_capacity,
-                                         full_len, 1U);
+  walk.key = (unsigned char *)ptrie_grow(walk.context, NULL,
+                                         &walk.key_capacity, full_len, 1U);
   if (walk.key == NULL) {
     return DS_ERR_ALLOC;
   }
   if (prefix_len != 0U) {
     memcpy(walk.key, prefix, prefix_len);
   }
-  if (matched < node->prefix_len)
+  if (matched < node->prefix_len) {
     memcpy(walk.key + prefix_len, node->prefix + matched,
            node->prefix_len - matched);
+  }
   status = ptrie_walk(&walk, node, full_len);
   ds_context_free(walk.context, walk.key);
   return status;
@@ -1414,8 +1480,8 @@ ds_status_t ds_ptrie_visit_range(ds_ptrie_version_t *version,
   walk.lower_len = lower_len;
   walk.upper = upper;
   walk.upper_len = upper_len;
-  walk.key = (unsigned char *)ptrie_grow(walk.context, NULL, &walk.key_capacity,
-                                         1U, 1U);
+  walk.key = (unsigned char *)ptrie_grow(walk.context, NULL,
+                                         &walk.key_capacity, 1U, 1U);
   if (walk.key == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -1425,10 +1491,12 @@ ds_status_t ds_ptrie_visit_range(ds_ptrie_version_t *version,
 }
 
 ds_status_t ds_ptrie_version_retain_ex(ds_ptrie_version_t *version) {
-  if (version == NULL)
+  if (version == NULL) {
     return DS_ERR_NULL;
-  if (version->refs == ULONG_MAX)
+  }
+  if (version->refs == ULONG_MAX) {
     return DS_ERR_OVERFLOW;
+  }
   version->refs++;
   return DS_OK;
 }
@@ -1451,16 +1519,18 @@ void ds_ptrie_version_release(ds_ptrie_t *trie, ds_ptrie_version_t *version) {
 /* Status-returning creation, mutation and lookup. */
 ds_status_t ds_ptrie_create_ex(const ds_ptrie_config_t *config,
                                ds_ptrie_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
   if (config != NULL &&
       ((config->storage != DS_PTRIE_BYTES &&
         config->storage != DS_PTRIE_RADIX) ||
        (config->destroy_value != NULL && config->clone_value == NULL &&
         config->clone_value_ex == NULL) ||
-       (config->clone_value != NULL && config->clone_value_ex != NULL)))
+       (config->clone_value != NULL && config->clone_value_ex != NULL))) {
     return DS_ERR_INVALID;
+  }
   *out = ptrie_create(config);
   return *out == NULL ? DS_ERR_ALLOC : DS_OK;
 }
@@ -1471,15 +1541,20 @@ ds_ptrie_t *ds_ptrie_create(const ds_ptrie_config_t *config) {
   return out;
 }
 
-static ds_status_t ptrie_update_args(ds_ptrie_t *trie, ds_ptrie_version_t *base,
+static ds_status_t ptrie_update_args(ds_ptrie_t *trie,
+                                     ds_ptrie_version_t *base,
                                      const unsigned char *key, size_t len,
                                      ds_ptrie_version_t **out) {
-  if (out != NULL)
+  if (out != NULL) {
     *out = NULL;
-  if (trie == NULL || base == NULL || out == NULL || (key == NULL && len != 0))
+  }
+  if (trie == NULL || base == NULL || out == NULL ||
+      (key == NULL && len != 0)) {
     return DS_ERR_NULL;
-  if (base->owner != trie)
+  }
+  if (base->owner != trie) {
     return DS_ERR_INVALID;
+  }
   trie->error = DS_ERR_ALLOC;
   return DS_OK;
 }
@@ -1489,15 +1564,18 @@ ds_status_t ds_ptrie_insert_ex(ds_ptrie_t *trie, ds_ptrie_version_t *base,
                                void *value, ds_ptrie_version_t **out) {
   ds_status_t st = ptrie_update_args(trie, base, key, len, out);
   ds_ptrie_node_t *existing;
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   existing = ptrie_find_match(base->root, key, len, false, NULL);
   if (base->root->count == (size_t)-1 &&
-      (existing == NULL || !existing->terminal))
+      (existing == NULL || !existing->terminal)) {
     return DS_ERR_OVERFLOW;
+  }
   if (trie->config.storage == DS_PTRIE_BYTES &&
-      len >= (size_t)-1 / sizeof(ds_ptrie_node_t *))
+      len >= (size_t)-1 / sizeof(ds_ptrie_node_t *)) {
     return DS_ERR_OVERFLOW;
+  }
   *out = ptrie_insert_version(trie, base, key, len, value);
   return *out == NULL ? trie->error : DS_OK;
 }
@@ -1515,11 +1593,13 @@ ds_status_t ds_ptrie_remove_ex(ds_ptrie_t *trie, ds_ptrie_version_t *base,
                                ds_ptrie_version_t **out) {
   ds_status_t st = ptrie_update_args(trie, base, key, len, out);
   ds_ptrie_node_t *node;
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   node = ptrie_find_match(base->root, key, len, false, NULL);
-  if (node == NULL || !node->terminal)
+  if (node == NULL || !node->terminal) {
     return DS_NOT_FOUND;
+  }
   *out = ptrie_remove_version(trie, base, key, len);
   return *out == NULL ? trie->error : DS_OK;
 }
@@ -1537,12 +1617,15 @@ ds_status_t ds_ptrie_remove_prefix_ex(ds_ptrie_t *trie,
                                       size_t *out_removed,
                                       ds_ptrie_version_t **out) {
   ds_status_t st = ptrie_update_args(trie, base, prefix, len, out);
-  if (out_removed != NULL)
+  if (out_removed != NULL) {
     *out_removed = 0;
-  if (st != DS_OK)
+  }
+  if (st != DS_OK) {
     return st;
-  if (ds_ptrie_count_prefix(base, prefix, len) == 0)
+  }
+  if (ds_ptrie_count_prefix(base, prefix, len) == 0) {
     return DS_NOT_FOUND;
+  }
   *out = ptrie_remove_prefix_version(trie, base, prefix, len, out_removed);
   return *out == NULL ? trie->error : DS_OK;
 }
@@ -1561,16 +1644,20 @@ ds_status_t ds_ptrie_copy_prefix_ex(
     ds_ptrie_version_t *source_version, const unsigned char *source_prefix,
     size_t source_len, const unsigned char *destination_prefix,
     size_t destination_len, size_t *out_copied, ds_ptrie_version_t **out) {
-  ds_status_t st = ptrie_update_args(trie, destination_base, destination_prefix,
-                                     destination_len, out);
-  if (out_copied != NULL)
+  ds_status_t st = ptrie_update_args(trie, destination_base,
+                                     destination_prefix, destination_len, out);
+  if (out_copied != NULL) {
     *out_copied = 0;
-  if (st != DS_OK)
+  }
+  if (st != DS_OK) {
     return st;
-  if (source_version == NULL || (source_prefix == NULL && source_len != 0))
+  }
+  if (source_version == NULL || (source_prefix == NULL && source_len != 0)) {
     return DS_ERR_NULL;
-  if (ds_ptrie_count_prefix(source_version, source_prefix, source_len) == 0)
+  }
+  if (ds_ptrie_count_prefix(source_version, source_prefix, source_len) == 0) {
     return DS_NOT_FOUND;
+  }
   *out = ptrie_copy_prefix_version(
       trie, destination_base, source_version, source_prefix, source_len,
       destination_prefix, destination_len, out_copied);
@@ -1598,17 +1685,21 @@ ds_status_t ds_ptrie_move_prefix_ex(ds_ptrie_t *trie, ds_ptrie_version_t *base,
                                     ds_ptrie_version_t **out) {
   ds_status_t st =
       ptrie_update_args(trie, base, source_prefix, source_len, out);
-  if (out_moved != NULL)
+  if (out_moved != NULL) {
     *out_moved = 0;
-  if (st != DS_OK)
+  }
+  if (st != DS_OK) {
     return st;
-  if (destination_prefix == NULL && destination_len != 0)
+  }
+  if (destination_prefix == NULL && destination_len != 0) {
     return DS_ERR_NULL;
-  if (ds_ptrie_count_prefix(base, source_prefix, source_len) == 0)
+  }
+  if (ds_ptrie_count_prefix(base, source_prefix, source_len) == 0) {
     return DS_NOT_FOUND;
-  *out =
-      ptrie_move_prefix_version(trie, base, source_prefix, source_len,
-                                destination_prefix, destination_len, out_moved);
+  }
+  *out = ptrie_move_prefix_version(trie, base, source_prefix, source_len,
+                                   destination_prefix, destination_len,
+                                   out_moved);
   return *out == NULL ? trie->error : DS_OK;
 }
 

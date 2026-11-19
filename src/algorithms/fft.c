@@ -221,7 +221,8 @@ ds_status_t ds_fft_convolve(const double *a, size_t na, const double *b,
   return DS_OK;
 }
 
-/* ---- number-theoretic transform ------------------------------------------ */
+/* ---- number-theoretic transform ------------------------------------------
+ */
 
 /* a * b mod DS_NTT_MOD without 64-bit types: shift-and-add on 30-bit
  * residues (all intermediates stay below 2^31). */
@@ -341,8 +342,8 @@ ds_status_t ds_ntt_convolve(const unsigned long *a, size_t na,
       return DS_ERR_INVALID;
     }
   }
-  fa =
-      (unsigned long *)ds_context_calloc(context, 2 * n, sizeof(unsigned long));
+  fa = (unsigned long *)ds_context_calloc(context, 2 * n,
+                                          sizeof(unsigned long));
   if (fa == NULL) {
     return DS_ERR_ALLOC;
   }

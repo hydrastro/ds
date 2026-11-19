@@ -353,9 +353,13 @@ static void sh512_start(ds_sha512_t *s, const unsigned long *iv, size_t size) {
   s->size = size;
 }
 
-void ds_sha384_init(ds_sha512_t *s) { sh512_start(s, sh_h384, DS_SHA384_SIZE); }
+void ds_sha384_init(ds_sha512_t *s) {
+  sh512_start(s, sh_h384, DS_SHA384_SIZE);
+}
 
-void ds_sha512_init(ds_sha512_t *s) { sh512_start(s, sh_h512, DS_SHA512_SIZE); }
+void ds_sha512_init(ds_sha512_t *s) {
+  sh512_start(s, sh_h512, DS_SHA512_SIZE);
+}
 
 void ds_sha512_update(ds_sha512_t *s, const void *data, size_t len) {
   const unsigned char *p = (const unsigned char *)data;

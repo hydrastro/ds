@@ -30,7 +30,8 @@ static ds_status_t fc_check_sets(size_t universe, size_t count,
   return DS_OK;
 }
 
-/* ---- set cover --------------------------------------------------------------
+/* ---- set cover
+ * --------------------------------------------------------------
  */
 
 ds_status_t ds_set_cover(size_t universe, size_t count, const size_t *off,
@@ -198,7 +199,8 @@ ds_status_t ds_set_cover(size_t universe, size_t count, const size_t *off,
   return st;
 }
 
-/* ---- set packing ------------------------------------------------------------
+/* ---- set packing
+ * ------------------------------------------------------------
  */
 
 ds_status_t ds_set_packing(size_t universe, size_t count, const size_t *off,
@@ -756,8 +758,8 @@ ds_status_t ds_p_center(const double *dist, size_t n, size_t p,
     return DS_ERR_INVALID;
   }
   radii = (double *)ds_context_alloc(context, (n * n + 1) * sizeof(double));
-  scratch =
-      (size_t *)ds_context_alloc(context, (2 * n + 2 * p + 2) * sizeof(size_t));
+  scratch = (size_t *)ds_context_alloc(context,
+                                       (2 * n + 2 * p + 2) * sizeof(size_t));
   if (radii == NULL || scratch == NULL) {
     ds_context_free(context, radii);
     ds_context_free(context, scratch);

@@ -106,7 +106,8 @@ static size_t tt_anc(const ds_topology_tree_t *t, size_t v, size_t level) {
   return c;
 }
 
-/* ---- work lists and slots ------------------------------------------------ */
+/* ---- work lists and slots ------------------------------------------------
+ */
 
 /* make work-list slots exist for levels 0..level */
 static ds_status_t tt_ensure_levels(ds_topology_tree_t *t, size_t level) {
@@ -230,7 +231,8 @@ static void tt_bury(ds_topology_tree_t *t) {
   }
 }
 
-/* ---- clustering ---------------------------------------------------------- */
+/* ---- clustering ----------------------------------------------------------
+ */
 
 /* Delete the ancestors of c; every surviving child of a deleted cluster
  * becomes an orphan to re-cluster at its level. */
@@ -752,7 +754,8 @@ size_t ds_topology_tree_work(const ds_topology_tree_t *t) {
   return t == NULL ? 0 : t->work;
 }
 
-/* ---- checking ------------------------------------------------------------ */
+/* ---- checking ------------------------------------------------------------
+ */
 
 static bool tt_check_cluster(const ds_topology_tree_t *t, size_t c,
                              unsigned char *scratch) {

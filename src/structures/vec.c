@@ -284,7 +284,8 @@ ds_status_t ds_vec_push(ds_vec_t *vec, const void *elem) {
 void *ds_vec_emplace(ds_vec_t *vec) {
   if (vec->size == vec->capacity &&
       (vec->fixed || vec->size == VEC_SIZE_MAX ||
-       vec_set_capacity(vec, vec_next_capacity(vec, vec->size + 1)) != DS_OK)) {
+       vec_set_capacity(vec, vec_next_capacity(vec, vec->size + 1)) !=
+           DS_OK)) {
     return NULL;
   }
   vec->size++;

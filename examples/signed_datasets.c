@@ -38,7 +38,8 @@ static const char proof[] =
     "_:proof <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> "
     "<https://w3id.org/security#DataIntegrityProof> .\n"
     "_:proof <http://purl.org/dc/terms/created> "
-    "\"2026-11-14T12:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> .\n";
+    "\"2026-11-14T12:00:00Z\"^^<http://www.w3.org/2001/XMLSchema#dateTime> "
+    ".\n";
 
 static int load(ds_rdf_dataset_t *d, const char *text) {
   size_t line = 0;
@@ -157,8 +158,9 @@ int main(void) {
       return 1;
     }
     printf("verifies after Bob became Rob: %s\n",
-           ds_lds_verify_data(data, len, &suite, sig, sig_len) == DS_OK ? "YES"
-                                                                        : "no");
+           ds_lds_verify_data(data, len, &suite, sig, sig_len) == DS_OK
+               ? "YES"
+               : "no");
     ok &= ds_lds_verify_data(data, len, &suite, sig, sig_len) != DS_OK;
     ds_rdf_dataset_destroy(&c);
   }
@@ -181,7 +183,8 @@ int main(void) {
     }
     st = ds_rdfc_canonicalize_nquads(clique, n, NULL, &cc, NULL, NULL);
     printf("8-node clique: %s after %lu runs of Hash N-Degree Quads\n",
-           st == DS_ERR_RANGE ? "refused as a poison dataset" : "canonicalized",
+           st == DS_ERR_RANGE ? "refused as a poison dataset"
+                              : "canonicalized",
            (unsigned long)cc.calls);
     ok &= st == DS_ERR_RANGE;
     ds_rdfc_result_destroy(&cc);

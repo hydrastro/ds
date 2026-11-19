@@ -44,8 +44,9 @@ static unsigned char *cm_key(const ds_coalesced_map_t *map, size_t i) {
 }
 
 static unsigned char *cm_value(const ds_coalesced_map_t *map, size_t i) {
-  return map->config.value_size == 0 ? cm_key(map, i)
-                                     : map->values + i * map->config.value_size;
+  return map->config.value_size == 0
+             ? cm_key(map, i)
+             : map->values + i * map->config.value_size;
 }
 
 static size_t cm_home(const ds_coalesced_map_t *map, unsigned long h) {
@@ -422,7 +423,8 @@ void *ds_coalesced_map_get(const ds_coalesced_map_t *map, const void *key) {
   return slot == CM_NONE ? NULL : cm_value(map, slot);
 }
 
-bool ds_coalesced_map_contains(const ds_coalesced_map_t *map, const void *key) {
+bool ds_coalesced_map_contains(const ds_coalesced_map_t *map,
+                               const void *key) {
   return ds_coalesced_map_get(map, key) != NULL;
 }
 

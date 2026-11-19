@@ -44,8 +44,9 @@ int main(void) {
   (void)ds_fusion_check(&t, &valid);
   printf("%lu blocks in a fusion tree of height %lu (%d keys per node), "
          "structure %s\n",
-         (unsigned long)ds_fusion_size(&t), (unsigned long)ds_fusion_height(&t),
-         DS_FUSION_K, valid ? "valid" : "INVALID");
+         (unsigned long)ds_fusion_size(&t),
+         (unsigned long)ds_fusion_height(&t), DS_FUSION_K,
+         valid ? "valid" : "INVALID");
   addr = 0x0A123456ul;
   if (ds_fusion_floor(&t, addr, &key, &b) == DS_OK) {
     printf("address %08lx: block %08lx +%lu (%s), %s\n", addr, key, b.length,

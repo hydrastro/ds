@@ -5,8 +5,9 @@
 
 #define LSH_P 0x7FFFFFFFUL
 
-ds_status_t ds_minhash_init(ds_minhash_t *mh, size_t k, ds_random_func_t random,
-                            void *random_state, ds_context_t *context) {
+ds_status_t ds_minhash_init(ds_minhash_t *mh, size_t k,
+                            ds_random_func_t random, void *random_state,
+                            ds_context_t *context) {
   size_t i;
   if (mh == NULL || random == NULL) {
     return DS_ERR_NULL;
@@ -16,8 +17,10 @@ ds_status_t ds_minhash_init(ds_minhash_t *mh, size_t k, ds_random_func_t random,
   }
   mh->k = k;
   mh->context = context != NULL ? context : ds_default_context();
-  mh->a = (unsigned long *)ds_context_alloc(context, k * sizeof(unsigned long));
-  mh->b = (unsigned long *)ds_context_alloc(context, k * sizeof(unsigned long));
+  mh->a =
+      (unsigned long *)ds_context_alloc(context, k * sizeof(unsigned long));
+  mh->b =
+      (unsigned long *)ds_context_alloc(context, k * sizeof(unsigned long));
   if (mh->a == NULL || mh->b == NULL) {
     ds_minhash_destroy(mh);
     return DS_ERR_ALLOC;
@@ -102,8 +105,8 @@ double ds_jaccard_sorted(const unsigned long *a, size_t na,
   return uni == 0 ? 1.0 : (double)inter / (double)uni;
 }
 
-ds_status_t ds_lsh_bands(const unsigned long *signature, size_t k, size_t bands,
-                         unsigned long *out_bands) {
+ds_status_t ds_lsh_bands(const unsigned long *signature, size_t k,
+                         size_t bands, unsigned long *out_bands) {
   size_t rows;
   size_t band;
   size_t r;

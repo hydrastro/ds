@@ -202,8 +202,9 @@ static node_t *rb_inner_from(cfg_t *c, const node_t *src, size_t first,
 
 /* ---- handles ---- */
 
-static void rb_assign(ds_rrb_t *out, const ds_rrb_t *in_a, const ds_rrb_t *in_b,
-                      node_t *root, unsigned height, size_t size, cfg_t *c) {
+static void rb_assign(ds_rrb_t *out, const ds_rrb_t *in_a,
+                      const ds_rrb_t *in_b, node_t *root, unsigned height,
+                      size_t size, cfg_t *c) {
   if (out == in_a || out == in_b) {
     ds_rrb_release(out);
   }
@@ -466,7 +467,8 @@ ds_status_t ds_rrb_push_back(const ds_rrb_t *vec, const void *elem,
 }
 
 /* n without its last element; *out NULL when nothing is left */
-static ds_status_t rb_pop(cfg_t *c, const node_t *n, unsigned h, node_t **out) {
+static ds_status_t rb_pop(cfg_t *c, const node_t *n, unsigned h,
+                          node_t **out) {
   node_t *m;
   *out = NULL;
   if (h == 0) {
@@ -684,9 +686,9 @@ static size_t rb_plan(cfg_t *c, size_t *s, size_t n) {
 /* rebuild the nodes of height h in all[0 .. n) to the item counts of the
  * plan; nodes the plan leaves alone are shared. *count gets the number
  * of nodes in out. */
-static ds_status_t rb_redistribute(cfg_t *c, node_t **all, size_t n, unsigned h,
-                                   const size_t *plan, size_t planned,
-                                   node_t **out) {
+static ds_status_t rb_redistribute(cfg_t *c, node_t **all, size_t n,
+                                   unsigned h, const size_t *plan,
+                                   size_t planned, node_t **out) {
   size_t oi = 0; /* the old node feeding the next items */
   size_t oo = 0; /* items of it already used */
   size_t p;
@@ -795,7 +797,8 @@ static ds_status_t rb_cat(cfg_t *c, node_t *l, unsigned hl, node_t *r,
   }
   /* the children of height top - 1: l's but its last, mid's, r's but its
    * first */
-  all = (node_t **)ds_context_alloc(c->context, (2 * m + 4) * sizeof(node_t *));
+  all =
+      (node_t **)ds_context_alloc(c->context, (2 * m + 4) * sizeof(node_t *));
   fresh =
       (node_t **)ds_context_alloc(c->context, (2 * m + 4) * sizeof(node_t *));
   plan = (size_t *)ds_context_calloc(c->context, 2 * m + 4, sizeof(size_t));
@@ -866,7 +869,8 @@ done:
   return st;
 }
 
-ds_status_t ds_rrb_concat(const ds_rrb_t *a, const ds_rrb_t *b, ds_rrb_t *out) {
+ds_status_t ds_rrb_concat(const ds_rrb_t *a, const ds_rrb_t *b,
+                          ds_rrb_t *out) {
   cfg_t *c;
   node_t *res;
   node_t *root;

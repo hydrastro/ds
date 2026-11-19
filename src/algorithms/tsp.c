@@ -407,9 +407,9 @@ ds_status_t ds_tsp(const double *dist, size_t n, ds_tsp_method_t method,
   return st;
 }
 
-ds_status_t ds_tsp_euclidean(const double *xy, size_t n, ds_tsp_method_t method,
-                             size_t *tour, double *out_length,
-                             ds_context_t *context) {
+ds_status_t ds_tsp_euclidean(const double *xy, size_t n,
+                             ds_tsp_method_t method, size_t *tour,
+                             double *out_length, ds_context_t *context) {
   double *d;
   size_t i;
   size_t j;
@@ -420,7 +420,8 @@ ds_status_t ds_tsp_euclidean(const double *xy, size_t n, ds_tsp_method_t method,
   if (n > 0 && n > ((size_t)-1) / n / sizeof(double)) {
     return DS_ERR_OVERFLOW;
   }
-  d = (double *)ds_context_alloc(context, (n > 0 ? n * n : 1) * sizeof(double));
+  d = (double *)ds_context_alloc(context,
+                                 (n > 0 ? n * n : 1) * sizeof(double));
   if (d == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -589,7 +590,8 @@ ds_status_t ds_vrp_savings(const double *dist, size_t n, const double *demand,
   size_t pos = 0;
   double len = 0.0;
   if ((n > 0 && (dist == NULL || demand == NULL)) || out_routes == NULL ||
-      out_length == NULL || (n > 1 && (order == NULL || route_start == NULL))) {
+      out_length == NULL ||
+      (n > 1 && (order == NULL || route_start == NULL))) {
     return DS_ERR_NULL;
   }
   *out_routes = 0;

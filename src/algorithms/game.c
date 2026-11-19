@@ -90,8 +90,8 @@ static long gm_negamax(gm_t *s, size_t level, size_t depth, long alpha,
 /* Negamax value of the current (child) position for the player `me` who
  * moved into it: negated only when the turn passed to the opponent, so
  * games where a player may move twice in a row work too. */
-static long gm_child(gm_t *s, size_t level, size_t depth, long alpha, long beta,
-                     bool me) {
+static long gm_child(gm_t *s, size_t level, size_t depth, long alpha,
+                     long beta, bool me) {
   if (s->g->maximizing(s->state, s->g->user) == me) {
     return gm_negamax(s, level, depth, alpha, beta);
   }

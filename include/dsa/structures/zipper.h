@@ -95,7 +95,8 @@ size_t ds_zipper_tree_right(const ds_zipper_store_t *s, size_t tree);
 size_t ds_zipper_tree_size(ds_zipper_store_t *s, size_t tree);
 
 /* zippers */
-ds_status_t ds_zipper_open(ds_zipper_store_t *s, size_t tree, ds_zipper_t *out);
+ds_status_t ds_zipper_open(ds_zipper_store_t *s, size_t tree,
+                           ds_zipper_t *out);
 void ds_zipper_release(ds_zipper_store_t *s, ds_zipper_t z);
 ds_status_t ds_zipper_copy(ds_zipper_store_t *s, ds_zipper_t z,
                            ds_zipper_t *out);
@@ -104,14 +105,15 @@ ds_status_t ds_zipper_down_left(ds_zipper_store_t *s, ds_zipper_t z,
                                 ds_zipper_t *out);
 ds_status_t ds_zipper_down_right(ds_zipper_store_t *s, ds_zipper_t z,
                                  ds_zipper_t *out);
-ds_status_t ds_zipper_up(ds_zipper_store_t *s, ds_zipper_t z, ds_zipper_t *out);
+ds_status_t ds_zipper_up(ds_zipper_store_t *s, ds_zipper_t z,
+                         ds_zipper_t *out);
 /* the root tree with every edit applied */
 ds_status_t ds_zipper_close(ds_zipper_store_t *s, ds_zipper_t z,
                             size_t *out_tree);
 const void *ds_zipper_value(const ds_zipper_store_t *s, ds_zipper_t z);
 /* new focus element, children kept */
-ds_status_t ds_zipper_set(ds_zipper_store_t *s, ds_zipper_t z, const void *elem,
-                          ds_zipper_t *out);
+ds_status_t ds_zipper_set(ds_zipper_store_t *s, ds_zipper_t z,
+                          const void *elem, ds_zipper_t *out);
 /* new focus subtree (DS_ZIPPER_EMPTY deletes it) */
 ds_status_t ds_zipper_replace(ds_zipper_store_t *s, ds_zipper_t z,
                               size_t subtree, ds_zipper_t *out);

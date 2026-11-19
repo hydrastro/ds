@@ -192,7 +192,8 @@ double ds_cbrt_newton(double x) {
   return y;
 }
 
-/* ---- CORDIC -------------------------------------------------------------- */
+/* ---- CORDIC --------------------------------------------------------------
+ */
 
 #define NM_CORDIC_MAX 60
 
@@ -367,7 +368,8 @@ void ds_cordic_atan2(double y, double x, unsigned int iterations,
   }
 }
 
-/* ---- Gamma, Stirling ----------------------------------------------------- */
+/* ---- Gamma, Stirling -----------------------------------------------------
+ */
 
 static const double nm_lanczos[9] = {
     0.99999999999980993,  676.5203681218851,     -1259.1392167224028,
@@ -419,7 +421,8 @@ double ds_stirling(double n) {
 
 double ds_log_factorial(unsigned long n) { return ds_lgamma((double)n + 1); }
 
-/* ---- BBP ----------------------------------------------------------------- */
+/* ---- BBP -----------------------------------------------------------------
+ */
 
 /* fractional part of sum_k 16^(d-k) / (8k + j) */
 static double nm_bbp_series(unsigned long d, unsigned long j) {
@@ -492,7 +495,8 @@ ds_status_t ds_bbp_pi_hex(unsigned long position, size_t count, char *out) {
   return DS_OK;
 }
 
-/* ---- statistics ---------------------------------------------------------- */
+/* ---- statistics ----------------------------------------------------------
+ */
 
 static int nm_cmp(const void *a, const void *b) {
   double x = *(const double *)a;

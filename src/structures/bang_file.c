@@ -275,11 +275,11 @@ static ds_status_t ex_new_bucket(ds_excell_t *e, size_t *out) {
     if (e->buckets == e->bucket_capacity) {
       size_t nc = e->bucket_capacity < 8 ? 8 : e->bucket_capacity * 2;
       void *p;
-#define EX_RE(field, type)                                                     \
-  p = ds_context_realloc(e->context, e->field, nc * sizeof(type));             \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define EX_RE(field, type)                                                    \
+  p = ds_context_realloc(e->context, e->field, nc * sizeof(type));            \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   e->field = (type *)p;
       EX_RE(local, size_t)
       EX_RE(prefix, size_t)
@@ -707,11 +707,11 @@ static ds_status_t bb_new_node(ds_bang_base_t *t, size_t parent, unsigned bit,
     if (t->nodes == t->node_capacity) {
       size_t nc = t->node_capacity < 8 ? 8 : t->node_capacity * 2;
       void *p;
-#define BB_RE(field, type, per)                                                \
-  p = ds_context_realloc(t->context, t->field, nc * (per) * sizeof(type));     \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define BB_RE(field, type, per)                                               \
+  p = ds_context_realloc(t->context, t->field, nc * (per) * sizeof(type));    \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   t->field = (type *)p;
       BB_RE(child, size_t, 2)
       BB_RE(parent, size_t, 1)
@@ -753,11 +753,11 @@ static ds_status_t bb_new_bucket(ds_bang_base_t *t, size_t node, size_t *out) {
     if (t->buckets == t->bucket_capacity) {
       size_t nc = t->bucket_capacity < 8 ? 8 : t->bucket_capacity * 2;
       void *p;
-#define BB_RE(field, type)                                                     \
-  p = ds_context_realloc(t->context, t->field, nc * sizeof(type));             \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define BB_RE(field, type)                                                    \
+  p = ds_context_realloc(t->context, t->field, nc * sizeof(type));            \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   t->field = (type *)p;
       BB_RE(node, size_t)
       BB_RE(count, size_t)
@@ -913,8 +913,9 @@ static ds_status_t bb_move(ds_bang_base_t *t, size_t b, size_t nb,
   ds_status_t st = DS_OK;
   for (i = 0; i < n; i++) {
     if (sel[i]) {
-      st = bf_append(t->context, &t->items[nb], &t->values[nb], &t->count[nb],
-                     &t->capacity[nb], w, t->items[b] + i * w, t->values[b][i]);
+      st =
+          bf_append(t->context, &t->items[nb], &t->values[nb], &t->count[nb],
+                    &t->capacity[nb], w, t->items[b] + i * w, t->values[b][i]);
       if (st != DS_OK) {
         break;
       }
@@ -1208,8 +1209,8 @@ ds_status_t ds_bang_file_query(const ds_bang_file_t *f, const double *box,
 }
 
 ds_status_t ds_bang_file_nearest(const ds_bang_file_t *f, const double *point,
-                                 size_t k, size_t *out_values, double *out_dist,
-                                 size_t *out_found) {
+                                 size_t k, size_t *out_values,
+                                 double *out_dist, size_t *out_found) {
   const ds_bang_base_t *t;
   double *boxes;
   size_t b;
@@ -1233,7 +1234,8 @@ ds_status_t ds_bang_file_nearest(const ds_bang_file_t *f, const double *point,
   for (b = 0; b < t->buckets; b++) {
     if (t->alive[b]) {
       size_t v = t->node[b];
-      bf_cell_box(t->domain, d, t->qlo + v * d, t->depth[v], boxes + b * 2 * d);
+      bf_cell_box(t->domain, d, t->qlo + v * d, t->depth[v],
+                  boxes + b * 2 * d);
     } else {
       memset(boxes + b * 2 * d, 0, 2 * d * sizeof(double));
     }
@@ -1283,7 +1285,8 @@ bool ds_bang_file_valid(const ds_bang_file_t *f) {
 }
 
 /* ---- R-file
- * -------------------------------------------------------------------------- */
+ * --------------------------------------------------------------------------
+ */
 
 ds_status_t ds_rfile_init(ds_rfile_t *f, size_t dim, const double *domain,
                           size_t bucket, ds_context_t *context) {

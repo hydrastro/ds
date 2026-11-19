@@ -83,7 +83,8 @@ static bool sf_less(const ds_sf_heap_t *h, const ds_sf_node_t *a,
   return memcmp(&a->cell, &b->cell, sizeof(a->cell)) < 0;
 }
 
-/* ---- activity ------------------------------------------------------------ */
+/* ---- activity ------------------------------------------------------------
+ */
 
 static void sf_record_drop(ds_sf_heap_t *h, ds_sf_record_t *r) {
   r->refs--;
@@ -130,7 +131,8 @@ static void sf_make_passive(ds_sf_heap_t *h, ds_sf_node_t *x) {
   x->fix = SF_UNFILED;
 }
 
-/* ---- filing -------------------------------------------------------------- */
+/* ---- filing --------------------------------------------------------------
+ */
 
 static void sf_list_add(ds_sf_node_t **head, ds_sf_node_t *x) {
   x->fprev = NULL;
@@ -211,7 +213,8 @@ static void sf_file(ds_sf_heap_t *h, ds_sf_node_t *x) {
   }
 }
 
-/* ---- the rank list ------------------------------------------------------- */
+/* ---- the rank list -------------------------------------------------------
+ */
 
 static size_t sf_ceil_lg(size_t n) {
   size_t l = 0;
@@ -323,7 +326,8 @@ static void sf_collect(ds_sf_heap_t *h, size_t count) {
   }
 }
 
-/* ---- the queue ----------------------------------------------------------- */
+/* ---- the queue -----------------------------------------------------------
+ */
 
 static void sf_q_front(ds_sf_heap_t *h, ds_sf_node_t *x) {
   if (h->queue == NULL) {
@@ -372,7 +376,8 @@ static ds_sf_node_t *sf_q_concat(ds_sf_node_t *a, ds_sf_node_t *b) {
   return a;
 }
 
-/* ---- child lists --------------------------------------------------------- */
+/* ---- child lists ---------------------------------------------------------
+ */
 
 static int sf_kind(ds_sf_heap_t *h, ds_sf_node_t *x) {
   if (sf_active(h, x)) {
@@ -487,7 +492,8 @@ static void sf_settle(ds_sf_heap_t *h, ds_sf_node_t *p) {
   }
 }
 
-/* ---- transformations ----------------------------------------------------- */
+/* ---- transformations -----------------------------------------------------
+ */
 
 static bool sf_root_reduction(ds_sf_heap_t *h) {
   ds_sf_rank_t *k = h->pairs[0];
@@ -642,7 +648,8 @@ static void sf_reduce(ds_sf_heap_t *h, size_t roots, size_t degrees) {
   }
 }
 
-/* ---- the operations ------------------------------------------------------ */
+/* ---- the operations ------------------------------------------------------
+ */
 
 static void sf_clear(ds_sf_heap_t *h) {
   h->root = NULL;
@@ -792,7 +799,8 @@ ds_status_t ds_sf_heap_push(ds_sf_heap_t *h, const void *item,
   if (n == NULL) {
     return DS_ERR_ALLOC;
   }
-  c = (ds_sf_cell_t *)ds_context_alloc(h->context, sf_item_at() + h->item_size);
+  c = (ds_sf_cell_t *)ds_context_alloc(h->context,
+                                       sf_item_at() + h->item_size);
   if (c == NULL) {
     ds_context_free(h->context, n);
     return DS_ERR_ALLOC;
@@ -817,7 +825,8 @@ size_t ds_sf_heap_size(const ds_sf_heap_t *h) {
   return h == NULL ? 0 : h->size;
 }
 
-const void *ds_sf_heap_item(const ds_sf_heap_t *h, const ds_sf_cell_t *handle) {
+const void *ds_sf_heap_item(const ds_sf_heap_t *h,
+                            const ds_sf_cell_t *handle) {
   (void)h;
   return handle == NULL ? NULL : sf_citem(handle);
 }
@@ -1059,7 +1068,8 @@ void ds_sf_heap_meld(ds_sf_heap_t *h, ds_sf_heap_t *other) {
   sf_collect(h, 2);
 }
 
-/* ---- inspection ---------------------------------------------------------- */
+/* ---- inspection ----------------------------------------------------------
+ */
 
 static size_t sf_mix(const void *p) {
   unsigned char b[sizeof(const void *)];
@@ -1200,8 +1210,8 @@ static bool sf_check_ranks(const ds_sf_heap_t *h) {
   for (i = 0; i < 2; i++) {
     size_t m = 0;
     for (k = h->pairs[i]; k != NULL; k = k->next[i]) {
-      if (k->count[i] < 2 || (k->next[i] != NULL && k->next[i]->prev[i] != k) ||
-          ++m > value) {
+      if (k->count[i] < 2 ||
+          (k->next[i] != NULL && k->next[i]->prev[i] != k) || ++m > value) {
         return false;
       }
     }

@@ -63,8 +63,8 @@ size_t ds_gview_edge_offsets(const ds_gview_t *g, size_t *out_offsets);
 /* Any output may be NULL. Times run 0 .. 2n - 1. */
 ds_status_t ds_gview_dfs_forest(const ds_gview_t *g, size_t *out_discovery,
                                 size_t *out_finish, size_t *out_parent,
-                                ds_gview_edge_class_func_t classify, void *user,
-                                ds_context_t *context);
+                                ds_gview_edge_class_func_t classify,
+                                void *user, ds_context_t *context);
 
 /* out_is_cut: vertex_count flags (may be NULL); bridge called once per
  * bridge (may be NULL); bridge count in *out_bridges (may be NULL). */

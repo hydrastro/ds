@@ -257,7 +257,8 @@ static ds_status_t dt_insert(dt_t *d, size_t pi) {
         if (dt_conflict(d, u, p)) {
           st = dt_grow(d->ctx, &d->stack, &d->stack_cap, sp + 1, 1);
           if (st == DS_OK) {
-            st = dt_grow(d->ctx, &d->free_slots, &d->free_cap, d->nfree + 1, 1);
+            st =
+                dt_grow(d->ctx, &d->free_slots, &d->free_cap, d->nfree + 1, 1);
           }
           if (st != DS_OK) {
             break;
@@ -1199,7 +1200,8 @@ done:
   return st;
 }
 
-bool ds_delaunay_is_constrained(const ds_delaunay_t *dt, size_t t, unsigned k) {
+bool ds_delaunay_is_constrained(const ds_delaunay_t *dt, size_t t,
+                                unsigned k) {
   return dt != NULL && dt->fixed != NULL && t < dt->triangles && k < 3 &&
          dt->fixed[3 * t + k] != 0;
 }

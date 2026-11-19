@@ -59,11 +59,13 @@ ds_status_t ds_bitset_create_context(size_t num_bits, ds_context_t *context,
                                      ds_bitset_t **out) {
   size_t words = num_bits / (sizeof(unsigned long) * CHAR_BIT) +
                  (num_bits % (sizeof(unsigned long) * CHAR_BIT) != 0);
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (words > (size_t)-1 / sizeof(unsigned long))
+  if (words > (size_t)-1 / sizeof(unsigned long)) {
     return DS_ERR_OVERFLOW;
+  }
   *out = bitset_create_internal(
       num_bits, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -107,19 +109,23 @@ bool ds_bitset_test(ds_bitset_t *bitset, size_t index) {
 }
 
 ds_status_t ds_bitset_set_ex(ds_bitset_t *bitset, size_t index, bool value) {
-  if (bitset == NULL)
+  if (bitset == NULL) {
     return DS_ERR_NULL;
-  if (index >= bitset->num_bits)
+  }
+  if (index >= bitset->num_bits) {
     return DS_ERR_RANGE;
+  }
   ds_bitset_set_value(bitset, index, value);
   return DS_OK;
 }
 ds_status_t ds_bitset_get_ex(const ds_bitset_t *bitset, size_t index,
                              bool *out) {
-  if (bitset == NULL || out == NULL)
+  if (bitset == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (index >= bitset->num_bits)
+  }
+  if (index >= bitset->num_bits) {
     return DS_ERR_RANGE;
+  }
   *out = (bitset->words[bitset_word_index(index)] & bitset_bit_mask(index)) !=
          0UL;
   return DS_OK;

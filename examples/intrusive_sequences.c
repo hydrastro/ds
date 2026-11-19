@@ -1,4 +1,5 @@
-/* Intrusive sequence policies: owning clones, borrowed records and early stops.
+/* Intrusive sequence policies: owning clones, borrowed records and early
+ * stops.
  */
 #include <dsa/structures/circular_buffer.h>
 #include <dsa/structures/deque.h>
@@ -22,16 +23,18 @@ struct list_record {
 static ds_status_t list_visit(ds_list_node_t *node, void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct list_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t list_copy(ds_list_node_t *node, ds_list_node_t **out,
                              void *user) {
   struct list_record *copy = (struct list_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct list_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -49,17 +52,20 @@ static int show_list(void) {
   size_t i;
   int rc = 1;
 
-  if (ds_list_create_context(NULL, &original) != DS_OK)
+  if (ds_list_create_context(NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
-    if (ds_list_append_ex(original, &records[i].node) != DS_OK)
+    if (ds_list_append_ex(original, &records[i].node) != DS_OK) {
       goto done;
+    }
   }
   st = ds_list_clone_with(original, list_copy, list_release, &policy, NULL,
                           &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("list original:");
   (void)ds_list_walk_with(original, list_visit, &policy);
   printf("; last two cloned entries:");
@@ -82,16 +88,18 @@ struct dlist_record {
 static ds_status_t dlist_visit(ds_dlist_node_t *node, void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct dlist_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t dlist_copy(ds_dlist_node_t *node, ds_dlist_node_t **out,
                               void *user) {
   struct dlist_record *copy = (struct dlist_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct dlist_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -109,17 +117,20 @@ static int show_dlist(void) {
   size_t i;
   int rc = 1;
 
-  if (ds_dlist_create_context(NULL, &original) != DS_OK)
+  if (ds_dlist_create_context(NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
-    if (ds_dlist_append_ex(original, &records[i].node) != DS_OK)
+    if (ds_dlist_append_ex(original, &records[i].node) != DS_OK) {
       goto done;
+    }
   }
   st = ds_dlist_clone_with(original, dlist_copy, dlist_release, &policy, NULL,
                            &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("dlist original:");
   (void)ds_dlist_walk_with(original, dlist_visit, &policy);
   printf("; last two cloned entries:");
@@ -142,8 +153,9 @@ struct ring_list_record {
 static ds_status_t ring_list_visit(ds_ring_list_node_t *node, void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct ring_list_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t ring_list_copy(ds_ring_list_node_t *node,
@@ -151,8 +163,9 @@ static ds_status_t ring_list_copy(ds_ring_list_node_t *node,
   struct ring_list_record *copy =
       (struct ring_list_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct ring_list_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -170,17 +183,20 @@ static int show_ring_list(void) {
   size_t i;
   int rc = 1;
 
-  if (ds_ring_list_create_context(NULL, &original) != DS_OK)
+  if (ds_ring_list_create_context(NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
-    if (ds_ring_list_push_back_ex(original, &records[i].node) != DS_OK)
+    if (ds_ring_list_push_back_ex(original, &records[i].node) != DS_OK) {
       goto done;
+    }
   }
   st = ds_ring_list_clone_with(original, ring_list_copy, ring_list_release,
                                &policy, NULL, &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("ring_list original:");
   (void)ds_ring_list_walk_with(original, ring_list_visit, &policy);
   printf("; last two cloned entries:");
@@ -203,16 +219,18 @@ struct stack_record {
 static ds_status_t stack_visit(ds_stack_node_t *node, void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct stack_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t stack_copy(ds_stack_node_t *node, ds_stack_node_t **out,
                               void *user) {
   struct stack_record *copy = (struct stack_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct stack_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -230,17 +248,20 @@ static int show_stack(void) {
   size_t i;
   int rc = 1;
 
-  if (ds_stack_create_context(NULL, &original) != DS_OK)
+  if (ds_stack_create_context(NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
-    if (ds_stack_push_ex(original, &records[i].node) != DS_OK)
+    if (ds_stack_push_ex(original, &records[i].node) != DS_OK) {
       goto done;
+    }
   }
   st = ds_stack_clone_with(original, stack_copy, stack_release, &policy, NULL,
                            &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("stack original:");
   (void)ds_stack_walk_with(original, stack_visit, &policy);
   printf("; last two cloned entries:");
@@ -263,16 +284,18 @@ struct queue_record {
 static ds_status_t queue_visit(ds_queue_node_t *node, void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct queue_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t queue_copy(ds_queue_node_t *node, ds_queue_node_t **out,
                               void *user) {
   struct queue_record *copy = (struct queue_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct queue_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -290,17 +313,20 @@ static int show_queue(void) {
   size_t i;
   int rc = 1;
 
-  if (ds_queue_create_context(NULL, &original) != DS_OK)
+  if (ds_queue_create_context(NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
-    if (ds_queue_enqueue_ex(original, &records[i].node) != DS_OK)
+    if (ds_queue_enqueue_ex(original, &records[i].node) != DS_OK) {
       goto done;
+    }
   }
   st = ds_queue_clone_with(original, queue_copy, queue_release, &policy, NULL,
                            &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("queue original:");
   (void)ds_queue_walk_with(original, queue_visit, &policy);
   printf("; last two cloned entries:");
@@ -323,16 +349,18 @@ struct deque_record {
 static ds_status_t deque_visit(ds_deque_node_t *node, void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct deque_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t deque_copy(ds_deque_node_t *node, ds_deque_node_t **out,
                               void *user) {
   struct deque_record *copy = (struct deque_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct deque_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -350,17 +378,20 @@ static int show_deque(void) {
   size_t i;
   int rc = 1;
 
-  if (ds_deque_create_context(NULL, &original) != DS_OK)
+  if (ds_deque_create_context(NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
-    if (ds_deque_push_back_ex(original, &records[i].node) != DS_OK)
+    if (ds_deque_push_back_ex(original, &records[i].node) != DS_OK) {
       goto done;
+    }
   }
   st = ds_deque_clone_with(original, deque_copy, deque_release, &policy, NULL,
                            &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("deque original:");
   (void)ds_deque_walk_with(original, deque_visit, &policy);
   printf("; last two cloned entries:");
@@ -384,8 +415,9 @@ static ds_status_t circular_buffer_visit(ds_circular_buffer_node_t *node,
                                          void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct circular_buffer_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t circular_buffer_copy(ds_circular_buffer_node_t *node,
@@ -394,8 +426,9 @@ static ds_status_t circular_buffer_copy(ds_circular_buffer_node_t *node,
   struct circular_buffer_record *copy =
       (struct circular_buffer_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct circular_buffer_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -414,18 +447,22 @@ static int show_circular_buffer(void) {
   size_t i;
   int rc = 1;
 
-  if (ds_circular_buffer_create_context(4, false, NULL, &original) != DS_OK)
+  if (ds_circular_buffer_create_context(4, false, NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
-    if (ds_circular_buffer_push_ex(original, &records[i].node, NULL) != DS_OK)
+    if (ds_circular_buffer_push_ex(original, &records[i].node, NULL) !=
+        DS_OK) {
       goto done;
+    }
   }
   st = ds_circular_buffer_clone_with(original, circular_buffer_copy,
                                      circular_buffer_release, &policy, NULL,
                                      &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("circular_buffer original:");
   (void)ds_circular_buffer_walk_with(original, circular_buffer_visit, &policy);
   printf("; last two cloned entries:");
@@ -449,16 +486,18 @@ struct heap_record {
 static ds_status_t heap_visit(ds_heap_node_t *node, void *user) {
   struct policy *policy = (struct policy *)user;
   printf(" %d", ((struct heap_record *)node)->id);
-  if (policy->budget != 0 && --policy->budget == 0)
+  if (policy->budget != 0 && --policy->budget == 0) {
     return DS_STOP;
+  }
   return DS_OK;
 }
 static ds_status_t heap_copy(ds_heap_node_t *node, ds_heap_node_t **out,
                              void *user) {
   struct heap_record *copy = (struct heap_record *)malloc(sizeof(*copy));
   (void)user;
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   copy->id = ((struct heap_record *)node)->id;
   *out = &copy->node;
   return DS_OK;
@@ -481,18 +520,21 @@ static int show_heap(void) {
   size_t i;
   int rc = 1;
   int direction = 1;
-  if (ds_heap_create_context(4, NULL, &original) != DS_OK)
+  if (ds_heap_create_context(4, NULL, &original) != DS_OK) {
     return 1;
+  }
   for (i = 0; i < 3; ++i) {
     records[i].id = (int)i + 1;
     if (ds_heap_insert_with(original, &records[i].node, heap_compare,
-                            &direction) != DS_OK)
+                            &direction) != DS_OK) {
       goto done;
+    }
   }
   st = ds_heap_clone_with(original, heap_copy, heap_release, &policy, NULL,
                           &copy);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   printf("heap original:");
   (void)ds_heap_walk_with(original, heap_visit, &policy);
   printf("; last two cloned entries:");
@@ -509,21 +551,29 @@ done:
   return rc;
 }
 int main(void) {
-  if (show_list() != 0)
+  if (show_list() != 0) {
     return 1;
-  if (show_dlist() != 0)
+  }
+  if (show_dlist() != 0) {
     return 1;
-  if (show_ring_list() != 0)
+  }
+  if (show_ring_list() != 0) {
     return 1;
-  if (show_stack() != 0)
+  }
+  if (show_stack() != 0) {
     return 1;
-  if (show_queue() != 0)
+  }
+  if (show_queue() != 0) {
     return 1;
-  if (show_deque() != 0)
+  }
+  if (show_deque() != 0) {
     return 1;
-  if (show_circular_buffer() != 0)
+  }
+  if (show_circular_buffer() != 0) {
     return 1;
-  if (show_heap() != 0)
+  }
+  if (show_heap() != 0) {
     return 1;
+  }
   return 0;
 }

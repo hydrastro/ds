@@ -54,7 +54,8 @@ int main(void) {
   ds_list_append(source, &a.link);
   ds_list_append(source, &b.link);
   st = ds_list_clone_ex(source, clone_item, release_item, &copy);
-  ds_list_destroy(source, NULL); /* source nodes and strings are on the stack */
+  ds_list_destroy(source,
+                  NULL); /* source nodes and strings are on the stack */
   if (st != DS_OK) {
     fprintf(stderr, "Cloning failed (%d); completed clones were released.\n",
             (int)st);

@@ -72,8 +72,9 @@ ds_status_t ds_indexed_heap_init(ds_indexed_heap_t *heap,
                                  size_t max_ids);
 ds_status_t ds_indexed_heap_init_buffer(ds_indexed_heap_t *heap,
                                         const ds_indexed_heap_config_t *config,
-                                        size_t *heap_buffer, size_t *pos_buffer,
-                                        void *key_buffer, size_t max_ids);
+                                        size_t *heap_buffer,
+                                        size_t *pos_buffer, void *key_buffer,
+                                        size_t max_ids);
 void ds_indexed_heap_destroy(ds_indexed_heap_t *heap);
 
 ds_status_t ds_indexed_heap_push(ds_indexed_heap_t *heap, size_t id,

@@ -96,16 +96,20 @@ ds_status_t ds_error_snapshot_create(const ds_error_t *error,
   ds_diagnostic_arg_t args[2];
   const ds_diagnostic_t *owned;
   ds_status_t st;
-  if (error == NULL || out == NULL)
+  if (error == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   if (error->category < DS_ERROR_UNCLASSIFIED ||
-      error->category > DS_ERROR_INTERNAL)
+      error->category > DS_ERROR_INTERNAL) {
     return DS_ERR_INVALID;
-  if (cause != NULL && cause->refs == (size_t)-1)
+  }
+  if (cause != NULL && cause->refs == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   s = (ds_error_snapshot_t *)ds_context_alloc(context, sizeof(*s));
-  if (s == NULL)
+  if (s == NULL) {
     return DS_ERR_ALLOC;
+  }
   memset(&d, 0, sizeof(d));
   d.id = error->id;
   d.module = error->module;
@@ -138,16 +142,19 @@ ds_status_t ds_error_snapshot_create(const ds_error_t *error,
   s->cause = cause;
   s->refs = 1;
   s->context = context != NULL ? context : ds_default_context();
-  if (cause != NULL)
+  if (cause != NULL) {
     cause->refs++;
+  }
   *out = s;
   return DS_OK;
 }
 ds_status_t ds_error_snapshot_retain(ds_error_snapshot_t *s) {
-  if (s == NULL)
+  if (s == NULL) {
     return DS_ERR_NULL;
-  if (s->refs == (size_t)-1)
+  }
+  if (s->refs == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   s->refs++;
   return DS_OK;
 }

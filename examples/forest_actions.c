@@ -47,32 +47,44 @@ int main(void) {
   config.tag_compose = compose;
   config.map_ops = ds_map_swiss_ops();
   st = ds_ett_init(&forest, 6, values, &config);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
-  for (i = 0; i < 5 && st == DS_OK; i++)
+  }
+  for (i = 0; i < 5 && st == DS_OK; i++) {
     st = ds_ett_link(&forest, edges[i][0], edges[i][1]);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_ett_component_apply(&forest, 0, &delta);
+  }
   delta = 10;
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_ett_subtree_apply(&forest, 3, 1, &delta);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_ett_subtree_query(&forest, 3, 1, &sum);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     printf("Side rooted at 3: %ld\n", sum);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_ett_cut(&forest, 1, 3);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_ett_component_query(&forest, 0, &sum);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     printf("Detached first component: %ld\n", sum);
+  }
   delta = -2;
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_ett_component_apply(&forest, 3, &delta);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_ett_link(&forest, 2, 5);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_ett_component_query(&forest, 0, &sum);
+  }
   if (st == DS_OK) {
     printf("Rejoined sum: %ld; vertices:", sum);
     st = ds_ett_visit_component(&forest, 0, display, NULL);
@@ -80,7 +92,8 @@ int main(void) {
   }
   ds_ett_destroy(&forest);
 done:
-  if (st != DS_OK)
+  if (st != DS_OK) {
     fprintf(stderr, "forest actions: %s\n", ds_status_name(st));
+  }
   return st == DS_OK ? 0 : 1;
 }

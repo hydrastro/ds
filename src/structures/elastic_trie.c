@@ -165,11 +165,11 @@ static ds_status_t bt_node(ds_bucket_trie_t *t, size_t *out) {
       if (cap <= t->node_capacity || cap > ((size_t)-1) / sizeof(size_t)) {
         return DS_ERR_OVERFLOW;
       }
-#define BT_GROW(field, type)                                                   \
-  p = ds_context_realloc(t->context, (void *)t->field, cap * sizeof(type));    \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define BT_GROW(field, type)                                                  \
+  p = ds_context_realloc(t->context, (void *)t->field, cap * sizeof(type));   \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   t->field = (type *)p;
       BT_GROW(leaf, unsigned char)
       BT_GROW(depth, size_t)
@@ -397,8 +397,9 @@ static ds_status_t bt_split(ds_bucket_trie_t *t, size_t v, size_t *ks,
   }
 }
 
-ds_status_t ds_bucket_trie_insert(ds_bucket_trie_t *t, const unsigned char *key,
-                                  size_t len, size_t value) {
+ds_status_t ds_bucket_trie_insert(ds_bucket_trie_t *t,
+                                  const unsigned char *key, size_t len,
+                                  size_t value) {
   size_t v;
   size_t c;
   size_t i;
@@ -523,8 +524,8 @@ static ds_status_t bt_collapse(ds_bucket_trie_t *t, size_t u) {
   return st;
 }
 
-ds_status_t ds_bucket_trie_remove(ds_bucket_trie_t *t, const unsigned char *key,
-                                  size_t len) {
+ds_status_t ds_bucket_trie_remove(ds_bucket_trie_t *t,
+                                  const unsigned char *key, size_t len) {
   size_t v;
   size_t u;
   size_t top;
@@ -688,11 +689,11 @@ static ds_status_t bl_node(ds_blind_trie_t *t, size_t *out) {
       if (cap <= t->node_capacity || cap > ((size_t)-1) / sizeof(size_t)) {
         return DS_ERR_OVERFLOW;
       }
-#define BL_GROW(field, type)                                                   \
-  p = ds_context_realloc(t->context, (void *)t->field, cap * sizeof(type));    \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define BL_GROW(field, type)                                                  \
+  p = ds_context_realloc(t->context, (void *)t->field, cap * sizeof(type));   \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   t->field = (type *)p;
       BL_GROW(leaf, unsigned char)
       BL_GROW(pos, size_t)

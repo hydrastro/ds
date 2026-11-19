@@ -11,9 +11,10 @@
  * M arcs and V vertices there are K*(M+1) columns and K*V+M+2*K rows.
  * Memory and construction time are O(rows*columns). A coefficient limit can
  * reject an oversized model before allocation. All allocations use context.
- * The model exposes its LP and integer mask for other solvers; treat its fields
- * as read-only until destroy. The default uses floating-point simplex/MILP,
- * with tolerance-based validation, not exact rational certificates.
+ * The model exposes its LP and integer mask for other solvers; treat its
+ * fields as read-only until destroy. The default uses floating-point
+ * simplex/MILP, with tolerance-based validation, not exact rational
+ * certificates.
  */
 #include <dsa/algorithms/lp.h>
 
@@ -97,10 +98,10 @@ void ds_multiflow_policy_init(ds_multiflow_policy_t *policy);
  * integral variables and checked against all rows before publication. Tiny
  * negative values within tolerance are clamped to zero. Row tolerance is
  * relative to 1+|rhs|+sum|a*x|; integrality/nonnegativity use absolute
- * tolerance. Errors preserve all outputs. DS_OK with has_solution=false changes
- * only out; it does not mean the optimization problem was solved. A LIMIT may
- * have an incumbent but never certifies optimality. Validation failure is
- * DS_ERR_STATE.
+ * tolerance. Errors preserve all outputs. DS_OK with has_solution=false
+ * changes only out; it does not mean the optimization problem was solved. A
+ * LIMIT may have an incumbent but never certifies optimality. Validation
+ * failure is DS_ERR_STATE.
  */
 ds_status_t ds_multiflow_solve(const ds_multiflow_model_t *model,
                                const ds_multiflow_policy_t *policy,

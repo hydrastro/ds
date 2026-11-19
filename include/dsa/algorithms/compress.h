@@ -85,7 +85,8 @@ typedef struct ds_arith_adaptive_model {
 } ds_arith_adaptive_model_t;
 
 ds_status_t ds_arith_adaptive_model_init(ds_arith_adaptive_model_t *m,
-                                         size_t symbols, ds_context_t *context);
+                                         size_t symbols,
+                                         ds_context_t *context);
 void ds_arith_adaptive_model_destroy(ds_arith_adaptive_model_t *m);
 /* Fill a ds_arith_model_t that uses m. */
 void ds_arith_adaptive_model_bind(ds_arith_adaptive_model_t *m,
@@ -144,14 +145,14 @@ ds_status_t ds_bstw_decompress(const unsigned char *in, size_t n,
  * DS_ERR_INVALID. */
 ds_status_t ds_star_encode(const unsigned char *text, size_t n,
                            const unsigned char *const *words,
-                           const size_t *lens, size_t count, unsigned char *out,
-                           size_t capacity, size_t *out_length,
-                           ds_context_t *context);
+                           const size_t *lens, size_t count,
+                           unsigned char *out, size_t capacity,
+                           size_t *out_length, ds_context_t *context);
 ds_status_t ds_star_decode(const unsigned char *in, size_t n,
                            const unsigned char *const *words,
-                           const size_t *lens, size_t count, unsigned char *out,
-                           size_t capacity, size_t *out_length,
-                           ds_context_t *context);
+                           const size_t *lens, size_t count,
+                           unsigned char *out, size_t capacity,
+                           size_t *out_length, ds_context_t *context);
 
 #ifdef __cplusplus
 }

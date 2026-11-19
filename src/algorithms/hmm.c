@@ -344,8 +344,9 @@ ds_status_t ds_hmm_baum_welch(ds_hmm_t *h, const size_t *const *seqs,
           if (s + 1 < t) {
             den_a[i] += g;
             for (j = 0; j < n; j++) {
-              xi = alpha[s * n + i] * h->a[i * n + j] * h->b[j * m + o[s + 1]] *
-                   beta[(s + 1) * n + j] / scale[s + 1];
+              xi = alpha[s * n + i] * h->a[i * n + j] *
+                   h->b[j * m + o[s + 1]] * beta[(s + 1) * n + j] /
+                   scale[s + 1];
               na[i * n + j] += xi;
             }
           }

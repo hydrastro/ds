@@ -46,8 +46,9 @@ ds_aho_corasick_t *ds_aho_corasick_create(ds_context_t *context) {
 }
 ds_status_t ds_aho_corasick_create_context(ds_context_t *context,
                                            ds_aho_corasick_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = aho_corasick_create_internal(context != NULL ? context
                                                       : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -58,20 +59,24 @@ ds_status_t ds_aho_corasick_add_ex(ds_aho_corasick_t *ac, const void *pattern,
   const unsigned char *bytes = (const unsigned char *)pattern;
   ds_aho_corasick_node_t *node, *first = NULL, *tail = NULL, *pending = NULL;
   size_t i, j, old_nodes;
-  if (ac == NULL || pattern == NULL || out_id == NULL)
+  if (ac == NULL || pattern == NULL || out_id == NULL) {
     return DS_ERR_NULL;
-  if (length == 0)
+  }
+  if (length == 0) {
     return DS_ERR_INVALID;
+  }
   node = ac->root;
-  for (i = 0; i < length && node->children[bytes[i]] != NULL; i++)
+  for (i = 0; i < length && node->children[bytes[i]] != NULL; i++) {
     node = node->children[bytes[i]];
+  }
   if (i == length && node->pattern_id >= 0) {
     *out_id = node->pattern_id;
     return DS_EXISTS;
   }
   if (ac->num_patterns == (size_t)-1 || ac->num_patterns > (size_t)INT_MAX ||
-      length - i > (size_t)-1 - ac->num_nodes)
+      length - i > (size_t)-1 - ac->num_nodes) {
     return DS_ERR_OVERFLOW;
+  }
   old_nodes = ac->num_nodes;
   for (j = i; j < length; j++) {
     ds_aho_corasick_node_t *fresh = aho_corasick_new_node(ac);
@@ -86,10 +91,11 @@ ds_status_t ds_aho_corasick_add_ex(ds_aho_corasick_t *ac, const void *pattern,
     }
     fresh->fail = pending; /* private rollback list until compilation */
     pending = fresh;
-    if (tail != NULL)
+    if (tail != NULL) {
       tail->children[bytes[j]] = fresh;
-    else
+    } else {
       first = fresh;
+    }
     tail = fresh;
   }
   if (first != NULL) {
@@ -115,14 +121,17 @@ ds_status_t ds_aho_corasick_compile_ex(ds_aho_corasick_t *ac) {
   size_t head = 0;
   size_t tail = 0;
   int c;
-  if (ac == NULL)
+  if (ac == NULL) {
     return DS_ERR_NULL;
-  if (ac->num_nodes > (size_t)-1 / sizeof(*queue))
+  }
+  if (ac->num_nodes > (size_t)-1 / sizeof(*queue)) {
     return DS_ERR_OVERFLOW;
+  }
   queue = (ds_aho_corasick_node_t **)ds_context_alloc(
       ac->context, ac->num_nodes * sizeof(ds_aho_corasick_node_t *));
-  if (queue == NULL)
+  if (queue == NULL) {
     return DS_ERR_ALLOC;
+  }
   /* depth-1 nodes fail to root */
   for (c = 0; c < 256; c++) {
     ds_aho_corasick_node_t *child = ac->root->children[c];
@@ -191,12 +200,14 @@ ds_status_t ds_aho_corasick_search_with(ds_aho_corasick_t *ac,
   size_t count = 0;
   size_t i;
   ds_status_t st;
-  if (ac == NULL || out_count == NULL || (haystack == NULL && length != 0))
+  if (ac == NULL || out_count == NULL || (haystack == NULL && length != 0)) {
     return DS_ERR_NULL;
+  }
   if (!ac->compiled) {
     st = ds_aho_corasick_compile_ex(ac);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   node = ac->root;
   for (i = 0; i < length; i++) {
@@ -260,15 +271,17 @@ ds_status_t ds_aho_corasick_search_ex(
   aho_direct_visit_t policy;
   ds_status_t st;
   size_t count;
-  if (out_count == NULL)
+  if (out_count == NULL) {
     return DS_ERR_NULL;
+  }
   policy.callback = callback;
   policy.user = user;
   st = ds_aho_corasick_search_with(ac, haystack, length,
                                    callback != NULL ? aho_visit_direct : NULL,
                                    &policy, &count);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     *out_count = count;
+  }
   return st;
 }
 
@@ -289,12 +302,14 @@ ds_status_t ds_aho_corasick_contains_any_ex(ds_aho_corasick_t *ac,
   bool found = false;
   size_t i;
   ds_status_t st;
-  if (ac == NULL || out == NULL || (haystack == NULL && length != 0))
+  if (ac == NULL || out == NULL || (haystack == NULL && length != 0)) {
     return DS_ERR_NULL;
+  }
   if (!ac->compiled) {
     st = ds_aho_corasick_compile_ex(ac);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   node = ac->root;
   for (i = 0; i < length; i++) {

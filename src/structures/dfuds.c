@@ -32,8 +32,9 @@ ds_status_t ds_dfuds_from_parens(ds_dfuds_t *t, const unsigned long *words,
   return DS_OK;
 }
 
-ds_status_t ds_dfuds_from_parents(ds_dfuds_t *t, const size_t *parent, size_t n,
-                                  size_t *out_number, const ds_rs_ops_t *rs_ops,
+ds_status_t ds_dfuds_from_parents(ds_dfuds_t *t, const size_t *parent,
+                                  size_t n, size_t *out_number,
+                                  const ds_rs_ops_t *rs_ops,
                                   ds_context_t *context) {
   size_t *first = NULL;
   size_t *list = NULL;

@@ -24,8 +24,9 @@
  * least and greatest excess of their range and how often the least one
  * occurs: O(B / 8 + log(n / B)) for blocks of B = DS_PARENS_BLOCK bits.
  * rank and select come from any dsa/structures/rank_select.h backend over the
- * same bits. Space: the n bits, 4 words per tree node (about 2 nodes per block:
- * 0.5 bit per parenthesis on 64-bit targets) and the rank/select directory.
+ * same bits. Space: the n bits, 4 words per tree node (about 2 nodes per
+ * block: 0.5 bit per parenthesis on 64-bit targets) and the rank/select
+ * directory.
  *
  * The tree (ds_bp_tree_t) writes a node as an open parenthesis, its
  * subtrees in order, and a close: 2n bits for n nodes. Nodes are
@@ -100,7 +101,8 @@ long ds_parens_range_min(const ds_parens_t *p, size_t i, size_t j,
                          size_t *count);
 long ds_parens_range_max(const ds_parens_t *p, size_t i, size_t j);
 size_t ds_parens_rmq(const ds_parens_t *p, size_t i, size_t j);
-size_t ds_parens_min_select(const ds_parens_t *p, size_t i, size_t j, size_t k);
+size_t ds_parens_min_select(const ds_parens_t *p, size_t i, size_t j,
+                            size_t k);
 size_t ds_parens_bytes(const ds_parens_t *p);
 
 typedef struct ds_bp_tree {

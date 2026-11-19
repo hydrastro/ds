@@ -1,9 +1,9 @@
 /*
  * Binary heap used as a min-priority-queue.
  *
- * insert places an embedded node into the heap; extract_root repeatedly removes
- * the smallest element under the supplied comparison, so draining the heap
- * yields ascending order.
+ * insert places an embedded node into the heap; extract_root repeatedly
+ * removes the smallest element under the supplied comparison, so draining the
+ * heap yields ascending order.
  */
 #include <dsa.h>
 #include <stdio.h>

@@ -67,7 +67,8 @@ static unsigned char *lh_rec(const ds_vec_t *b, size_t i) {
   return b->data + i * b->elem_size;
 }
 
-static void *lh_rec_value(const ds_linear_hash_map_t *map, unsigned char *rec) {
+static void *lh_rec_value(const ds_linear_hash_map_t *map,
+                          unsigned char *rec) {
   return map->config.value_size == 0 ? rec + map->key_offset
                                      : rec + map->value_offset;
 }
@@ -191,8 +192,9 @@ void ds_linear_hash_map_config_init(ds_linear_hash_map_config_t *config) {
   config->context = NULL;
 }
 
-ds_status_t ds_linear_hash_map_init(ds_linear_hash_map_t *map,
-                                    const ds_linear_hash_map_config_t *config) {
+ds_status_t
+ds_linear_hash_map_init(ds_linear_hash_map_t *map,
+                        const ds_linear_hash_map_config_t *config) {
   size_t i;
   ds_vec_t b;
   ds_status_t status;
@@ -354,7 +356,8 @@ ds_status_t ds_linear_hash_map_insert(ds_linear_hash_map_t *map,
   return status;
 }
 
-void *ds_linear_hash_map_get(const ds_linear_hash_map_t *map, const void *key) {
+void *ds_linear_hash_map_get(const ds_linear_hash_map_t *map,
+                             const void *key) {
   size_t b;
   size_t i;
   if (map->size == 0 ||

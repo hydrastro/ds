@@ -341,8 +341,8 @@ ds_status_t ds_bsp_tree_insert(ds_bsp_tree_t *t, const double *point,
     for (i = 0; i < t->count[v] && st == DS_OK; i++) {
       const double *p = t->points[v] + i * d;
       size_t to = bsp_dot(nrm, p, d) < off ? a : b;
-      st = bsp_append(t->context, &t->points[to], &t->values[to], &t->count[to],
-                      &t->capacity[to], d, p, t->values[v][i]);
+      st = bsp_append(t->context, &t->points[to], &t->values[to],
+                      &t->count[to], &t->capacity[to], d, p, t->values[v][i]);
     }
     if (st != DS_OK) {
       bsp_free(t, a);
@@ -513,7 +513,8 @@ ds_status_t ds_bsp_tree_nearest(const ds_bsp_tree_t *t, const double *point,
   d = t->dim;
   stack =
       (size_t *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(size_t));
-  key = (double *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(double));
+  key =
+      (double *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(double));
   dk = (double *)ds_context_alloc(t->context, k * sizeof(double));
   vk = (size_t *)ds_context_alloc(t->context, k * sizeof(size_t));
   if (stack == NULL || key == NULL || dk == NULL || vk == NULL) {
@@ -962,7 +963,8 @@ ds_status_t ds_cell_tree_insert(ds_cell_tree_t *t, const double *xy, size_t n,
           bsp_grow(t->context, (void **)&t->poly_first, sizeof(size_t), nc) ||
           bsp_grow(t->context, (void **)&t->poly_value, sizeof(size_t), nc) ||
           bsp_grow(t->context, (void **)&t->poly_alive, 1, nc) ||
-          bsp_grow(t->context, (void **)&t->poly_stamp, sizeof(unsigned), nc)) {
+          bsp_grow(t->context, (void **)&t->poly_stamp, sizeof(unsigned),
+                   nc)) {
         ds_context_free(t->context, tri);
         return DS_ERR_ALLOC;
       }
@@ -1189,7 +1191,8 @@ ds_status_t ds_cell_tree_query_box(ds_cell_tree_t *t, const double *box,
     for (i = 0; i < t->item_count[v]; i++) {
       size_t pc = t->items[v][i];
       size_t h = t->piece_poly[pc];
-      if (t->poly_stamp[h] == t->epoch || !ct_tri_box(t->piece + 6 * pc, box)) {
+      if (t->poly_stamp[h] == t->epoch ||
+          !ct_tri_box(t->piece + 6 * pc, box)) {
         continue;
       }
       t->poly_stamp[h] = t->epoch;

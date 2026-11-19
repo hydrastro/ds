@@ -58,9 +58,9 @@ typedef struct ds_meldable_heap_node {
   size_t aux; /* owned by the policy: rank, size, ... */
 } ds_meldable_heap_node_t;
 
-typedef int (*ds_meldable_heap_compare_func_t)(const ds_meldable_heap_node_t *a,
-                                               const ds_meldable_heap_node_t *b,
-                                               void *user);
+typedef int (*ds_meldable_heap_compare_func_t)(
+    const ds_meldable_heap_node_t *a, const ds_meldable_heap_node_t *b,
+    void *user);
 typedef ds_status_t (*ds_meldable_heap_visit_func_t)(
     ds_meldable_heap_node_t *node, void *user);
 
@@ -103,7 +103,8 @@ ds_meldable_heap_node_t *ds_meldable_heap_peek(const ds_meldable_heap_t *heap);
 ds_meldable_heap_node_t *ds_meldable_heap_pop(ds_meldable_heap_t *heap);
 /* Move every node of `other` into `heap`; other is left empty. Both heaps
  * must use the same comparator and policy. */
-void ds_meldable_heap_meld(ds_meldable_heap_t *heap, ds_meldable_heap_t *other);
+void ds_meldable_heap_meld(ds_meldable_heap_t *heap,
+                           ds_meldable_heap_t *other);
 void ds_meldable_heap_decrease(ds_meldable_heap_t *heap,
                                ds_meldable_heap_node_t *node);
 void ds_meldable_heap_update(ds_meldable_heap_t *heap,

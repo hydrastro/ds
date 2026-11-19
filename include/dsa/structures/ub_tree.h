@@ -126,8 +126,9 @@ ds_status_t ds_ubranch_tree_insert(ds_ubranch_tree_t *t, const size_t *list,
                                    size_t n, size_t value);
 ds_status_t ds_ubranch_tree_remove(ds_ubranch_tree_t *t, const size_t *list,
                                    size_t n);
-ds_status_t ds_ubranch_tree_find(const ds_ubranch_tree_t *t, const size_t *list,
-                                 size_t n, size_t *out_value);
+ds_status_t ds_ubranch_tree_find(const ds_ubranch_tree_t *t,
+                                 const size_t *list, size_t n,
+                                 size_t *out_value);
 /* stored lists that are subsets of the strictly increasing set */
 ds_status_t ds_ubranch_tree_subsets(ds_ubranch_tree_t *t, const size_t *set,
                                     size_t n, ds_ubranch_visit_func_t visit,

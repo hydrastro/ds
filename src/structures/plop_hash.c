@@ -30,7 +30,8 @@ static ds_status_t pl_reserve(ds_context_t *ctx, void **p, size_t *cap,
   return DS_OK;
 }
 
-static const double *pl_point(const ds_plop_hash_t *h, const unsigned char *r) {
+static const double *pl_point(const ds_plop_hash_t *h,
+                              const unsigned char *r) {
   (void)h;
   return (const double *)(const void *)r;
 }
@@ -80,7 +81,8 @@ ds_status_t ds_plop_init(ds_plop_hash_t *h, size_t dims, const double *lo,
     }
     a->slice =
         (size_t *)ds_context_alloc(context, a->capacity * sizeof(size_t));
-    a->born = (size_t *)ds_context_alloc(context, a->capacity * sizeof(size_t));
+    a->born =
+        (size_t *)ds_context_alloc(context, a->capacity * sizeof(size_t));
     if (a->slice == NULL || a->born == NULL) {
       ds_plop_destroy(h);
       return DS_ERR_ALLOC;
@@ -193,7 +195,8 @@ static int pl_cmp_double(const void *x, const void *y) {
 
 /* odometer over every axis but `skip` (counts per axis); returns false
  * after the last combination */
-static bool pl_next(size_t *c, const size_t *counts, size_t dims, size_t skip) {
+static bool pl_next(size_t *c, const size_t *counts, size_t dims,
+                    size_t skip) {
   size_t d;
   for (d = 0; d < dims; d++) {
     if (d == skip) {

@@ -168,7 +168,8 @@ ds_status_t ds_tst_insert(ds_tst_t *t, const unsigned char *key, size_t len,
   }
 }
 
-static size_t ts_walk(const ds_tst_t *t, const unsigned char *key, size_t len) {
+static size_t ts_walk(const ds_tst_t *t, const unsigned char *key,
+                      size_t len) {
   size_t v = t->root;
   size_t i = 0;
   while (v != TS_NONE) {
@@ -186,8 +187,8 @@ static size_t ts_walk(const ds_tst_t *t, const unsigned char *key, size_t len) {
   return TS_NONE;
 }
 
-ds_status_t ds_tst_find(const ds_tst_t *t, const unsigned char *key, size_t len,
-                        size_t *out_value) {
+ds_status_t ds_tst_find(const ds_tst_t *t, const unsigned char *key,
+                        size_t len, size_t *out_value) {
   size_t v;
   if (t == NULL || (key == NULL && len > 0)) {
     return DS_ERR_NULL;
@@ -315,7 +316,8 @@ ds_status_t ds_tst_remove(ds_tst_t *t, const unsigned char *key, size_t len) {
   return DS_OK;
 }
 
-/* ---- searches ------------------------------------------------------------ */
+/* ---- searches ------------------------------------------------------------
+ */
 
 typedef struct ts_q {
   int mode; /* 0 enumerate, 1 partial match, 2 near */
@@ -493,8 +495,8 @@ ds_status_t ds_tst_partial_match(ds_tst_t *t, const unsigned char *pattern,
 }
 
 ds_status_t ds_tst_near(ds_tst_t *t, const unsigned char *key, size_t len,
-                        size_t d, unsigned char *buf, ds_tst_visit_func_t visit,
-                        void *user) {
+                        size_t d, unsigned char *buf,
+                        ds_tst_visit_func_t visit, void *user) {
   ts_q_t q;
   q.mode = 2;
   q.wild = 0;

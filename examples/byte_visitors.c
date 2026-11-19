@@ -47,12 +47,14 @@ int main(void) {
       ds_hamt_create_context(NULL, &hamt) != DS_OK ||
       ds_radix_trie_create_context(NULL, &radix) != DS_OK ||
       ds_aho_corasick_create_context(NULL, &ac) != DS_OK ||
-      ds_disjoint_set_create_context(NULL, &set) != DS_OK)
+      ds_disjoint_set_create_context(NULL, &set) != DS_OK) {
     goto done;
+  }
   if (ds_art_insert_ex(art, key, sizeof(key), NULL) != DS_OK ||
       ds_hamt_insert_ex(hamt, key, sizeof(key), NULL) != DS_OK ||
-      ds_radix_trie_insert_ex(radix, key, sizeof(key), NULL) != DS_OK)
+      ds_radix_trie_insert_ex(radix, key, sizeof(key), NULL) != DS_OK) {
     goto done;
+  }
   st = ds_art_find_ex(art, key, sizeof(key), &value);
   printf("ART nullable lookup: %s, value %s\n", ds_status_name(st),
          value == NULL ? "NULL" : "present");
@@ -64,15 +66,17 @@ int main(void) {
   (void)ds_hamt_walk_with(hamt, visit_hamt, "HAMT");
   (void)ds_radix_trie_walk_with(radix, visit_bytes, "Radix");
   if (ds_aho_corasick_add_ex(ac, "he", 2, &id) != DS_OK ||
-      ds_aho_corasick_add_ex(ac, "she", 3, &id) != DS_OK)
+      ds_aho_corasick_add_ex(ac, "she", 3, &id) != DS_OK) {
     goto done;
+  }
   st = ds_aho_corasick_search_with(ac, "she he", 6, visit_match, &budget,
                                    &count);
   printf("Search: %s after %lu delivered matches\n", ds_status_name(st),
          (unsigned long)count);
   if (ds_disjoint_set_make_ex(set, &a) != DS_OK ||
-      ds_disjoint_set_make_ex(set, &b) != DS_OK)
+      ds_disjoint_set_make_ex(set, &b) != DS_OK) {
     goto done;
+  }
   st = ds_disjoint_set_union_ex(set, &a, &b);
   printf("Connect: %s; connect again: %s\n", ds_status_name(st),
          ds_status_name(ds_disjoint_set_union_ex(set, &a, &b)));
@@ -81,10 +85,12 @@ done:
   ds_art_destroy_with(art, release_value, &released);
   ds_hamt_destroy_with(hamt, release_value, &released);
   ds_radix_trie_destroy_with(radix, release_value, &released);
-  if (ac != NULL)
+  if (ac != NULL) {
     ds_aho_corasick_destroy(ac);
-  if (set != NULL)
+  }
+  if (set != NULL) {
     ds_disjoint_set_destroy(set);
+  }
   printf("Value cleanup callbacks: %lu\n", (unsigned long)released);
   return rc;
 }

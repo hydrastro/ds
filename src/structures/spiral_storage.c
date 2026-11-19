@@ -116,7 +116,8 @@ unsigned long ds_spiral_map_end_slot(const ds_spiral_map_t *m) {
   return m == NULL ? 0 : sp_end(m, m->first);
 }
 
-unsigned long ds_spiral_map_slot_of(const ds_spiral_map_t *m, const void *key) {
+unsigned long ds_spiral_map_slot_of(const ds_spiral_map_t *m,
+                                    const void *key) {
   if (m == NULL || key == NULL) {
     return 0;
   }
@@ -156,7 +157,8 @@ static ds_status_t sp_reserve(ds_spiral_map_t *m, unsigned long first,
 }
 
 /* move every entry of the chain to its slot for the window at first */
-static void sp_respread(ds_spiral_map_t *m, size_t chain, unsigned long first) {
+static void sp_respread(ds_spiral_map_t *m, size_t chain,
+                        unsigned long first) {
   while (chain != SP_NONE) {
     size_t nx = m->next[chain];
     unsigned long s = sp_slot(m, m->hash(sp_key(m, chain), m->user), first);
@@ -347,8 +349,8 @@ ds_status_t ds_spiral_map_remove(ds_spiral_map_t *m, const void *key) {
   return DS_OK;
 }
 
-ds_status_t ds_spiral_map_walk(ds_spiral_map_t *m, ds_spiral_visit_func_t visit,
-                               void *user) {
+ds_status_t ds_spiral_map_walk(ds_spiral_map_t *m,
+                               ds_spiral_visit_func_t visit, void *user) {
   unsigned long j;
   if (m == NULL || visit == NULL) {
     return DS_ERR_NULL;

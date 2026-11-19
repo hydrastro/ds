@@ -71,7 +71,8 @@ void ds_slot_map_destroy(ds_slot_map_t *map);
 
 ds_status_t ds_slot_map_insert(ds_slot_map_t *map, const void *value,
                                ds_slot_map_handle_t *out_handle);
-void *ds_slot_map_emplace(ds_slot_map_t *map, ds_slot_map_handle_t *out_handle);
+void *ds_slot_map_emplace(ds_slot_map_t *map,
+                          ds_slot_map_handle_t *out_handle);
 ds_status_t ds_slot_map_remove(ds_slot_map_t *map, ds_slot_map_handle_t handle,
                                void *out);
 void *ds_slot_map_get(ds_slot_map_t *map, ds_slot_map_handle_t handle);

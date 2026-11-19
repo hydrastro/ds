@@ -61,9 +61,9 @@ typedef struct ds_edit_costs {
  * the script from left to right; its length goes to *out_op_count. */
 ds_status_t ds_edit_script(const unsigned char *a, size_t n,
                            const unsigned char *b, size_t m,
-                           const ds_edit_costs_t *costs, unsigned char *out_ops,
-                           size_t *out_op_count, double *out_cost,
-                           ds_context_t *context);
+                           const ds_edit_costs_t *costs,
+                           unsigned char *out_ops, size_t *out_op_count,
+                           double *out_cost, ds_context_t *context);
 
 typedef enum ds_align_mode {
   DS_ALIGN_GLOBAL = 0,

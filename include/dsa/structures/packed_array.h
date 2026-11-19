@@ -42,7 +42,8 @@ size_t ds_packed_array_words_for(size_t count, unsigned int bits);
 ds_status_t ds_packed_array_init(ds_packed_array_t *array, unsigned int bits,
                                  ds_context_t *context);
 ds_status_t ds_packed_array_init_buffer(ds_packed_array_t *array,
-                                        unsigned int bits, unsigned long *words,
+                                        unsigned int bits,
+                                        unsigned long *words,
                                         size_t word_count);
 void ds_packed_array_destroy(ds_packed_array_t *array);
 
@@ -51,7 +52,8 @@ ds_status_t ds_packed_array_get(const ds_packed_array_t *array, size_t index,
 unsigned long ds_packed_array_at(const ds_packed_array_t *array, size_t index);
 ds_status_t ds_packed_array_set(ds_packed_array_t *array, size_t index,
                                 unsigned long value);
-ds_status_t ds_packed_array_push(ds_packed_array_t *array, unsigned long value);
+ds_status_t ds_packed_array_push(ds_packed_array_t *array,
+                                 unsigned long value);
 ds_status_t ds_packed_array_pop(ds_packed_array_t *array,
                                 unsigned long *out_value);
 ds_status_t ds_packed_array_resize(ds_packed_array_t *array, size_t size);

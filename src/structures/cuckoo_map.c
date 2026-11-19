@@ -61,12 +61,13 @@ static unsigned char *ck_key(const ds_cuckoo_map_t *map, size_t i) {
 }
 
 static unsigned char *ck_value(const ds_cuckoo_map_t *map, size_t i) {
-  return map->config.value_size == 0 ? ck_key(map, i)
-                                     : map->values + i * map->config.value_size;
+  return map->config.value_size == 0
+             ? ck_key(map, i)
+             : map->values + i * map->config.value_size;
 }
 
-static void ck_move(ds_cuckoo_map_t *dst, size_t to, const ds_cuckoo_map_t *src,
-                    size_t from) {
+static void ck_move(ds_cuckoo_map_t *dst, size_t to,
+                    const ds_cuckoo_map_t *src, size_t from) {
   memcpy(ck_key(dst, to), ck_key(src, from), dst->config.key_size);
   if (dst->config.value_size > 0) {
     memcpy(ck_value(dst, to), ck_value(src, from), dst->config.value_size);

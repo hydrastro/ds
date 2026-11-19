@@ -51,15 +51,16 @@ typedef struct ds_louds {
 /* degree[v] for the nodes in level order. DS_ERR_INVALID unless they
  * describe one tree of n nodes (every node reached before its own degree
  * is read, n - 1 children in all). ops NULL: ds_rs_plain() */
-ds_status_t ds_louds_from_degrees(ds_louds_t *t, const size_t *degree, size_t n,
-                                  const ds_rs_ops_t *ops,
+ds_status_t ds_louds_from_degrees(ds_louds_t *t, const size_t *degree,
+                                  size_t n, const ds_rs_ops_t *ops,
                                   ds_context_t *context);
 /* parent[v] for nodes in any numbering, DS_LOUDS_NONE for the root;
  * siblings keep increasing input order. out_number (optional, n entries)
  * receives each input node's level-order number. DS_ERR_INVALID unless
  * the parents form one tree (one root, in range, no cycle). */
-ds_status_t ds_louds_from_parents(ds_louds_t *t, const size_t *parent, size_t n,
-                                  size_t *out_number, const ds_rs_ops_t *ops,
+ds_status_t ds_louds_from_parents(ds_louds_t *t, const size_t *parent,
+                                  size_t n, size_t *out_number,
+                                  const ds_rs_ops_t *ops,
                                   ds_context_t *context);
 void ds_louds_destroy(ds_louds_t *t);
 

@@ -692,7 +692,9 @@ void *ds_ab_max(const ds_ab_tree_t *t) {
 
 size_t ds_ab_size(const ds_ab_tree_t *t) { return t != NULL ? t->size : 0; }
 
-size_t ds_ab_height(const ds_ab_tree_t *t) { return t != NULL ? t->height : 0; }
+size_t ds_ab_height(const ds_ab_tree_t *t) {
+  return t != NULL ? t->height : 0;
+}
 
 ds_status_t ds_ab_rank(const ds_ab_tree_t *t, const void *key,
                        size_t *out_rank) {
@@ -797,8 +799,9 @@ bool ds_ab_cursor_prev(ds_ab_cursor_t *c) {
 }
 
 void *ds_ab_cursor_item(const ds_ab_cursor_t *c) {
-  return c != NULL && c->leaf != NULL ? c->leaf->items + c->index * c->item_size
-                                      : NULL;
+  return c != NULL && c->leaf != NULL
+             ? c->leaf->items + c->index * c->item_size
+             : NULL;
 }
 
 /* the key lies in x's range: from the separator before x up to the one
@@ -1074,7 +1077,8 @@ static void ab_relink(ds_ab_tree_t *t, bool left) {
   }
 }
 
-ds_status_t ds_ab_split(ds_ab_tree_t *t, const void *key, ds_ab_tree_t *upper) {
+ds_status_t ds_ab_split(ds_ab_tree_t *t, const void *key,
+                        ds_ab_tree_t *upper) {
   ds_ab_node_t *path[AB_MAX_HEIGHT];
   size_t route[AB_MAX_HEIGHT];
   unsigned char *sepl;

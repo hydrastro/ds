@@ -118,8 +118,8 @@ static void occt_destroy(void *state, ds_context_t *ctx) {
   ds_context_free(ctx, t);
 }
 
-static ds_status_t occt_build(void **state, const unsigned short *bwt, size_t n,
-                              unsigned sigma, ds_context_t *ctx) {
+static ds_status_t occt_build(void **state, const unsigned short *bwt,
+                              size_t n, unsigned sigma, ds_context_t *ctx) {
   fm_occt_t *t = (fm_occt_t *)ds_context_alloc(ctx, sizeof(fm_occt_t));
   size_t nsuper = n / FM_SB + 1, nblock = n / FM_B + 1, i, ns, nb;
   size_t *run, *blk;
@@ -522,7 +522,8 @@ ds_status_t ds_fm_index_build(ds_fm_index_t *fm, const unsigned char *text,
   fm->context = ctx;
   fm->occ = config->occ != NULL ? config->occ : ds_fm_occ_table();
   fm->sa_sample = config->sa_sample != 0 ? config->sa_sample : 32;
-  fm->isa_sample = config->isa_sample != 0 ? config->isa_sample : fm->sa_sample;
+  fm->isa_sample =
+      config->isa_sample != 0 ? config->isa_sample : fm->sa_sample;
   builder = config->sa_builder != NULL ? config->sa_builder : fm_sa_doubling;
   if (!ds_size_add(n, 1, &rows)) {
     return DS_ERR_OVERFLOW;
@@ -718,6 +719,7 @@ size_t ds_fm_index_bytes(const ds_fm_index_t *fm) {
   }
   return sizeof(*fm) + fm->occ->bytes(fm->occ_state) +
          fm_bits_bytes(&fm->sampled) +
-         (fm_bits_rank1(&fm->sampled, fm->n + 1) + fm->n / fm->isa_sample + 1) *
+         (fm_bits_rank1(&fm->sampled, fm->n + 1) + fm->n / fm->isa_sample +
+          1) *
              sizeof(size_t);
 }

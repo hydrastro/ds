@@ -90,11 +90,11 @@ static ds_status_t pt_node(ds_p_tree_t *t, bool leaf, size_t *out) {
     if (t->nodes == t->capacity) {
       size_t nc = t->capacity < 8 ? 8 : t->capacity * 2;
       void *p;
-#define PT_RE(field, type, per)                                                \
-  p = ds_context_realloc(t->context, t->field, nc * (per) * sizeof(type));     \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define PT_RE(field, type, per)                                               \
+  p = ds_context_realloc(t->context, t->field, nc * (per) * sizeof(type));    \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   t->field = (type *)p;
       PT_RE(count, size_t, 1)
       PT_RE(leaf, unsigned char, 1)
@@ -135,8 +135,8 @@ ds_status_t ds_p_tree_init(ds_p_tree_t *t, size_t dim, const double *dirs,
   if (dirs == NULL) {
     k = dim * dim;
   }
-  if (dim == 0 || dim > DS_P_TREE_MAX_DIM || k == 0 || k > DS_P_TREE_MAX_DIRS ||
-      max_entries < 4 || max_entries > 1024) {
+  if (dim == 0 || dim > DS_P_TREE_MAX_DIM || k == 0 ||
+      k > DS_P_TREE_MAX_DIRS || max_entries < 4 || max_entries > 1024) {
     return DS_ERR_INVALID;
   }
   memset(t, 0, sizeof(*t));

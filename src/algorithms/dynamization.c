@@ -217,8 +217,8 @@ ds_status_t ds_dynamization_rebuild(ds_dynamization_t *dyn) {
   }
   fresh = (ds_dynamization_level_t *)ds_context_calloc(
       dyn->context, levels + 1, sizeof(ds_dynamization_level_t));
-  items =
-      (unsigned char *)ds_context_alloc(dyn->context, (n + 1) * dyn->elem_size);
+  items = (unsigned char *)ds_context_alloc(dyn->context,
+                                            (n + 1) * dyn->elem_size);
   ids = (size_t *)ds_context_alloc(dyn->context, (n + 1) * sizeof(size_t));
   if (fresh == NULL || items == NULL || ids == NULL) {
     ds_context_free(dyn->context, fresh);
@@ -248,8 +248,8 @@ ds_status_t ds_dynamization_rebuild(ds_dynamization_t *dyn) {
       continue;
     }
     {
-      unsigned char *li =
-          (unsigned char *)ds_context_alloc(dyn->context, cnt * dyn->elem_size);
+      unsigned char *li = (unsigned char *)ds_context_alloc(
+          dyn->context, cnt * dyn->elem_size);
       size_t *lids =
           (size_t *)ds_context_alloc(dyn->context, cnt * sizeof(size_t));
       if (li == NULL || lids == NULL) {

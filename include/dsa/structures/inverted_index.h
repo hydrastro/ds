@@ -73,14 +73,13 @@
  * engine with two pluggable parts: a scorer (an ops table: Okapi BM25,
  * TF-IDF with pivoted length normalization, query likelihood with
  * Dirichlet smoothing, or your own) and the top-k queue, any
- * dsa/structures/pq_iface.h backend. Documents are visited one at a time across
- * the query terms' cursors (disjunctive), or only those holding every term,
- * found by leapfrogging with advance (conjunctive), so memory is
- * O(terms + k) whatever the collection size. With an
- * ordered dictionary, terms can be walked in byte order from any point
- * and prefix queries ("comput*") return the documents holding any term
- * with the prefix. Results are allocated from the index's context and
- * released with ds_invidx_result_free.
+ * dsa/structures/pq_iface.h backend. Documents are visited one at a time
+ * across the query terms' cursors (disjunctive), or only those holding every
+ * term, found by leapfrogging with advance (conjunctive), so memory is O(terms
+ * + k) whatever the collection size. With an ordered dictionary, terms can be
+ * walked in byte order from any point and prefix queries ("comput*") return
+ * the documents holding any term with the prefix. Results are allocated from
+ * the index's context and released with ds_invidx_result_free.
  */
 
 #include <dsa/core/context.h>
@@ -441,8 +440,9 @@ ds_status_t ds_invidx_bm25(const ds_inverted_index_t *idx,
  * (blocks in block mode) holding at least one term that starts with the
  * prefix, ascending; *terms_matched (optional) gets the number of such
  * terms */
-ds_status_t ds_invidx_prefix(const ds_inverted_index_t *idx, const void *prefix,
-                             size_t length, ds_invidx_result_t *result,
+ds_status_t ds_invidx_prefix(const ds_inverted_index_t *idx,
+                             const void *prefix, size_t length,
+                             ds_invidx_result_t *result,
                              size_t *terms_matched);
 void ds_invidx_result_free(const ds_inverted_index_t *idx,
                            ds_invidx_result_t *result);

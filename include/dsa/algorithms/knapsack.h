@@ -55,8 +55,9 @@ ds_status_t ds_knapsack_01(const size_t *weights, const double *values,
                            double *out_value, ds_context_t *context);
 /* out_counts[i] = copies of item i (may be NULL). */
 ds_status_t ds_knapsack_unbounded(const size_t *weights, const double *values,
-                                  size_t n, size_t capacity, size_t *out_counts,
-                                  double *out_value, ds_context_t *context);
+                                  size_t n, size_t capacity,
+                                  size_t *out_counts, double *out_value,
+                                  ds_context_t *context);
 /* out_fraction[i] in [0, 1] (may be NULL). */
 ds_status_t ds_knapsack_fractional(const double *weights, const double *values,
                                    size_t n, double capacity,

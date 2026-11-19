@@ -62,6 +62,11 @@ const by the C type system. A schema's callback state and every allocation
 context must outlive all retained owners that use them. Reference counts are
 not atomic; synchronize shared ownership operations externally.
 
+`ds_result_err_snapshot` retains an immutable error with owned strings, optional
+native metadata and a causal chain. This payload is inspected with the error
+snapshot API. `ds_result_diagnostic_dropped` reports explicit truncation inherited
+from collectors and composition; it is independent of the domain branch.
+
 The lightweight `ds_result_ptr_t` and `ds_result_size_t` types pair an
 operational status with a value. Use an owned Result when domain composition
 and accumulated diagnostics help; each application chooses that boundary.

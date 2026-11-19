@@ -43,11 +43,13 @@ static bool i18n_equal(const void *a, const void *b, void *user) {
 static char *i18n_copy(ds_context_t *context, const char *s) {
   size_t len = strlen(s);
   char *out;
-  if (len == (size_t)-1)
+  if (len == (size_t)-1) {
     return NULL;
+  }
   out = (char *)ds_context_alloc(context, len + 1);
-  if (out != NULL)
+  if (out != NULL) {
     memcpy(out, s, len + 1);
+  }
   return out;
 }
 
@@ -60,8 +62,9 @@ static void i18n_record_free(ds_i18n_t *t, ds_i18n_record_t *r) {
 }
 
 void ds_i18n_config_init(ds_i18n_config_t *c) {
-  if (c == NULL)
+  if (c == NULL) {
     return;
+  }
   memset(c, 0, sizeof(*c));
   c->locale = "en";
   c->fallback_locale = "en";
@@ -72,8 +75,9 @@ void ds_i18n_config_init(ds_i18n_config_t *c) {
 ds_status_t ds_i18n_init(ds_i18n_t *t, const ds_i18n_config_t *c) {
   ds_i18n_config_t defaults;
   ds_status_t st;
-  if (t == NULL)
+  if (t == NULL) {
     return DS_ERR_NULL;
+  }
   if (c == NULL) {
     ds_i18n_config_init(&defaults);
     c = &defaults;
@@ -104,8 +108,9 @@ ds_status_t ds_i18n_init(ds_i18n_t *t, const ds_i18n_config_t *c) {
 
 void ds_i18n_destroy(ds_i18n_t *t) {
   ds_i18n_record_t *r;
-  if (t == NULL)
+  if (t == NULL) {
     return;
+  }
   ds_map_destroy(&t->catalog);
   r = t->first;
   while (r != NULL) {
@@ -120,13 +125,16 @@ void ds_i18n_destroy(ds_i18n_t *t) {
 
 ds_status_t ds_i18n_set_locale(ds_i18n_t *t, const char *locale) {
   char *copy;
-  if (t == NULL || locale == NULL)
+  if (t == NULL || locale == NULL) {
     return DS_ERR_NULL;
-  if (t->depth != 0 || t->catalog.ops == NULL)
+  }
+  if (t->depth != 0 || t->catalog.ops == NULL) {
     return DS_ERR_STATE;
+  }
   copy = i18n_copy(t->context, locale);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   ds_context_free(t->context, t->locale);
   t->locale = copy;
   return DS_OK;
@@ -141,8 +149,9 @@ static ds_i18n_record_t *i18n_find(ds_i18n_t *t, const char *locale,
   k.domain = domain;
   k.key = key;
   p = ds_map_get(&t->catalog, &k);
-  if (p != NULL)
+  if (p != NULL) {
     memcpy(&r, p, sizeof(r));
+  }
   return r;
 }
 
@@ -153,17 +162,21 @@ ds_status_t ds_i18n_set(ds_i18n_t *t, const char *locale, const char *domain,
   char *text = NULL;
   ds_status_t st;
   if (t == NULL || locale == NULL || domain == NULL || key == NULL ||
-      message == NULL)
+      message == NULL) {
     return DS_ERR_NULL;
-  if (t->depth != 0 || t->catalog.ops == NULL)
+  }
+  if (t->depth != 0 || t->catalog.ops == NULL) {
     return DS_ERR_STATE;
+  }
   m = *message;
-  if ((m.text == NULL) == (m.format == NULL))
+  if ((m.text == NULL) == (m.format == NULL)) {
     return DS_ERR_INVALID;
+  }
   if (m.text != NULL) {
     text = i18n_copy(t->context, m.text);
-    if (text == NULL)
+    if (text == NULL) {
       return DS_ERR_ALLOC;
+    }
   }
   r = i18n_find(t, locale, domain, key);
   if (r != NULL) {
@@ -197,8 +210,9 @@ ds_status_t ds_i18n_set(ds_i18n_t *t, const char *locale, const char *domain,
     return st;
   }
   r->next = t->first;
-  if (r->next != NULL)
+  if (r->next != NULL) {
     r->next->prev = r;
+  }
   t->first = r;
   return DS_OK;
 }
@@ -220,12 +234,15 @@ ds_status_t ds_i18n_set_many(ds_i18n_t *t, const ds_i18n_entry_t *entries,
   ds_i18n_record_t *record;
   ds_status_t st;
   size_t i;
-  if (t == NULL || (entries == NULL && count != 0))
+  if (t == NULL || (entries == NULL && count != 0)) {
     return DS_ERR_NULL;
-  if (t->depth != 0 || t->catalog.ops == NULL)
+  }
+  if (t->depth != 0 || t->catalog.ops == NULL) {
     return DS_ERR_STATE;
-  if (count == 0)
+  }
+  if (count == 0) {
     return DS_OK;
+  }
   ds_i18n_config_init(&config);
   config.context = t->context;
   config.map = t->catalog.ops;
@@ -237,23 +254,28 @@ ds_status_t ds_i18n_set_many(ds_i18n_t *t, const ds_i18n_entry_t *entries,
   config.lookup = t->lookup;
   config.lookup_user = t->lookup_user;
   st = ds_i18n_init(&staged, &config);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   record = t->first;
-  if (record != NULL)
-    while (record->next != NULL)
+  if (record != NULL) {
+    while (record->next != NULL) {
       record = record->next;
+    }
+  }
   for (; record != NULL; record = record->prev) {
     st = ds_i18n_set(&staged, record->locale, record->domain, record->id,
                      &record->message);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       goto done;
+    }
   }
   for (i = 0; i < count; i++) {
     st = ds_i18n_set(&staged, entries[i].locale, entries[i].domain,
                      entries[i].key, &entries[i].message);
-    if (st != DS_OK && st != DS_EXISTS)
+    if (st != DS_OK && st != DS_EXISTS) {
       goto done;
+    }
   }
   old = *t;
   *t = staged;
@@ -264,26 +286,32 @@ done:
   return st;
 }
 
-ds_status_t ds_i18n_remove(ds_i18n_t *t, const char *locale, const char *domain,
-                           const char *key) {
+ds_status_t ds_i18n_remove(ds_i18n_t *t, const char *locale,
+                           const char *domain, const char *key) {
   ds_i18n_record_t *r;
   ds_status_t st;
-  if (t == NULL || locale == NULL || domain == NULL || key == NULL)
+  if (t == NULL || locale == NULL || domain == NULL || key == NULL) {
     return DS_ERR_NULL;
-  if (t->depth != 0)
+  }
+  if (t->depth != 0) {
     return DS_ERR_STATE;
+  }
   r = i18n_find(t, locale, domain, key);
-  if (r == NULL)
+  if (r == NULL) {
     return DS_NOT_FOUND;
+  }
   st = ds_map_remove(&t->catalog, &r->key, NULL);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
-  if (r->prev != NULL)
+  }
+  if (r->prev != NULL) {
     r->prev->next = r->next;
-  else
+  } else {
     t->first = r->next;
-  if (r->next != NULL)
+  }
+  if (r->next != NULL) {
     r->next->prev = r->prev;
+  }
   i18n_record_free(t, r);
   return DS_OK;
 }
@@ -297,12 +325,14 @@ static ds_status_t i18n_lookup(ds_i18n_t *t, const char *locale,
     *out = r->message;
     return DS_OK;
   }
-  if (t->lookup == NULL)
+  if (t->lookup == NULL) {
     return DS_NOT_FOUND;
+  }
   memset(out, 0, sizeof(*out));
   st = t->lookup(locale, domain, key, out, t->lookup_user);
-  if (st == DS_OK && ((out->text == NULL) == (out->format == NULL)))
+  if (st == DS_OK && ((out->text == NULL) == (out->format == NULL))) {
     return DS_ERR_CALLBACK;
+  }
   return st > DS_OK && st != DS_NOT_FOUND ? DS_ERR_CALLBACK : st;
 }
 
@@ -325,12 +355,15 @@ ds_status_t ds_i18n_has(ds_i18n_t *t, const char *domain, const char *key,
   ds_i18n_message_t m;
   const char *locale;
   ds_status_t st;
-  if (t == NULL || domain == NULL || key == NULL || out == NULL)
+  if (t == NULL || domain == NULL || key == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (t->catalog.ops == NULL)
+  }
+  if (t->catalog.ops == NULL) {
     return DS_ERR_STATE;
-  if (t->depth >= t->max_depth)
+  }
+  if (t->depth >= t->max_depth) {
     return DS_ERR_RANGE;
+  }
   t->depth++;
   st = i18n_resolve(t, domain, key, &m, &locale);
   t->depth--;
@@ -347,24 +380,29 @@ ds_i18n_catalog_walk(const ds_i18n_t *t,
                                    const ds_i18n_message_t *, void *),
                      void *user) {
   ds_i18n_record_t *r;
-  if (t == NULL || visit == NULL)
+  if (t == NULL || visit == NULL) {
     return DS_ERR_NULL;
-  for (r = t->first; r != NULL; r = r->next)
-    if (!visit(r->locale, r->domain, r->id, &r->message, user))
+  }
+  for (r = t->first; r != NULL; r = r->next) {
+    if (!visit(r->locale, r->domain, r->id, &r->message, user)) {
       return DS_STOP;
+    }
+  }
   return DS_OK;
 }
 
 void ds_i18n_text_init(ds_i18n_text_t *text, ds_context_t *context) {
-  if (text == NULL)
+  if (text == NULL) {
     return;
+  }
   memset(text, 0, sizeof(*text));
   text->context = context != NULL ? context : ds_default_context();
 }
 
 void ds_i18n_text_destroy(ds_i18n_text_t *text) {
-  if (text == NULL)
+  if (text == NULL) {
     return;
+  }
   ds_context_free(text->context, text->data);
   text->data = NULL;
   text->length = 0;
@@ -375,14 +413,17 @@ const char *ds_i18n_text_cstr(const ds_i18n_text_t *text) {
 }
 
 ds_status_t ds_i18n_write(ds_i18n_writer_t *w, const void *data, size_t len) {
-  if (w == NULL)
+  if (w == NULL) {
     return DS_ERR_NULL;
-  if (w->status != DS_OK)
+  }
+  if (w->status != DS_OK) {
     return w->status;
-  if (data == NULL && len != 0)
+  }
+  if (data == NULL && len != 0) {
     w->status = DS_ERR_NULL;
-  else if (len != 0)
+  } else if (len != 0) {
     w->status = ds_vec_append(&w->bytes, data, len);
+  }
   return w->status;
 }
 
@@ -423,19 +464,23 @@ static ds_status_t i18n_arg(ds_i18n_writer_t *w,
   default:
     return DS_ERR_INVALID;
   }
-  if (n < 0 || (size_t)n >= sizeof(number))
+  if (n < 0 || (size_t)n >= sizeof(number)) {
     return DS_ERR_OVERFLOW;
+  }
   return ds_i18n_write(w, number, (size_t)n);
 }
 
 ds_status_t ds_i18n_interpolate(ds_i18n_writer_t *w, const char *text,
-                                const ds_diagnostic_arg_t *args, size_t count) {
+                                const ds_diagnostic_arg_t *args,
+                                size_t count) {
   const char *p, *literal;
   ds_status_t st = DS_OK;
-  if (w == NULL)
+  if (w == NULL) {
     return DS_ERR_NULL;
-  if (w->status != DS_OK)
+  }
+  if (w->status != DS_OK) {
     return w->status;
+  }
   if (text == NULL || (args == NULL && count != 0)) {
     w->status = DS_ERR_NULL;
     return w->status;
@@ -449,13 +494,15 @@ ds_status_t ds_i18n_interpolate(ds_i18n_writer_t *w, const char *text,
         for (i = 0; i < count; i++) {
           const char *name = args[i].name;
           if (name != NULL && strlen(name) == (size_t)(end - p - 1) &&
-              memcmp(name, p + 1, (size_t)(end - p - 1)) == 0)
+              memcmp(name, p + 1, (size_t)(end - p - 1)) == 0) {
             break;
+          }
         }
         if (i < count) {
           st = ds_i18n_write(w, literal, (size_t)(p - literal));
-          if (st == DS_OK)
+          if (st == DS_OK) {
             st = i18n_arg(w, &args[i]);
+          }
           p = literal = end + 1;
           continue;
         }
@@ -463,18 +510,21 @@ ds_status_t ds_i18n_interpolate(ds_i18n_writer_t *w, const char *text,
     }
     p++;
   }
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = ds_i18n_write(w, literal, (size_t)(p - literal));
-  if (w->status == DS_OK)
+  }
+  if (w->status == DS_OK) {
     w->status = st;
+  }
   return st;
 }
 
 static void i18n_missing(ds_i18n_t *t, const char *domain, const char *key) {
   ds_diagnostic_t d;
   ds_diagnostic_arg_t args[3];
-  if (t->sink == NULL || t->emitting)
+  if (t->sink == NULL || t->emitting) {
     return;
+  }
   memset(&d, 0, sizeof(d));
   d.id = "ds.i18n/missing_translation";
   d.level = DS_DIAG_NOTICE;
@@ -497,8 +547,9 @@ static void i18n_missing(ds_i18n_t *t, const char *domain, const char *key) {
 }
 
 static ds_status_t i18n_render(ds_i18n_t *t, const char *domain,
-                               const char *key, const ds_diagnostic_arg_t *args,
-                               size_t count, const char *fallback,
+                               const char *key,
+                               const ds_diagnostic_arg_t *args, size_t count,
+                               const char *fallback,
                                const ds_diagnostic_t *diagnostic, bool quiet,
                                ds_i18n_text_t *out) {
   ds_i18n_message_t m;
@@ -508,30 +559,38 @@ static ds_status_t i18n_render(ds_i18n_t *t, const char *domain,
   const char *locale;
   char zero = '\0';
   if (t == NULL || domain == NULL || key == NULL || out == NULL ||
-      (args == NULL && count != 0))
+      (args == NULL && count != 0)) {
     return DS_ERR_NULL;
-  if (t->catalog.ops == NULL)
+  }
+  if (t->catalog.ops == NULL) {
     return DS_ERR_STATE;
-  if (t->depth >= t->max_depth)
+  }
+  if (t->depth >= t->max_depth) {
     return DS_ERR_RANGE;
+  }
   st = ds_vec_init(&w.bytes, 1, out->context);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   w.status = DS_OK;
   t->depth++;
   st = i18n_resolve(t, domain, key, &m, &locale);
   if (st == DS_NOT_FOUND) {
-    if (!quiet)
+    if (!quiet) {
       i18n_missing(t, domain, key);
+    }
     if (diagnostic != NULL) {
       st = ds_i18n_write_cstr(&w, "[FALLBACK:");
-      if (st == DS_OK)
-        st =
-            ds_i18n_write_cstr(&w, ds_diagnostic_level_name(diagnostic->level));
-      if (st == DS_OK)
+      if (st == DS_OK) {
+        st = ds_i18n_write_cstr(&w,
+                                ds_diagnostic_level_name(diagnostic->level));
+      }
+      if (st == DS_OK) {
         st = ds_i18n_write_cstr(&w, "] ");
-      if (st == DS_OK)
+      }
+      if (st == DS_OK) {
         st = ds_i18n_write_cstr(&w, key);
+      }
     } else {
       const char *text = fallback != NULL     ? fallback
                          : t->fallback_to_key ? key
@@ -549,14 +608,17 @@ static ds_status_t i18n_render(ds_i18n_t *t, const char *domain,
     request.arg_count = count;
     request.diagnostic = diagnostic;
     st = m.format(&request, &w, m.user);
-    if (st > DS_OK)
+    if (st > DS_OK) {
       st = DS_ERR_CALLBACK;
+    }
   }
   t->depth--;
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = w.status;
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = ds_i18n_write(&w, &zero, 1);
+  }
   if (st == DS_OK) {
     ds_i18n_text_destroy(out);
     out->data = (char *)(void *)w.bytes.data;
@@ -568,18 +630,21 @@ static ds_status_t i18n_render(ds_i18n_t *t, const char *domain,
   return st;
 }
 
-ds_status_t ds_i18n_translate(ds_i18n_t *t, const char *domain, const char *key,
-                              const ds_diagnostic_arg_t *args, size_t count,
-                              const char *fallback, ds_i18n_text_t *out) {
+ds_status_t ds_i18n_translate(ds_i18n_t *t, const char *domain,
+                              const char *key, const ds_diagnostic_arg_t *args,
+                              size_t count, const char *fallback,
+                              ds_i18n_text_t *out) {
   return i18n_render(t, domain, key, args, count, fallback, NULL, false, out);
 }
 
 ds_status_t ds_i18n_render_diagnostic(ds_i18n_t *t, const ds_diagnostic_t *d,
                                       ds_i18n_text_t *out) {
-  if (d == NULL)
+  if (d == NULL) {
     return DS_ERR_NULL;
-  if (d->level < DS_DIAG_DEBUG || d->level > DS_DIAG_EMERGENCY)
+  }
+  if (d->level < DS_DIAG_DEBUG || d->level > DS_DIAG_EMERGENCY) {
     return DS_ERR_INVALID;
+  }
   return i18n_render(t, "diagnostics",
                      d->id == NULL ? "ds.diagnostic/unknown" : d->id, d->args,
                      d->arg_count, NULL, d, true, out);
@@ -588,8 +653,9 @@ ds_status_t ds_i18n_render_diagnostic(ds_i18n_t *t, const ds_diagnostic_t *d,
 ds_status_t ds_i18n_render_level(ds_i18n_t *t, ds_diagnostic_level_t level,
                                  ds_i18n_text_t *out) {
   const char *key = ds_diagnostic_level_name(level);
-  if (level < DS_DIAG_DEBUG || level > DS_DIAG_EMERGENCY)
+  if (level < DS_DIAG_DEBUG || level > DS_DIAG_EMERGENCY) {
     return DS_ERR_INVALID;
+  }
   return i18n_render(t, "levels", key, NULL, 0, key, NULL, true, out);
 }
 
@@ -598,17 +664,22 @@ ds_status_t ds_i18n_render_filtered(ds_i18n_t *t, const ds_diagnostic_t *d,
                                     ds_i18n_filter_fn filter, void *user,
                                     ds_i18n_text_t *out) {
   ds_diagnostic_t view;
-  if (d == NULL || out == NULL || t == NULL)
+  if (d == NULL || out == NULL || t == NULL) {
     return DS_ERR_NULL;
+  }
   if (min_level < DS_DIAG_DEBUG || min_level > DS_DIAG_EMERGENCY ||
-      d->level < DS_DIAG_DEBUG || d->level > DS_DIAG_EMERGENCY)
+      d->level < DS_DIAG_DEBUG || d->level > DS_DIAG_EMERGENCY) {
     return DS_ERR_INVALID;
+  }
   view = *d;
-  if (filter != NULL && !filter(d, &view.level, user))
+  if (filter != NULL && !filter(d, &view.level, user)) {
     return DS_NOT_FOUND;
-  if (view.level < DS_DIAG_DEBUG || view.level > DS_DIAG_EMERGENCY)
+  }
+  if (view.level < DS_DIAG_DEBUG || view.level > DS_DIAG_EMERGENCY) {
     return DS_ERR_CALLBACK;
-  if (view.level < min_level)
+  }
+  if (view.level < min_level) {
     return DS_NOT_FOUND;
+  }
   return ds_i18n_render_diagnostic(t, &view, out);
 }

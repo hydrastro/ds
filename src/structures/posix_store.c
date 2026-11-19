@@ -22,8 +22,9 @@ typedef struct px_store {
 
 /* Save native identity without allocation or strerror's shared buffer. */
 static ds_status_t px_error(ds_context_t *context, const char *id, int code) {
-  if (context == NULL)
+  if (context == NULL) {
     context = ds_default_context();
+  }
   DS_CONTEXT_ERROR(context, DS_ERR_IO, id, "posix_store",
                    "POSIX storage operation failed");
   if ((context->flags & DS_CONTEXT_NO_LAST_ERROR) == 0U) {

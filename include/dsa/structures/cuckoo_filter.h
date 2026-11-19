@@ -49,7 +49,8 @@ size_t ds_cuckoo_filter_buckets_for(size_t items);
 ds_status_t ds_cuckoo_filter_init(ds_cuckoo_filter_t *filter, size_t buckets,
                                   ds_context_t *context);
 ds_status_t ds_cuckoo_filter_init_buffer(ds_cuckoo_filter_t *filter,
-                                         size_t buckets, unsigned short *table);
+                                         size_t buckets,
+                                         unsigned short *table);
 void ds_cuckoo_filter_destroy(ds_cuckoo_filter_t *filter);
 ds_status_t ds_cuckoo_filter_insert(ds_cuckoo_filter_t *filter,
                                     unsigned long hash);

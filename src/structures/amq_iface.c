@@ -360,7 +360,8 @@ static ds_status_t ck_load(void *p, const unsigned char *in, size_t len,
   /* the table is a power of two of buckets, and the victim's bucket is
    * one of them: removing a key re-inserts the victim from there */
   if (buckets == 0 || (buckets & (buckets - 1)) != 0 || vb >= buckets ||
-      rng > 0x7FFFFFFFUL || !ds_size_mul(buckets, 2 * DS_CUCKOO_SLOTS, &need) ||
+      rng > 0x7FFFFFFFUL ||
+      !ds_size_mul(buckets, 2 * DS_CUCKOO_SLOTS, &need) ||
       len - CK_HEAD != need) {
     return DS_ERR_INVALID;
   }
@@ -502,7 +503,8 @@ static ds_status_t qt_load(void *p, const unsigned char *in, size_t len,
   }
   q = in[0];
   r = in[1];
-  if (q == 0 || r == 0 || q + r > AMQ_W || q >= sizeof(size_t) * CHAR_BIT - 1) {
+  if (q == 0 || r == 0 || q + r > AMQ_W ||
+      q >= sizeof(size_t) * CHAR_BIT - 1) {
     return DS_ERR_INVALID;
   }
   slots = (size_t)1 << q;
@@ -597,8 +599,8 @@ static ds_status_t xo_save(const void *p, unsigned char *out, size_t cap,
   *len = 2;
   if (x->built) {
     /* allocated, so it fits */
-    st =
-        amq_payload_len(XO_HEAD, amq_nbytes(x->f.capacity * x->f.fp_bits), len);
+    st = amq_payload_len(XO_HEAD, amq_nbytes(x->f.capacity * x->f.fp_bits),
+                         len);
   }
   if (st != DS_OK || out == NULL) {
     return st;

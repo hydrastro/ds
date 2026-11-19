@@ -26,8 +26,8 @@
  * (dsa/structures/linear_hash_map.h: incremental growth one bucket at a time),
  * extendible hashing (dsa/structures/extendible_hash.h: directory doubling),
  * coalesced hashing with a cellar (dsa/structures/coalesced_map.h: chains
- * through the table, no tombstones) and open addressing with double hashing and
- * Robin Hood placement (dsa/structures/open_map.h); any other map can be
+ * through the table, no tombstones) and open addressing with double hashing
+ * and Robin Hood placement (dsa/structures/open_map.h); any other map can be
  * adapted by filling in a ds_map_ops_t.
  *
  * Contract every backend keeps:
@@ -90,7 +90,8 @@ typedef struct ds_map_ops {
   /* DS_NOT_FOUND when absent; out_value (optional) gets the value */
   ds_status_t (*remove)(void *map, const void *key, void *out_value);
   size_t (*size)(const void *map);
-  bool (*next)(const void *map, size_t *cursor, const void **key, void **value);
+  bool (*next)(const void *map, size_t *cursor, const void **key,
+               void **value);
 } ds_map_ops_t;
 
 typedef struct ds_map {
@@ -108,9 +109,9 @@ const ds_map_ops_t *ds_map_coalesced_ops(void);
 const ds_map_ops_t *ds_map_open_ops(void);
 
 /* ops NULL selects ds_map_rh_ops() */
-ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops, size_t key_size,
-                        size_t value_size, ds_map_hash_fn hash,
-                        ds_map_equal_fn equal, void *user,
+ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops,
+                        size_t key_size, size_t value_size,
+                        ds_map_hash_fn hash, ds_map_equal_fn equal, void *user,
                         ds_context_t *context);
 void ds_map_destroy(ds_map_t *map);
 ds_status_t ds_map_put(ds_map_t *map, const void *key, const void *value);

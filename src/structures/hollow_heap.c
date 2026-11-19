@@ -38,8 +38,8 @@ static const unsigned char *hh_citem(const ds_hollow_heap_t *h,
 }
 
 /* the root of two full nodes, the other made its first child */
-static ds_hollow_node_t *hh_link(const ds_hollow_heap_t *h, ds_hollow_node_t *v,
-                                 ds_hollow_node_t *w) {
+static ds_hollow_node_t *hh_link(const ds_hollow_heap_t *h,
+                                 ds_hollow_node_t *v, ds_hollow_node_t *w) {
   ds_hollow_node_t *top = w;
   ds_hollow_node_t *below = v;
   if (h->compare(hh_citem(h, v), hh_citem(h, w), h->user) < 0) {
@@ -276,7 +276,8 @@ ds_status_t ds_hollow_heap_init(ds_hollow_heap_t *h, size_t item_size,
   if (item_size == 0) {
     return DS_ERR_INVALID;
   }
-  if (!ds_size_align(sizeof(ds_hollow_node_t), DS_MAX_ALIGN, &h->node_offset) ||
+  if (!ds_size_align(sizeof(ds_hollow_node_t), DS_MAX_ALIGN,
+                     &h->node_offset) ||
       !ds_size_add(h->node_offset, item_size, &h->node_size) ||
       !ds_size_align(h->node_size, DS_MAX_ALIGN, &h->node_size) ||
       !ds_size_mul(h->node_size, HH_CHUNK, &chunk) ||

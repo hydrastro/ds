@@ -46,11 +46,13 @@ ds_splay_tree_t *ds_splay_tree_create(int (*compare)(ds_splay_tree_node_t *,
 ds_status_t ds_splay_tree_create_context(ds_splay_tree_compare_fn compare,
                                          void *user, ds_context_t *context,
                                          ds_splay_tree_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (compare == NULL)
+  if (compare == NULL) {
     return DS_ERR_NULL;
+  }
 
   *out = splay_tree_create_internal(
       NULL, context != NULL ? context : ds_default_context(), compare, user);
@@ -352,8 +354,9 @@ static void splay_tree_destroy_internal(ds_splay_tree_t *tree,
 }
 void ds_splay_tree_destroy_with(ds_splay_tree_t *container,
                                 ds_splay_tree_destroy_fn destroy, void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     splay_tree_destroy_internal(container, destroy, user);
+  }
 }
 static void splay_tree_destroy_direct(ds_splay_tree_node_t *node, void *user) {
   void (**destroy)(ds_splay_tree_node_t *) =
@@ -450,24 +453,30 @@ ds_status_t ds_splay_tree_walk_with(const ds_splay_tree_t *container,
                                     ds_splay_tree_visit_fn visit, void *user) {
   ds_splay_tree_node_t *node;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   node = container->root;
-  if (node == container->nil)
+  if (node == container->nil) {
     return DS_OK;
-  while (node->left != container->nil)
+  }
+  while (node->left != container->nil) {
     node = node->left;
+  }
   while (node != container->nil) {
     st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     if (node->right != container->nil) {
       node = node->right;
-      while (node->left != container->nil)
+      while (node->left != container->nil) {
         node = node->left;
+      }
     } else {
-      while (node->parent != container->nil && node == node->parent->right)
+      while (node->parent != container->nil && node == node->parent->right) {
         node = node->parent;
+      }
       node = node->parent;
     }
   }
@@ -477,12 +486,15 @@ ds_status_t ds_splay_tree_walk_with(const ds_splay_tree_t *container,
 ds_status_t ds_splay_tree_insert_ex(ds_splay_tree_t *container,
                                     ds_splay_tree_node_t *node) {
   size_t size;
-  if (container == NULL || node == NULL)
+  if (container == NULL || node == NULL) {
     return DS_ERR_NULL;
-  if (node == container->nil)
+  }
+  if (node == container->nil) {
     return DS_ERR_INVALID;
-  if (container->size == (size_t)-1)
+  }
+  if (container->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   size = container->size;
   ds_splay_tree_insert(container, node);
   return container->size == size ? DS_EXISTS : DS_OK;
@@ -492,13 +504,16 @@ ds_status_t ds_splay_tree_find_ex(ds_splay_tree_t *container,
                                   ds_splay_tree_node_t *key,
                                   ds_splay_tree_node_t **out) {
   ds_splay_tree_node_t *node;
-  if (container == NULL || key == NULL || out == NULL)
+  if (container == NULL || key == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (key == container->nil)
+  }
+  if (key == container->nil) {
     return DS_ERR_INVALID;
+  }
   node = ds_splay_tree_search(container, key);
-  if (node == container->nil)
+  if (node == container->nil) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -507,13 +522,16 @@ ds_status_t ds_splay_tree_remove_ex(ds_splay_tree_t *container,
                                     ds_splay_tree_node_t *key,
                                     ds_splay_tree_node_t **out) {
   ds_splay_tree_node_t *node;
-  if (container == NULL || key == NULL || out == NULL)
+  if (container == NULL || key == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (key == container->nil)
+  }
+  if (key == container->nil) {
     return DS_ERR_INVALID;
+  }
   node = ds_splay_tree_remove(container, key);
-  if (node == container->nil)
+  if (node == container->nil) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -529,8 +547,9 @@ static ds_status_t splay_tree_clone_visit(ds_splay_tree_node_t *source,
   splay_tree_clone_policy_t *policy = (splay_tree_clone_policy_t *)user;
   ds_splay_tree_node_t *node = NULL;
   ds_status_t st = policy->clone(source, &node, policy->user);
-  if (st != DS_OK || node == NULL)
+  if (st != DS_OK || node == NULL) {
     return st < 0 ? st : DS_ERR_CALLBACK;
+  }
   st = ds_splay_tree_insert_ex(policy->copy, node);
   if (st != DS_OK) {
     policy->destroy(node, policy->user);
@@ -545,16 +564,19 @@ ds_status_t ds_splay_tree_clone_with(const ds_splay_tree_t *container,
                                      ds_splay_tree_t **out) {
   splay_tree_clone_policy_t policy;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   policy.copy = splay_tree_create_internal(
       container->compare, context != NULL ? context : container->context,
       container->compare_with, container->compare_user);
-  if (policy.copy == NULL)
+  if (policy.copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   policy.clone = clone;
   policy.destroy = destroy;
   policy.user = user;

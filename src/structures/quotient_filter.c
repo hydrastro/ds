@@ -59,8 +59,8 @@ ds_status_t ds_quotient_filter_init(ds_quotient_filter_t *f, unsigned q,
     return DS_ERR_OVERFLOW;
   }
   words = bits / QF_W + 2;
-  f->rem =
-      (unsigned long *)ds_context_calloc(context, words, sizeof(unsigned long));
+  f->rem = (unsigned long *)ds_context_calloc(context, words,
+                                              sizeof(unsigned long));
   f->meta = (unsigned char *)ds_context_calloc(context, f->slots, 1);
   if (f->rem == NULL || f->meta == NULL) {
     ds_context_free(context, f->rem);
@@ -173,7 +173,8 @@ static ds_status_t qf_decode(ds_quotient_filter_t *f, size_t b, size_t extra,
 }
 
 /* clear [b, b + len) and write fingerprints scratch[0, n) back from b */
-static void qf_encode(ds_quotient_filter_t *f, size_t b, size_t len, size_t n) {
+static void qf_encode(ds_quotient_filter_t *f, size_t b, size_t len,
+                      size_t n) {
   size_t i, s = b, pos = 0, prevq = (size_t)-1;
   unsigned long rmask = f->r == QF_W ? ~0UL : (1UL << f->r) - 1UL;
   for (i = 0; i < len; i++) {

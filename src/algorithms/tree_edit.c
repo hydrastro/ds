@@ -225,10 +225,10 @@ ds_status_t ds_tree_edit_distance(const ds_tree_edit_forest_t *a,
     st = DS_ERR_OVERFLOW;
     goto done;
   }
-  c.td =
-      (double *)ds_context_alloc(context, (na + 1) * (nb + 1) * sizeof(double));
-  c.fd =
-      (double *)ds_context_alloc(context, (na + 1) * (nb + 1) * sizeof(double));
+  c.td = (double *)ds_context_alloc(context,
+                                    (na + 1) * (nb + 1) * sizeof(double));
+  c.fd = (double *)ds_context_alloc(context,
+                                    (na + 1) * (nb + 1) * sizeof(double));
   seen = (unsigned char *)ds_context_calloc(context, 2 * (na + nb + 2), 1);
   if (c.td == NULL || c.fd == NULL || seen == NULL) {
     st = DS_ERR_ALLOC;

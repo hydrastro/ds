@@ -7,11 +7,12 @@
 /* Nodes are immutable after construction, apart from reference counts.
  * Edits prepare a new balanced path and publish one root pointer. */
 static void rope_release(ds_rope_t *r, ds_rope_node_t *n) {
-  if (n == NULL || --n->refs != 0)
+  if (n == NULL || --n->refs != 0) {
     return;
-  if (n->is_leaf)
+  }
+  if (n->is_leaf) {
     ds_context_free(r->context, n->data);
-  else {
+  } else {
     rope_release(r, n->left);
     rope_release(r, n->right);
   }
@@ -20,8 +21,9 @@ static void rope_release(ds_rope_t *r, ds_rope_node_t *n) {
 
 static ds_status_t rope_retain(ds_rope_node_t *n, ds_rope_node_t **out) {
   if (n != NULL) {
-    if (n->refs == (size_t)-1)
+    if (n->refs == (size_t)-1) {
       return DS_ERR_OVERFLOW;
+    }
     n->refs++;
   }
   *out = n;
@@ -39,11 +41,13 @@ static ds_status_t rope_leaf(ds_rope_t *r, const char *s, size_t len,
     *out = NULL;
     return DS_OK;
   }
-  if (len == (size_t)-1)
+  if (len == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   n = (ds_rope_node_t *)ds_context_alloc(r->context, sizeof(*n));
-  if (n == NULL)
+  if (n == NULL) {
     return DS_ERR_ALLOC;
+  }
   memset(n, 0, sizeof(*n));
   n->data = (char *)ds_context_alloc(r->context, len + 1);
   if (n->data == NULL) {
@@ -64,20 +68,25 @@ static ds_status_t rope_inner(ds_rope_t *r, ds_rope_node_t *left,
                               ds_rope_node_t *right, ds_rope_node_t **out) {
   ds_rope_node_t *n;
   ds_status_t st;
-  if (left == NULL)
+  if (left == NULL) {
     return rope_retain(right, out);
-  if (right == NULL)
+  }
+  if (right == NULL) {
     return rope_retain(left, out);
+  }
   if (right->length > (size_t)-1 - left->length ||
-      right->leaves > (size_t)-1 - left->leaves)
+      right->leaves > (size_t)-1 - left->leaves) {
     return DS_ERR_OVERFLOW;
+  }
   n = (ds_rope_node_t *)ds_context_alloc(r->context, sizeof(*n));
-  if (n == NULL)
+  if (n == NULL) {
     return DS_ERR_ALLOC;
+  }
   memset(n, 0, sizeof(*n));
   st = rope_retain(left, &n->left);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = rope_retain(right, &n->right);
+  }
   if (st != DS_OK) {
     rope_release(r, n->left);
     ds_context_free(r->context, n);
@@ -100,31 +109,38 @@ static ds_status_t rope_balance(ds_rope_t *r, ds_rope_node_t *l,
   if (lh > rh + 1) {
     if (rope_height(l->left) >= rope_height(l->right)) {
       st = rope_inner(r, l->right, q, &a);
-      if (st == DS_OK)
+      if (st == DS_OK) {
         st = rope_inner(r, l->left, a, out);
+      }
     } else {
       ds_rope_node_t *m = l->right;
       st = rope_inner(r, l->left, m->left, &a);
-      if (st == DS_OK)
+      if (st == DS_OK) {
         st = rope_inner(r, m->right, q, &b);
-      if (st == DS_OK)
+      }
+      if (st == DS_OK) {
         st = rope_inner(r, a, b, out);
+      }
     }
   } else if (rh > lh + 1) {
     if (rope_height(q->right) >= rope_height(q->left)) {
       st = rope_inner(r, l, q->left, &a);
-      if (st == DS_OK)
+      if (st == DS_OK) {
         st = rope_inner(r, a, q->right, out);
+      }
     } else {
       ds_rope_node_t *m = q->left;
       st = rope_inner(r, l, m->left, &a);
-      if (st == DS_OK)
+      if (st == DS_OK) {
         st = rope_inner(r, m->right, q->right, &b);
-      if (st == DS_OK)
+      }
+      if (st == DS_OK) {
         st = rope_inner(r, a, b, out);
+      }
     }
-  } else
+  } else {
     st = rope_inner(r, l, q, out);
+  }
   rope_release(r, a);
   rope_release(r, b);
   return st;
@@ -134,12 +150,15 @@ static ds_status_t rope_join(ds_rope_t *r, ds_rope_node_t *a,
                              ds_rope_node_t *b, ds_rope_node_t **out) {
   ds_rope_node_t *part = NULL;
   ds_status_t st;
-  if (a == NULL)
+  if (a == NULL) {
     return rope_retain(b, out);
-  if (b == NULL)
+  }
+  if (b == NULL) {
     return rope_retain(a, out);
-  if (b->length > (size_t)-1 - a->length)
+  }
+  if (b->length > (size_t)-1 - a->length) {
     return DS_ERR_OVERFLOW;
+  }
   if (a->is_leaf && b->is_leaf && a->length + b->length <= ROPE_LEAF_BYTES) {
     char bytes[ROPE_LEAF_BYTES];
     memcpy(bytes, a->data, a->length);
@@ -148,14 +167,17 @@ static ds_status_t rope_join(ds_rope_t *r, ds_rope_node_t *a,
   }
   if (a->depth > b->depth + 1) {
     st = rope_join(r, a->right, b, &part);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rope_balance(r, a->left, part, out);
+    }
   } else if (b->depth > a->depth + 1) {
     st = rope_join(r, a, b->left, &part);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rope_balance(r, part, b->right, out);
-  } else
+    }
+  } else {
     st = rope_inner(r, a, b, out);
+  }
   rope_release(r, part);
   return st;
 }
@@ -165,14 +187,17 @@ static ds_status_t rope_build(ds_rope_t *r, const char *s, size_t len,
   ds_rope_node_t *l = NULL, *q = NULL;
   ds_status_t st;
   size_t mid;
-  if (len <= ROPE_LEAF_BYTES)
+  if (len <= ROPE_LEAF_BYTES) {
     return rope_leaf(r, s, len, out);
+  }
   mid = len / 2;
   st = rope_build(r, s, mid, &l);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = rope_build(r, s + mid, len - mid, &q);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = rope_inner(r, l, q, out);
+  }
   rope_release(r, l);
   rope_release(r, q);
   return st;
@@ -197,20 +222,24 @@ static ds_status_t rope_split(ds_rope_t *r, ds_rope_node_t *n, size_t at,
   }
   if (n->is_leaf) {
     st = rope_leaf(r, n->data, at, &l);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rope_leaf(r, n->data + at, n->length - at, &q);
+    }
   } else if (at < n->weight) {
     st = rope_split(r, n->left, at, &l, &b);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rope_join(r, b, n->right, &q);
+    }
   } else if (at > n->weight) {
     st = rope_split(r, n->right, at - n->weight, &a, &q);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rope_join(r, n->left, a, &l);
+    }
   } else {
     st = rope_retain(n->left, &l);
-    if (st == DS_OK)
+    if (st == DS_OK) {
       st = rope_retain(n->right, &q);
+    }
   }
   rope_release(r, a);
   rope_release(r, b);
@@ -238,8 +267,9 @@ ds_rope_t *ds_rope_create(ds_context_t *context) {
   return rope_create_internal(context);
 }
 ds_status_t ds_rope_create_context(ds_context_t *context, ds_rope_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out =
       rope_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -248,8 +278,9 @@ ds_status_t ds_rope_create_context(ds_context_t *context, ds_rope_t **out) {
 ds_rope_t *ds_rope_from_string(const char *s, size_t len,
                                ds_context_t *context) {
   ds_rope_t *r;
-  if (s == NULL && len != 0)
+  if (s == NULL && len != 0) {
     return NULL;
+  }
   r = ds_rope_create(context);
   if (r != NULL && rope_build(r, s, len, &r->root) != DS_OK) {
     ds_context_free(r->context, r);
@@ -264,13 +295,14 @@ size_t ds_rope_length(ds_rope_t *r) {
 
 char ds_rope_char_at(ds_rope_t *r, size_t index) {
   ds_rope_node_t *n;
-  if (r == NULL || index >= ds_rope_length(r))
+  if (r == NULL || index >= ds_rope_length(r)) {
     return '\0';
+  }
   n = r->root;
   while (!n->is_leaf) {
-    if (index < n->weight)
+    if (index < n->weight) {
       n = n->left;
-    else {
+    } else {
       index -= n->weight;
       n = n->right;
     }
@@ -281,15 +313,19 @@ char ds_rope_char_at(ds_rope_t *r, size_t index) {
 ds_status_t ds_rope_append_ex(ds_rope_t *r, const char *s, size_t len) {
   ds_rope_node_t *fresh = NULL, *root = NULL;
   ds_status_t st;
-  if (r == NULL || (s == NULL && len != 0))
+  if (r == NULL || (s == NULL && len != 0)) {
     return DS_ERR_NULL;
-  if (len == 0)
+  }
+  if (len == 0) {
     return DS_OK;
-  if (len > (size_t)-1 - ds_rope_length(r))
+  }
+  if (len > (size_t)-1 - ds_rope_length(r)) {
     return DS_ERR_OVERFLOW;
+  }
   st = rope_build(r, s, len, &fresh);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = rope_join(r, r->root, fresh, &root);
+  }
   rope_release(r, fresh);
   if (st == DS_OK) {
     rope_release(r, r->root);
@@ -306,21 +342,28 @@ ds_status_t ds_rope_insert_ex(ds_rope_t *r, size_t index, const char *s,
                               size_t len) {
   ds_rope_node_t *l = NULL, *q = NULL, *mid = NULL, *lm = NULL, *root = NULL;
   ds_status_t st;
-  if (r == NULL || (s == NULL && len != 0))
+  if (r == NULL || (s == NULL && len != 0)) {
     return DS_ERR_NULL;
-  if (len == 0)
+  }
+  if (len == 0) {
     return DS_OK;
-  if (index >= ds_rope_length(r))
+  }
+  if (index >= ds_rope_length(r)) {
     return ds_rope_append_ex(r, s, len);
-  if (len > (size_t)-1 - ds_rope_length(r))
+  }
+  if (len > (size_t)-1 - ds_rope_length(r)) {
     return DS_ERR_OVERFLOW;
+  }
   st = rope_build(r, s, len, &mid);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = rope_split(r, r->root, index, &l, &q);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = rope_join(r, l, mid, &lm);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = rope_join(r, lm, q, &root);
+  }
   rope_release(r, l);
   rope_release(r, q);
   rope_release(r, mid);
@@ -340,18 +383,23 @@ ds_status_t ds_rope_delete_ex(ds_rope_t *r, size_t index, size_t count) {
   ds_rope_node_t *l = NULL, *rest = NULL, *mid = NULL, *q = NULL, *root = NULL;
   ds_status_t st;
   size_t total;
-  if (r == NULL)
+  if (r == NULL) {
     return DS_ERR_NULL;
+  }
   total = ds_rope_length(r);
-  if (count == 0 || index >= total)
+  if (count == 0 || index >= total) {
     return DS_OK;
-  if (count > total - index)
+  }
+  if (count > total - index) {
     count = total - index;
+  }
   st = rope_split(r, r->root, index, &l, &rest);
-  if (st == DS_OK)
+  if (st == DS_OK) {
     st = rope_split(r, rest, count, &mid, &q);
-  if (st == DS_OK)
+  }
+  if (st == DS_OK) {
     st = rope_join(r, l, q, &root);
+  }
   rope_release(r, l);
   rope_release(r, rest);
   rope_release(r, mid);
@@ -370,42 +418,51 @@ void ds_rope_delete(ds_rope_t *r, size_t index, size_t count) {
 static size_t rope_substring(const ds_rope_node_t *n, size_t at, size_t count,
                              char *out) {
   size_t written;
-  if (n == NULL || count == 0)
+  if (n == NULL || count == 0) {
     return 0;
+  }
   if (n->is_leaf) {
-    if (count > n->length - at)
+    if (count > n->length - at) {
       count = n->length - at;
+    }
     memcpy(out, n->data + at, count);
     return count;
   }
-  if (at >= n->weight)
+  if (at >= n->weight) {
     return rope_substring(n->right, at - n->weight, count, out);
+  }
   written = rope_substring(n->left, at, count, out);
-  if (written < count)
+  if (written < count) {
     written += rope_substring(n->right, 0, count - written, out + written);
+  }
   return written;
 }
 
 size_t ds_rope_substring(ds_rope_t *r, size_t index, size_t count, char *out) {
   size_t total = ds_rope_length(r);
-  if (out == NULL || index >= total || count == 0)
+  if (out == NULL || index >= total || count == 0) {
     return 0;
-  if (count > total - index)
+  }
+  if (count > total - index) {
     count = total - index;
+  }
   return rope_substring(r->root, index, count, out);
 }
 
 char *ds_rope_to_string(ds_rope_t *r) {
   size_t len;
   char *out;
-  if (r == NULL)
+  if (r == NULL) {
     return NULL;
+  }
   len = ds_rope_length(r);
-  if (len == (size_t)-1)
+  if (len == (size_t)-1) {
     return NULL;
+  }
   out = (char *)ds_context_alloc(r->context, len + 1);
-  if (out == NULL)
+  if (out == NULL) {
     return NULL;
+  }
   (void)rope_substring(r->root, 0, len, out);
   out[len] = '\0';
   return out;
@@ -414,10 +471,12 @@ char *ds_rope_to_string(ds_rope_t *r) {
 ds_status_t ds_rope_concat_ex(ds_rope_t *r, ds_rope_t *other) {
   ds_rope_node_t *root = NULL;
   ds_status_t st;
-  if (r == NULL || other == NULL)
+  if (r == NULL || other == NULL) {
     return DS_ERR_NULL;
-  if (r == other || !ds_context_compatible(r->context, other->context))
+  }
+  if (r == other || !ds_context_compatible(r->context, other->context)) {
     return DS_ERR_INVALID;
+  }
   st = rope_join(r, r->root, other->root, &root);
   if (st == DS_OK) {
     rope_release(r, r->root);
@@ -438,13 +497,16 @@ ds_status_t ds_rope_rebalance_ex(ds_rope_t *r) {
   char *bytes;
   ds_rope_node_t *root = NULL;
   ds_status_t st;
-  if (r == NULL)
+  if (r == NULL) {
     return DS_ERR_NULL;
-  if (r->root == NULL || r->root->is_leaf)
+  }
+  if (r->root == NULL || r->root->is_leaf) {
     return DS_OK;
+  }
   bytes = ds_rope_to_string(r);
-  if (bytes == NULL)
+  if (bytes == NULL) {
     return ds_rope_length(r) == (size_t)-1 ? DS_ERR_OVERFLOW : DS_ERR_ALLOC;
+  }
   st = rope_build(r, bytes, ds_rope_length(r), &root);
   ds_context_free(r->context, bytes);
   if (st == DS_OK) {
@@ -457,28 +519,34 @@ ds_status_t ds_rope_rebalance_ex(ds_rope_t *r) {
 void ds_rope_rebalance(ds_rope_t *r) { (void)ds_rope_rebalance_ex(r); }
 
 void ds_rope_destroy(ds_rope_t *r) {
-  if (r == NULL)
+  if (r == NULL) {
     return;
+  }
   rope_release(r, r->root);
   ds_context_free(r->context, r);
 }
 
 ds_status_t ds_rope_char_at_ex(ds_rope_t *rope, size_t index, char *out) {
-  if (rope == NULL || out == NULL)
+  if (rope == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (index >= ds_rope_length(rope))
+  }
+  if (index >= ds_rope_length(rope)) {
     return DS_ERR_RANGE;
+  }
   *out = ds_rope_char_at(rope, index);
   return DS_OK;
 }
 ds_status_t ds_rope_to_string_ex(ds_rope_t *rope, char **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (rope == NULL)
+  if (rope == NULL) {
     return DS_ERR_NULL;
-  if (ds_rope_length(rope) == (size_t)-1)
+  }
+  if (ds_rope_length(rope) == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   *out = ds_rope_to_string(rope);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }

@@ -128,10 +128,12 @@ ds_status_t ds_ctl_parse(ds_ctl_t *ctl, const char *text,
 
 /* sat[s] for every state; fair (optional) holds fair_count state sets */
 ds_status_t ds_ctl_check(ds_kripke_t *k, const ds_ctl_t *ctl, size_t formula,
-                         const bool *const *fair, size_t fair_count, bool *sat);
+                         const bool *const *fair, size_t fair_count,
+                         bool *sat);
 /* the formula holds in every initial state (DS_ERR_STATE if none) */
 ds_status_t ds_ctl_holds(ds_kripke_t *k, const ds_ctl_t *ctl, size_t formula,
-                         const bool *const *fair, size_t fair_count, bool *out);
+                         const bool *const *fair, size_t fair_count,
+                         bool *out);
 /* shortest path from start through a-states to a b-state (a, b as state
  * sets, e.g. from ds_ctl_check); DS_ERR_STATE if E[a U b] fails there */
 ds_status_t ds_ctl_witness_until(ds_kripke_t *k, const bool *a, const bool *b,
@@ -139,9 +141,10 @@ ds_status_t ds_ctl_witness_until(ds_kripke_t *k, const bool *a, const bool *b,
                                  size_t *length);
 /* a lasso of a-states from start: path[0..length) where the last state
  * steps back to path[*loop_at]; DS_ERR_STATE if EG a fails there */
-ds_status_t ds_ctl_witness_globally(ds_kripke_t *k, const bool *a, size_t start,
-                                    size_t *path, size_t capacity,
-                                    size_t *length, size_t *loop_at);
+ds_status_t ds_ctl_witness_globally(ds_kripke_t *k, const bool *a,
+                                    size_t start, size_t *path,
+                                    size_t capacity, size_t *length,
+                                    size_t *loop_at);
 /* the same over fair paths (fair_count 0: the plain versions); *length is
  * set even when capacity is short (DS_ERR_RANGE) */
 ds_status_t ds_ctl_witness_until_fair(ds_kripke_t *k, const bool *a,

@@ -1154,8 +1154,9 @@ bool ds_lucky_sort(void *base, size_t count, size_t elem_size,
 }
 
 bool ds_bogosort(void *base, size_t count, size_t elem_size,
-                 ds_compare_func_t compare, void *user, ds_random_func_t random,
-                 void *random_state, unsigned long max_steps) {
+                 ds_compare_func_t compare, void *user,
+                 ds_random_func_t random, void *random_state,
+                 unsigned long max_steps) {
   unsigned long steps = 0;
   unsigned long own = 1234567UL;
   size_t i;
@@ -1231,7 +1232,8 @@ bool ds_qm_sort(void *base, size_t count, size_t elem_size,
       steps++;
       if (j > k &&
           compare(AT(base, j, elem_size), AT(base, k, elem_size), user) < 0) {
-        ds_elem_swap(AT(base, j, elem_size), AT(base, k, elem_size), elem_size);
+        ds_elem_swap(AT(base, j, elem_size), AT(base, k, elem_size),
+                     elem_size);
         quiet = 0;
       } else {
         quiet++;
@@ -1308,8 +1310,8 @@ bool ds_taco_sort_ulong(unsigned long *values, size_t count, unsigned bits,
     random = sm_xorshift;
     random_state = &own;
   }
-  target =
-      (unsigned long *)ds_context_alloc(context, count * sizeof(unsigned long));
+  target = (unsigned long *)ds_context_alloc(context,
+                                             count * sizeof(unsigned long));
   if (target == NULL) {
     return false;
   }

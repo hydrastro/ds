@@ -67,7 +67,8 @@ void ds_multiset_foreach(const ds_multiset_t *m, ds_multiset_visit_func_t f,
  * compatible hash/equality). */
 ds_status_t ds_multiset_sum(ds_multiset_t *m, const ds_multiset_t *other);
 ds_status_t ds_multiset_union(ds_multiset_t *m, const ds_multiset_t *other);
-ds_status_t ds_multiset_intersect(ds_multiset_t *m, const ds_multiset_t *other);
+ds_status_t ds_multiset_intersect(ds_multiset_t *m,
+                                  const ds_multiset_t *other);
 ds_status_t ds_multiset_subtract(ds_multiset_t *m, const ds_multiset_t *other);
 /* Every multiplicity in a is at most that in b. */
 bool ds_multiset_included(const ds_multiset_t *a, const ds_multiset_t *b);

@@ -29,8 +29,8 @@
  *
  * Pointers and slot cursors expire on insertion, removal, clear, reserve,
  * compaction or destruction (including failed mutations, conservatively).
- * Complexity: expected O(1) get, put, remove; O(capacity) iteration and rehash.
- * Concurrency: a map may be used by one thread at a time.
+ * Complexity: expected O(1) get, put, remove; O(capacity) iteration and
+ * rehash. Concurrency: a map may be used by one thread at a time.
  */
 
 #include <dsa/core/common.h>

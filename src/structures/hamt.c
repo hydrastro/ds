@@ -125,8 +125,9 @@ ds_hamt_t *ds_hamt_create(ds_context_t *context) {
   return hamt_create_internal(context);
 }
 ds_status_t ds_hamt_create_context(ds_context_t *context, ds_hamt_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out =
       hamt_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -434,24 +435,27 @@ static ds_status_t hamt_walk_node(ds_hamt_node_t *node,
     ds_hamt_node_t *cur = node;
     while (cur != NULL) {
       ds_status_t st = callback(cur->key, cur->key_length, cur->value, user);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         return st;
+      }
       cur = cur->next;
     }
     return DS_OK;
   }
   for (i = 0; i < node->num_children; i++) {
     ds_status_t st = hamt_walk_node(node->children[i], callback, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   return DS_OK;
 }
 
 ds_status_t ds_hamt_walk_with(ds_hamt_t *hamt, ds_hamt_visit_fn callback,
                               void *user) {
-  if (hamt == NULL || callback == NULL)
+  if (hamt == NULL || callback == NULL) {
     return DS_ERR_NULL;
+  }
   return hamt_walk_node(hamt->root, callback, user);
 }
 typedef struct hamt_direct_visit {
@@ -468,8 +472,9 @@ void ds_hamt_walk(ds_hamt_t *hamt,
                   void (*callback)(const void *, size_t, void *, void *),
                   void *user) {
   hamt_direct_visit_t policy;
-  if (callback == NULL)
+  if (callback == NULL) {
     return;
+  }
   policy.callback = callback;
   policy.user = user;
   (void)ds_hamt_walk_with(hamt, hamt_visit_direct, &policy);
@@ -507,8 +512,9 @@ static void hamt_destroy_node(ds_hamt_t *hamt, ds_hamt_node_t *node,
 
 void ds_hamt_destroy_with(ds_hamt_t *hamt,
                           void (*destroy_value)(void *, void *), void *user) {
-  if (hamt == NULL)
+  if (hamt == NULL) {
     return;
+  }
   hamt_destroy_node(hamt, hamt->root, destroy_value, user);
   ds_context_free(hamt->context, hamt);
 }
@@ -525,11 +531,13 @@ void ds_hamt_destroy(ds_hamt_t *tree, void (*destroy_value)(void *)) {
 ds_status_t ds_hamt_find_ex(ds_hamt_t *tree, const void *key, size_t length,
                             void **out) {
   ds_hamt_node_t *leaf;
-  if (tree == NULL || out == NULL || (length > 0 && key == NULL))
+  if (tree == NULL || out == NULL || (length > 0 && key == NULL)) {
     return DS_ERR_NULL;
+  }
   leaf = hamt_find_leaf(tree, key, length, hamt_hash(key, length));
-  if (leaf == NULL)
+  if (leaf == NULL) {
     return DS_NOT_FOUND;
+  }
   *out = leaf->value;
   return DS_OK;
 }

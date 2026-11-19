@@ -48,7 +48,8 @@ typedef struct ds_vec {
   bool fixed;
 } ds_vec_t;
 
-ds_status_t ds_vec_init(ds_vec_t *vec, size_t elem_size, ds_context_t *context);
+ds_status_t ds_vec_init(ds_vec_t *vec, size_t elem_size,
+                        ds_context_t *context);
 ds_status_t ds_vec_init_buffer(ds_vec_t *vec, size_t elem_size, void *buffer,
                                size_t capacity);
 void ds_vec_destroy(ds_vec_t *vec);

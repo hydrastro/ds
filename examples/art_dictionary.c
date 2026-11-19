@@ -1,10 +1,11 @@
 /*
  * Adaptive radix tree (ART) as a string-keyed map to integer values.
  *
- * ART is a value-mapping container: insert associates a key with a void* value,
- * get returns that value or NULL when the key is absent, and walk visits keys
- * in lexicographic order. Internally the nodes grow and shrink between four
- * layouts (4/16/48/256 children) so memory tracks the actual fan-out.
+ * ART is a value-mapping container: insert associates a key with a void*
+ * value, get returns that value or NULL when the key is absent, and walk
+ * visits keys in lexicographic order. Internally the nodes grow and shrink
+ * between four layouts (4/16/48/256 children) so memory tracks the actual
+ * fan-out.
  */
 #include <dsa.h>
 #include <stdio.h>

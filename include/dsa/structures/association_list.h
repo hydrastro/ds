@@ -30,7 +30,8 @@ extern "C" {
 
 #define DS_ALIST_END (~(size_t)0)
 
-typedef bool (*ds_alist_equal_func_t)(const void *a, const void *b, void *user);
+typedef bool (*ds_alist_equal_func_t)(const void *a, const void *b,
+                                      void *user);
 
 typedef struct ds_alist {
   unsigned char *keys;
@@ -69,12 +70,14 @@ size_t ds_alist_lookup_all(const ds_alist_t *l, const void *key,
 /* Property-list put: replaces the most recent binding or adds one at the
  * front. DS_EXISTS when replaced. */
 ds_status_t ds_alist_put(ds_alist_t *l, const void *key, const void *value);
-ds_status_t ds_alist_get(const ds_alist_t *l, const void *key, void *out_value);
+ds_status_t ds_alist_get(const ds_alist_t *l, const void *key,
+                         void *out_value);
 /* Removes the most recent binding (all of them when `all`); DS_NOT_FOUND
  * if there were none. */
 ds_status_t ds_alist_remove(ds_alist_t *l, const void *key, bool all);
 /* Front to back. */
-void ds_alist_foreach(const ds_alist_t *l, ds_alist_visit_func_t f, void *user);
+void ds_alist_foreach(const ds_alist_t *l, ds_alist_visit_func_t f,
+                      void *user);
 
 #ifdef __cplusplus
 }

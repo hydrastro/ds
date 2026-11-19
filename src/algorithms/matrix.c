@@ -452,7 +452,8 @@ ds_status_t ds_tri_solve(const double *packed, size_t n, ds_tri_kind_t kind,
   return DS_OK;
 }
 
-/* ---- factorizations ------------------------------------------------------ */
+/* ---- factorizations ------------------------------------------------------
+ */
 
 static bool mx_nonzero(double x) { return x < 0.0 || x > 0.0; }
 
@@ -755,8 +756,9 @@ ds_status_t ds_symmetric_eigen(double *a, size_t n, double *w, double *v) {
         if (!mx_nonzero(apq)) {
           continue;
         }
-        if (apq <= floor_abs || apq <= DBL_EPSILON * sqrt(fabs(a[p * n + p]) *
-                                                          fabs(a[q * n + q]))) {
+        if (apq <= floor_abs ||
+            apq <=
+                DBL_EPSILON * sqrt(fabs(a[p * n + p]) * fabs(a[q * n + q]))) {
           a[p * n + q] = 0.0;
           a[q * n + p] = 0.0;
           continue;

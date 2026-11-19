@@ -60,11 +60,13 @@ ds_status_t ds_bitvector_create_context(size_t num_bits, ds_context_t *context,
                                         ds_bitvector_t **out) {
   size_t words = num_bits / (sizeof(unsigned long) * CHAR_BIT) +
                  (num_bits % (sizeof(unsigned long) * CHAR_BIT) != 0);
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (words > (size_t)-1 / sizeof(unsigned long))
+  if (words > (size_t)-1 / sizeof(unsigned long)) {
     return DS_ERR_OVERFLOW;
+  }
   *out = bitvector_create_internal(
       num_bits, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -92,12 +94,15 @@ bool ds_bitvector_get(ds_bitvector_t *bv, size_t index) {
 }
 
 ds_status_t ds_bitvector_set_ex(ds_bitvector_t *bv, size_t index, bool value) {
-  if (bv == NULL)
+  if (bv == NULL) {
     return DS_ERR_NULL;
-  if (index >= bv->num_bits)
+  }
+  if (index >= bv->num_bits) {
     return DS_ERR_RANGE;
-  if (bv->built)
+  }
+  if (bv->built) {
     return DS_ERR_STATE;
+  }
   ds_bitvector_set(bv, index, value);
   return DS_OK;
 }
@@ -117,8 +122,9 @@ ds_status_t ds_bitvector_build_ex(ds_bitvector_t *bv) {
   superblocks = blocks / DS_BV_BLOCKS_PER_SUPERBLOCK +
                 (blocks % DS_BV_BLOCKS_PER_SUPERBLOCK != 0 ? 1 : 0) + 1;
   if (superblocks > (size_t)-1 / sizeof(size_t) ||
-      blocks >= (size_t)-1 / sizeof(unsigned short))
+      blocks >= (size_t)-1 / sizeof(unsigned short)) {
     return DS_ERR_OVERFLOW;
+  }
   /* the new directory first: a failure leaves the old one in place */
   superblock_rank =
       (size_t *)ds_context_alloc(bv->context, superblocks * sizeof(size_t));
@@ -283,20 +289,25 @@ void ds_bitvector_destroy(ds_bitvector_t *bv) {
 static ds_status_t bv_query_checked(ds_bitvector_t *bv, size_t index,
                                     bool ones, bool select, size_t *out) {
   size_t value;
-  if (bv == NULL || out == NULL)
+  if (bv == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (!bv->built)
+  }
+  if (!bv->built) {
     return DS_ERR_STATE;
-  if (!select && index > bv->num_bits)
+  }
+  if (!select && index > bv->num_bits) {
     return DS_ERR_RANGE;
+  }
   if (select) {
     value = ones ? ds_bitvector_select1(bv, index)
                  : ds_bitvector_select0(bv, index);
-    if (value == DS_BITVECTOR_NPOS)
+    if (value == DS_BITVECTOR_NPOS) {
       return DS_NOT_FOUND;
-  } else
+    }
+  } else {
     value =
         ones ? ds_bitvector_rank1(bv, index) : ds_bitvector_rank0(bv, index);
+  }
   *out = value;
   return DS_OK;
 }

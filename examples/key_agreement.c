@@ -75,10 +75,12 @@ int main(void) {
   }
   show("signature", sig, 64);
   printf("the signature verifies: %s\n",
-         ds_ed25519_verify(sign_pub, statement, strlen(statement), sig) == DS_OK
+         ds_ed25519_verify(sign_pub, statement, strlen(statement), sig) ==
+                 DS_OK
              ? "yes"
              : "NO");
-  ok &= ds_ed25519_verify(sign_pub, statement, strlen(statement), sig) == DS_OK;
+  ok &=
+      ds_ed25519_verify(sign_pub, statement, strlen(statement), sig) == DS_OK;
   memcpy(tampered, statement, sizeof(statement));
   tampered[15] = '9'; /* "owes Bob 90 apples" */
   printf("after \"%s\": %s\n", tampered,

@@ -118,8 +118,8 @@ typedef struct ds_sdp_solution {
 
 /* sizes[b] > 0: a dense block of that order; < 0: a diagonal block of
  * order -sizes[b] (the SDPA convention); 0 is DS_ERR_INVALID */
-ds_status_t ds_sdp_init(ds_sdp_t *p, size_t m, size_t blocks, const long *sizes,
-                        ds_context_t *context);
+ds_status_t ds_sdp_init(ds_sdp_t *p, size_t m, size_t blocks,
+                        const long *sizes, ds_context_t *context);
 void ds_sdp_destroy(ds_sdp_t *p);
 /* a_i, i in 1 .. m */
 ds_status_t ds_sdp_set_rhs(ds_sdp_t *p, size_t i, double value);

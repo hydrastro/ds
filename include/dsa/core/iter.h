@@ -16,8 +16,8 @@ typedef void (*ds_iter_destroy_func_t)(ds_iter_t *iter);
  * its invalidation contract. Unless that adapter explicitly allows a mutation,
  * hold external synchronization for the entire walk and keep its container
  * alive until destroy. Never copy a live iterator with owning state by value.
- * After next returns DS_STOP/error, do not reuse prior borrowed fields; destroy
- * remains required even when iteration ends early. */
+ * After next returns DS_STOP/error, do not reuse prior borrowed fields;
+ * destroy remains required even when iteration ends early. */
 struct ds_iter {
   void *container;
   void *state;

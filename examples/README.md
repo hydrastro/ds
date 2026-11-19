@@ -19,6 +19,8 @@ The source is deliberately small enough to read alongside its public headers.
 | [meld_queues.c](meld_queues.c) | Memory/order policies and stable handles during meld. |
 | [result_validation.c](result_validation.c) | Independent validation, typed payloads and selectable diagnostic logs. |
 | [result_ownership.c](result_ownership.c) | Shared subviews and preserving output on allocation failure. |
+| [module_diagnostics.c](module_diagnostics.c) | Typed module diagnostics, bounded buffers and explicit truncation. |
+| [error_causes.c](error_causes.c) | Owned native errors and preserved causes in a Result. |
 | [result_i18n.c](result_i18n.c) | Owned domain Results, accumulated diagnostics and rendering. |
 | [localized_catalog.c](localized_catalog.c) | Catalog import/export and explicit locale policies. |
 | [versioned_routes.c](versioned_routes.c) | Persistent trie versions with byte and radix backends. |

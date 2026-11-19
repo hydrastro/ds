@@ -405,8 +405,8 @@ ds_status_t ds_voronoi_build(ds_voronoi_t *vd, const double *xy, size_t n,
 /* ---- clipping ---- */
 
 /* keep the part of polygon src (m vertices) where f <= 0, into dst */
-static size_t vo_clip(const double *src, size_t m, double *dst, const double *s,
-                      const double *t) {
+static size_t vo_clip(const double *src, size_t m, double *dst,
+                      const double *s, const double *t) {
   double nx = t[0] - s[0], ny = t[1] - s[1];
   double mx = (s[0] + t[0]) / 2.0, my = (s[1] + t[1]) / 2.0;
   size_t i;

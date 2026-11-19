@@ -115,7 +115,8 @@ static ds_vec_t *cq_new_buckets(const ds_calendar_queue_t *q, size_t count) {
   if (count > ((size_t)-1) / sizeof(ds_vec_t)) {
     return NULL;
   }
-  b = (ds_vec_t *)ds_context_alloc(q->config.context, count * sizeof(ds_vec_t));
+  b = (ds_vec_t *)ds_context_alloc(q->config.context,
+                                   count * sizeof(ds_vec_t));
   if (b == NULL) {
     return NULL;
   }
@@ -360,8 +361,8 @@ ds_status_t ds_calendar_queue_pop(ds_calendar_queue_t *queue, double *out_time,
   return DS_OK;
 }
 
-ds_status_t ds_calendar_queue_peek(ds_calendar_queue_t *queue, double *out_time,
-                                   void **out_elem) {
+ds_status_t ds_calendar_queue_peek(ds_calendar_queue_t *queue,
+                                   double *out_time, void **out_elem) {
   unsigned char *rec;
   if (queue->size == 0) {
     return DS_EMPTY;

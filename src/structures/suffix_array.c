@@ -150,7 +150,8 @@ static ds_status_t sa_core(const sa_text_t *s, size_t n, size_t k, size_t *sa,
   /* names: the sentinel 0, then one per distinct LMS substring */
   for (i = 0; i < n1; i++) {
     size_t p = sa[i];
-    if (p == n || prev == n || prev == SA_EMPTY || !sa_same(s, n, t, p, prev)) {
+    if (p == n || prev == n || prev == SA_EMPTY ||
+        !sa_same(s, n, t, p, prev)) {
       names++;
     }
     prev = p;
@@ -242,8 +243,8 @@ ds_status_t ds_sa_build(const unsigned char *s, size_t n, size_t *out_sa,
   return sa_run(&text, n, 256, out_sa, context);
 }
 
-ds_status_t ds_sa_build_int(const size_t *s, size_t n, size_t k, size_t *out_sa,
-                            ds_context_t *context) {
+ds_status_t ds_sa_build_int(const size_t *s, size_t n, size_t k,
+                            size_t *out_sa, ds_context_t *context) {
   sa_text_t text;
   size_t i;
   if (n > 0 && (s == NULL || out_sa == NULL)) {

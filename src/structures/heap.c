@@ -58,13 +58,15 @@ static int heap_compare_direct(ds_heap_node_t *a, ds_heap_node_t *b,
 }
 void ds_heapify_up(ds_heap_t *heap, size_t index,
                    int (*compare)(ds_heap_node_t *, ds_heap_node_t *)) {
-  if (heap != NULL && compare != NULL && index < heap->size)
+  if (heap != NULL && compare != NULL && index < heap->size) {
     ds_heapify_up_with(heap, index, heap_compare_direct, &compare);
+  }
 }
 void ds_heapify_down(ds_heap_t *heap, size_t index,
                      int (*compare)(ds_heap_node_t *, ds_heap_node_t *)) {
-  if (heap != NULL && compare != NULL && index < heap->size)
+  if (heap != NULL && compare != NULL && index < heap->size) {
     ds_heapify_down_with(heap, index, heap_compare_direct, &compare);
+  }
 }
 
 static ds_heap_t *heap_create_internal(size_t capacity,
@@ -106,11 +108,13 @@ ds_heap_t *ds_heap_create(size_t capacity, ds_context_t *context) {
 }
 ds_status_t ds_heap_create_context(size_t capacity, ds_context_t *context,
                                    ds_heap_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (capacity > (size_t)-1 / sizeof(ds_heap_node_t *))
+  if (capacity > (size_t)-1 / sizeof(ds_heap_node_t *)) {
     return DS_ERR_OVERFLOW;
+  }
   *out = heap_create_internal(
       capacity, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -121,8 +125,9 @@ ds_status_t ds_heap_insert_with(ds_heap_t *heap, ds_heap_node_t *node,
   if (heap == NULL || node == NULL || compare == NULL) {
     return DS_ERR_NULL;
   }
-  if (node == heap->nil)
+  if (node == heap->nil) {
     return DS_ERR_INVALID;
+  }
   if (heap->size >= heap->capacity) {
     size_t new_capacity;
     ds_heap_node_t **new_data;
@@ -155,8 +160,9 @@ ds_status_t ds_heap_insert_with(ds_heap_t *heap, ds_heap_node_t *node,
 ds_status_t ds_heap_insert_ex(ds_heap_t *heap, ds_heap_node_t *node,
                               int (*compare)(ds_heap_node_t *,
                                              ds_heap_node_t *)) {
-  if (compare == NULL)
+  if (compare == NULL) {
     return DS_ERR_NULL;
+  }
   return ds_heap_insert_with(heap, node, heap_compare_direct, &compare);
 }
 void ds_heap_insert(ds_heap_t *heap, ds_heap_node_t *node,
@@ -167,10 +173,12 @@ void ds_heap_insert(ds_heap_t *heap, ds_heap_node_t *node,
 ds_status_t ds_heap_extract_with(ds_heap_t *heap, ds_heap_compare_fn compare,
                                  void *user, ds_heap_node_t **out) {
   ds_heap_node_t *root;
-  if (heap == NULL || compare == NULL || out == NULL)
+  if (heap == NULL || compare == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (heap->size == 0)
+  }
+  if (heap->size == 0) {
     return DS_EMPTY;
+  }
   root = heap->data[0];
   heap->data[0] = heap->data[heap->size - 1];
   heap->size -= 1;
@@ -185,11 +193,13 @@ ds_status_t ds_heap_extract_with(ds_heap_t *heap, ds_heap_compare_fn compare,
 void *ds_heap_extract_root(ds_heap_t *heap, int (*compare)(ds_heap_node_t *,
                                                            ds_heap_node_t *)) {
   ds_heap_node_t *node;
-  if (heap == NULL)
+  if (heap == NULL) {
     return NULL;
+  }
   node = heap->nil;
-  if (compare != NULL)
+  if (compare != NULL) {
     (void)ds_heap_extract_with(heap, heap_compare_direct, &compare, &node);
+  }
   return node;
 }
 
@@ -218,8 +228,9 @@ static void heap_destroy_internal(ds_heap_t *heap, ds_heap_destroy_fn destroy,
 }
 void ds_heap_destroy_with(ds_heap_t *container, ds_heap_destroy_fn destroy,
                           void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     heap_destroy_internal(container, destroy, user);
+  }
 }
 static void heap_destroy_direct(ds_heap_node_t *node, void *user) {
   void (**destroy)(ds_heap_node_t *) = (void (**)(ds_heap_node_t *))user;
@@ -291,14 +302,16 @@ ds_status_t ds_heap_walk_with(ds_heap_t *container, ds_heap_visit_fn visit,
   size_t i, position;
   ds_heap_node_t *node;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   position = 0;
   for (i = 0; i < container->size; ++i) {
     node = container->data[position];
     st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
     position += 1;
   }
   return DS_OK;
@@ -308,8 +321,9 @@ ds_status_t ds_heap_find_with(ds_heap_t *container, ds_heap_node_t *key,
                               ds_heap_node_t **out) {
   size_t i, position;
   ds_heap_node_t *node;
-  if (container == NULL || key == NULL || compare == NULL || out == NULL)
+  if (container == NULL || key == NULL || compare == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   position = 0;
   for (i = 0; i < container->size; ++i) {
     node = container->data[position];
@@ -332,15 +346,18 @@ ds_status_t ds_heap_clone_with(const ds_heap_t *container,
   ds_heap_node_t *new_node;
 
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   copy = heap_create_internal(container->capacity,
                               context != NULL ? context : container->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
 
   position = 0;
   for (i = 0; i < container->size; ++i) {
@@ -364,25 +381,29 @@ ds_status_t ds_heap_walk_reverse_with(ds_heap_t *container,
                                       ds_heap_visit_fn visit, void *user) {
   size_t i, position;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   position = container->size;
   for (i = 0; i < container->size; ++i) {
     position -= 1;
     st = visit(container->data[position], user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   return DS_OK;
 }
 
 ds_status_t ds_heap_update_with(ds_heap_t *heap, ds_heap_node_t *node,
                                 ds_heap_compare_fn compare, void *user) {
-  if (heap == NULL || node == NULL || compare == NULL)
+  if (heap == NULL || node == NULL || compare == NULL) {
     return DS_ERR_NULL;
+  }
   if (node == heap->nil || node->index >= heap->size ||
-      heap->data[node->index] != node)
+      heap->data[node->index] != node) {
     return DS_NOT_FOUND;
+  }
   ds_heapify_up_with(heap, node->index, compare, user);
   ds_heapify_down_with(heap, node->index, compare, user);
   return DS_OK;
@@ -391,11 +412,13 @@ ds_status_t ds_heap_remove_with(ds_heap_t *heap, ds_heap_node_t *node,
                                 ds_heap_compare_fn compare, void *user) {
   size_t index;
   ds_heap_node_t *replacement;
-  if (heap == NULL || node == NULL || compare == NULL)
+  if (heap == NULL || node == NULL || compare == NULL) {
     return DS_ERR_NULL;
+  }
   if (node == heap->nil || node->index >= heap->size ||
-      heap->data[node->index] != node)
+      heap->data[node->index] != node) {
     return DS_NOT_FOUND;
+  }
   index = node->index;
   heap->size -= 1;
   if (index != heap->size) {

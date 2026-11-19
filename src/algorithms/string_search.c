@@ -48,7 +48,8 @@ static void *ss_alloc(ss_t *s, size_t count, size_t size) {
   }
 }
 
-/* ---- shared tables ------------------------------------------------------- */
+/* ---- shared tables -------------------------------------------------------
+ */
 
 /* Boyer-Moore bad character: distance from the last occurrence to the end. */
 static void ss_bm_bc(const ss_t *s, ss_i *bc) {
@@ -127,7 +128,8 @@ static void ss_borders(const ss_t *s, ss_i *next, bool strong) {
   }
 }
 
-/* ---- algorithms ---------------------------------------------------------- */
+/* ---- algorithms ----------------------------------------------------------
+ */
 
 static void ss_brute(ss_t *s) {
   ss_i j;
@@ -765,7 +767,8 @@ static void ss_alpha_skip(ss_t *s) {
   ss_skip_q(s, q);
 }
 
-/* ---- more algorithms ----------------------------------------------------- */
+/* ---- more algorithms -----------------------------------------------------
+ */
 
 /* KmpSkip Search: skip search over the occurrences of the text character
  * in the pattern, with KMP to avoid rescanning. */
@@ -1057,7 +1060,8 @@ static void ss_reverse_colussi(ss_t *s) {
   ss_i t;
   ss_i j;
   ss_i sh;
-  bc = (ss_i *)ss_alloc(s, (size_t)(256 * (m + 1) + 8 * (m + 2)), sizeof(ss_i));
+  bc =
+      (ss_i *)ss_alloc(s, (size_t)(256 * (m + 1) + 8 * (m + 2)), sizeof(ss_i));
   if (bc == NULL) {
     return;
   }
@@ -1260,9 +1264,9 @@ static void ss_order_pattern(ss_pat_t *pat, ss_i m, const ss_i *key) {
   ss_pat_t v;
   for (i = 1; i < m; i++) {
     v = pat[i];
-    for (j = i; j > 0 &&
-                (key[pat[j - 1].loc] < key[v.loc] ||
-                 (key[pat[j - 1].loc] == key[v.loc] && pat[j - 1].loc < v.loc));
+    for (j = i; j > 0 && (key[pat[j - 1].loc] < key[v.loc] ||
+                          (key[pat[j - 1].loc] == key[v.loc] &&
+                           pat[j - 1].loc < v.loc));
          j--) {
       pat[j] = pat[j - 1];
     }
@@ -1491,14 +1495,14 @@ static void ss_turbo_reverse_factor(ss_t *s) {
     ss_report(s, 0);
   }
   j = 1;
-#define SS_TRF_SCAN(limit)                                                     \
-  while (i > (limit) && (nx = ds_suffix_automaton_next(                        \
-                             &rf.sa, state, s->y[i + j])) != (size_t) - 1) {   \
-    state = nx;                                                                \
-    if (rf.terminal[state]) {                                                  \
-      shift = i;                                                               \
-    }                                                                          \
-    i--;                                                                       \
+#define SS_TRF_SCAN(limit)                                                    \
+  while (i > (limit) && (nx = ds_suffix_automaton_next(                       \
+                             &rf.sa, state, s->y[i + j])) != (size_t) - 1) {  \
+    state = nx;                                                               \
+    if (rf.terminal[state]) {                                                 \
+      shift = i;                                                              \
+    }                                                                         \
+    i--;                                                                      \
   }
   while (j <= s->n - m && !s->stop) {
     i = m - 1;
@@ -1535,8 +1539,8 @@ static void ss_turbo_reverse_factor(ss_t *s) {
 
 /* String matching on ordered alphabets (Crochemore): constant extra space,
  * maximal suffixes of the matched prefix found on the fly. */
-static void ss_next_max_suffix(const unsigned char *x, ss_i m, ss_i *i, ss_i *j,
-                               ss_i *k, ss_i *p) {
+static void ss_next_max_suffix(const unsigned char *x, ss_i m, ss_i *i,
+                               ss_i *j, ss_i *k, ss_i *p) {
   unsigned char a;
   unsigned char b;
   while (*j + *k < m) {
@@ -1590,7 +1594,8 @@ static void ss_ordered_alphabet(ss_t *s) {
     }
     len = i + 1 < n - j ? i + 1 : n - j;
     ss_next_max_suffix(y + j, len, &ip, &jp, &k, &p);
-    if (ip < 0 || (ip < p && memcmp(y + j, y + j + p, (size_t)(ip + 1)) == 0)) {
+    if (ip < 0 ||
+        (ip < p && memcmp(y + j, y + j + p, (size_t)(ip + 1)) == 0)) {
       j += p;
       i -= p;
       if (i < 0) {
@@ -1613,7 +1618,8 @@ static void ss_ordered_alphabet(ss_t *s) {
   }
 }
 
-/* ---- dispatch ------------------------------------------------------------ */
+/* ---- dispatch ------------------------------------------------------------
+ */
 
 static const char *const ss_names[DS_SEARCH_ALGORITHM_COUNT] = {
     "brute force",
@@ -1815,7 +1821,8 @@ size_t ds_kmismatch_search(const unsigned char *text, size_t n,
   return count;
 }
 
-/* ---- Commentz-Walter ----------------------------------------------------- */
+/* ---- Commentz-Walter -----------------------------------------------------
+ */
 
 typedef struct cw {
   size_t nodes;

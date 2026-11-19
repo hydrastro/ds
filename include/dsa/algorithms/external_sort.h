@@ -92,8 +92,9 @@ typedef struct ds_ext_memory_tapes {
 } ds_ext_memory_tapes_t;
 
 extern const ds_ext_tape_ops_t ds_ext_memory_tape_ops;
-ds_status_t ds_ext_memory_tapes_init(ds_ext_memory_tapes_t *tapes, size_t count,
-                                     size_t elem_size, ds_context_t *context);
+ds_status_t ds_ext_memory_tapes_init(ds_ext_memory_tapes_t *tapes,
+                                     size_t count, size_t elem_size,
+                                     ds_context_t *context);
 void ds_ext_memory_tapes_destroy(ds_ext_memory_tapes_t *tapes);
 
 /* ---- FILE tapes ----------------------------------------------------- */

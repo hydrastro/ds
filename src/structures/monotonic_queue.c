@@ -30,8 +30,8 @@ ds_monotonic_queue_init_buffer(ds_monotonic_queue_t *queue, size_t elem_size,
   status = ds_array_deque_init_buffer(&queue->seqs, sizeof(unsigned long),
                                       seq_buffer, capacity);
   if (status == DS_OK) {
-    status = ds_array_deque_init_buffer(&queue->values, elem_size, value_buffer,
-                                        capacity);
+    status = ds_array_deque_init_buffer(&queue->values, elem_size,
+                                        value_buffer, capacity);
   }
   queue->next_seq = 0;
   queue->compare = compare;
@@ -48,7 +48,8 @@ void ds_monotonic_queue_destroy(ds_monotonic_queue_t *queue) {
 }
 
 ds_status_t ds_monotonic_queue_push(ds_monotonic_queue_t *queue,
-                                    const void *value, unsigned long *out_seq) {
+                                    const void *value,
+                                    unsigned long *out_seq) {
   ds_status_t status;
   unsigned long seq = queue->next_seq;
   if (value == NULL) {

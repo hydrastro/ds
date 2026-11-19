@@ -80,9 +80,10 @@ typedef struct ds_regtree {
 } ds_regtree_t;
 
 /* lo/hi: the box covered (points outside are rejected). */
-ds_status_t ds_regtree_init(ds_regtree_t *t, size_t dim, ds_regtree_mode_t mode,
-                            const double *lo, const double *hi, size_t bucket,
-                            size_t max_depth, ds_context_t *context);
+ds_status_t ds_regtree_init(ds_regtree_t *t, size_t dim,
+                            ds_regtree_mode_t mode, const double *lo,
+                            const double *hi, size_t bucket, size_t max_depth,
+                            ds_context_t *context);
 void ds_regtree_destroy(ds_regtree_t *t);
 size_t ds_regtree_size(const ds_regtree_t *t);
 ds_status_t ds_regtree_insert(ds_regtree_t *t, const double *point,
@@ -122,12 +123,12 @@ ds_status_t ds_point_quadtree_init(ds_point_quadtree_t *t,
 void ds_point_quadtree_destroy(ds_point_quadtree_t *t);
 size_t ds_point_quadtree_size(const ds_point_quadtree_t *t);
 /* Duplicate coordinates are kept (they go to the NE quadrant). */
-ds_status_t ds_point_quadtree_insert(ds_point_quadtree_t *t, double x, double y,
-                                     size_t value);
+ds_status_t ds_point_quadtree_insert(ds_point_quadtree_t *t, double x,
+                                     double y, size_t value);
 ds_status_t ds_point_quadtree_find(ds_point_quadtree_t *t, double x, double y,
                                    size_t *out_value);
-ds_status_t ds_point_quadtree_remove(ds_point_quadtree_t *t, double x, double y,
-                                     size_t value);
+ds_status_t ds_point_quadtree_remove(ds_point_quadtree_t *t, double x,
+                                     double y, size_t value);
 ds_status_t ds_point_quadtree_query(ds_point_quadtree_t *t, double xlo,
                                     double ylo, double xhi, double yhi,
                                     ds_spatial_visit_func_t visit, void *user);

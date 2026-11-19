@@ -242,7 +242,8 @@ static void hh_remove_at(ds_hash_heap_t *h, size_t pos) {
   }
 }
 
-ds_status_t ds_hash_heap_pop(ds_hash_heap_t *h, void *out_key, void *out_prio) {
+ds_status_t ds_hash_heap_pop(ds_hash_heap_t *h, void *out_key,
+                             void *out_prio) {
   ds_status_t st = ds_hash_heap_peek(h, out_key, out_prio);
   if (st != DS_OK) {
     return st;

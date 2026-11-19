@@ -171,7 +171,8 @@ ds_status_t ds_kbonacci(unsigned int k, unsigned long n, unsigned long *out) {
   return DS_OK;
 }
 
-ds_status_t ds_ackermann(unsigned long m, unsigned long n, unsigned long *out) {
+ds_status_t ds_ackermann(unsigned long m, unsigned long n,
+                         unsigned long *out) {
   unsigned long stack[256];
   size_t sp = 0;
   unsigned long steps = 0;

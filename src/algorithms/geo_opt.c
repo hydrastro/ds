@@ -39,8 +39,8 @@ static bool go_in(double cx, double cy, double r, const double *p) {
   return sqrt(dx * dx + dy * dy) <= r * (1.0 + 1e-12) + 1e-12;
 }
 
-static void go_circle2(const double *a, const double *b, double *cx, double *cy,
-                       double *r) {
+static void go_circle2(const double *a, const double *b, double *cx,
+                       double *cy, double *r) {
   *cx = (a[0] + b[0]) / 2.0;
   *cy = (a[1] + b[1]) / 2.0;
   *r = sqrt((a[0] - *cx) * (a[0] - *cx) + (a[1] - *cy) * (a[1] - *cy));
@@ -154,8 +154,8 @@ ds_status_t ds_geo_min_circle(const double *xy, size_t n, unsigned long seed,
 
 ds_status_t ds_geo_center_on_line(const double *xy, size_t n, double px,
                                   double py, double dx, double dy,
-                                  double *out_cx, double *out_cy, double *out_r,
-                                  ds_context_t *context) {
+                                  double *out_cx, double *out_cy,
+                                  double *out_r, ds_context_t *context) {
   double *t;  /* coordinate along the line */
   double *h2; /* squared distance to the line */
   double *mid;

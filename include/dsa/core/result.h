@@ -3,6 +3,7 @@
 
 #include <dsa/core/diagnostic.h>
 #include <dsa/core/diagnostic_log.h>
+#include <dsa/core/error.h>
 #include <dsa/core/schema.h>
 #include <dsa/core/status.h>
 #include <stdbool.h>
@@ -70,6 +71,8 @@ typedef struct ds_result {
   ds_result_state_t state;
   ds_result_value_t payload;
   ds_diagnostic_log_t diagnostics;
+  size_t
+      diagnostic_dropped; /* explicit truncation, preserved by composition */
 } ds_result_t;
 
 /* The C adaptation of Result<T,E> + an ordered diagnostic sequence:
@@ -97,6 +100,18 @@ ds_status_t ds_result_ok_ptr(ds_result_t *out, void *value,
 ds_status_t ds_result_err_ptr(ds_result_t *out, void *error,
                               const ds_diagnostics_t *diagnostics,
                               const ds_result_config_t *config);
+/* Retains an immutable owned error, including its cause chain. */
+ds_status_t ds_result_err_snapshot(ds_result_t *out,
+                                   ds_error_snapshot_t *error,
+                                   const ds_diagnostics_t *diagnostics,
+                                   const ds_result_config_t *config);
+/* Checked borrowed access for err_snapshot payloads (and their copies).
+ * Wrong branch: DS_ERR_STATE; other payload types: DS_ERR_INVALID.
+ * Output is unchanged on failure. Generic borrowed snapshot pointers have no
+ * runtime type evidence and are not accepted by this accessor. */
+ds_status_t ds_result_error_snapshot(const ds_result_t *result,
+                                     const ds_error_snapshot_t **out);
+size_t ds_result_diagnostic_dropped(const ds_result_t *result);
 bool ds_result_is_ok(const ds_result_t *result);
 bool ds_result_is_err(const ds_result_t *result);
 /* DS_ERR_STATE on the wrong branch, leaving *out unchanged. */
@@ -168,12 +183,14 @@ ds_status_t ds_result_drain_to(const ds_result_t *result,
 
 #define DS_RESULT_DEFINE_POINTERS(name, ok_type, error_type)                  \
   void name##_init(name *r) {                                                 \
-    if (r != NULL)                                                            \
+    if (r != NULL) {                                                          \
       ds_result_init(&r->core);                                               \
+    }                                                                         \
   }                                                                           \
   void name##_destroy(name *r) {                                              \
-    if (r != NULL)                                                            \
+    if (r != NULL) {                                                          \
       ds_result_destroy(&r->core);                                            \
+    }                                                                         \
   }                                                                           \
   ds_status_t name##_copy(const name *r, name *out) {                         \
     return r != NULL && out != NULL ? ds_result_copy(&r->core, &out->core)    \
@@ -193,21 +210,25 @@ ds_status_t ds_result_drain_to(const ds_result_t *result,
   ds_status_t name##_unwrap(const name *r, const ok_type **out) {             \
     const void *value;                                                        \
     ds_status_t st;                                                           \
-    if (r == NULL || out == NULL)                                             \
+    if (r == NULL || out == NULL) {                                           \
       return DS_ERR_NULL;                                                     \
+    }                                                                         \
     st = ds_result_unwrap(&r->core, &value);                                  \
-    if (st == DS_OK)                                                          \
+    if (st == DS_OK) {                                                        \
       *out = (const ok_type *)value;                                          \
+    }                                                                         \
     return st;                                                                \
   }                                                                           \
   ds_status_t name##_error(const name *r, const error_type **out) {           \
     const void *value;                                                        \
     ds_status_t st;                                                           \
-    if (r == NULL || out == NULL)                                             \
+    if (r == NULL || out == NULL) {                                           \
       return DS_ERR_NULL;                                                     \
+    }                                                                         \
     st = ds_result_error(&r->core, &value);                                   \
-    if (st == DS_OK)                                                          \
+    if (st == DS_OK) {                                                        \
       *out = (const error_type *)value;                                       \
+    }                                                                         \
     return st;                                                                \
   }
 

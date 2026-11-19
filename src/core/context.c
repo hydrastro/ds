@@ -136,8 +136,9 @@ void ds_context_emit_diagnostic(ds_context_t *context,
   if (context == NULL) {
     context = ds_default_context();
   }
-  if (context == NULL)
+  if (context == NULL) {
     context = ds_default_context();
+  }
   ds_diagnostic_emit_desc(context->diagnostic_sink, desc, args, arg_count,
                           file, line, function);
 }

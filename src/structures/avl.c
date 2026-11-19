@@ -33,8 +33,9 @@ ds_avl_t *ds_avl_create(ds_context_t *context) {
   return avl_create_internal(context);
 }
 ds_status_t ds_avl_create_context(ds_context_t *context, ds_avl_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = avl_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
@@ -281,12 +282,15 @@ static int avl_compare_direct(ds_avl_node_t *a, ds_avl_node_t *b, void *user) {
 }
 ds_status_t ds_avl_insert_with(ds_avl_t *tree, ds_avl_node_t *node,
                                ds_avl_compare_fn compare, void *user) {
-  if (tree == NULL || node == NULL || compare == NULL)
+  if (tree == NULL || node == NULL || compare == NULL) {
     return DS_ERR_NULL;
-  if (node == tree->nil)
+  }
+  if (node == tree->nil) {
     return DS_ERR_INVALID;
-  if (tree->size == (size_t)-1)
+  }
+  if (tree->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   return avl_insert_core(tree, node, compare, user);
 }
 void ds_avl_insert(ds_avl_t *tree, ds_avl_node_t *data,
@@ -366,14 +370,17 @@ static ds_avl_node_t *avl_clone_one(avl_clone_policy_t *p,
   if (p->checked != NULL) {
     p->status = p->checked(node, p->user, &copy);
     if (p->status != DS_OK) {
-      if (p->status > DS_OK)
+      if (p->status > DS_OK) {
         p->status = DS_ERR_CALLBACK;
+      }
       return NULL;
     }
-  } else
+  } else {
     copy = p->direct(node);
-  if (copy == NULL)
+  }
+  if (copy == NULL) {
     p->status = DS_ERR_CALLBACK;
+  }
   return copy;
 }
 static bool avl_clone_subtree(const ds_avl_t *tree, ds_avl_t *new_tree,
@@ -480,8 +487,9 @@ ds_status_t ds_avl_find_with(const ds_avl_t *tree, ds_avl_node_t *key,
                              ds_avl_compare_fn compare, void *user,
                              ds_avl_node_t **out) {
   ds_avl_node_t *node;
-  if (tree == NULL || key == NULL || compare == NULL || out == NULL)
+  if (tree == NULL || key == NULL || compare == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   node = tree->root;
   while (node != tree->nil) {
     int cmp = compare(key, node, user);
@@ -499,18 +507,21 @@ ds_status_t ds_avl_traverse_with(const ds_avl_t *tree, ds_avl_node_t *root,
   ds_avl_node_t *node, *parent;
   int state = 0;
   ds_status_t st;
-  if (tree == NULL || root == NULL || visit == NULL)
+  if (tree == NULL || root == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   if (order != DS_TREE_PREORDER && order != DS_TREE_INORDER &&
-      order != DS_TREE_POSTORDER)
+      order != DS_TREE_POSTORDER) {
     return DS_ERR_INVALID;
+  }
   node = root;
   while (node != tree->nil) {
     if (state == 0) {
       if (order == DS_TREE_PREORDER) {
         st = visit(node, user);
-        if (st != DS_OK)
+        if (st != DS_OK) {
           return st;
+        }
       }
       if (node->left != tree->nil) {
         node = node->left;
@@ -521,8 +532,9 @@ ds_status_t ds_avl_traverse_with(const ds_avl_t *tree, ds_avl_node_t *root,
     if (state == 1) {
       if (order == DS_TREE_INORDER) {
         st = visit(node, user);
-        if (st != DS_OK)
+        if (st != DS_OK) {
           return st;
+        }
       }
       if (node->right != tree->nil) {
         node = node->right;
@@ -532,11 +544,13 @@ ds_status_t ds_avl_traverse_with(const ds_avl_t *tree, ds_avl_node_t *root,
     }
     if (order == DS_TREE_POSTORDER) {
       st = visit(node, user);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         return st;
+      }
     }
-    if (node == root)
+    if (node == root) {
       break;
+    }
     parent = node->parent;
     state = node == parent->left ? 1 : 2;
     node = parent;
@@ -545,15 +559,17 @@ ds_status_t ds_avl_traverse_with(const ds_avl_t *tree, ds_avl_node_t *root,
 }
 ds_status_t ds_avl_walk_with(const ds_avl_t *tree, ds_avl_visit_fn visit,
                              void *user) {
-  if (tree == NULL)
+  if (tree == NULL) {
     return DS_ERR_NULL;
+  }
   return ds_avl_traverse_with(tree, tree->root, DS_TREE_INORDER, visit, user);
 }
 void ds_avl_destroy_with(ds_avl_t *tree, ds_avl_destroy_fn destroy,
                          void *user) {
   ds_avl_node_t *node, *parent;
-  if (tree == NULL)
+  if (tree == NULL) {
     return;
+  }
   node = tree->root;
   while (node != tree->nil) {
     if (node->left != tree->nil) {
@@ -566,13 +582,15 @@ void ds_avl_destroy_with(ds_avl_t *tree, ds_avl_destroy_fn destroy,
     }
     parent = node->parent;
     if (parent != tree->nil) {
-      if (parent->left == node)
+      if (parent->left == node) {
         parent->left = tree->nil;
-      else
+      } else {
         parent->right = tree->nil;
+      }
     }
-    if (destroy != NULL)
+    if (destroy != NULL) {
       destroy(node, user);
+    }
     node = parent;
   }
   ds_context_free(tree->context, tree->nil);
@@ -583,14 +601,17 @@ ds_status_t ds_avl_clone_with(const ds_avl_t *tree, ds_avl_clone_fn clone,
                               ds_context_t *context, ds_avl_t **out) {
   ds_avl_t *copy;
   avl_clone_policy_t policy;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (tree == NULL || clone == NULL || destroy == NULL)
+  if (tree == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   copy = avl_create_internal(context != NULL ? context : tree->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   policy.direct = NULL;
   policy.checked = clone;
   policy.user = user;

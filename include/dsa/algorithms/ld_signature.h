@@ -15,11 +15,11 @@
  *
  * - As RDF datasets (dsa/algorithms/rdf_canon.h) for both the document and the
  * proof options: ds_lds_hash_data computes the hash data of Data Integrity,
- *   H(c14n(proof options)) || H(c14n(document)), with any dsa/algorithms/sha2.h
- * digest (SHA-256 by default, SHA-384 for P-384 suites). Given the same RDF it
- *   matches other implementations; turning JSON-LD into RDF is up to the
- *   caller. ds_lds_sign_data and ds_lds_verify_data then sign or check
- *   those bytes.
+ *   H(c14n(proof options)) || H(c14n(document)), with any
+ * dsa/algorithms/sha2.h digest (SHA-256 by default, SHA-384 for P-384 suites).
+ * Given the same RDF it matches other implementations; turning JSON-LD into
+ * RDF is up to the caller. ds_lds_sign_data and ds_lds_verify_data then sign
+ * or check those bytes.
  * - As N-Quads statements (one per string) with proof options as
  *   name/value pairs: ds_lds_tbs, ds_lds_sign and ds_lds_verify. The
  *   statements are canonicalized with RDFC-1.0 too, but the options are
@@ -107,7 +107,8 @@ ds_status_t ds_lds_multibase_decode(const char *text, size_t len,
  * out (room for 49 with the NUL); and back (DS_ERR_INVALID for text that
  * is not an Ed25519 Multikey). */
 #define DS_LDS_ED25519_MULTIKEY_LEN 48
-ds_status_t ds_lds_ed25519_multikey(const unsigned char *public_key, char *out);
+ds_status_t ds_lds_ed25519_multikey(const unsigned char *public_key,
+                                    char *out);
 ds_status_t ds_lds_ed25519_from_multikey(const char *text, size_t len,
                                          unsigned char *public_key);
 
@@ -149,8 +150,9 @@ ds_status_t ds_lds_sign(const char *const *quads, size_t n,
 /* DS_OK when the signature verifies, DS_NOT_FOUND when it does not. */
 ds_status_t ds_lds_verify(const char *const *quads, size_t n,
                           const ds_lds_option_t *options, size_t n_options,
-                          const ds_lds_suite_t *suite, const unsigned char *sig,
-                          size_t sig_len, ds_context_t *context);
+                          const ds_lds_suite_t *suite,
+                          const unsigned char *sig, size_t sig_len,
+                          ds_context_t *context);
 
 #ifdef __cplusplus
 }

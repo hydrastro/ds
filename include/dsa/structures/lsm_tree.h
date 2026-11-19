@@ -29,9 +29,9 @@
  *
  * Key order: config.comparator (NULL: bytewise) orders the memtable, the
  * merges and the iterators, and is recorded in every table it writes (see
- * dsa/structures/sstable.h); the comparator is copied into lsm->cmp at init and
- * the caller's pointer is not kept (config.comparator reads NULL afterwards).
- * Tables with a custom comparator carry filters only with
+ * dsa/structures/sstable.h); the comparator is copied into lsm->cmp at init
+ * and the caller's pointer is not kept (config.comparator reads NULL
+ * afterwards). Tables with a custom comparator carry filters only with
  * config.key_hash, a hash consistent with it (copied the same way into
  * lsm->key_hash).
  *
@@ -43,44 +43,44 @@
  * Persistence (config.store, a dsa/structures/pager.h page store; NULL keeps
  * everything in memory): every table is also written to a run of pages, a
  * manifest lists the tables, and a write-ahead log keeps the updates since the
- * last flush, so ds_lsm_init on a store that holds a tree recovers it. log each
- * put and delete is appended to the log; ds_lsm_sync writes the pending records
- * and syncs the store (sync_every N does it after every N updates). A log page
- * is never overwritten in place while it holds synced records: the page being
- * filled alternates between two locations, with a version and a checksum, and
- * full pages are sealed, so a torn or lost write costs at most the records
- * after the last sync flush     writes the new tables (from the flush and the
- * compactions it triggers), then a new manifest, syncs, and only then publishes
- * it by writing one of two alternating slot pages (pages 0 and 1, with a
- * sequence number and checksum) and syncing again; the log restarts empty space
- * pages referenced by the published manifest or by the one before it (the
- * fallback if the newest slot is torn) are never reused; other pages are reused
- * first fit, and the store is truncated past the last page in use recovery
- * ds_lsm_init reads both slots, takes the newest whose manifest checks out,
- * loads its tables and replays the log up to the first page that is missing,
- * torn or not sealed before a later one; replayed updates are flushed into a
- * table at once. The result is the state after some prefix of the updates,
- * including every update before the last completed ds_lsm_sync or flush Read
- * failures from the page store abort recovery; only invalid on-disk images
- * trigger fallback to an older slot or truncate the recovered log. Overlapping
- * page runs and cyclic log chains are rejected. Log page versions seal before
- * their 32-bit field wraps; exhausting a sequence or page-index field returns
- * DS_ERR_OVERFLOW instead of wrapping. After a failed log sync, a retry
- * completes the store sync before another log version may reuse the location of
- * the last successfully synced image. Durability is only as good as the store's
- * sync (dsa/structures/pager.h's DS_PAGE_STORE_DURABLE_SYNC trait: the stdio
- * file store's sync is fflush, which survives a crash of the process, not of
- * the machine). An empty store starts a new tree: an initialization marker goes
- * to slot 0's page first, so a store where that start was cut short (an
- * identifiable marker and no valid slot: nothing committed) starts over, while
- * a store with neither is DS_ERR_INVALID, never overwritten. A torn marker
- * whose complete magic did not land, including an all-zero page, is
- * unidentifiable and is refused; recovery cannot distinguish it from a foreign
- * file. By default tables are loaded into memory. With out_of_core, opening
- * streams checksum verification and retains only metadata; lookups and
- * iterators read blocks through per-table pagers. Flush/compaction output
- * is still built in memory. Updates since the last sync are lost at
- * ds_lsm_destroy unless synced first.
+ * last flush, so ds_lsm_init on a store that holds a tree recovers it. log
+ * each put and delete is appended to the log; ds_lsm_sync writes the pending
+ * records and syncs the store (sync_every N does it after every N updates). A
+ * log page is never overwritten in place while it holds synced records: the
+ * page being filled alternates between two locations, with a version and a
+ * checksum, and full pages are sealed, so a torn or lost write costs at most
+ * the records after the last sync flush     writes the new tables (from the
+ * flush and the compactions it triggers), then a new manifest, syncs, and only
+ * then publishes it by writing one of two alternating slot pages (pages 0 and
+ * 1, with a sequence number and checksum) and syncing again; the log restarts
+ * empty space pages referenced by the published manifest or by the one before
+ * it (the fallback if the newest slot is torn) are never reused; other pages
+ * are reused first fit, and the store is truncated past the last page in use
+ * recovery ds_lsm_init reads both slots, takes the newest whose manifest
+ * checks out, loads its tables and replays the log up to the first page that
+ * is missing, torn or not sealed before a later one; replayed updates are
+ * flushed into a table at once. The result is the state after some prefix of
+ * the updates, including every update before the last completed ds_lsm_sync or
+ * flush Read failures from the page store abort recovery; only invalid on-disk
+ * images trigger fallback to an older slot or truncate the recovered log.
+ * Overlapping page runs and cyclic log chains are rejected. Log page versions
+ * seal before their 32-bit field wraps; exhausting a sequence or page-index
+ * field returns DS_ERR_OVERFLOW instead of wrapping. After a failed log sync,
+ * a retry completes the store sync before another log version may reuse the
+ * location of the last successfully synced image. Durability is only as good
+ * as the store's sync (dsa/structures/pager.h's DS_PAGE_STORE_DURABLE_SYNC
+ * trait: the stdio file store's sync is fflush, which survives a crash of the
+ * process, not of the machine). An empty store starts a new tree: an
+ * initialization marker goes to slot 0's page first, so a store where that
+ * start was cut short (an identifiable marker and no valid slot: nothing
+ * committed) starts over, while a store with neither is DS_ERR_INVALID, never
+ * overwritten. A torn marker whose complete magic did not land, including an
+ * all-zero page, is unidentifiable and is refused; recovery cannot distinguish
+ * it from a foreign file. By default tables are loaded into memory. With
+ * out_of_core, opening streams checksum verification and retains only
+ * metadata; lookups and iterators read blocks through per-table pagers.
+ * Flush/compaction output is still built in memory. Updates since the last
+ * sync are lost at ds_lsm_destroy unless synced first.
  *
  * Values returned by get last until mutation, and in out_of_core mode until
  * the next get. Iterator views last until that iterator moves or the tree is

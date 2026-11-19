@@ -53,7 +53,8 @@ static void lc_apply(ds_lct_t *t, size_t x, const void *tag) {
   t->config.tag_apply_elem(lc_elem(t, x), tag, t->config.user);
   if (t->config.summary_size > 0) {
     t->config.tag_apply_summary(lc_sum(t, x), tag, t->size[x], t->config.user);
-    t->config.tag_apply_summary(lc_rsum(t, x), tag, t->size[x], t->config.user);
+    t->config.tag_apply_summary(lc_rsum(t, x), tag, t->size[x],
+                                t->config.user);
   }
   if (t->tagged[x]) {
     t->config.tag_compose(lc_tag(t, x), tag, t->config.user);
@@ -219,8 +220,9 @@ ds_status_t ds_lct_init(ds_lct_t *t, size_t n, const void *elems,
   if (c.summary_size > 0 && (c.summarize == NULL || c.combine == NULL)) {
     return DS_ERR_NULL;
   }
-  if (c.tag_size > 0 && (c.tag_apply_elem == NULL || c.tag_compose == NULL ||
-                         (c.summary_size > 0 && c.tag_apply_summary == NULL))) {
+  if (c.tag_size > 0 &&
+      (c.tag_apply_elem == NULL || c.tag_compose == NULL ||
+       (c.summary_size > 0 && c.tag_apply_summary == NULL))) {
     return DS_ERR_NULL;
   }
   es = c.elem_size;
@@ -230,7 +232,8 @@ ds_status_t ds_lct_init(ds_lct_t *t, size_t n, const void *elems,
    * 2n summaries (forward and reversed), n tags, 3 scratch summaries */
   if (!ds_size_mul(5 * sizeof(size_t), n, &b_idx) ||
       !ds_size_mul(2, n, &b_flags) || !ds_size_mul_add(n, es, 1, &b_elems) ||
-      !ds_size_mul(2, n, &b_sums) || !ds_size_mul_add(b_sums, ss, 1, &b_sums) ||
+      !ds_size_mul(2, n, &b_sums) ||
+      !ds_size_mul_add(b_sums, ss, 1, &b_sums) ||
       !ds_size_mul_add(n, ts, 1, &b_tags) ||
       !ds_size_mul_add(3, ss, 1, &b_scratch)) {
     return DS_ERR_OVERFLOW;
@@ -280,7 +283,9 @@ void ds_lct_destroy(ds_lct_t *t) {
   memset(t, 0, sizeof(*t));
 }
 
-static bool lc_ok(const ds_lct_t *t, size_t v) { return t != NULL && v < t->n; }
+static bool lc_ok(const ds_lct_t *t, size_t v) {
+  return t != NULL && v < t->n;
+}
 
 ds_status_t ds_lct_link(ds_lct_t *t, size_t u, size_t v) {
   if (t == NULL) {

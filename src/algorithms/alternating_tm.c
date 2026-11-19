@@ -358,7 +358,8 @@ static ds_status_t at_explore(at_run_t *r) {
       size_t to = AT_BEYOND;
       st = at_successor(s, tm, &c, first + j, r->scratch, r->space, &too_wide);
       if (st == DS_OK) {
-        st = at_intern(s, &r->map, r->max_configs, r->max_bytes, too_wide, &to);
+        st =
+            at_intern(s, &r->map, r->max_configs, r->max_bytes, too_wide, &to);
       } else {
         s->used = s->at[s->count]; /* drop the partial candidate */
       }

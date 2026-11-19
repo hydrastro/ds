@@ -88,7 +88,8 @@ void ds_shuffle(void *base, size_t count, size_t elem_size,
   }
   for (i = count; i > 1; i--) {
     j = seq_bounded(random, random_state, i);
-    ds_elem_swap(AT(base, i - 1, elem_size), AT(base, j, elem_size), elem_size);
+    ds_elem_swap(AT(base, i - 1, elem_size), AT(base, j, elem_size),
+                 elem_size);
   }
 }
 
@@ -128,7 +129,8 @@ size_t ds_partition(void *base, size_t count, size_t elem_size,
     if (i + 1 >= j) {
       return i;
     }
-    ds_elem_swap(AT(base, i, elem_size), AT(base, j - 1, elem_size), elem_size);
+    ds_elem_swap(AT(base, i, elem_size), AT(base, j - 1, elem_size),
+                 elem_size);
     i++;
     j--;
   }
@@ -219,8 +221,8 @@ size_t ds_merge(const void *a, size_t a_count, const void *b, size_t b_count,
 }
 
 size_t ds_set_union(const void *a, size_t a_count, const void *b,
-                    size_t b_count, size_t elem_size, ds_compare_func_t compare,
-                    void *user, void *out) {
+                    size_t b_count, size_t elem_size,
+                    ds_compare_func_t compare, void *user, void *out) {
   return seq_set(a, a_count, b, b_count, elem_size, compare, user, out,
                  SEQ_UNION);
 }
@@ -239,10 +241,10 @@ size_t ds_set_difference(const void *a, size_t a_count, const void *b,
                  SEQ_DIFF);
 }
 
-size_t ds_set_symmetric_difference(const void *a, size_t a_count, const void *b,
-                                   size_t b_count, size_t elem_size,
-                                   ds_compare_func_t compare, void *user,
-                                   void *out) {
+size_t ds_set_symmetric_difference(const void *a, size_t a_count,
+                                   const void *b, size_t b_count,
+                                   size_t elem_size, ds_compare_func_t compare,
+                                   void *user, void *out) {
   return seq_set(a, a_count, b, b_count, elem_size, compare, user, out,
                  SEQ_SYMDIFF);
 }
@@ -387,8 +389,8 @@ ds_status_t ds_majority_element(const void *base, size_t count,
     if (votes == 0) {
       candidate = i;
       votes = 1;
-    } else if (compare(CAT(base, i, elem_size), CAT(base, candidate, elem_size),
-                       user) == 0) {
+    } else if (compare(CAT(base, i, elem_size),
+                       CAT(base, candidate, elem_size), user) == 0) {
       votes++;
     } else {
       votes--;
@@ -453,7 +455,8 @@ long ds_max_subarray_long(const long *values, size_t count, size_t *out_first,
   return best;
 }
 
-/* ---- perfect shuffle --------------------------------------------------------
+/* ---- perfect shuffle
+ * --------------------------------------------------------
  */
 
 /* the riffle of the 2m elements at a (1-based positions): i -> 2i mod
@@ -467,7 +470,8 @@ static void sq_cycles(unsigned char *a, size_t m, size_t elem_size,
   for (s = 1; s < mod; s *= 3) {
     size_t j = s * mult % mod;
     while (j != s) {
-      ds_elem_swap(a + (s - 1) * elem_size, a + (j - 1) * elem_size, elem_size);
+      ds_elem_swap(a + (s - 1) * elem_size, a + (j - 1) * elem_size,
+                   elem_size);
       j = j * mult % mod;
     }
   }

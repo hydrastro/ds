@@ -287,11 +287,11 @@ ds_status_t ds_dc_init(ds_dynconn_t *g, size_t n, ds_context_t *context) {
     memset(g, 0, sizeof(*g));
     return DS_ERR_ALLOC;
   }
-  st = ds_map_init(&g->by_ends, NULL, sizeof(dc_key_t), sizeof(size_t), dc_hash,
-                   dc_equal, NULL, context);
+  st = ds_map_init(&g->by_ends, NULL, sizeof(dc_key_t), sizeof(size_t),
+                   dc_hash, dc_equal, NULL, context);
   if (st == DS_OK) {
-    st = ds_map_init(&g->heads, NULL, sizeof(dc_key_t), sizeof(size_t), dc_hash,
-                     dc_equal, NULL, context);
+    st = ds_map_init(&g->heads, NULL, sizeof(dc_key_t), sizeof(size_t),
+                     dc_hash, dc_equal, NULL, context);
     if (st != DS_OK) {
       ds_map_destroy(&g->by_ends);
     }
@@ -646,7 +646,8 @@ bool ds_dc_check(ds_dynconn_t *g) {
         size_t prev = DC_NONE;
         while (f != DC_NONE) {
           unsigned s;
-          if (f >= g->edge_slots || !g->edge[f].live || g->edge[f].level != i ||
+          if (f >= g->edge_slots || !g->edge[f].live ||
+              g->edge[f].level != i ||
               (unsigned)(g->edge[f].tree ? DC_TREE : DC_NONTREE) != kind ||
               (g->edge[f].end[0] != x && g->edge[f].end[1] != x) ||
               len > g->edge_slots) {

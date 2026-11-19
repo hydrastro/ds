@@ -43,7 +43,8 @@ bool ds_size_mul_add(size_t a, size_t b, size_t c, size_t *out);
 bool ds_size_align(size_t n, size_t align, size_t *out);
 /* is align a power of two */
 bool ds_size_is_pow2(size_t align);
-/* Signed arithmetic without undefined overflow; output unchanged on failure. */
+/* Signed arithmetic without undefined overflow; output unchanged on failure.
+ */
 bool ds_long_add(long a, long b, long *out);
 bool ds_long_sub(long a, long b, long *out);
 /* is the address of p a multiple of align */

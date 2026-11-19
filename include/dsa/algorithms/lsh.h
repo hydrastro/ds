@@ -40,8 +40,9 @@ typedef struct ds_minhash {
   ds_context_t *context;
 } ds_minhash_t;
 
-ds_status_t ds_minhash_init(ds_minhash_t *mh, size_t k, ds_random_func_t random,
-                            void *random_state, ds_context_t *context);
+ds_status_t ds_minhash_init(ds_minhash_t *mh, size_t k,
+                            ds_random_func_t random, void *random_state,
+                            ds_context_t *context);
 void ds_minhash_destroy(ds_minhash_t *mh);
 /* out: k entries. An empty set gets all entries equal to p (2^31 - 1). */
 void ds_minhash_signature(const ds_minhash_t *mh,
@@ -57,8 +58,8 @@ double ds_jaccard_sorted(const unsigned long *a, size_t na,
 
 /* Hash each of `bands` bands of a k-entry signature (k divisible by bands)
  * into out_bands[bands]. */
-ds_status_t ds_lsh_bands(const unsigned long *signature, size_t k, size_t bands,
-                         unsigned long *out_bands);
+ds_status_t ds_lsh_bands(const unsigned long *signature, size_t k,
+                         size_t bands, unsigned long *out_bands);
 /* Probability that two items of similarity s become candidates. */
 double ds_lsh_candidate_probability(double s, size_t rows, size_t bands);
 

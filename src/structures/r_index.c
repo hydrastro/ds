@@ -85,8 +85,9 @@ static unsigned ri_symbol(const unsigned char *text, const size_t *sa,
   return sa[row] == 0 ? 0u : (unsigned)text[sa[row] - 1] + 1u;
 }
 
-ds_status_t ds_rindex_build(ds_rindex_t *r, const unsigned char *text, size_t n,
-                            ds_fm_sa_builder_t builder, ds_context_t *context) {
+ds_status_t ds_rindex_build(ds_rindex_t *r, const unsigned char *text,
+                            size_t n, ds_fm_sa_builder_t builder,
+                            ds_context_t *context) {
   size_t *sa;
   size_t rows;
   size_t bytes;
@@ -131,8 +132,9 @@ ds_status_t ds_rindex_build(ds_rindex_t *r, const unsigned char *text, size_t n,
   r->end_sa = (size_t *)ds_context_alloc(context, runs * sizeof(size_t));
   r->phi_pos = (size_t *)ds_context_alloc(context, runs * sizeof(size_t));
   r->phi_val = (size_t *)ds_context_alloc(context, runs * sizeof(size_t));
-  if (r->start == NULL || r->sym == NULL || r->list == NULL || r->cum == NULL ||
-      r->end_sa == NULL || r->phi_pos == NULL || r->phi_val == NULL) {
+  if (r->start == NULL || r->sym == NULL || r->list == NULL ||
+      r->cum == NULL || r->end_sa == NULL || r->phi_pos == NULL ||
+      r->phi_val == NULL) {
     ri_free(r);
     ds_context_free(context, sa);
     return DS_ERR_ALLOC;

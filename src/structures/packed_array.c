@@ -107,7 +107,8 @@ ds_status_t ds_packed_array_init(ds_packed_array_t *array, unsigned int bits,
 }
 
 ds_status_t ds_packed_array_init_buffer(ds_packed_array_t *array,
-                                        unsigned int bits, unsigned long *words,
+                                        unsigned int bits,
+                                        unsigned long *words,
                                         size_t word_count) {
   if (array == NULL || (words == NULL && word_count > 0)) {
     return DS_ERR_NULL;
@@ -151,7 +152,8 @@ ds_status_t ds_packed_array_get(const ds_packed_array_t *array, size_t index,
   return DS_OK;
 }
 
-unsigned long ds_packed_array_at(const ds_packed_array_t *array, size_t index) {
+unsigned long ds_packed_array_at(const ds_packed_array_t *array,
+                                 size_t index) {
   return index < array->size ? pa_read(array, index) : 0UL;
 }
 
@@ -167,7 +169,8 @@ ds_status_t ds_packed_array_set(ds_packed_array_t *array, size_t index,
   return DS_OK;
 }
 
-ds_status_t ds_packed_array_reserve(ds_packed_array_t *array, size_t capacity) {
+ds_status_t ds_packed_array_reserve(ds_packed_array_t *array,
+                                    size_t capacity) {
   size_t words;
   if (capacity <= array->capacity) {
     return DS_OK;
@@ -193,8 +196,8 @@ ds_status_t ds_packed_array_push(ds_packed_array_t *array,
     if (array->word_count > PA_SIZE_MAX / 2) {
       return DS_ERR_OVERFLOW;
     }
-    words =
-        array->word_count < PA_MIN_WORDS ? PA_MIN_WORDS : array->word_count * 2;
+    words = array->word_count < PA_MIN_WORDS ? PA_MIN_WORDS
+                                             : array->word_count * 2;
     status = pa_set_words(array, words);
     if (status != DS_OK) {
       return status;

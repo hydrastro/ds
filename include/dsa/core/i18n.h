@@ -13,8 +13,8 @@ extern "C" {
 #endif
 
 /* Locale/domain/key catalogs and diagnostic rendering. Text remains UTF-8
- * bytes; translation does not mutate the process locale. Registered strings are
- * owned copies. Formatter/provider user data is borrowed. A translator is
+ * bytes; translation does not mutate the process locale. Registered strings
+ * are owned copies. Formatter/provider user data is borrowed. A translator is
  * externally synchronized.
  *
  * Local entries override an optional provider; within a locale later sets
@@ -52,8 +52,8 @@ typedef struct ds_i18n_message {
 } ds_i18n_message_t;
 /* DS_OK with a borrowed message valid through this render, DS_NOT_FOUND,
  * or a negative operational failure. */
-typedef ds_status_t (*ds_i18n_lookup_fn)(const char *locale, const char *domain,
-                                         const char *key,
+typedef ds_status_t (*ds_i18n_lookup_fn)(const char *locale,
+                                         const char *domain, const char *key,
                                          ds_i18n_message_t *out, void *user);
 
 typedef struct ds_i18n_config {
@@ -89,7 +89,8 @@ typedef struct ds_i18n_text {
 } ds_i18n_text_t;
 
 void ds_i18n_config_init(ds_i18n_config_t *config);
-ds_status_t ds_i18n_init(ds_i18n_t *translator, const ds_i18n_config_t *config);
+ds_status_t ds_i18n_init(ds_i18n_t *translator,
+                         const ds_i18n_config_t *config);
 void ds_i18n_destroy(ds_i18n_t *translator);
 ds_status_t ds_i18n_set_locale(ds_i18n_t *translator, const char *locale);
 /* DS_OK on insertion, DS_EXISTS on replacement; failure changes nothing. */
@@ -107,8 +108,8 @@ typedef struct ds_i18n_entry {
 } ds_i18n_entry_t;
 /* Apply entries in order, publishing all changes together. Existing entries
  * and options are preserved on failure. O(existing + incoming) copied records
- * plus the selected map's insertion costs. Formatter user data remains borrowed
- * and must not point into storage owned by this translator. */
+ * plus the selected map's insertion costs. Formatter user data remains
+ * borrowed and must not point into storage owned by this translator. */
 ds_status_t ds_i18n_set_many(ds_i18n_t *translator,
                              const ds_i18n_entry_t *entries, size_t count);
 ds_status_t ds_i18n_remove(ds_i18n_t *translator, const char *locale,

@@ -52,7 +52,8 @@ int main(void) {
     if (ds_atm_accepts(&tm, tape, n, NULL, &out, &st) != DS_OK) {
       return 1;
     }
-    printf(" %lu:%s", (unsigned long)n, out == DS_TM_ACCEPT ? "wins" : "loses");
+    printf(" %lu:%s", (unsigned long)n,
+           out == DS_TM_ACCEPT ? "wins" : "loses");
     if (n == TOKENS) {
       printf("\n  (%lu tokens: %lu configurations, %lu transitions)\n",
              (unsigned long)n, (unsigned long)st.configs,

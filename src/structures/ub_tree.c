@@ -65,11 +65,11 @@ static ds_status_t ub_node(ds_ub_tree_t *t, bool leaf, size_t *out) {
     if (t->nodes == t->capacity) {
       size_t nc = t->capacity < 8 ? 8 : t->capacity * 2;
       void *p;
-#define UB_RE(field, type, per)                                                \
-  p = ds_context_realloc(t->context, t->field, nc * (per) * sizeof(type));     \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define UB_RE(field, type, per)                                               \
+  p = ds_context_realloc(t->context, t->field, nc * (per) * sizeof(type));    \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   t->field = (type *)p;
       UB_RE(leaf, unsigned char, 1)
       UB_RE(count, size_t, 1)
@@ -191,8 +191,8 @@ static void ub_lower(const ds_ub_tree_t *t, const unsigned long *z,
   *out_pos = i;
 }
 
-static void ub_move(ds_ub_tree_t *t, size_t dv, size_t di, size_t sv, size_t si,
-                    size_t n) {
+static void ub_move(ds_ub_tree_t *t, size_t dv, size_t di, size_t sv,
+                    size_t si, size_t n) {
   memmove(ub_key(t, dv, di), ub_key(t, sv, si),
           n * t->words * sizeof(unsigned long));
   if (t->leaf[sv]) {
@@ -558,11 +558,11 @@ static ds_status_t ubr_node(ds_ubranch_tree_t *t, size_t elem, size_t parent,
     if (t->nodes == t->capacity) {
       size_t nc = t->capacity < 8 ? 16 : t->capacity * 2;
       void *p;
-#define UBR_RE(field, type)                                                    \
-  p = ds_context_realloc(t->context, t->field, nc * sizeof(type));             \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define UBR_RE(field, type)                                                   \
+  p = ds_context_realloc(t->context, t->field, nc * sizeof(type));            \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   t->field = (type *)p;
       UBR_RE(elem, size_t)
       UBR_RE(parent, size_t)
@@ -748,8 +748,9 @@ static size_t ubr_walk(const ds_ubranch_tree_t *t, const size_t *list,
   return v;
 }
 
-ds_status_t ds_ubranch_tree_find(const ds_ubranch_tree_t *t, const size_t *list,
-                                 size_t n, size_t *out_value) {
+ds_status_t ds_ubranch_tree_find(const ds_ubranch_tree_t *t,
+                                 const size_t *list, size_t n,
+                                 size_t *out_value) {
   size_t v;
   if (t == NULL || list == NULL) {
     return DS_ERR_NULL;
@@ -848,8 +849,8 @@ ds_status_t ds_ubranch_tree_subsets(ds_ubranch_tree_t *t, const size_t *set,
   if (n > 1 && !ubr_list_ok(set, n)) {
     return DS_ERR_INVALID;
   }
-  stack = (ubr_frame_t *)ds_context_alloc(t->context,
-                                          (t->nodes + 1) * sizeof(ubr_frame_t));
+  stack = (ubr_frame_t *)ds_context_alloc(t->context, (t->nodes + 1) *
+                                                          sizeof(ubr_frame_t));
   if (stack == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -908,8 +909,8 @@ ds_status_t ds_ubranch_tree_supersets(ds_ubranch_tree_t *t, const size_t *set,
   if (n > 1 && !ubr_list_ok(set, n)) {
     return DS_ERR_INVALID;
   }
-  stack = (ubr_frame_t *)ds_context_alloc(t->context,
-                                          (t->nodes + 1) * sizeof(ubr_frame_t));
+  stack = (ubr_frame_t *)ds_context_alloc(t->context, (t->nodes + 1) *
+                                                          sizeof(ubr_frame_t));
   if (stack == NULL) {
     return DS_ERR_ALLOC;
   }

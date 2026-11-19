@@ -50,7 +50,8 @@ extern "C" {
 typedef bool (*ds_grid_visit_func_t)(const double *item, size_t value,
                                      void *user);
 
-/* ---- fixed grid ---------------------------------------------------------- */
+/* ---- fixed grid ----------------------------------------------------------
+ */
 
 typedef struct ds_fixed_grid {
   size_t dim;
@@ -79,9 +80,10 @@ ds_status_t ds_fixed_grid_remove(ds_fixed_grid_t *g, const double *point,
                                  size_t value);
 ds_status_t ds_fixed_grid_query(const ds_fixed_grid_t *g, const double *box,
                                 ds_grid_visit_func_t visit, void *user);
-ds_status_t ds_fixed_grid_nearest(const ds_fixed_grid_t *g, const double *point,
-                                  size_t k, size_t *out_values,
-                                  double *out_dist, size_t *out_found);
+ds_status_t ds_fixed_grid_nearest(const ds_fixed_grid_t *g,
+                                  const double *point, size_t k,
+                                  size_t *out_values, double *out_dist,
+                                  size_t *out_found);
 
 /* ---- grid file
  * ---------------------------------------------------------------- */
@@ -131,8 +133,8 @@ ds_status_t ds_grid_file_find(const ds_grid_file_t *g, const double *point,
 ds_status_t ds_grid_file_query(ds_grid_file_t *g, const double *box,
                                ds_grid_visit_func_t visit, void *user);
 ds_status_t ds_grid_file_nearest(const ds_grid_file_t *g, const double *point,
-                                 size_t k, size_t *out_values, double *out_dist,
-                                 size_t *out_found);
+                                 size_t k, size_t *out_values,
+                                 double *out_dist, size_t *out_found);
 /* The region of the bucket holding the point (2d doubles, half-open). */
 ds_status_t ds_grid_file_region(const ds_grid_file_t *g, const double *point,
                                 double *out_region);

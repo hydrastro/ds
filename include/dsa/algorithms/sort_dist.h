@@ -103,7 +103,8 @@ ds_status_t ds_rapid_sort_ulong(unsigned long *values, size_t count,
 ds_status_t ds_restricted_universe_sort(void *base, size_t count,
                                         size_t elem_size,
                                         ds_index_key_func_t key, void *user,
-                                        size_t universe, ds_context_t *context);
+                                        size_t universe,
+                                        ds_context_t *context);
 /* compare must agree with key order. scratch: count elements, counts:
  * count + 1 entries. Stable. ds_interpolation_sort is the same. */
 ds_status_t ds_histogram_sort(void *base, size_t count, size_t elem_size,
@@ -124,8 +125,9 @@ ds_status_t ds_flash_sort(void *base, size_t count, size_t elem_size,
 /* Stable. DS_ERR_OVERFLOW (input unchanged) if the overflow area runs
  * out (heavily skewed keys). */
 ds_status_t ds_linear_probing_sort(void *base, size_t count, size_t elem_size,
-                                   ds_key_func_t key, ds_compare_func_t compare,
-                                   void *user, ds_context_t *context);
+                                   ds_key_func_t key,
+                                   ds_compare_func_t compare, void *user,
+                                   ds_context_t *context);
 /* Not stable. */
 ds_status_t
 ds_distributive_partitioning_sort(void *base, size_t count, size_t elem_size,

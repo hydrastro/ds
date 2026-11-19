@@ -67,8 +67,8 @@ ds_status_t ds_confluent_from_array(ds_confluent_store_t *s, const void *elems,
                                     size_t count, size_t *out);
 const void *ds_confluent_get(const ds_confluent_store_t *s, size_t list,
                              size_t index);
-ds_status_t ds_confluent_set(ds_confluent_store_t *s, size_t list, size_t index,
-                             const void *elem, size_t *out);
+ds_status_t ds_confluent_set(ds_confluent_store_t *s, size_t list,
+                             size_t index, const void *elem, size_t *out);
 ds_status_t ds_confluent_insert(ds_confluent_store_t *s, size_t list,
                                 size_t index, const void *elem, size_t *out);
 ds_status_t ds_confluent_push_front(ds_confluent_store_t *s, size_t list,

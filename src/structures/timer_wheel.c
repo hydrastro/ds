@@ -144,7 +144,8 @@ ds_status_t ds_timer_wheel_start(ds_timer_wheel_t *wheel, ds_timer_t *timer,
 }
 
 ds_status_t ds_timer_wheel_start_after(ds_timer_wheel_t *wheel,
-                                       ds_timer_t *timer, unsigned long delay) {
+                                       ds_timer_t *timer,
+                                       unsigned long delay) {
   if (wheel == NULL) {
     return DS_ERR_NULL;
   }

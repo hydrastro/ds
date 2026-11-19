@@ -80,8 +80,9 @@ ds_status_t ds_maximal_independent_set(const unsigned char *adj, size_t n,
                                        unsigned char *in_set,
                                        size_t *out_rounds,
                                        ds_context_t *context);
-ds_status_t ds_min_vertex_cover(const unsigned char *adj, size_t n, size_t *out,
-                                size_t *out_size, ds_context_t *context);
+ds_status_t ds_min_vertex_cover(const unsigned char *adj, size_t n,
+                                size_t *out, size_t *out_size,
+                                ds_context_t *context);
 ds_status_t ds_vertex_cover_approx(const unsigned char *adj, size_t n,
                                    unsigned char *in_cover, size_t *out_size);
 
@@ -106,16 +107,16 @@ ds_status_t ds_chromatic_number(const unsigned char *adj, size_t n,
 ds_status_t ds_edge_color(const unsigned char *adj, size_t n, size_t *ecolor,
                           size_t *out_colors, ds_context_t *context);
 ds_status_t ds_chromatic_index(const unsigned char *adj, size_t n,
-                               size_t *ecolor, size_t *out_index, size_t budget,
-                               ds_context_t *context);
+                               size_t *ecolor, size_t *out_index,
+                               size_t budget, ds_context_t *context);
 
 typedef enum ds_ham_method { DS_HAM_DP = 0, DS_HAM_BACKTRACK } ds_ham_method_t;
 
 /* adj may be directed. order: n vertices. cycle: also require the edge
  * from the last vertex back to the first. DS_NOT_FOUND when none. */
 ds_status_t ds_hamiltonian(const unsigned char *adj, size_t n, bool cycle,
-                           ds_ham_method_t method, size_t *order, size_t budget,
-                           ds_context_t *context);
+                           ds_ham_method_t method, size_t *order,
+                           size_t budget, ds_context_t *context);
 /* DAG (directed adj): path_id[v] in [0, *out_paths) and next[v] the
  * following vertex on its path (or ~0). */
 ds_status_t ds_path_cover(const unsigned char *adj, size_t n, size_t *path_id,
@@ -131,9 +132,9 @@ ds_status_t ds_feedback_vertex_set(const unsigned char *adj, size_t n,
                                    ds_context_t *context);
 
 /* map[v] = image of v. DS_NOT_FOUND when none exists. */
-ds_status_t ds_graph_isomorphism(const unsigned char *a, const unsigned char *b,
-                                 size_t n, size_t *map, size_t budget,
-                                 ds_context_t *context);
+ds_status_t ds_graph_isomorphism(const unsigned char *a,
+                                 const unsigned char *b, size_t n, size_t *map,
+                                 size_t budget, ds_context_t *context);
 /* map: pattern vertex -> target vertex. */
 ds_status_t ds_subgraph_isomorphism(const unsigned char *pattern, size_t np,
                                     const unsigned char *target, size_t nt,

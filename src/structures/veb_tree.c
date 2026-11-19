@@ -6,7 +6,8 @@
 #define VEB_DENSE_BITS 10U /* <= 2^10 clusters: dense pointer array */
 #define VEB_WIDTH ((unsigned int)(CHAR_BIT * sizeof(unsigned long)))
 
-/* ---- word helpers -------------------------------------------------------- */
+/* ---- word helpers --------------------------------------------------------
+ */
 
 static unsigned long veb_lowest(unsigned long m) {
   unsigned long i = 0;
@@ -35,7 +36,8 @@ static unsigned long veb_below(unsigned long m, unsigned long x) {
   return x == 0 ? 0UL : m & ((1UL << x) - 1UL);
 }
 
-/* ---- node helpers -------------------------------------------------------- */
+/* ---- node helpers --------------------------------------------------------
+ */
 
 static bool veb_is_leaf(const ds_veb_node_t *n) {
   return n->bits <= VEB_LEAF_BITS;
@@ -98,9 +100,11 @@ static ds_veb_node_t *veb_node_new(ds_context_t *ctx, unsigned int bits) {
   return n;
 }
 
-/* ---- cluster index: dense array or rh_map -------------------------------- */
+/* ---- cluster index: dense array or rh_map --------------------------------
+ */
 
-static ds_veb_node_t *veb_cluster_get(const ds_veb_node_t *n, unsigned long h) {
+static ds_veb_node_t *veb_cluster_get(const ds_veb_node_t *n,
+                                      unsigned long h) {
   void *slot;
   if (n->clusters == NULL) {
     return NULL;
@@ -168,7 +172,8 @@ static void veb_cluster_drop(ds_veb_node_t *n, unsigned long h) {
   }
 }
 
-/* ---- recursive operations (depth O(log w)) ------------------------------- */
+/* ---- recursive operations (depth O(log w)) -------------------------------
+ */
 
 static void veb_free_subtree(ds_context_t *ctx, ds_veb_node_t *n);
 
@@ -440,7 +445,8 @@ static bool veb_pred(const ds_veb_node_t *n, unsigned long x,
   return false;
 }
 
-/* ---- public API ---------------------------------------------------------- */
+/* ---- public API ----------------------------------------------------------
+ */
 
 static bool veb_in_universe(const ds_veb_tree_t *tree, unsigned long key) {
   return tree->root.bits >= VEB_WIDTH || (key >> tree->root.bits) == 0;
@@ -580,7 +586,9 @@ ds_status_t ds_veb_tree_predecessor(const ds_veb_tree_t *tree,
 
 size_t ds_veb_tree_size(const ds_veb_tree_t *tree) { return tree->size; }
 
-bool ds_veb_tree_is_empty(const ds_veb_tree_t *tree) { return tree->size == 0; }
+bool ds_veb_tree_is_empty(const ds_veb_tree_t *tree) {
+  return tree->size == 0;
+}
 
 unsigned int ds_veb_tree_universe_bits(const ds_veb_tree_t *tree) {
   return tree->root.bits;

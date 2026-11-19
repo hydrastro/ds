@@ -427,6 +427,6 @@ ds_status_t ds_select_mode(void *base, size_t count, size_t elem_size,
     return DS_ERR_NULL;
   }
   ds_intro_sort(base, count, elem_size, compare, user);
-  return ds_select_mode_sorted(base, count, elem_size, compare, user, out_index,
-                               out_frequency);
+  return ds_select_mode_sorted(base, count, elem_size, compare, user,
+                               out_index, out_frequency);
 }

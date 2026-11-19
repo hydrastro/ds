@@ -8,12 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ---- problems ------------------------------------------------------------ */
+/* ---- problems ------------------------------------------------------------
+ */
 
 static bool sd_finite(double x) { return fabs(x) <= DBL_MAX; }
 
-ds_status_t ds_sdp_init(ds_sdp_t *p, size_t m, size_t blocks, const long *sizes,
-                        ds_context_t *context) {
+ds_status_t ds_sdp_init(ds_sdp_t *p, size_t m, size_t blocks,
+                        const long *sizes, ds_context_t *context) {
   size_t b;
   if (p == NULL || (blocks > 0 && sizes == NULL)) {
     return DS_ERR_NULL;
@@ -126,7 +127,8 @@ size_t ds_sdp_block_offset(const ds_sdp_t *p, size_t block) {
   return at;
 }
 
-/* ---- the SDPA format ----------------------------------------------------- */
+/* ---- the SDPA format -----------------------------------------------------
+ */
 
 static const char *sd_space(const char *s) {
   while (*s != '\0' && (isspace((unsigned char)*s) || *s == ',' || *s == '{' ||
@@ -247,7 +249,8 @@ ds_status_t ds_sdp_parse_sdpa(ds_sdp_t *p, const char *text,
   return st;
 }
 
-/* ---- the problem in solving form ----------------------------------------- */
+/* ---- the problem in solving form -----------------------------------------
+ */
 
 typedef struct sd {
   size_t m;
@@ -306,10 +309,11 @@ static ds_status_t sd_prepare(sd_t *s, const ds_sdp_t *p) {
   s->diag = p->diagonal;
   s->a = p->rhs;
   s->ctx = p->context;
-  s->off = (size_t *)ds_context_alloc(s->ctx, (p->blocks + 1) * sizeof(size_t));
+  s->off =
+      (size_t *)ds_context_alloc(s->ctx, (p->blocks + 1) * sizeof(size_t));
   s->start = (size_t *)ds_context_calloc(s->ctx, p->m + 2, sizeof(size_t));
-  s->e = (ds_sdp_entry_t *)ds_context_alloc(s->ctx, (p->entries + 1) *
-                                                        sizeof(ds_sdp_entry_t));
+  s->e = (ds_sdp_entry_t *)ds_context_alloc(
+      s->ctx, (p->entries + 1) * sizeof(ds_sdp_entry_t));
   if (s->off == NULL || s->start == NULL || s->e == NULL) {
     sd_release(s);
     return DS_ERR_ALLOC;
@@ -374,7 +378,8 @@ static double sd_inner(const sd_t *s, size_t k, const double *w) {
     } else if (e->row == e->col) {
       t += e->value * w[o + e->row * d + e->row];
     } else {
-      t += e->value * (w[o + e->row * d + e->col] + w[o + e->col * d + e->row]);
+      t +=
+          e->value * (w[o + e->row * d + e->col] + w[o + e->col * d + e->row]);
     }
   }
   return t;
@@ -538,8 +543,9 @@ static void sd_lower_solve(const double *l, size_t d, double *y) {
 
 /* the largest t with X + t D positive semidefinite, X = L L^T per block
  * (DBL_MAX when unbounded); scratch: 2 maxdim^2 + maxdim */
-static ds_status_t sd_max_step(const sd_t *s, const double *l, const double *dx,
-                               double *scratch, double *out) {
+static ds_status_t sd_max_step(const sd_t *s, const double *l,
+                               const double *dx, double *scratch,
+                               double *out) {
   double t = DBL_MAX;
   size_t b;
   size_t i;
@@ -692,7 +698,8 @@ static void sd_schur(const sd_t *s, const double *x, const double *zi,
   }
 }
 
-/* ---- dependent constraints ----------------------------------------------- */
+/* ---- dependent constraints -----------------------------------------------
+ */
 
 /* Drops every constraint whose A_k is a combination of earlier kept ones,
  * found by a pivoted Cholesky factorization of the Gram matrix <A_i, A_j>
@@ -834,7 +841,8 @@ static ds_status_t sd_reduce(sd_t *s, double *cert, bool *out_infeasible) {
   return st;
 }
 
-/* ---- the solver ---------------------------------------------------------- */
+/* ---- the solver ----------------------------------------------------------
+ */
 
 /* chol(M) into M from the Schur matrix in Mc; when rounding (or dependent
  * constraints, whose system stays consistent) leaves it numerically
@@ -1425,7 +1433,8 @@ ds_status_t ds_sdp_solve(const ds_sdp_t *p, const ds_sdp_options_t *options,
   return st;
 }
 
-/* ---- applications -------------------------------------------------------- */
+/* ---- applications --------------------------------------------------------
+ */
 
 static int sd_cmp_pair(const void *x, const void *y) {
   const size_t *a = (const size_t *)x;

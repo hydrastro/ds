@@ -412,7 +412,8 @@ ds_status_t ds_pvec_push_back(const ds_pvec_t *vec, const void *elem,
       out->size = n + 1;
       return DS_OK;
     }
-    r.tail = pv_copy_leaf(cfg, vec->tail, n == 0 ? 0 : tc, PV_NONE, NULL, elem);
+    r.tail =
+        pv_copy_leaf(cfg, vec->tail, n == 0 ? 0 : tc, PV_NONE, NULL, elem);
     if (r.tail == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -675,7 +676,8 @@ ds_status_t ds_pvec_truncate(const ds_pvec_t *vec, size_t n, ds_pvec_t *out) {
   return DS_OK;
 }
 
-void ds_pvec_iter_init(ds_pvec_iter_t *it, const ds_pvec_t *vec, size_t start) {
+void ds_pvec_iter_init(ds_pvec_iter_t *it, const ds_pvec_t *vec,
+                       size_t start) {
   if (it == NULL) {
     return;
   }

@@ -284,9 +284,10 @@ static int ph_frontv(unsigned char c) {
   return c == 'E' || c == 'I' || c == 'Y';
 }
 
-ds_status_t ds_metaphone(const unsigned char *name, size_t n, size_t max_length,
-                         unsigned char *out, size_t capacity,
-                         size_t *out_length, ds_context_t *context) {
+ds_status_t ds_metaphone(const unsigned char *name, size_t n,
+                         size_t max_length, unsigned char *out,
+                         size_t capacity, size_t *out_length,
+                         ds_context_t *context) {
   unsigned char *e;
   unsigned char *m;
   size_t len;
@@ -751,7 +752,8 @@ static void dm_run(dm_t *d) {
       break;
     case 'J':
       if (dm_at(d, cur, 4, "JOSE") || dm_at(d, 0, 4, "SAN ")) {
-        if ((cur == 0 && dm_get(d, cur + 4) == ' ') || dm_at(d, 0, 4, "SAN ")) {
+        if ((cur == 0 && dm_get(d, cur + 4) == ' ') ||
+            dm_at(d, 0, 4, "SAN ")) {
           dm_add(d, "H");
         } else {
           dm_add2(d, "J", "H");

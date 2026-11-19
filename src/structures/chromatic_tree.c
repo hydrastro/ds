@@ -11,7 +11,8 @@ static unsigned char *cr_elem(const ds_chromatic_tree_t *t, cr_node_t *n) {
   return (unsigned char *)n + (t->leaf_bytes - t->elem_size);
 }
 
-static int cr_cmp(const ds_chromatic_tree_t *t, const void *key, cr_node_t *n) {
+static int cr_cmp(const ds_chromatic_tree_t *t, const void *key,
+                  cr_node_t *n) {
   return t->compare(key, cr_elem(t, n), t->user);
 }
 

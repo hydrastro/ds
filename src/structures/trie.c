@@ -473,14 +473,16 @@ ds_status_t ds_trie_insert_with(ds_trie_t *trie, void *data,
   size_t i;
   ds_status_t status;
   bool existed;
-  if (trie == NULL || slice == NULL)
+  if (trie == NULL || slice == NULL) {
     return DS_ERR_NULL;
+  }
   current_node = trie->root;
 
   for (i = 0;; ++i) {
     status = slice(data, i, &current_slice, user);
-    if (status == DS_STOP)
+    if (status == DS_STOP) {
       break;
+    }
     if (status != DS_OK || i == (size_t)-1) {
       trie_unwind(trie, first, current_node);
       return status < 0
@@ -516,8 +518,9 @@ ds_status_t ds_trie_insert_with(ds_trie_t *trie, void *data,
   }
 
   existed = current_node->is_terminal;
-  if (out_previous != NULL)
+  if (out_previous != NULL) {
     *out_previous = existed ? current_node->terminal_data : NULL;
+  }
   current_node->is_terminal = true;
   current_node->terminal_data = data;
   return existed ? DS_EXISTS : DS_OK;
@@ -530,8 +533,9 @@ typedef struct trie_direct_slices {
 static ds_status_t trie_slice_direct(void *data, size_t index, size_t *slice,
                                      void *user) {
   trie_direct_slices_t *policy = (trie_direct_slices_t *)user;
-  if (!policy->has(data, index))
+  if (!policy->has(data, index)) {
     return DS_STOP;
+  }
   *slice = policy->get(data, index);
   return DS_OK;
 }
@@ -540,8 +544,9 @@ ds_trie_node_t *ds_trie_search(ds_trie_t *trie, void *data,
                                bool (*has_slice)(void *, size_t)) {
   trie_direct_slices_t policy;
   ds_trie_node_t *out = NULL;
-  if (get_slice == NULL || has_slice == NULL)
+  if (get_slice == NULL || has_slice == NULL) {
     return NULL;
+  }
   policy.get = get_slice;
   policy.has = has_slice;
   (void)ds_trie_get_with(trie, data, trie_slice_direct, &policy, &out);
@@ -551,8 +556,9 @@ ds_trie_node_t *ds_trie_search(ds_trie_t *trie, void *data,
 void ds_trie_delete_node(ds_trie_t *trie, ds_trie_node_t *node) {
   ds_trie_node_t *cur;
   ds_trie_node_t *temp;
-  if (trie == NULL || node == NULL)
+  if (trie == NULL || node == NULL) {
     return;
+  }
   if (!node->is_terminal) {
     return;
   }
@@ -726,8 +732,9 @@ void ds_trie_config_init(ds_trie_config_t *config) {
 
 ds_trie_t *ds_trie_create_config(const ds_trie_config_t *config) {
   const ds_trie_store_ops_t *ops;
-  if (config == NULL)
+  if (config == NULL) {
     return NULL;
+  }
   ops =
       config->store_ops != NULL ? config->store_ops : ds_trie_hash_store_ops();
   return trie_create_internal(config->num_splits, ops->search, ops->create,
@@ -807,21 +814,25 @@ ds_status_t ds_trie_create_config_ex(const ds_trie_config_t *config,
                                      ds_trie_t **out) {
   ds_trie_config_t normalized;
   const ds_trie_store_ops_t *ops;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (config == NULL)
+  if (config == NULL) {
     return DS_ERR_NULL;
+  }
   normalized = *config;
   ops =
       config->store_ops != NULL ? config->store_ops : ds_trie_hash_store_ops();
   if (ops->search == NULL || ops->create == NULL || ops->insert == NULL ||
       ops->remove == NULL || ops->destroy_entry == NULL ||
       ops->destroy == NULL || ops->get_size == NULL ||
-      (ops->next == NULL && (ops->apply == NULL || ops->clone == NULL)))
+      (ops->next == NULL && (ops->apply == NULL || ops->clone == NULL))) {
     return DS_ERR_INVALID;
-  if (normalized.context == NULL)
+  }
+  if (normalized.context == NULL) {
     normalized.context = ds_default_context();
+  }
   *out = ds_trie_create_config(&normalized);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
@@ -831,23 +842,29 @@ ds_status_t ds_trie_get_with(ds_trie_t *trie, void *data,
   ds_trie_node_t *node;
   size_t index, part;
   ds_status_t status;
-  if (trie == NULL || slice == NULL || out == NULL)
+  if (trie == NULL || slice == NULL || out == NULL) {
     return DS_ERR_NULL;
+  }
   node = trie->root;
   for (index = 0;; ++index) {
     status = slice(data, index, &part, user);
-    if (status == DS_STOP)
+    if (status == DS_STOP) {
       break;
-    if (status != DS_OK)
+    }
+    if (status != DS_OK) {
       return status < 0 ? status : DS_ERR_CALLBACK;
-    if (index == (size_t)-1)
+    }
+    if (index == (size_t)-1) {
       return DS_ERR_OVERFLOW;
+    }
     node = trie->store_search(node->children, part);
-    if (node == NULL)
+    if (node == NULL) {
       return DS_NOT_FOUND;
+    }
   }
-  if (!node->is_terminal)
+  if (!node->is_terminal) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -856,10 +873,12 @@ ds_status_t ds_trie_remove_with(ds_trie_t *trie, void *data,
                                 void **out_data) {
   ds_trie_node_t *node;
   ds_status_t status = ds_trie_get_with(trie, data, slice, user, &node);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
-  if (out_data != NULL)
+  }
+  if (out_data != NULL) {
     *out_data = node->terminal_data;
+  }
   ds_trie_delete_node(trie, node);
   return DS_OK;
 }
@@ -868,38 +887,48 @@ ds_status_t ds_trie_walk_with(ds_trie_t *trie, ds_trie_node_t *top,
                               void *user) {
   ds_trie_node_t *node;
   ds_status_t status;
-  if (trie == NULL || top == NULL || visit == NULL)
+  if (trie == NULL || top == NULL || visit == NULL) {
     return DS_ERR_NULL;
-  if (trie->store_next == NULL)
+  }
+  if (trie->store_next == NULL) {
     return DS_ERR_UNSUPPORTED;
+  }
   node = postorder ? trie_post_first(trie->store_next, top) : top;
   while (node != NULL) {
     status = visit(trie, node, user);
-    if (status != DS_OK)
+    if (status != DS_OK) {
       return status;
+    }
     if (postorder) {
-      if (node == top)
+      if (node == top) {
         break;
+      }
       node = trie_post_next(trie->store_next, top, node);
-      if (node == NULL)
+      if (node == NULL) {
         node = top;
-    } else
+      }
+    } else {
       node = trie_pre_next(trie->store_next, top, node);
+    }
   }
   return DS_OK;
 }
 ds_status_t ds_trie_destroy_with(ds_trie_t *trie,
                                  ds_trie_data_destroy_fn destroy, void *user) {
   ds_trie_node_t *node;
-  if (trie == NULL)
+  if (trie == NULL) {
     return DS_OK;
-  if (trie->store_next == NULL)
+  }
+  if (trie->store_next == NULL) {
     return DS_ERR_UNSUPPORTED;
+  }
   if (destroy != NULL) {
     for (node = trie->root; node != NULL;
-         node = trie_pre_next(trie->store_next, trie->root, node))
-      if (node->is_terminal)
+         node = trie_pre_next(trie->store_next, trie->root, node)) {
+      if (node->is_terminal) {
         destroy(node->terminal_data, user);
+      }
+    }
   }
   ds_trie_destroy(trie);
   return DS_OK;
@@ -914,15 +943,19 @@ ds_status_t ds_trie_clone_with(ds_trie_t *trie, ds_trie_clone_fn clone,
   ds_trie_node_t *node, *done;
   void *data;
   ds_status_t status;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (trie == NULL)
+  if (trie == NULL) {
     return DS_ERR_NULL;
-  if ((clone == NULL) != (destroy == NULL))
+  }
+  if ((clone == NULL) != (destroy == NULL)) {
     return DS_ERR_INVALID;
-  if (trie->store_next == NULL)
+  }
+  if (trie->store_next == NULL) {
     return DS_ERR_UNSUPPORTED;
+  }
   if (config == NULL) {
     ds_trie_config_init(&inherited);
     inherited.num_splits = trie->num_splits;
@@ -940,11 +973,13 @@ ds_status_t ds_trie_clone_with(ds_trie_t *trie, ds_trie_clone_fn clone,
     inherited.store_ops = &ops;
     config = &inherited;
   }
-  if (config->store_ops != NULL && config->store_ops->next == NULL)
+  if (config->store_ops != NULL && config->store_ops->next == NULL) {
     return DS_ERR_UNSUPPORTED;
+  }
   status = ds_trie_create_config_ex(config, &copy);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     return status;
+  }
   copy->root->data_slice = trie->root->data_slice;
   copy->root->is_terminal = trie->root->is_terminal;
   copy->root->terminal_data = trie->root->terminal_data;
@@ -956,15 +991,18 @@ ds_status_t ds_trie_clone_with(ds_trie_t *trie, ds_trie_clone_fn clone,
   if (clone != NULL) {
     for (node = copy->root; node != NULL;
          node = trie_pre_next(copy->store_next, copy->root, node)) {
-      if (!node->is_terminal)
+      if (!node->is_terminal) {
         continue;
+      }
       data = NULL;
       status = clone(node->terminal_data, &data, user);
       if (status != DS_OK) {
         for (done = copy->root; done != node;
-             done = trie_pre_next(copy->store_next, copy->root, done))
-          if (done->is_terminal)
+             done = trie_pre_next(copy->store_next, copy->root, done)) {
+          if (done->is_terminal) {
             destroy(done->terminal_data, user);
+          }
+        }
         ds_trie_destroy(copy);
         return status < 0 ? status : DS_ERR_CALLBACK;
       }

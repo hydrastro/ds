@@ -1,7 +1,8 @@
 #include <dsa/structures/self_org_list.h>
 #include <string.h>
 
-/* ---- self-organizing list ------------------------------------------------ */
+/* ---- self-organizing list ------------------------------------------------
+ */
 
 static unsigned char *sol_at(const ds_self_org_list_t *l, size_t i) {
   return l->data + i * l->elem_size;
@@ -133,7 +134,8 @@ static ds_status_t sol_reserve(ds_self_org_list_t *l, size_t need) {
     return DS_ERR_ALLOC;
   }
   l->data = d;
-  c = (size_t *)ds_context_realloc(l->context, l->counts, cap * sizeof(size_t));
+  c = (size_t *)ds_context_realloc(l->context, l->counts,
+                                   cap * sizeof(size_t));
   if (c == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -280,7 +282,8 @@ const void *ds_self_org_list_at(const ds_self_org_list_t *list, size_t index) {
   return sol_at(list, index);
 }
 
-size_t ds_self_org_list_count_at(const ds_self_org_list_t *list, size_t index) {
+size_t ds_self_org_list_count_at(const ds_self_org_list_t *list,
+                                 size_t index) {
   if (list == NULL || index >= list->size) {
     return 0;
   }
@@ -291,7 +294,8 @@ size_t ds_self_org_list_probes(const ds_self_org_list_t *list) {
   return list == NULL ? 0 : list->probes;
 }
 
-/* ---- move-to-root tree --------------------------------------------------- */
+/* ---- move-to-root tree ---------------------------------------------------
+ */
 
 #define MTR_NONE DS_MTR_NONE
 

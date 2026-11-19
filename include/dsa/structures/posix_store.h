@@ -19,7 +19,7 @@
  * as zeros; a partial last page reads as zeros past the end of the file.
  * Transfers retry on EINTR and continue after partial transfers. Pages
  * past what off_t can address are DS_ERR_RANGE; page sizes go up to 2^30.
- * A failed system call is DS_ERR_STATE (errno says why).
+ * Failed I/O returns DS_ERR_IO with native details in the context.
  *
  * The store owns the descriptor: closing the store closes it.
  */
@@ -29,6 +29,9 @@
 #include <dsa/structures/pager.h>
 #include <stddef.h>
 
+/* Failed POSIX I/O returns DS_ERR_IO and, unless NO_LAST_ERROR is set,
+ * records the stable operation ID and posix.errno code in the context.
+ * Snapshot that view before subsequent operations may overwrite it. */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,8 +39,8 @@ extern "C" {
 #define DS_POSIX_STORE_CREATE 0x1u    /* create the file if it is missing */
 #define DS_POSIX_STORE_EXCLUSIVE 0x2u /* with CREATE: fail if it exists */
 #define DS_POSIX_STORE_TRUNCATE 0x4u  /* start empty */
-#define DS_POSIX_STORE_READ_ONLY                                               \
-  0x8u /* writes and truncations are                                           \
+#define DS_POSIX_STORE_READ_ONLY                                              \
+  0x8u /* writes and truncations are                                          \
           DS_ERR_UNSUPPORTED, sync a no-op */
 
 /* opens path (mode 0666 before the umask when created) */

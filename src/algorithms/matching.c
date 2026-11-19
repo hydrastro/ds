@@ -11,13 +11,13 @@ static size_t mt_target(const ds_gview_t *g, size_t v, size_t i) {
   return to;
 }
 
-/* ---- Hopcroft-Karp ------------------------------------------------------- */
+/* ---- Hopcroft-Karp -------------------------------------------------------
+ */
 
-ds_status_t ds_matching_hopcroft_karp(const ds_gview_t *left,
-                                      size_t right_count,
-                                      size_t *out_match_left,
-                                      size_t *out_match_right, size_t *out_size,
-                                      ds_context_t *context) {
+ds_status_t
+ds_matching_hopcroft_karp(const ds_gview_t *left, size_t right_count,
+                          size_t *out_match_left, size_t *out_match_right,
+                          size_t *out_size, ds_context_t *context) {
   size_t nl;
   size_t *dist;
   size_t *queue;
@@ -149,7 +149,8 @@ out:
   return status;
 }
 
-/* ---- Hungarian ----------------------------------------------------------- */
+/* ---- Hungarian -----------------------------------------------------------
+ */
 
 ds_status_t ds_matching_hungarian(const double *cost, size_t n, size_t m,
                                   bool maximize, size_t *out_assignment,
@@ -256,7 +257,8 @@ out:
   return status;
 }
 
-/* ---- Edmonds' blossom ---------------------------------------------------- */
+/* ---- Edmonds' blossom ----------------------------------------------------
+ */
 
 typedef struct mt_blossom {
   const ds_gview_t *g;
@@ -289,7 +291,8 @@ static size_t mt_lca(mt_blossom_t *b, size_t x, size_t y) {
   }
 }
 
-static void mt_mark_path(mt_blossom_t *b, size_t v, size_t root, size_t child) {
+static void mt_mark_path(mt_blossom_t *b, size_t v, size_t root,
+                         size_t child) {
   while (b->base[v] != root) {
     b->blossom[b->base[v]] = 1;
     b->blossom[b->base[b->match[v]]] = 1;
@@ -430,7 +433,8 @@ out:
   return status;
 }
 
-/* ---- stable marriage ----------------------------------------------------- */
+/* ---- stable marriage -----------------------------------------------------
+ */
 
 ds_status_t ds_matching_stable(const size_t *proposer_pref,
                                const size_t *acceptor_pref, size_t n,

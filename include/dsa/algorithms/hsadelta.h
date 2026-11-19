@@ -20,7 +20,8 @@
  * Index and query scratch use O(reference_size/block_size + quick_bits/8)
  * memory, plus the chosen map/builder. The owned script also stores literals.
  * Collisions and repetitive data can require long byte comparisons; this
- * implementation does not promise the paper's specialized time/space constants.
+ * implementation does not promise the paper's specialized time/space
+ * constants.
  */
 #include <dsa/algorithms/sha2.h>
 #include <dsa/structures/map_iface.h>
@@ -34,8 +35,8 @@ typedef unsigned long (*ds_hsadelta_hash_fn)(const unsigned char *bytes,
                                              size_t length, void *user);
 typedef unsigned long (*ds_hsadelta_roll_fn)(unsigned long hash,
                                              unsigned char removed,
-                                             unsigned char added, size_t length,
-                                             void *user);
+                                             unsigned char added,
+                                             size_t length, void *user);
 typedef ds_status_t (*ds_hsadelta_suffix_fn)(const size_t *symbols,
                                              size_t count, size_t alphabet,
                                              size_t *out_suffixes, void *user,
@@ -65,9 +66,9 @@ typedef struct ds_hsadelta_command {
   size_t offset; /* COPY: reference offset; INSERT: target or literal offset */
   size_t length;
 } ds_hsadelta_command_t;
-typedef ds_status_t (*ds_hsadelta_emit_fn)(const ds_hsadelta_command_t *command,
-                                           const unsigned char *literal_bytes,
-                                           void *user);
+typedef ds_status_t (*ds_hsadelta_emit_fn)(
+    const ds_hsadelta_command_t *command, const unsigned char *literal_bytes,
+    void *user);
 typedef struct ds_hsadelta_progress {
   size_t commands, target_bytes; /* commands acknowledged with DS_OK */
 } ds_hsadelta_progress_t;
@@ -103,9 +104,10 @@ ds_status_t ds_hsadelta_build(const ds_hsadelta_index_t *index,
                               const void *target, size_t target_size,
                               ds_hsadelta_script_t *out);
 void ds_hsadelta_script_destroy(ds_hsadelta_script_t *script);
-/* Validates reference digest, command ranges and total length before allocating
- * output. max_output=0 means unlimited. On success the caller frees *out_data
- * through context; empty output is NULL. Errors preserve both outputs. */
+/* Validates reference digest, command ranges and total length before
+ * allocating output. max_output=0 means unlimited. On success the caller frees
+ * *out_data through context; empty output is NULL. Errors preserve both
+ * outputs. */
 ds_status_t ds_hsadelta_apply(const ds_hsadelta_script_t *script,
                               const void *reference, size_t reference_size,
                               size_t max_output, void **out_data,

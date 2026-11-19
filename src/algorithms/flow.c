@@ -4,7 +4,8 @@
 
 #define FL_NONE DS_FLOW_NONE
 
-/* ---- network ------------------------------------------------------------- */
+/* ---- network -------------------------------------------------------------
+ */
 
 ds_status_t ds_flow_network_init(ds_flow_network_t *net, size_t vertex_count,
                                  ds_context_t *context) {
@@ -183,7 +184,8 @@ static bool fl_levels(const ds_flow_network_t *net, size_t s, size_t t,
   return level[t] != FL_NONE;
 }
 
-/* ---- Edmonds-Karp -------------------------------------------------------- */
+/* ---- Edmonds-Karp --------------------------------------------------------
+ */
 
 ds_status_t ds_flow_edmonds_karp(ds_flow_network_t *net, size_t source,
                                  size_t sink, double *out_value,
@@ -248,7 +250,8 @@ ds_status_t ds_flow_edmonds_karp(ds_flow_network_t *net, size_t source,
   return DS_OK;
 }
 
-/* ---- Dinic --------------------------------------------------------------- */
+/* ---- Dinic ---------------------------------------------------------------
+ */
 
 ds_status_t ds_flow_dinic(ds_flow_network_t *net, size_t source, size_t sink,
                           double *out_value, ds_context_t *context) {
@@ -336,7 +339,8 @@ out:
   return status;
 }
 
-/* ---- Malhotra-Kumar-Maheshwari ------------------------------------------- */
+/* ---- Malhotra-Kumar-Maheshwari -------------------------------------------
+ */
 
 typedef struct fl_mkm {
   ds_flow_network_t *net;
@@ -479,9 +483,9 @@ ds_status_t ds_flow_mkm(ds_flow_network_t *net, size_t source, size_t sink,
   m.queue = (size_t *)ds_context_alloc(context, n * sizeof(size_t));
   m.stack = (size_t *)ds_context_alloc(context, (2 * net->arc_count + n + 1) *
                                                     sizeof(size_t));
-  if (m.level == NULL || m.alive == NULL || useful == NULL || m.inpot == NULL ||
-      m.outpot == NULL || m.excess == NULL || m.queue == NULL ||
-      m.stack == NULL) {
+  if (m.level == NULL || m.alive == NULL || useful == NULL ||
+      m.inpot == NULL || m.outpot == NULL || m.excess == NULL ||
+      m.queue == NULL || m.stack == NULL) {
     status = DS_ERR_ALLOC;
     goto out;
   }
@@ -560,7 +564,8 @@ out:
   return status;
 }
 
-/* ---- push-relabel -------------------------------------------------------- */
+/* ---- push-relabel --------------------------------------------------------
+ */
 
 ds_status_t ds_flow_push_relabel(ds_flow_network_t *net, size_t source,
                                  size_t sink, double *out_value,
@@ -683,9 +688,9 @@ out:
   return status;
 }
 
-ds_status_t ds_flow_max_flow(ds_flow_network_t *net, size_t source, size_t sink,
-                             ds_flow_algorithm_t algorithm, double *out_value,
-                             ds_context_t *context) {
+ds_status_t ds_flow_max_flow(ds_flow_network_t *net, size_t source,
+                             size_t sink, ds_flow_algorithm_t algorithm,
+                             double *out_value, ds_context_t *context) {
   switch (algorithm) {
   case DS_FLOW_EDMONDS_KARP:
     return ds_flow_edmonds_karp(net, source, sink, out_value, context);
@@ -734,7 +739,8 @@ ds_status_t ds_flow_min_cut(const ds_flow_network_t *net, size_t source,
   return DS_OK;
 }
 
-/* ---- minimum-cost flow --------------------------------------------------- */
+/* ---- minimum-cost flow ---------------------------------------------------
+ */
 
 typedef struct fl_heap {
   double *key;
@@ -925,7 +931,8 @@ out:
   return status;
 }
 
-/* ---- connectivity -------------------------------------------------------- */
+/* ---- connectivity --------------------------------------------------------
+ */
 
 /* Unit-capacity network of the view; with split, vertex v becomes
  * v_in = v and v_out = v + n joined by an arc of capacity 1 (edge 0..n-1). */

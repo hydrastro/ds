@@ -51,7 +51,8 @@ static unsigned char *tt_point(const ds_top_tree_t *t, tt_r_t *r) {
   return (unsigned char *)(void *)r + t->point_at;
 }
 
-/* ---- summaries ----------------------------------------------------------- */
+/* ---- summaries -----------------------------------------------------------
+ */
 
 static void tt_update_v(ds_top_tree_t *t, tt_v_t *x) {
   unsigned char *a = t->scratch;
@@ -116,7 +117,8 @@ static void tt_push(ds_top_tree_t *t, tt_v_t *x) {
   }
 }
 
-/* ---- compress trees ------------------------------------------------------ */
+/* ---- compress trees ------------------------------------------------------
+ */
 
 static void tt_rotate_v(ds_top_tree_t *t, tt_v_t *x) {
   tt_v_t *y = x->vp;
@@ -164,7 +166,8 @@ static void tt_splay_v(ds_top_tree_t *t, tt_v_t *x) {
   }
 }
 
-/* ---- rake trees ---------------------------------------------------------- */
+/* ---- rake trees ----------------------------------------------------------
+ */
 
 static void tt_rotate_r(ds_top_tree_t *t, tt_r_t *x) {
   tt_r_t *y = x->parent;
@@ -264,7 +267,8 @@ static void tt_rake_free(ds_top_tree_t *t, tt_r_t *r) {
   t->free_rakes = r;
 }
 
-/* ---- access, evert ------------------------------------------------------- */
+/* ---- access, evert -------------------------------------------------------
+ */
 
 /* the path from v's tree root to v becomes the top path, v its splay root
  * and its last vertex */
@@ -326,7 +330,8 @@ static tt_v_t *tt_root(ds_top_tree_t *t, tt_v_t *x) {
   return y;
 }
 
-/* ---- the interface ------------------------------------------------------- */
+/* ---- the interface -------------------------------------------------------
+ */
 
 ds_status_t ds_top_tree_init(ds_top_tree_t *t, size_t n,
                              const ds_top_tree_ops_t *ops, const void *values,
@@ -606,7 +611,8 @@ ds_status_t ds_top_path_search(ds_top_tree_t *t, size_t u, size_t v,
       b = acc;
     }
     t->ops.vertex(here, tt_value(t, x),
-                  x->light != NULL ? tt_point(t, x->light) : NULL, t->ops.user);
+                  x->light != NULL ? tt_point(t, x->light) : NULL,
+                  t->ops.user);
     c = choose(b, here, user);
     last = x;
     if (c == 0) {

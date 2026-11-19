@@ -304,10 +304,12 @@ size_t ds_lca_euler_query(const ds_lca_euler_t *e, size_t u, size_t v) {
   k = e->lg[b - a + 1];
   x = e->table[k * stride + a];
   y = e->table[k * stride + b + 1 - ((size_t)1 << k)];
-  return e->depth[e->tour[x]] <= e->depth[e->tour[y]] ? e->tour[x] : e->tour[y];
+  return e->depth[e->tour[x]] <= e->depth[e->tour[y]] ? e->tour[x]
+                                                      : e->tour[y];
 }
 
-/* ---- Tarjan's offline LCA ---------------------------------------------------
+/* ---- Tarjan's offline LCA
+ * ---------------------------------------------------
  */
 
 static size_t lc_find(size_t *uf, size_t x) {

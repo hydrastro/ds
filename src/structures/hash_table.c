@@ -1241,25 +1241,30 @@ ds_status_t ds_hash_table_clone_ex(ds_hash_table_t *table, bool borrowed,
   bool keys, values;
   void *key, *value;
   ds_status_t status;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (table == NULL)
+  if (table == NULL) {
     return DS_ERR_NULL;
-  if (table->config_hash == NULL || table->config_compare == NULL)
+  }
+  if (table->config_hash == NULL || table->config_compare == NULL) {
     return DS_ERR_UNSUPPORTED;
+  }
   keys = !borrowed && (table->config_clone_key_ex != NULL ||
                        table->config_clone_key != NULL);
   values = !borrowed && (table->config_clone_value_ex != NULL ||
                          table->config_clone_value != NULL);
   if (!borrowed && (keys != (table->config_destroy_key != NULL) ||
-                    values != (table->config_destroy_value != NULL)))
+                    values != (table->config_destroy_value != NULL))) {
     return DS_ERR_UNSUPPORTED;
+  }
   copy = hash_table_create_internal(
       table->capacity, table->mode, table->probing_func, table->bucket_store,
       context != NULL ? context : table->context);
-  if (copy == NULL)
+  if (copy == NULL) {
     return DS_ERR_ALLOC;
+  }
 
   copy->config_hash = table->config_hash;
   copy->config_compare = table->config_compare;
@@ -1288,22 +1293,26 @@ ds_status_t ds_hash_table_clone_ex(ds_hash_table_t *table, bool borrowed,
           ht_clone_part(current->value, table->config_clone_value_ex,
                         table->config_clone_value, table->config_user, &value);
       if (status != DS_OK) {
-        if (keys)
+        if (keys) {
           table->config_destroy_key(key, table->config_user);
+        }
         ds_hash_table_destroy(copy);
         return status;
       }
     }
     status = ds_hash_table_contains(copy, key);
-    if (status == DS_NOT_FOUND)
+    if (status == DS_NOT_FOUND) {
       status = ds_hash_table_insert(copy, key, value);
-    else if (status == DS_OK)
+    } else if (status == DS_OK) {
       status = DS_ERR_CALLBACK;
+    }
     if (status != DS_OK) {
-      if (keys)
+      if (keys) {
         table->config_destroy_key(key, table->config_user);
-      if (values)
+      }
+      if (values) {
         table->config_destroy_value(value, table->config_user);
+      }
       ds_hash_table_destroy(copy);
       return status;
     }
@@ -1315,10 +1324,11 @@ static ds_hash_table_t *hash_table_clone_impl(ds_hash_table_t *table,
                                               bool borrowed) {
   ds_hash_table_t *copy;
   ds_status_t status = ds_hash_table_clone_ex(table, borrowed, NULL, &copy);
-  if (status != DS_OK)
+  if (status != DS_OK) {
     (void)DS_CONTEXT_ERROR(table != NULL ? table->context : NULL, status,
                            "ds.hash_table/clone_failed", "hash_table",
                            "hash table clone failed");
+  }
   return copy;
 }
 ds_hash_table_t *ds_hash_table_clone(ds_hash_table_t *table) {
@@ -1380,12 +1390,14 @@ ds_status_t ds_hash_table_walk_with(ds_hash_table_t *table,
                                     ds_hash_table_visit_fn visit, void *user) {
   ds_hash_node_t *node;
   ds_status_t status;
-  if (table == NULL || visit == NULL)
+  if (table == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   for (node = table->last_node; node != NULL; node = node->list_prev) {
     status = visit(node, user);
-    if (status != DS_OK)
+    if (status != DS_OK) {
       return status;
+    }
   }
   return DS_OK;
 }
@@ -1395,32 +1407,41 @@ ds_hash_table_create_config_ex(const ds_hash_table_config_t *config,
   ds_hash_table_config_t normalized;
   const ds_hash_bucket_store_t *store;
   size_t capacity, limit;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (config == NULL)
+  if (config == NULL) {
     return DS_ERR_NULL;
-  if (config->mode != HASH_CHAINING && !hash_table_uses_probing(config->mode))
+  }
+  if (config->mode != HASH_CHAINING &&
+      !hash_table_uses_probing(config->mode)) {
     return DS_ERR_INVALID;
-  if (config->hash == NULL || config->compare == NULL)
+  }
+  if (config->hash == NULL || config->compare == NULL) {
     return DS_ERR_NULL;
+  }
   store = config->bucket_store;
   if (config->mode == HASH_CHAINING && store != NULL &&
       (store->create == NULL || store->search == NULL ||
        store->insert == NULL || store->remove == NULL ||
-       store->destroy == NULL || store->apply == NULL))
+       store->destroy == NULL || store->apply == NULL)) {
     return DS_ERR_INVALID;
+  }
   limit = config->mode == HASH_CHAINING
               ? (size_t)-1 / sizeof(void *)
               : (size_t)-1 / 2 / sizeof(ds_hash_node_t);
-  if (config->capacity > limit)
+  if (config->capacity > limit) {
     return DS_ERR_OVERFLOW;
+  }
   capacity = hash_table_prime_capacity_at_least(config->capacity);
-  if (capacity < config->capacity || capacity > limit)
+  if (capacity < config->capacity || capacity > limit) {
     return DS_ERR_OVERFLOW;
+  }
   normalized = *config;
-  if (normalized.context == NULL)
+  if (normalized.context == NULL) {
     normalized.context = ds_default_context();
+  }
   *out = ds_hash_table_create_config(&normalized);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }

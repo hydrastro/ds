@@ -55,7 +55,8 @@ static unsigned long eh_rec_hash(const unsigned char *rec) {
   return h;
 }
 
-static void *eh_rec_value(const ds_extendible_hash_t *map, unsigned char *rec) {
+static void *eh_rec_value(const ds_extendible_hash_t *map,
+                          unsigned char *rec) {
   return map->config.value_size == 0 ? rec + map->key_offset
                                      : rec + map->value_offset;
 }
@@ -240,8 +241,9 @@ void ds_extendible_hash_config_init(ds_extendible_hash_config_t *config) {
   config->context = NULL;
 }
 
-ds_status_t ds_extendible_hash_init(ds_extendible_hash_t *map,
-                                    const ds_extendible_hash_config_t *config) {
+ds_status_t
+ds_extendible_hash_init(ds_extendible_hash_t *map,
+                        const ds_extendible_hash_config_t *config) {
   if (map == NULL || config == NULL || config->hash == NULL ||
       config->equal == NULL) {
     return DS_ERR_NULL;
@@ -399,7 +401,8 @@ ds_status_t ds_extendible_hash_insert(ds_extendible_hash_t *map,
   return status;
 }
 
-void *ds_extendible_hash_get(const ds_extendible_hash_t *map, const void *key) {
+void *ds_extendible_hash_get(const ds_extendible_hash_t *map,
+                             const void *key) {
   eh_bucket_t *b;
   size_t i;
   if (map->size == 0 ||

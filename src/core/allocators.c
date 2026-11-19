@@ -20,7 +20,8 @@ static const ds_diagnostic_desc_t DS_DEBUG_ALLOC_BAD_FREE = {
     "ds.allocators/debug_bad_free", DS_DIAG_ERROR, "allocators",
     "debug allocator rejected a pointer with an invalid allocation header"};
 
-void *ds_arena_alloc_aligned(ds_arena_t *arena, size_t size, size_t alignment) {
+void *ds_arena_alloc_aligned(ds_arena_t *arena, size_t size,
+                             size_t alignment) {
   size_t start;
   size_t next;
 
@@ -515,8 +516,8 @@ static void *debug_realloc(void *ptr, size_t size, void *user) {
   if (debug == NULL || old_header->h.magic != DS_DEBUG_ALLOC_MAGIC) {
     if (debug != NULL) {
       debug->stats.failed_allocations++;
-      ds_context_emit_diagnostic(debug->backing, &DS_DEBUG_ALLOC_BAD_FREE, NULL,
-                                 0U, __FILE__, (unsigned long)__LINE__,
+      ds_context_emit_diagnostic(debug->backing, &DS_DEBUG_ALLOC_BAD_FREE,
+                                 NULL, 0U, __FILE__, (unsigned long)__LINE__,
                                  DS_FUNCTION);
     }
     return NULL;

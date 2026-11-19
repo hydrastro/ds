@@ -238,8 +238,9 @@ ds_status_t ds_lds_sign(const char *const *quads, size_t n,
 
 ds_status_t ds_lds_verify(const char *const *quads, size_t n,
                           const ds_lds_option_t *options, size_t n_options,
-                          const ds_lds_suite_t *suite, const unsigned char *sig,
-                          size_t sig_len, ds_context_t *context) {
+                          const ds_lds_suite_t *suite,
+                          const unsigned char *sig, size_t sig_len,
+                          ds_context_t *context) {
   unsigned char tbs[2 * DS_SHA256_SIZE];
   ds_status_t st;
   if (suite == NULL || sig == NULL) {

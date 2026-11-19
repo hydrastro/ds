@@ -6,8 +6,8 @@
  * store (the "disk"), keeps every write and truncation since the last sync
  * in memory so that a crash can be simulated at any moment, and fails
  * operations on demand. Storage stacks (the pager and the paged B+ tree,
- * the LSM tree, the write-ahead-logged store of dsa/structures/wal_store.h) can
- * then be tested for what they promise after a crash.
+ * the LSM tree, the write-ahead-logged store of dsa/structures/wal_store.h)
+ * can then be tested for what they promise after a crash.
  *
  * Volatile state. write and truncate are recorded in order, reads see
  * them, and the page count follows them. sync applies them to the base

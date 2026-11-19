@@ -36,7 +36,8 @@ ds_status_t ds_markov_init(ds_markov_chain_t *chain, size_t states,
 }
 
 ds_status_t ds_markov_init_matrix(ds_markov_chain_t *chain, size_t states,
-                                  const double *matrix, ds_context_t *context) {
+                                  const double *matrix,
+                                  ds_context_t *context) {
   ds_status_t st;
   if (matrix == NULL) {
     return DS_ERR_NULL;
@@ -603,8 +604,8 @@ ds_status_t ds_markov_stationary(const ds_markov_chain_t *chain, double *out) {
   return st;
 }
 
-ds_status_t ds_markov_absorption(const ds_markov_chain_t *chain, double *absorb,
-                                 double *steps) {
+ds_status_t ds_markov_absorption(const ds_markov_chain_t *chain,
+                                 double *absorb, double *steps) {
   size_t n;
   size_t *cls;
   size_t *tindex;

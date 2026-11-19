@@ -78,8 +78,10 @@ void ds_excell_destroy(ds_excell_t *e);
 size_t ds_excell_size(const ds_excell_t *e);
 size_t ds_excell_depth(const ds_excell_t *e);
 size_t ds_excell_buckets(const ds_excell_t *e);
-ds_status_t ds_excell_insert(ds_excell_t *e, const double *point, size_t value);
-ds_status_t ds_excell_remove(ds_excell_t *e, const double *point, size_t value);
+ds_status_t ds_excell_insert(ds_excell_t *e, const double *point,
+                             size_t value);
+ds_status_t ds_excell_remove(ds_excell_t *e, const double *point,
+                             size_t value);
 ds_status_t ds_excell_query(const ds_excell_t *e, const double *box,
                             ds_bang_visit_func_t visit, void *user);
 ds_status_t ds_excell_nearest(const ds_excell_t *e, const double *point,
@@ -87,7 +89,8 @@ ds_status_t ds_excell_nearest(const ds_excell_t *e, const double *point,
                               size_t *out_found);
 bool ds_excell_valid(const ds_excell_t *e);
 
-/* ---- shared nested-cell trie ------------------------------------------------
+/* ---- shared nested-cell trie
+ * ------------------------------------------------
  */
 
 typedef struct ds_bang_base {
@@ -140,8 +143,8 @@ ds_status_t ds_bang_file_remove(ds_bang_file_t *f, const double *point,
 ds_status_t ds_bang_file_query(const ds_bang_file_t *f, const double *box,
                                ds_bang_visit_func_t visit, void *user);
 ds_status_t ds_bang_file_nearest(const ds_bang_file_t *f, const double *point,
-                                 size_t k, size_t *out_values, double *out_dist,
-                                 size_t *out_found);
+                                 size_t k, size_t *out_values,
+                                 double *out_dist, size_t *out_found);
 /* Every point sits in the bucket of its innermost region. */
 bool ds_bang_file_valid(const ds_bang_file_t *f);
 

@@ -14,8 +14,8 @@
  *   next_value / prev_value    smallest >= x / largest < x in s[l, r)
  *
  * The level bit vectors use the rank/select capability
- * (dsa/structures/rank_select.h) chosen at build time: plain for speed, RRR for
- * compressible levels, Elias-Fano for sparse ones. Memory comes from the
+ * (dsa/structures/rank_select.h) chosen at build time: plain for speed, RRR
+ * for compressible levels, Elias-Fano for sparse ones. Memory comes from the
  * context.
  */
 
@@ -43,7 +43,8 @@ ds_status_t ds_wavelet_matrix_build(ds_wavelet_matrix_t *wm,
                                     ds_context_t *context);
 void ds_wavelet_matrix_destroy(ds_wavelet_matrix_t *wm);
 size_t ds_wavelet_matrix_size(const ds_wavelet_matrix_t *wm);
-unsigned long ds_wavelet_matrix_access(const ds_wavelet_matrix_t *wm, size_t i);
+unsigned long ds_wavelet_matrix_access(const ds_wavelet_matrix_t *wm,
+                                       size_t i);
 /* occurrences of c in s[0, i) */
 size_t ds_wavelet_matrix_rank(const ds_wavelet_matrix_t *wm, unsigned long c,
                               size_t i);

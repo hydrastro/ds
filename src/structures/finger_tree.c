@@ -413,7 +413,8 @@ typedef struct ft_split_ctx {
 /* first k whose prefix measure (acc combined with items[0..k]) satisfies
  * pred, n - 1 if none; acc ends as the measure before items[k] */
 static size_t ft_split_digit(ft_split_ctx_t *s, unsigned char *acc,
-                             unsigned char *tmp, fi_t *const *items, size_t n) {
+                             unsigned char *tmp, fi_t *const *items,
+                             size_t n) {
   size_t k;
   for (k = 0; k + 1 < n; k++) {
     memcpy(tmp, acc, s->c->measure_size);

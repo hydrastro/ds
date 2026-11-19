@@ -44,9 +44,10 @@ ds_status_t ds_soundex(const unsigned char *name, size_t n, unsigned char *out,
 ds_status_t ds_nysiis(const unsigned char *name, size_t n, size_t max_length,
                       unsigned char *out, size_t capacity, size_t *out_length,
                       ds_context_t *context);
-ds_status_t ds_metaphone(const unsigned char *name, size_t n, size_t max_length,
-                         unsigned char *out, size_t capacity,
-                         size_t *out_length, ds_context_t *context);
+ds_status_t ds_metaphone(const unsigned char *name, size_t n,
+                         size_t max_length, unsigned char *out,
+                         size_t capacity, size_t *out_length,
+                         ds_context_t *context);
 /* The secondary key is empty (length 0) when it equals the primary. Both
  * buffers have `capacity` bytes; DS_ERR_OVERFLOW if either key is longer. */
 ds_status_t ds_double_metaphone(const unsigned char *name, size_t n,

@@ -25,8 +25,9 @@ int ulvec_push(ulvec *v, unsigned long x) {
   if (v->n == v->cap) {
     nc = v->cap ? v->cap * 2u : 8u;
     np = (unsigned long *)realloc(v->a, nc * sizeof(unsigned long));
-    if (!np)
+    if (!np) {
       return -1;
+    }
     v->a = np;
     v->cap = nc;
   }
@@ -39,8 +40,9 @@ int uivec_push(uivec *v, unsigned int x) {
   if (v->n == v->cap) {
     nc = v->cap ? v->cap * 2u : 8u;
     np = (unsigned int *)realloc(v->a, nc * sizeof(unsigned int));
-    if (!np)
+    if (!np) {
       return -1;
+    }
     v->a = np;
     v->cap = nc;
   }
@@ -52,8 +54,9 @@ char *slurp(const char *path, size_t *out_len) {
   FILE *f = fopen(path, "rb");
   char *buf;
   long n;
-  if (!f)
+  if (!f) {
     return NULL;
+  }
   if (fseek(f, 0, SEEK_END) != 0) {
     fclose(f);
     return NULL;
@@ -79,8 +82,9 @@ char *slurp(const char *path, size_t *out_len) {
   }
   buf[n] = '\0';
   fclose(f);
-  if (out_len)
+  if (out_len) {
     *out_len = (size_t)n;
+  }
   return buf;
 }
 
@@ -90,19 +94,21 @@ int hex_to_u32(const char *s, unsigned long *out) {
   char c;
   while ((c = *s++) != 0) {
     unsigned int d;
-    if (c >= '0' && c <= '9')
+    if (c >= '0' && c <= '9') {
       d = (unsigned int)(c - '0');
-    else if (c >= 'A' && c <= 'F')
+    } else if (c >= 'A' && c <= 'F') {
       d = (unsigned int)(c - 'A' + 10);
-    else if (c >= 'a' && c <= 'f')
+    } else if (c >= 'a' && c <= 'f') {
       d = (unsigned int)(c - 'a' + 10);
-    else
+    } else {
       break;
+    }
     any = 1;
     v = (v << 4) | d;
   }
-  if (!any)
+  if (!any) {
     return -1;
+  }
   *out = v;
   return 0;
 }
@@ -129,8 +135,9 @@ int comp_push(unsigned long a, unsigned long b, unsigned long v) {
   if (COMP_N == COMP_CAP) {
     nc = COMP_CAP ? COMP_CAP * 2u : 64u;
     np = (comp_triplet *)realloc(COMP, nc * sizeof(comp_triplet));
-    if (!np)
+    if (!np) {
       return -1;
+    }
     COMP = np;
     COMP_CAP = nc;
   }
@@ -147,8 +154,9 @@ int range_push(range3 **arr, size_t *n, size_t *cap, unsigned long a,
   if (*n == *cap) {
     nc = *cap ? (*cap) * 2u : 64u;
     np = (range3 *)realloc(*arr, nc * sizeof(range3));
-    if (!np)
+    if (!np) {
       return -1;
+    }
     *arr = np;
     *cap = nc;
   }
@@ -225,20 +233,23 @@ int load_UnicodeData(const char *path) {
       char *semi = strchr(p, ';');
       fields[i] = p;
       if (!semi) {
-        if (i < 14)
+        if (i < 14) {
           fields[i + 1] = NULL;
+        }
         break;
       }
       *semi = 0;
       p = semi + 1;
     }
-    if (!fields[0])
+    if (!fields[0]) {
       continue;
+    }
 
     {
       unsigned long cp;
-      if (hex_to_u32(fields[0], &cp) != 0)
+      if (hex_to_u32(fields[0], &cp) != 0) {
         continue;
+      }
 
       if (fields[3] && *fields[3]) {
         const char *q = fields[3];
@@ -294,23 +305,28 @@ int load_UnicodeData(const char *path) {
 
         if (*q == '<') {
           compat = 1;
-          while (*q && *q != '>')
+          while (*q && *q != '>') {
             ++q;
-          if (*q == '>')
+          }
+          if (*q == '>') {
             ++q;
-          while (*q == ' ')
+          }
+          while (*q == ' ') {
             ++q;
+          }
         }
         while (*q) {
           unsigned long u;
           const char *start = q;
           char hex[16];
           size_t l;
-          while (*q && *q != ' ')
+          while (*q && *q != ' ') {
             ++q;
+          }
           l = (size_t)(q - start);
-          if (l >= sizeof(hex))
+          if (l >= sizeof(hex)) {
             l = sizeof(hex) - 1;
+          }
           memcpy(hex, start, l);
           hex[l] = '\0';
           if (hex_to_u32(hex, &u) != 0) {
@@ -323,8 +339,9 @@ int load_UnicodeData(const char *path) {
             tmp.n = 0;
             break;
           }
-          while (*q == ' ')
+          while (*q == ' ') {
             ++q;
+          }
         }
         if (tmp.n > 0) {
           if (ulvec_push(&DECOMP_KEYS, cp) != 0) {
@@ -348,15 +365,17 @@ int load_UnicodeData(const char *path) {
             fclose(f);
             return -1;
           }
-          for (i = 0; i < (int)tmp.n; ++i)
+          for (i = 0; i < (int)tmp.n; ++i) {
             if (ulvec_push(&DECOMP_POOL, tmp.a[i]) != 0) {
               free(tmp.a);
               fclose(f);
               return -1;
             }
+          }
         }
-        if (tmp.a)
+        if (tmp.a) {
           free(tmp.a);
+        }
       }
     }
   }
@@ -367,22 +386,27 @@ int load_UnicodeData(const char *path) {
 int load_CompositionExclusions(const char *path, ulvec *excl) {
   FILE *f = fopen(path, "rb");
   char line[1024];
-  if (!f)
+  if (!f) {
     return -1;
+  }
   while (fgets(line, sizeof(line), f)) {
     char *p = line, *hash, *q;
     unsigned long cp;
-    if (*p == '#' || *p == '\n' || *p == '\0')
+    if (*p == '#' || *p == '\n' || *p == '\0') {
       continue;
+    }
     hash = strchr(p, '#');
-    if (hash)
+    if (hash) {
       *hash = 0;
+    }
     q = p;
-    while (*q && *q != ' ' && *q != '\t' && *q != '\n')
+    while (*q && *q != ' ' && *q != '\t' && *q != '\n') {
       ++q;
+    }
     *q = 0;
-    if (!*p)
+    if (!*p) {
       continue;
+    }
     if (hex_to_u32(p, &cp) == 0) {
       if (ulvec_push(excl, cp) != 0) {
         fclose(f);
@@ -395,9 +419,11 @@ int load_CompositionExclusions(const char *path, ulvec *excl) {
 }
 int ul_contains(const ulvec *v, unsigned long x) {
   size_t i;
-  for (i = 0; i < v->n; ++i)
-    if (v->a[i] == x)
+  for (i = 0; i < v->n; ++i) {
+    if (v->a[i] == x) {
       return 1;
+    }
+  }
   return 0;
 }
 
@@ -410,14 +436,16 @@ int build_comp_pairs(const ulvec *keys, const uivec *cnt, const uivec *off,
     unsigned int c = cnt->a[i];
     unsigned int o = off->a[i];
     unsigned int kcompat = iscompat->a[i];
-    if (kcompat)
+    if (kcompat) {
       continue;
+    }
     if (c == 2u) {
       unsigned long a = pool->a[o + 0];
       unsigned long b = pool->a[o + 1];
       if (!ul_contains(excl, cp)) {
-        if (comp_push(a, b, cp) != 0)
+        if (comp_push(a, b, cp) != 0) {
           return -1;
+        }
       }
     }
   }
@@ -427,29 +455,36 @@ int build_comp_pairs(const ulvec *keys, const uivec *cnt, const uivec *off,
 int load_CaseFolding(const char *path) {
   FILE *f = fopen(path, "rb");
   char line[4096];
-  if (!f)
+  if (!f) {
     return -1;
+  }
   while (fgets(line, sizeof(line), f)) {
     char *p = line;
     unsigned long cp;
     char *semi;
-    if (*p == '#' || *p == '\n' || *p == '\0')
+    if (*p == '#' || *p == '\n' || *p == '\0') {
       continue;
+    }
     semi = strchr(p, ';');
-    if (!semi)
+    if (!semi) {
       continue;
+    }
     *semi = 0;
-    if (hex_to_u32(p, &cp) != 0)
+    if (hex_to_u32(p, &cp) != 0) {
       continue;
+    }
 
     p = semi + 1;
-    while (*p == ' ')
+    while (*p == ' ') {
       ++p;
-    if (!*p)
+    }
+    if (!*p) {
       continue;
+    }
 
-    if (*p != 'C' && *p != 'S' && *p != 'F')
+    if (*p != 'C' && *p != 'S' && *p != 'F') {
       continue;
+    }
     {
       char status = *p;
       ulvec map;
@@ -458,21 +493,25 @@ int load_CaseFolding(const char *path) {
       map.cap = 0;
 
       p = strchr(p, ';');
-      if (!p)
+      if (!p) {
         continue;
+      }
       ++p;
-      while (*p == ' ')
+      while (*p == ' ') {
         ++p;
+      }
       while (*p && *p != '#' && *p != '\n') {
         char hex[16];
         char *q = p;
         size_t l;
         unsigned long u;
-        while (*q && *q != ' ' && *q != '\n' && *q != '#')
+        while (*q && *q != ' ' && *q != '\n' && *q != '#') {
           ++q;
+        }
         l = (size_t)(q - p);
-        if (l >= sizeof(hex))
+        if (l >= sizeof(hex)) {
           l = sizeof(hex) - 1;
+        }
         memcpy(hex, p, l);
         hex[l] = '\0';
         if (hex_to_u32(hex, &u) == 0) {
@@ -483,12 +522,14 @@ int load_CaseFolding(const char *path) {
           }
         }
         p = q;
-        while (*p == ' ')
+        while (*p == ' ') {
           ++p;
+        }
       }
       if (map.n > 0) {
-        if (status != 'F' && map.n > 1)
+        if (status != 'F' && map.n > 1) {
           map.n = 1;
+        }
         if (ulvec_push(&FOLD_KEYS, cp) != 0) {
           free(map.a);
           fclose(f);
@@ -506,16 +547,18 @@ int load_CaseFolding(const char *path) {
         }
         {
           size_t i2;
-          for (i2 = 0; i2 < map.n; ++i2)
+          for (i2 = 0; i2 < map.n; ++i2) {
             if (ulvec_push(&FOLD_POOL, map.a[i2]) != 0) {
               free(map.a);
               fclose(f);
               return -1;
             }
+          }
         }
       }
-      if (map.a)
+      if (map.a) {
         free(map.a);
+      }
     }
   }
   fclose(f);
@@ -525,74 +568,85 @@ int load_CaseFolding(const char *path) {
 int load_GB(const char *path) {
   FILE *f = fopen(path, "rb");
   char line[1024];
-  if (!f)
+  if (!f) {
     return -1;
+  }
 
   while (fgets(line, sizeof(line), f)) {
     char *p = line, *semi, *hash, *dots, *end, *prop;
     unsigned long a, b;
-    if (*p == '#' || *p == '\n' || *p == '\0')
+    if (*p == '#' || *p == '\n' || *p == '\0') {
       continue;
+    }
 
     semi = strchr(p, ';');
-    if (!semi)
+    if (!semi) {
       continue;
+    }
     *semi = 0;
     hash = strchr(semi + 1, '#');
-    if (hash)
+    if (hash) {
       *hash = 0;
+    }
 
-    while (*p == ' ' || *p == '\t')
+    while (*p == ' ' || *p == '\t') {
       ++p;
+    }
     dots = strstr(p, "..");
     if (dots) {
       *dots = 0;
-      if (hex_to_u32(p, &a) != 0)
+      if (hex_to_u32(p, &a) != 0) {
         continue;
-      if (hex_to_u32(dots + 2, &b) != 0)
+      }
+      if (hex_to_u32(dots + 2, &b) != 0) {
         continue;
+      }
     } else {
-      if (hex_to_u32(p, &a) != 0)
+      if (hex_to_u32(p, &a) != 0) {
         continue;
+      }
       b = a;
     }
 
     prop = semi + 1;
-    while (*prop == ' ' || *prop == '\t')
+    while (*prop == ' ' || *prop == '\t') {
       ++prop;
+    }
     end = prop;
-    while (*end && *end != ' ' && *end != '\t' && *end != '\n')
+    while (*end && *end != ' ' && *end != '\t' && *end != '\n') {
       ++end;
+    }
     *end = 0;
 
     {
       unsigned long val = 0;
-      if (strcmp(prop, "CR") == 0)
+      if (strcmp(prop, "CR") == 0) {
         val = 1;
-      else if (strcmp(prop, "LF") == 0)
+      } else if (strcmp(prop, "LF") == 0) {
         val = 2;
-      else if (strcmp(prop, "Control") == 0)
+      } else if (strcmp(prop, "Control") == 0) {
         val = 3;
-      else if (strcmp(prop, "Extend") == 0)
+      } else if (strcmp(prop, "Extend") == 0) {
         val = 4;
-      else if (strcmp(prop, "ZWJ") == 0)
+      } else if (strcmp(prop, "ZWJ") == 0) {
         val = 5;
-      else if (strcmp(prop, "SpacingMark") == 0)
+      } else if (strcmp(prop, "SpacingMark") == 0) {
         val = 6;
-      else if (strcmp(prop, "Prepend") == 0)
+      } else if (strcmp(prop, "Prepend") == 0) {
         val = 7;
-      else if (strcmp(prop, "Regional_Indicator") == 0)
+      } else if (strcmp(prop, "Regional_Indicator") == 0) {
         val = 8;
-      else if (strcmp(prop, "L") == 0)
+      } else if (strcmp(prop, "L") == 0) {
         val = 9;
-      else if (strcmp(prop, "V") == 0)
+      } else if (strcmp(prop, "V") == 0) {
         val = 10;
-      else if (strcmp(prop, "T") == 0)
+      } else if (strcmp(prop, "T") == 0) {
         val = 11;
-      else if (strcmp(prop, "LV") == 0)
+      } else if (strcmp(prop, "LV") == 0) {
         val = 12;
-      else if (strcmp(prop, "LVT") == 0)
+      } else if (strcmp(prop, "LVT") == 0) {
         val = 13;
+      }
       if (range_push(&GB, &GB_N, &GB_CAP, a, b, val) != 0) {
         fclose(f);
         return -1;
@@ -606,44 +660,54 @@ int load_GB(const char *path) {
 int load_EP(const char *path) {
   FILE *f = fopen(path, "rb");
   char line[1024];
-  if (!f)
+  if (!f) {
     return -1;
+  }
 
   while (fgets(line, sizeof(line), f)) {
     char *p = line, *semi, *hash, *dots, *end, *prop;
     unsigned long a, b;
 
-    if (*p == '#' || *p == '\n' || *p == '\0')
+    if (*p == '#' || *p == '\n' || *p == '\0') {
       continue;
+    }
     hash = strchr(p, '#');
-    if (hash)
+    if (hash) {
       *hash = 0;
+    }
     semi = strchr(p, ';');
-    if (!semi)
+    if (!semi) {
       continue;
+    }
     *semi = 0;
 
-    while (*p == ' ' || *p == '\t')
+    while (*p == ' ' || *p == '\t') {
       ++p;
+    }
     dots = strstr(p, "..");
     if (dots) {
       *dots = 0;
-      if (hex_to_u32(p, &a) != 0)
+      if (hex_to_u32(p, &a) != 0) {
         continue;
-      if (hex_to_u32(dots + 2, &b) != 0)
+      }
+      if (hex_to_u32(dots + 2, &b) != 0) {
         continue;
+      }
     } else {
-      if (hex_to_u32(p, &a) != 0)
+      if (hex_to_u32(p, &a) != 0) {
         continue;
+      }
       b = a;
     }
 
     prop = semi + 1;
-    while (*prop == ' ' || *prop == '\t')
+    while (*prop == ' ' || *prop == '\t') {
       ++prop;
+    }
     end = prop;
-    while (*end && *end != ' ' && *end != '\t' && *end != '\n')
+    while (*end && *end != ' ' && *end != '\t' && *end != '\n') {
       ++end;
+    }
     *end = 0;
 
     if (strcmp(prop, "Extended_Pictographic") == 0) {
@@ -662,65 +726,81 @@ int load_EP(const char *path) {
 int load_InCB(const char *path) {
   FILE *f = fopen(path, "rb");
   char line[1024];
-  if (!f)
+  if (!f) {
     return -1;
+  }
 
   while (fgets(line, sizeof(line), f)) {
     char *p = line, *semi, *semi2, *hash, *dots, *end, *name, *value;
     unsigned long a, b, val;
 
-    if (*p == '#' || *p == '\n' || *p == '\0')
+    if (*p == '#' || *p == '\n' || *p == '\0') {
       continue;
+    }
     hash = strchr(p, '#');
-    if (hash)
+    if (hash) {
       *hash = 0;
+    }
     semi = strchr(p, ';');
-    if (!semi)
+    if (!semi) {
       continue;
+    }
     *semi = 0;
     semi2 = strchr(semi + 1, ';');
-    if (!semi2)
+    if (!semi2) {
       continue;
+    }
     *semi2 = 0;
 
     name = semi + 1;
-    while (*name == ' ' || *name == '\t')
+    while (*name == ' ' || *name == '\t') {
       ++name;
+    }
     end = name;
-    while (*end && *end != ' ' && *end != '\t' && *end != '\n')
+    while (*end && *end != ' ' && *end != '\t' && *end != '\n') {
       ++end;
+    }
     *end = 0;
-    if (strcmp(name, "InCB") != 0)
+    if (strcmp(name, "InCB") != 0) {
       continue;
+    }
 
     value = semi2 + 1;
-    while (*value == ' ' || *value == '\t')
+    while (*value == ' ' || *value == '\t') {
       ++value;
+    }
     end = value;
-    while (*end && *end != ' ' && *end != '\t' && *end != '\n' && *end != '\r')
+    while (*end && *end != ' ' && *end != '\t' && *end != '\n' &&
+           *end != '\r') {
       ++end;
+    }
     *end = 0;
-    if (strcmp(value, "Linker") == 0)
+    if (strcmp(value, "Linker") == 0) {
       val = 1;
-    else if (strcmp(value, "Consonant") == 0)
+    } else if (strcmp(value, "Consonant") == 0) {
       val = 2;
-    else if (strcmp(value, "Extend") == 0)
+    } else if (strcmp(value, "Extend") == 0) {
       val = 3;
-    else
+    } else {
       continue;
+    }
 
-    while (*p == ' ' || *p == '\t')
+    while (*p == ' ' || *p == '\t') {
       ++p;
+    }
     dots = strstr(p, "..");
     if (dots) {
       *dots = 0;
-      if (hex_to_u32(p, &a) != 0)
+      if (hex_to_u32(p, &a) != 0) {
         continue;
-      if (hex_to_u32(dots + 2, &b) != 0)
+      }
+      if (hex_to_u32(dots + 2, &b) != 0) {
         continue;
+      }
     } else {
-      if (hex_to_u32(p, &a) != 0)
+      if (hex_to_u32(p, &a) != 0) {
         continue;
+      }
       b = a;
     }
     if (range_push(&INCB, &INCB_N, &INCB_CAP, a, b, val) != 0) {
@@ -735,8 +815,9 @@ int load_InCB(const char *path) {
 int sort_and_dedupe_maps(void) {
   size_t i, w;
 
-  if (CCC_KEYS.n != CCC_VALS.n)
+  if (CCC_KEYS.n != CCC_VALS.n) {
     return -1;
+  }
   for (i = 1; i < CCC_KEYS.n; ++i) {
     unsigned long k = CCC_KEYS.a[i], v = CCC_VALS.a[i];
     size_t j = i;
@@ -848,46 +929,48 @@ int sort_and_dedupe_maps(void) {
 
 int write_header(const char *out_h) {
   FILE *h = fopen(out_h, "wb");
-  if (!h)
+  if (!h) {
     return -1;
-  fprintf(h, "#ifndef DS_UNICODE_TABLES_H\n"
-             "#define DS_UNICODE_TABLES_H\n"
-             "#include <stddef.h>\n\n"
-             "typedef struct { unsigned long start, end, prop; } ucd_range_t;\n"
-             "extern const unsigned long ds_ucd_ccc_keys[];\n"
-             "extern const unsigned long ds_ucd_ccc_vals[];\n"
-             "extern const size_t ds_ucd_ccc_len;\n\n"
-             "extern const unsigned long ds_ucd_decomp_keys[];\n"
-             "extern const unsigned int  ds_ucd_decomp_cnt[];\n"
-             "extern const unsigned int  ds_ucd_decomp_off[];\n"
-             "extern const unsigned int  ds_ucd_decomp_iscompat[];\n"
-             "extern const unsigned long ds_ucd_decomp_pool[];\n"
-             "extern const size_t        ds_ucd_decomp_len;\n"
-             "extern const size_t        ds_ucd_decomp_pool_len;\n\n"
-             "extern const unsigned long ds_ucd_comp_keys_a[];\n"
-             "extern const unsigned long ds_ucd_comp_keys_b[];\n"
-             "extern const unsigned long ds_ucd_comp_vals[];\n"
-             "extern const size_t        ds_ucd_comp_len;\n\n"
-             "extern const unsigned long ds_ucd_tolower_keys[];\n"
-             "extern const unsigned long ds_ucd_tolower_vals[];\n"
-             "extern const size_t        ds_ucd_tolower_len;\n"
-             "extern const unsigned long ds_ucd_toupper_keys[];\n"
-             "extern const unsigned long ds_ucd_toupper_vals[];\n"
-             "extern const size_t        ds_ucd_toupper_len;\n\n"
-             "extern const unsigned long ds_ucd_fold_keys[];\n"
-             "extern const unsigned int  ds_ucd_fold_cnt[];\n"
-             "extern const unsigned int  ds_ucd_fold_off[];\n"
-             "extern const unsigned long ds_ucd_fold_pool[];\n"
-             "extern const size_t        ds_ucd_fold_len;\n"
-             "extern const size_t        ds_ucd_fold_pool_len;\n\n"
-             "extern const ucd_range_t   ds_ucd_gb_ranges[];\n"
-             "extern const size_t        ds_ucd_gb_len;\n"
-             "extern const ucd_range_t   ds_ucd_ep_ranges[];\n"
-             "extern const size_t        ds_ucd_ep_len;\n\n"
-             "extern const ucd_range_t   ds_ucd_incb_ranges[];\n"
-             "extern const size_t        ds_ucd_incb_len;\n\n"
-             "\n"
-             "#endif/* DS_UNICODE_TABLES_H */\n");
+  }
+  fprintf(h,
+          "#ifndef DS_UNICODE_TABLES_H\n"
+          "#define DS_UNICODE_TABLES_H\n"
+          "#include <stddef.h>\n\n"
+          "typedef struct { unsigned long start, end, prop; } ucd_range_t;\n"
+          "extern const unsigned long ds_ucd_ccc_keys[];\n"
+          "extern const unsigned long ds_ucd_ccc_vals[];\n"
+          "extern const size_t ds_ucd_ccc_len;\n\n"
+          "extern const unsigned long ds_ucd_decomp_keys[];\n"
+          "extern const unsigned int  ds_ucd_decomp_cnt[];\n"
+          "extern const unsigned int  ds_ucd_decomp_off[];\n"
+          "extern const unsigned int  ds_ucd_decomp_iscompat[];\n"
+          "extern const unsigned long ds_ucd_decomp_pool[];\n"
+          "extern const size_t        ds_ucd_decomp_len;\n"
+          "extern const size_t        ds_ucd_decomp_pool_len;\n\n"
+          "extern const unsigned long ds_ucd_comp_keys_a[];\n"
+          "extern const unsigned long ds_ucd_comp_keys_b[];\n"
+          "extern const unsigned long ds_ucd_comp_vals[];\n"
+          "extern const size_t        ds_ucd_comp_len;\n\n"
+          "extern const unsigned long ds_ucd_tolower_keys[];\n"
+          "extern const unsigned long ds_ucd_tolower_vals[];\n"
+          "extern const size_t        ds_ucd_tolower_len;\n"
+          "extern const unsigned long ds_ucd_toupper_keys[];\n"
+          "extern const unsigned long ds_ucd_toupper_vals[];\n"
+          "extern const size_t        ds_ucd_toupper_len;\n\n"
+          "extern const unsigned long ds_ucd_fold_keys[];\n"
+          "extern const unsigned int  ds_ucd_fold_cnt[];\n"
+          "extern const unsigned int  ds_ucd_fold_off[];\n"
+          "extern const unsigned long ds_ucd_fold_pool[];\n"
+          "extern const size_t        ds_ucd_fold_len;\n"
+          "extern const size_t        ds_ucd_fold_pool_len;\n\n"
+          "extern const ucd_range_t   ds_ucd_gb_ranges[];\n"
+          "extern const size_t        ds_ucd_gb_len;\n"
+          "extern const ucd_range_t   ds_ucd_ep_ranges[];\n"
+          "extern const size_t        ds_ucd_ep_len;\n\n"
+          "extern const ucd_range_t   ds_ucd_incb_ranges[];\n"
+          "extern const size_t        ds_ucd_incb_len;\n\n"
+          "\n"
+          "#endif/* DS_UNICODE_TABLES_H */\n");
   fclose(h);
   return 0;
 }
@@ -895,22 +978,25 @@ int write_header(const char *out_h) {
 int write_source(const char *out_c) {
   FILE *c = fopen(out_c, "wb");
   size_t i;
-  if (!c)
+  if (!c) {
     return -1;
+  }
 
   fprintf(c, "#include <stddef.h>\n#include \"unicode_tables.h\"\n\n");
 
   fprintf(c, "const unsigned long ds_ucd_ccc_keys[] = {");
   for (i = 0; i < CCC_KEYS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", (unsigned long)CCC_KEYS.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned long ds_ucd_ccc_vals[] = {");
   for (i = 0; i < CCC_VALS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", (unsigned long)CCC_VALS.a[i]);
   }
   fprintf(c, "};\n");
@@ -919,36 +1005,41 @@ int write_source(const char *out_c) {
 
   fprintf(c, "const unsigned long ds_ucd_decomp_keys[] = {");
   for (i = 0; i < DECOMP_KEYS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", DECOMP_KEYS.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned int ds_ucd_decomp_cnt[] = {");
   for (i = 0; i < DECOMP_CNT.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "%u", DECOMP_CNT.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned int ds_ucd_decomp_off[] = {");
   for (i = 0; i < DECOMP_OFF.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "%u", DECOMP_OFF.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned int ds_ucd_decomp_iscompat[] = {");
   for (i = 0; i < DECOMP_ISCOMPAT.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "%u", DECOMP_ISCOMPAT.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned long ds_ucd_decomp_pool[] = {");
   for (i = 0; i < DECOMP_POOL.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", DECOMP_POOL.a[i]);
   }
   fprintf(c, "};\n");
@@ -959,38 +1050,44 @@ int write_source(const char *out_c) {
 
   fprintf(c, "const unsigned long ds_ucd_comp_keys_a[] = {");
   for (i = 0; i < COMP_N; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", COMP[i].a);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned long ds_ucd_comp_keys_b[] = {");
   for (i = 0; i < COMP_N; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", COMP[i].b);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned long ds_ucd_comp_vals[] = {");
   for (i = 0; i < COMP_N; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", COMP[i].v);
   }
   fprintf(c, "};\n");
-  fprintf(c, "const size_t ds_ucd_comp_len = %luu;\n\n", (unsigned long)COMP_N);
+  fprintf(c, "const size_t ds_ucd_comp_len = %luu;\n\n",
+          (unsigned long)COMP_N);
 
   fprintf(c, "const unsigned long ds_ucd_tolower_keys[] = {");
   for (i = 0; i < TOLOWER_KEYS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", TOLOWER_KEYS.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned long ds_ucd_tolower_vals[] = {");
   for (i = 0; i < TOLOWER_VALS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", TOLOWER_VALS.a[i]);
   }
   fprintf(c, "};\n");
@@ -999,15 +1096,17 @@ int write_source(const char *out_c) {
 
   fprintf(c, "const unsigned long ds_ucd_toupper_keys[] = {");
   for (i = 0; i < TOUPPER_KEYS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", TOUPPER_KEYS.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned long ds_ucd_toupper_vals[] = {");
   for (i = 0; i < TOUPPER_VALS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", TOUPPER_VALS.a[i]);
   }
   fprintf(c, "};\n");
@@ -1016,29 +1115,33 @@ int write_source(const char *out_c) {
 
   fprintf(c, "const unsigned long ds_ucd_fold_keys[] = {");
   for (i = 0; i < FOLD_KEYS.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", FOLD_KEYS.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned int ds_ucd_fold_cnt[] = {");
   for (i = 0; i < FOLD_CNT.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "%u", FOLD_CNT.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned int ds_ucd_fold_off[] = {");
   for (i = 0; i < FOLD_OFF.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "%u", FOLD_OFF.a[i]);
   }
   fprintf(c, "};\n");
   fprintf(c, "const unsigned long ds_ucd_fold_pool[] = {");
   for (i = 0; i < FOLD_POOL.n; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "0x%lXul", FOLD_POOL.a[i]);
   }
   fprintf(c, "};\n");
@@ -1049,8 +1152,9 @@ int write_source(const char *out_c) {
 
   fprintf(c, "const ucd_range_t ds_ucd_gb_ranges[] = {");
   for (i = 0; i < GB_N; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "{0x%lXul,0x%lXul,%luul}", GB[i].start, GB[i].end,
             (unsigned long)GB[i].prop);
   }
@@ -1059,8 +1163,9 @@ int write_source(const char *out_c) {
 
   fprintf(c, "const ucd_range_t ds_ucd_ep_ranges[] = {");
   for (i = 0; i < EP_N; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "{0x%lXul,0x%lXul,%luul}", EP[i].start, EP[i].end,
             (unsigned long)EP[i].prop);
   }
@@ -1069,13 +1174,15 @@ int write_source(const char *out_c) {
 
   fprintf(c, "const ucd_range_t ds_ucd_incb_ranges[] = {");
   for (i = 0; i < INCB_N; ++i) {
-    if (i)
+    if (i) {
       fprintf(c, ",");
+    }
     fprintf(c, "{0x%lXul,0x%lXul,%luul}", INCB[i].start, INCB[i].end,
             (unsigned long)INCB[i].prop);
   }
-  if (INCB_N == 0)
+  if (INCB_N == 0) {
     fprintf(c, "{0ul,0ul,0ul}");
+  }
   fprintf(c, "};\n");
   fprintf(c, "const size_t ds_ucd_incb_len = %luu;\n", (unsigned long)INCB_N);
 
@@ -1100,22 +1207,23 @@ int main(int argc, char **argv) {
   int i;
 
   for (i = 1; i < argc; i++) {
-    if (!strcmp(argv[i], "--unicode-data") && i + 1 < argc)
+    if (!strcmp(argv[i], "--unicode-data") && i + 1 < argc) {
       path_unicode = argv[++i];
-    else if (!strcmp(argv[i], "--case-folding") && i + 1 < argc)
+    } else if (!strcmp(argv[i], "--case-folding") && i + 1 < argc) {
       path_casefold = argv[++i];
-    else if (!strcmp(argv[i], "--comp-excl") && i + 1 < argc)
+    } else if (!strcmp(argv[i], "--comp-excl") && i + 1 < argc) {
       path_compexcl = argv[++i];
-    else if (!strcmp(argv[i], "--gb-prop") && i + 1 < argc)
+    } else if (!strcmp(argv[i], "--gb-prop") && i + 1 < argc) {
       path_gb = argv[++i];
-    else if (!strcmp(argv[i], "--emoji-data") && i + 1 < argc)
+    } else if (!strcmp(argv[i], "--emoji-data") && i + 1 < argc) {
       path_emoji = argv[++i];
-    else if (!strcmp(argv[i], "--derived-core") && i + 1 < argc)
+    } else if (!strcmp(argv[i], "--derived-core") && i + 1 < argc) {
       path_derived = argv[++i];
-    else if (!strcmp(argv[i], "--out-c") && i + 1 < argc)
+    } else if (!strcmp(argv[i], "--out-c") && i + 1 < argc) {
       out_c = argv[++i];
-    else if (!strcmp(argv[i], "--out-h") && i + 1 < argc)
+    } else if (!strcmp(argv[i], "--out-h") && i + 1 < argc) {
       out_h = argv[++i];
+    }
   }
 
   if (!path_unicode || !path_casefold || !path_compexcl || !path_gb ||

@@ -149,7 +149,8 @@ void ds_binomial_heap_push(ds_binomial_heap_t *heap,
   bh_fix_min(heap);
 }
 
-ds_binomial_heap_node_t *ds_binomial_heap_peek(const ds_binomial_heap_t *heap) {
+ds_binomial_heap_node_t *
+ds_binomial_heap_peek(const ds_binomial_heap_t *heap) {
   return heap->min;
 }
 

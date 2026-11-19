@@ -33,29 +33,36 @@ ds_status_t ds_logic_circuit_eval(const ds_gview_t *g,
   size_t *order = NULL;
   unsigned char *values = NULL, *inputs = NULL;
   ds_status_t st;
-  if (g == NULL || g->degree == NULL || g->edge == NULL)
+  if (g == NULL || g->degree == NULL || g->edge == NULL) {
     return DS_ERR_NULL;
+  }
   n = g->vertex_count;
-  if (n == 0)
+  if (n == 0) {
     return DS_OK;
-  if (gates == NULL || out == NULL)
+  }
+  if (gates == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (!ds_size_mul(n, sizeof(size_t), &bytes))
+  }
+  if (!ds_size_mul(n, sizeof(size_t), &bytes)) {
     return DS_ERR_OVERFLOW;
+  }
   for (i = 0; i < n; i++) {
     size_t count = g->degree(g->graph, i);
     if (!lg_arity(gates[i].op, count) ||
         (gates[i].op == DS_LOGIC_CUSTOM &&
-         (policy == NULL || policy->custom == NULL)))
+         (policy == NULL || policy->custom == NULL))) {
       return DS_ERR_INVALID;
-    if (count > max_degree)
+    }
+    if (count > max_degree) {
       max_degree = count;
+    }
     for (j = 0; j < count; j++) {
       size_t target;
       double weight;
       g->edge(g->graph, i, j, &target, &weight);
-      if (target >= n)
+      if (target >= n) {
         return DS_ERR_RANGE;
+      }
     }
   }
   order = (size_t *)ds_context_alloc(ctx, bytes);
@@ -67,8 +74,9 @@ ds_status_t ds_logic_circuit_eval(const ds_gview_t *g,
     goto done;
   }
   st = ds_gview_topological_sort(g, order, ctx);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
+  }
   /* Edges point to inputs, so reverse the graph's topological order. */
   for (i = n; i > 0; i--) {
     size_t v = order[i - 1], count = g->degree(g->graph, v);
@@ -95,21 +103,26 @@ ds_status_t ds_logic_circuit_eval(const ds_gview_t *g,
     case DS_LOGIC_AND:
     case DS_LOGIC_NAND:
       value = 1;
-      for (j = 0; j < count; j++)
+      for (j = 0; j < count; j++) {
         value = (unsigned char)(value & inputs[j]);
-      if (gates[v].op == DS_LOGIC_NAND)
+      }
+      if (gates[v].op == DS_LOGIC_NAND) {
         value = value == 0;
+      }
       break;
     case DS_LOGIC_OR:
     case DS_LOGIC_NOR:
-      for (j = 0; j < count; j++)
+      for (j = 0; j < count; j++) {
         value = (unsigned char)(value | inputs[j]);
-      if (gates[v].op == DS_LOGIC_NOR)
+      }
+      if (gates[v].op == DS_LOGIC_NOR) {
         value = value == 0;
+      }
       break;
     case DS_LOGIC_XOR:
-      for (j = 0; j < count; j++)
+      for (j = 0; j < count; j++) {
         value = (unsigned char)(value ^ inputs[j]);
+      }
       break;
     case DS_LOGIC_MUX:
       value = inputs[0] ? inputs[1] : inputs[2];
@@ -120,8 +133,9 @@ ds_status_t ds_logic_circuit_eval(const ds_gview_t *g,
         goto done;
       }
       st = policy->custom(v, inputs, count, &value, policy->user);
-      if (st != DS_OK)
+      if (st != DS_OK) {
         goto done;
+      }
       if (value > 1) {
         st = DS_ERR_INVALID;
         goto done;
@@ -156,53 +170,69 @@ ds_status_t ds_horn_closure(const ds_horn_rules_t *r,
   unsigned char *known = NULL;
   lg_occurrence_t *occ = NULL;
   ds_status_t st = DS_ERR_ALLOC;
-  if (r == NULL)
+  if (r == NULL) {
     return DS_ERR_NULL;
+  }
   n = r->fact_count;
   m = r->rule_count;
   if ((n > 0 && out == NULL) ||
-      (m > 0 && (r->offsets == NULL || r->heads == NULL)))
+      (m > 0 && (r->offsets == NULL || r->heads == NULL))) {
     return DS_ERR_NULL;
-  if (m > 0 && r->offsets[0] != 0)
+  }
+  if (m > 0 && r->offsets[0] != 0) {
     return DS_ERR_INVALID;
+  }
   p = m == 0 ? 0 : r->offsets[m];
-  if (p > 0 && r->premises == NULL)
+  if (p > 0 && r->premises == NULL) {
     return DS_ERR_NULL;
+  }
   if (!ds_size_mul(n, sizeof(size_t), &word_bytes) ||
       !ds_size_mul(m, sizeof(size_t), &rule_bytes) ||
-      !ds_size_mul(p, sizeof(lg_occurrence_t), &occurrence_bytes))
+      !ds_size_mul(p, sizeof(lg_occurrence_t), &occurrence_bytes)) {
     return DS_ERR_OVERFLOW;
-  for (i = 0; i < m; i++) {
-    if (r->offsets[i] > r->offsets[i + 1])
-      return DS_ERR_INVALID;
-    if (r->heads[i] >= n)
-      return DS_ERR_RANGE;
   }
-  for (i = 0; i < p; i++)
-    if (r->premises[i] >= n)
+  for (i = 0; i < m; i++) {
+    if (r->offsets[i] > r->offsets[i + 1]) {
+      return DS_ERR_INVALID;
+    }
+    if (r->heads[i] >= n) {
       return DS_ERR_RANGE;
-  if (n == 0)
+    }
+  }
+  for (i = 0; i < p; i++) {
+    if (r->premises[i] >= n) {
+      return DS_ERR_RANGE;
+    }
+  }
+  if (n == 0) {
     return DS_OK;
+  }
   first = (size_t *)ds_context_alloc(ctx, word_bytes);
   queue = (size_t *)ds_context_alloc(ctx, word_bytes);
   known = (unsigned char *)ds_context_alloc(ctx, n);
-  if (m > 0)
+  if (m > 0) {
     remaining = (size_t *)ds_context_alloc(ctx, rule_bytes);
-  if (p > 0)
+  }
+  if (p > 0) {
     occ = (lg_occurrence_t *)ds_context_alloc(ctx, occurrence_bytes);
-  if (out_reason != NULL)
+  }
+  if (out_reason != NULL) {
     reason = (size_t *)ds_context_alloc(ctx, word_bytes);
+  }
   if (first == NULL || queue == NULL || known == NULL ||
       (m > 0 && remaining == NULL) || (p > 0 && occ == NULL) ||
-      (out_reason != NULL && reason == NULL))
+      (out_reason != NULL && reason == NULL)) {
     goto done;
+  }
   for (i = 0; i < n; i++) {
     first[i] = DS_HORN_GIVEN;
     known[i] = initial != NULL && initial[i] != 0;
-    if (reason != NULL)
+    if (reason != NULL) {
       reason[i] = DS_HORN_GIVEN;
-    if (known[i])
+    }
+    if (known[i]) {
       queue[used++] = i;
+    }
   }
   for (i = 0; i < m; i++) {
     size_t head = r->heads[i];
@@ -215,8 +245,9 @@ ds_status_t ds_horn_closure(const ds_horn_rules_t *r,
     }
     if (remaining[i] == 0 && !known[head]) {
       known[head] = 1;
-      if (reason != NULL)
+      if (reason != NULL) {
         reason[head] = i;
+      }
       queue[used++] = head;
     }
   }
@@ -227,15 +258,17 @@ ds_status_t ds_horn_closure(const ds_horn_rules_t *r,
       remaining[rule]--;
       if (remaining[rule] == 0 && !known[head]) {
         known[head] = 1;
-        if (reason != NULL)
+        if (reason != NULL) {
           reason[head] = rule;
+        }
         queue[used++] = head;
       }
     }
   }
   memmove(out, known, n);
-  if (reason != NULL)
+  if (reason != NULL) {
     memmove(out_reason, reason, word_bytes);
+  }
   st = DS_OK;
 done:
   ds_context_free(ctx, reason);
@@ -257,11 +290,13 @@ ds_status_t ds_path_system(size_t n, const ds_path_rule_t *rules, size_t m,
   unsigned char *known;
   ds_status_t st;
   bool any = false;
-  if (out_any == NULL || (m > 0 && rules == NULL))
+  if (out_any == NULL || (m > 0 && rules == NULL)) {
     return DS_ERR_NULL;
+  }
   if (!ds_size_mul(m, 4, &slots) || !ds_size_add(slots, 1, &slots) ||
-      !ds_size_mul(slots, sizeof(size_t), &bytes))
+      !ds_size_mul(slots, sizeof(size_t), &bytes)) {
     return DS_ERR_OVERFLOW;
+  }
   block = (size_t *)ds_context_alloc(ctx, bytes);
   known = (unsigned char *)ds_context_alloc(ctx, n > 0 ? n : 1);
   if (block == NULL || known == NULL) {
@@ -281,13 +316,17 @@ ds_status_t ds_path_system(size_t n, const ds_path_rule_t *rules, size_t m,
   }
   block[m] = 2 * m;
   st = ds_horn_closure(&horn, terminals, known, NULL, ctx);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto done;
-  for (i = 0; i < n; i++)
-    if (known[i] && sources != NULL && sources[i])
+  }
+  for (i = 0; i < n; i++) {
+    if (known[i] && sources != NULL && sources[i]) {
       any = true;
-  if (out_admissible != NULL && n > 0)
+    }
+  }
+  if (out_admissible != NULL && n > 0) {
     memmove(out_admissible, known, n);
+  }
   *out_any = any;
 done:
   ds_context_free(ctx, known);

@@ -513,8 +513,8 @@ ds_status_t ds_cdawg_build(ds_cdawg_t *cd, const ds_suffix_automaton_t *sa,
   cd->edge_head =
       (size_t *)sam_realloc(context, NULL, cd->nodes, sizeof(size_t));
   cd->final = (unsigned char *)sam_realloc(context, NULL, cd->nodes, 1);
-  cd->edge_to =
-      (size_t *)sam_realloc(context, NULL, 4 * (sa->edges + 1), sizeof(size_t));
+  cd->edge_to = (size_t *)sam_realloc(context, NULL, 4 * (sa->edges + 1),
+                                      sizeof(size_t));
   if (cd->edge_head == NULL || cd->final == NULL || cd->edge_to == NULL) {
     ds_context_free(context, node_of);
     ds_context_free(context, final);
@@ -572,7 +572,8 @@ void ds_cdawg_destroy(ds_cdawg_t *cd) {
   cd->edges = 0;
 }
 
-bool ds_cdawg_contains(const ds_cdawg_t *cd, const unsigned char *p, size_t m) {
+bool ds_cdawg_contains(const ds_cdawg_t *cd, const unsigned char *p,
+                       size_t m) {
   size_t node;
   size_t i = 0;
   size_t e;

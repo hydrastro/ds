@@ -242,7 +242,8 @@ static void vs_bucket(const size_t *key, size_t n, size_t m, size_t *off,
 
 ds_status_t ds_visibility_map(const ds_visibility_segment_t *segments,
                               size_t count, ds_visibility_axis_t axis,
-                              ds_visibility_ray_t *out, ds_context_t *context) {
+                              ds_visibility_ray_t *out,
+                              ds_context_t *context) {
   vs_seg_t *seg = NULL;
   double *xs = NULL;
   size_t *mem = NULL;
@@ -273,8 +274,8 @@ ds_status_t ds_visibility_map(const ds_visibility_segment_t *segments,
   }
   seg = (vs_seg_t *)ds_context_alloc(context, count * sizeof(vs_seg_t));
   xs = (double *)ds_context_alloc(context, 2 * count * sizeof(double));
-  pri =
-      (unsigned long *)ds_context_alloc(context, count * sizeof(unsigned long));
+  pri = (unsigned long *)ds_context_alloc(context,
+                                          count * sizeof(unsigned long));
   if (seg == NULL || xs == NULL || pri == NULL) {
     st = DS_ERR_ALLOC;
     goto done;

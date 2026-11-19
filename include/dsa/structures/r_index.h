@@ -59,8 +59,9 @@ typedef struct ds_rindex {
 } ds_rindex_t;
 
 /* builder NULL: ds_sa_build (SA-IS) */
-ds_status_t ds_rindex_build(ds_rindex_t *r, const unsigned char *text, size_t n,
-                            ds_fm_sa_builder_t builder, ds_context_t *context);
+ds_status_t ds_rindex_build(ds_rindex_t *r, const unsigned char *text,
+                            size_t n, ds_fm_sa_builder_t builder,
+                            ds_context_t *context);
 void ds_rindex_destroy(ds_rindex_t *r);
 
 /* occurrences of p (m bytes); out_sp/out_ep (optional) get the row range

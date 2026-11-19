@@ -49,8 +49,8 @@ static ds_status_t yf_new_bucket(ds_yfast_t *t, size_t *out) {
     st = yf_reserve(t->context, (void **)&t->buckets, &cap, t->nbuckets + 1,
                     sizeof(void *));
     if (st == DS_OK) {
-      st = yf_reserve(t->context, (void **)&t->free_ids, &fcap, t->nbuckets + 1,
-                      sizeof(size_t));
+      st = yf_reserve(t->context, (void **)&t->free_ids, &fcap,
+                      t->nbuckets + 1, sizeof(size_t));
     }
     if (st != DS_OK) {
       t->bucket_ops->destroy(b);
@@ -223,7 +223,8 @@ ds_status_t ds_yfast_insert(ds_yfast_t *t, unsigned long key,
   return DS_OK;
 }
 
-ds_status_t ds_yfast_remove(ds_yfast_t *t, unsigned long key, void *out_value) {
+ds_status_t ds_yfast_remove(ds_yfast_t *t, unsigned long key,
+                            void *out_value) {
   const ds_ordered_ops_t *ops;
   unsigned long rep;
   size_t id;

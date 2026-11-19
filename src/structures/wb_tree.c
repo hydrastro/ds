@@ -252,7 +252,8 @@ ds_status_t ds_wb_tree_remove(ds_wb_tree_t *t, const void *key, void *out) {
   return found ? DS_OK : DS_NOT_FOUND;
 }
 
-ds_status_t ds_wb_tree_find(const ds_wb_tree_t *t, const void *key, void *out) {
+ds_status_t ds_wb_tree_find(const ds_wb_tree_t *t, const void *key,
+                            void *out) {
   size_t v;
   int c;
   if (t == NULL || key == NULL) {

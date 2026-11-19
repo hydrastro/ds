@@ -36,8 +36,8 @@ ds_status_t ds_cartesian_tree_build(const void *base, size_t n,
     left[i] = right[i] = CT_NONE;
     last = CT_NONE;
     /* pop strictly greater elements: equal ones stay ancestors */
-    while (top > 0 && compare(a + stack[top - 1] * elem_size, a + i * elem_size,
-                              user) > 0) {
+    while (top > 0 && compare(a + stack[top - 1] * elem_size,
+                              a + i * elem_size, user) > 0) {
       last = stack[--top];
     }
     left[i] = last;
@@ -176,7 +176,8 @@ ds_status_t ds_cartesian_tree_sort(void *base, size_t n, size_t elem_size,
   if (n < 2) {
     return DS_OK;
   }
-  if (n > ((size_t)-1) / (3 * sizeof(size_t)) || n > ((size_t)-1) / elem_size) {
+  if (n > ((size_t)-1) / (3 * sizeof(size_t)) ||
+      n > ((size_t)-1) / elem_size) {
     return DS_ERR_OVERFLOW;
   }
   left = (size_t *)ds_context_alloc(context, 3 * n * sizeof(size_t));

@@ -32,9 +32,9 @@
  * checksumming layer stacked on another store) fits by filling in a
  * ds_page_store_ops_t. Stacked stores in the library:
  * dsa/structures/wal_store.h (write-ahead logging: atomic commits and crash
- * recovery over any data and log store), dsa/structures/fault_store.h (injected
- * failures and simulated crashes, for testing) and dsa/structures/posix_store.h
- * (POSIX files with fsync and real truncation).
+ * recovery over any data and log store), dsa/structures/fault_store.h
+ * (injected failures and simulated crashes, for testing) and
+ * dsa/structures/posix_store.h (POSIX files with fsync and real truncation).
  *
  * The pager caches up to `frames` pages of any store, with pin counts and
  * dirty tracking; free frames are used first, then the replacement policy
@@ -97,7 +97,8 @@ ds_status_t ds_page_store_write(ds_page_store_t *store, unsigned long page,
                                 const void *buf);
 ds_status_t ds_page_store_sync(ds_page_store_t *store);
 unsigned long ds_page_store_count(const ds_page_store_t *store);
-ds_status_t ds_page_store_truncate(ds_page_store_t *store, unsigned long pages);
+ds_status_t ds_page_store_truncate(ds_page_store_t *store,
+                                   unsigned long pages);
 
 typedef struct ds_pager_frame {
   unsigned long page;

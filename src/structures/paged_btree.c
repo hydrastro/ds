@@ -16,9 +16,9 @@
 static void pb_put64(unsigned char *p, unsigned long v) {
   int i;
   for (i = 0; i < 8; i++) {
-    p[i] =
-        (unsigned char)(i < (int)sizeof(unsigned long) ? (v >> (8 * i)) & 0xFFUL
-                                                       : 0);
+    p[i] = (unsigned char)(i < (int)sizeof(unsigned long)
+                               ? (v >> (8 * i)) & 0xFFUL
+                               : 0);
   }
 }
 
@@ -451,7 +451,8 @@ ds_status_t ds_pbtree_put(ds_pbtree_t *tree, unsigned long key,
       return DS_EXISTS;
     }
     if (n < tree->leaf_cap) {
-      memmove(pb_lent(tree, b, pos + 1), pb_lent(tree, b, pos), (n - pos) * es);
+      memmove(pb_lent(tree, b, pos + 1), pb_lent(tree, b, pos),
+              (n - pos) * es);
       pb_put64(pb_lent(tree, b, pos), key);
       memcpy(pb_lent(tree, b, pos) + 8, value, tree->value_size);
       pb_set_count(b, n + 1);

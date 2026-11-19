@@ -108,8 +108,8 @@ typedef struct ds_rplus {
  * leaf_capacity >= 2 (0: 8) is also the fan-out. Leaves of objects that no
  * cut separates may exceed it. */
 ds_status_t ds_rplus_build(ds_rplus_t *t, size_t dim, const double *boxes,
-                           const size_t *values, size_t n, size_t leaf_capacity,
-                           ds_context_t *context);
+                           const size_t *values, size_t n,
+                           size_t leaf_capacity, ds_context_t *context);
 void ds_rplus_destroy(ds_rplus_t *t);
 /* Each intersecting object once. */
 ds_status_t ds_rplus_query(const ds_rplus_t *t, const double *box,

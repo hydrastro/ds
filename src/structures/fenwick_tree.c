@@ -18,31 +18,37 @@ static ds_status_t fw_sum_terms(const fw_term_t *terms, size_t count,
   while (positive < count || negative < count) {
     const fw_term_t *term;
     unsigned long limit;
-    while (positive < count && terms[positive].negative)
+    while (positive < count && terms[positive].negative) {
       positive++;
-    while (negative < count && !terms[negative].negative)
+    }
+    while (negative < count && !terms[negative].negative) {
       negative++;
-    if (positive == count && negative == count)
+    }
+    if (positive == count && negative == count) {
       break;
-    if ((sign && positive < count) || negative == count)
+    }
+    if ((sign && positive < count) || negative == count) {
       term = &terms[positive++];
-    else
+    } else {
       term = &terms[negative++];
+    }
     if (term->negative == sign) {
       limit = sign ? negative_limit : (unsigned long)LONG_MAX;
-      if (magnitude > limit || term->magnitude > limit - magnitude)
+      if (magnitude > limit || term->magnitude > limit - magnitude) {
         return DS_ERR_OVERFLOW;
+      }
       magnitude += term->magnitude;
-    } else if (term->magnitude <= magnitude)
+    } else if (term->magnitude <= magnitude) {
       magnitude -= term->magnitude;
-    else {
+    } else {
       magnitude = term->magnitude - magnitude;
       sign = term->negative;
     }
   }
   if ((!sign && magnitude > (unsigned long)LONG_MAX) ||
-      (sign && magnitude > negative_limit))
+      (sign && magnitude > negative_limit)) {
     return DS_ERR_OVERFLOW;
+  }
   *out = sign ? (magnitude == negative_limit ? LONG_MIN : -(long)magnitude)
               : (long)magnitude;
   return DS_OK;
@@ -63,10 +69,12 @@ ds_status_t ds_fenwick_tree_range_ex(const ds_fenwick_tree_t *tree,
                                      size_t left, size_t right, long *out) {
   fw_term_t terms[2 * sizeof(size_t) * CHAR_BIT];
   size_t count;
-  if (tree == NULL || out == NULL)
+  if (tree == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (left > right || right > tree->size)
+  }
+  if (left > right || right > tree->size) {
     return DS_ERR_RANGE;
+  }
   count = fw_collect(tree, right, false, terms, 0);
   count = fw_collect(tree, left, true, terms, count);
   return fw_sum_terms(terms, count, out);
@@ -77,10 +85,12 @@ ds_status_t ds_fenwick_tree_prefix_ex(const ds_fenwick_tree_t *tree,
 }
 ds_status_t ds_fenwick_tree_at_ex(const ds_fenwick_tree_t *tree, size_t index,
                                   long *out) {
-  if (tree == NULL || out == NULL)
+  if (tree == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (index >= tree->size)
+  }
+  if (index >= tree->size) {
     return DS_ERR_RANGE;
+  }
   return ds_fenwick_tree_range_ex(tree, index, index + 1, out);
 }
 static ds_status_t fw_mutate(ds_fenwick_tree_t *tree, size_t index, long value,
@@ -89,36 +99,44 @@ static ds_status_t fw_mutate(ds_fenwick_tree_t *tree, size_t index, long value,
   long values[sizeof(size_t) * CHAR_BIT], current = 0;
   size_t count = 0, i;
   ds_status_t st;
-  if (tree == NULL)
+  if (tree == NULL) {
     return DS_ERR_NULL;
-  if (index >= tree->size)
+  }
+  if (index >= tree->size) {
     return DS_ERR_RANGE;
+  }
   if (assign) {
     st = ds_fenwick_tree_at_ex(tree, index, &current);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   i = index + 1;
   for (;;) {
     long next, part;
     size_t step = i & (~i + 1);
     if (!assign) {
-      if (!ds_long_add(tree->data[i], value, &next))
+      if (!ds_long_add(tree->data[i], value, &next)) {
         return DS_ERR_OVERFLOW;
+      }
     } else if (ds_long_sub(tree->data[i], current, &part)) {
-      if (!ds_long_add(part, value, &next))
+      if (!ds_long_add(part, value, &next)) {
         return DS_ERR_OVERFLOW;
+      }
     } else if (!ds_long_add(tree->data[i], value, &part) ||
-               !ds_long_sub(part, current, &next))
+               !ds_long_sub(part, current, &next)) {
       return DS_ERR_OVERFLOW;
+    }
     indices[count] = i;
     values[count++] = next;
-    if (step > tree->size - i)
+    if (step > tree->size - i) {
       break;
+    }
     i += step;
   }
-  for (i = 0; i < count; i++)
+  for (i = 0; i < count; i++) {
     tree->data[indices[i]] = values[i];
+  }
   return DS_OK;
 }
 ds_status_t ds_fenwick_tree_update_ex(ds_fenwick_tree_t *tree, size_t index,
@@ -160,11 +178,13 @@ ds_fenwick_tree_t *ds_fenwick_tree_create(size_t size, ds_context_t *context) {
 }
 ds_status_t ds_fenwick_tree_create_context(size_t size, ds_context_t *context,
                                            ds_fenwick_tree_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (size >= (size_t)-1 / sizeof(long))
+  if (size >= (size_t)-1 / sizeof(long)) {
     return DS_ERR_OVERFLOW;
+  }
   *out = fenwick_tree_create_internal(
       size, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;

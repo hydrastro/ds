@@ -20,8 +20,9 @@ ds_disjoint_set_t *ds_disjoint_set_create(ds_context_t *context) {
 }
 ds_status_t ds_disjoint_set_create_context(ds_context_t *context,
                                            ds_disjoint_set_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = disjoint_set_create_internal(context != NULL ? context
                                                       : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -95,20 +96,24 @@ void ds_disjoint_set_destroy(ds_disjoint_set_t *set) {
 
 ds_status_t ds_disjoint_set_make_ex(ds_disjoint_set_t *set,
                                     ds_disjoint_set_node_t *node) {
-  if (set == NULL || node == NULL)
+  if (set == NULL || node == NULL) {
     return DS_ERR_NULL;
-  if (set->count == (size_t)-1)
+  }
+  if (set->count == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   ds_disjoint_set_make(set, node);
   return DS_OK;
 }
 ds_status_t ds_disjoint_set_find_ex(ds_disjoint_set_t *set,
                                     ds_disjoint_set_node_t *node,
                                     ds_disjoint_set_node_t **out) {
-  if (set == NULL || node == NULL || out == NULL)
+  if (set == NULL || node == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (set->count == 0)
+  }
+  if (set->count == 0) {
     return DS_ERR_STATE;
+  }
   *out = ds_disjoint_set_find(set, node);
   return DS_OK;
 }
@@ -116,16 +121,20 @@ ds_status_t ds_disjoint_set_union_ex(ds_disjoint_set_t *set,
                                      ds_disjoint_set_node_t *a,
                                      ds_disjoint_set_node_t *b) {
   ds_disjoint_set_node_t *ra, *rb;
-  if (set == NULL || a == NULL || b == NULL)
+  if (set == NULL || a == NULL || b == NULL) {
     return DS_ERR_NULL;
-  if (set->count == 0)
+  }
+  if (set->count == 0) {
     return DS_ERR_STATE;
+  }
   ra = ds_disjoint_set_find(set, a);
   rb = ds_disjoint_set_find(set, b);
-  if (ra == rb)
+  if (ra == rb) {
     return DS_EXISTS;
-  if (set->count < 2)
+  }
+  if (set->count < 2) {
     return DS_ERR_STATE;
+  }
   (void)ds_disjoint_set_union(set, ra, rb);
   return DS_OK;
 }

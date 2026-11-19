@@ -47,9 +47,9 @@ typedef struct ds_xor_filter {
   ds_context_t *context;
 } ds_xor_filter_t;
 
-ds_status_t ds_xor_filter_build(ds_xor_filter_t *f, const unsigned long *hashes,
-                                size_t n, unsigned fp_bits,
-                                ds_context_t *context);
+ds_status_t ds_xor_filter_build(ds_xor_filter_t *f,
+                                const unsigned long *hashes, size_t n,
+                                unsigned fp_bits, ds_context_t *context);
 void ds_xor_filter_destroy(ds_xor_filter_t *f);
 bool ds_xor_filter_contains(const ds_xor_filter_t *f, unsigned long hash);
 size_t ds_xor_filter_count(const ds_xor_filter_t *f);

@@ -66,7 +66,8 @@ ds_status_t ds_array_deque_get(const ds_array_deque_t *deque, size_t index,
 ds_status_t ds_array_deque_set(ds_array_deque_t *deque, size_t index,
                                const void *elem);
 
-ds_status_t ds_array_deque_push_back(ds_array_deque_t *deque, const void *elem);
+ds_status_t ds_array_deque_push_back(ds_array_deque_t *deque,
+                                     const void *elem);
 ds_status_t ds_array_deque_push_front(ds_array_deque_t *deque,
                                       const void *elem);
 ds_status_t ds_array_deque_push_back_overwrite(ds_array_deque_t *deque,

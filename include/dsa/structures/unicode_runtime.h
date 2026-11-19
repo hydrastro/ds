@@ -118,7 +118,8 @@ int ds_is_Hangul_L(unsigned long cp);
 int ds_is_Hangul_V(unsigned long cp);
 int ds_is_Hangul_T(unsigned long cp);
 void ds_decompose_Hangul(unsigned long s, void *out_u32vec);
-int ds_compose_Hangul(unsigned long *LVT, unsigned long next, size_t *consumed);
+int ds_compose_Hangul(unsigned long *LVT, unsigned long next,
+                      size_t *consumed);
 
 unsigned long ds_get_ccc(unsigned long cp);
 
@@ -136,7 +137,8 @@ int ds__is_default_ignorable(unsigned long cp);
 unsigned long ds__lump(unsigned long cp);
 int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags);
 int ds__is_mark(unsigned long cp);
-int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src, unsigned int flags);
+int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src,
+                        unsigned int flags);
 int ds__insert_charbound(ds_str_t *out, const ds_str_t *src);
 
 int ds__pair_cmp(unsigned long a1, unsigned long b1, unsigned long a2,

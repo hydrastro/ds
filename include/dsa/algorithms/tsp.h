@@ -53,9 +53,9 @@ typedef enum ds_tsp_method {
 ds_status_t ds_tsp(const double *dist, size_t n, ds_tsp_method_t method,
                    size_t *tour, double *out_length, ds_context_t *context);
 /* xy: n points as x, y pairs. */
-ds_status_t ds_tsp_euclidean(const double *xy, size_t n, ds_tsp_method_t method,
-                             size_t *tour, double *out_length,
-                             ds_context_t *context);
+ds_status_t ds_tsp_euclidean(const double *xy, size_t n,
+                             ds_tsp_method_t method, size_t *tour,
+                             double *out_length, ds_context_t *context);
 /* Length of a given tour. */
 double ds_tsp_tour_length(const double *dist, size_t n, const size_t *tour);
 ds_status_t ds_tsp_bottleneck(const double *dist, size_t n, size_t *tour,

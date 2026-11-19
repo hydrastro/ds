@@ -164,7 +164,8 @@ static bool mi_ck_next(const void *map, size_t *cursor, const void **key,
 }
 
 static const ds_map_ops_t mi_ck_ops = {"cuckoo",
-                                       DS_MAP_EXPECTED_O1 | DS_MAP_WORST_O1_GET,
+                                       DS_MAP_EXPECTED_O1 |
+                                           DS_MAP_WORST_O1_GET,
                                        sizeof(ds_cuckoo_map_t),
                                        mi_ck_init,
                                        mi_ck_destroy,
@@ -474,9 +475,9 @@ const ds_map_ops_t *ds_map_swiss_ops(void) { return &mi_sw_ops; }
 
 /* ---- handle ---- */
 
-ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops, size_t key_size,
-                        size_t value_size, ds_map_hash_fn hash,
-                        ds_map_equal_fn equal, void *user,
+ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops,
+                        size_t key_size, size_t value_size,
+                        ds_map_hash_fn hash, ds_map_equal_fn equal, void *user,
                         ds_context_t *context) {
   ds_status_t st;
   if (map == NULL || hash == NULL || equal == NULL) {

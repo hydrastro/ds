@@ -47,8 +47,9 @@ void ds_decompose_Hangul(unsigned long s, void *out_vec_void) {
   unsigned long T = TBase + (SIndex % TCount);
   out->push(out, L);
   out->push(out, V);
-  if (T != TBase)
+  if (T != TBase) {
     out->push(out, T);
+  }
 }
 
 int ds_compose_Hangul(unsigned long *LVT, unsigned long next,
@@ -81,22 +82,27 @@ int ds_u32vec_push(u32vec_like *v, unsigned long x) {
   unsigned long *np;
   size_t nc;
   if (v->n == v->cap) {
-    if (v->cap > (size_t)-1 / 2)
+    if (v->cap > (size_t)-1 / 2) {
       return -1;
+    }
     nc = v->cap ? v->cap * 2 : 8;
-    if (nc > (size_t)-1 / sizeof(*np))
+    if (nc > (size_t)-1 / sizeof(*np)) {
       return -1;
+    }
     np = (unsigned long *)(v->owner != NULL
                                ? ds_context_alloc((v->owner)->context,
                                                   nc * sizeof(*np))
                                : ds_context_alloc(NULL, nc * sizeof(*np)));
-    if (np == NULL)
+    if (np == NULL) {
       return -1;
-    if (v->n != 0)
+    }
+    if (v->n != 0) {
       memcpy(np, v->p, v->n * sizeof(*np));
+    }
     if (v->owner != NULL) {
-      if (v->p != NULL)
+      if (v->p != NULL) {
         ds_context_free((v->owner)->context, v->p);
+      }
     } else {
       ds_context_free(NULL, v->p);
     }
@@ -108,10 +114,11 @@ int ds_u32vec_push(u32vec_like *v, unsigned long x) {
 }
 void ds_u32vec_free(u32vec_like *v) {
   if (v->p != NULL) {
-    if (v->owner != NULL)
+    if (v->owner != NULL) {
       ds_context_free((v->owner)->context, v->p);
-    else
+    } else {
       ds_context_free(NULL, v->p);
+    }
   }
   v->p = NULL;
   v->n = v->cap = 0;
@@ -122,12 +129,13 @@ unsigned long ds_get_ccc(unsigned long cp) {
   while (lo < hi) {
     size_t mid = lo + ((hi - lo) >> 1);
     unsigned long k = ds_ucd_ccc_keys[mid];
-    if (cp < k)
+    if (cp < k) {
       hi = mid;
-    else if (cp > k)
+    } else if (cp > k) {
       lo = mid + 1;
-    else
+    } else {
       return ds_ucd_ccc_vals[mid];
+    }
   }
   return 0ul;
 }
@@ -145,11 +153,11 @@ int ds_decompose_cp(unsigned long cp, int compat, void *out_vec_void) {
   while (lo < hi) {
     size_t mid = lo + ((hi - lo) >> 1);
     unsigned long k = ds_ucd_decomp_keys[mid];
-    if (cp < k)
+    if (cp < k) {
       hi = mid;
-    else if (cp > k)
+    } else if (cp > k) {
       lo = mid + 1;
-    else {
+    } else {
       unsigned int cnt = ds_ucd_decomp_cnt[mid];
       unsigned int is_compat = ds_ucd_decomp_iscompat[mid];
       unsigned int off = ds_ucd_decomp_off[mid];
@@ -159,8 +167,9 @@ int ds_decompose_cp(unsigned long cp, int compat, void *out_vec_void) {
       }
       for (i = 0; i < cnt; ++i) {
         unsigned long d = ds_ucd_decomp_pool[off + i];
-        if (ds_decompose_cp(d, compat, out) != 0)
+        if (ds_decompose_cp(d, compat, out) != 0) {
           return -1;
+        }
       }
       return 0;
     }
@@ -177,12 +186,14 @@ void ds_reorder_ccc(void *vec_void) {
   for (i = 1; i < v->n; ++i) {
     unsigned long x = v->p[i], cx = ds_get_ccc(x);
     size_t j = i;
-    if (cx == 0ul)
+    if (cx == 0ul) {
       continue;
+    }
     while (j > 0) {
       unsigned long y = v->p[j - 1], cy = ds_get_ccc(y);
-      if (cy == 0ul || cy <= cx)
+      if (cy == 0ul || cy <= cx) {
         break;
+      }
       v->p[j] = y;
       --j;
     }
@@ -214,12 +225,13 @@ size_t ds__comp_find_pair(unsigned long a, unsigned long b) {
     unsigned long ka = ds_ucd_comp_keys_a[mid];
     unsigned long kb = ds_ucd_comp_keys_b[mid];
     int cmp = ds__pair_cmp(a, b, ka, kb);
-    if (cmp < 0)
+    if (cmp < 0) {
       hi = mid;
-    else if (cmp > 0)
+    } else if (cmp > 0) {
       lo = mid + 1;
-    else
+    } else {
       return mid;
+    }
   }
   return (size_t)-1;
 }
@@ -228,8 +240,9 @@ void ds_compose_vec(void *vec_void) {
   u32vec_like *v = (u32vec_like *)vec_void;
   size_t r, w;
 
-  if (v->n == 0)
+  if (v->n == 0) {
     return;
+  }
 
   r = 0;
   w = 0;
@@ -271,8 +284,9 @@ void ds_compose_vec(void *vec_void) {
           }
           break;
         }
-        if (ccca2 >= cccb)
+        if (ccca2 >= cccb) {
           break;
+        }
         --j;
       }
     }
@@ -290,17 +304,18 @@ int ds_fold_cp(unsigned long cp, void *out_vec_void) {
   while (lo < hi) {
     size_t mid = lo + ((hi - lo) >> 1);
     unsigned long k = ds_ucd_fold_keys[mid];
-    if (cp < k)
+    if (cp < k) {
       hi = mid;
-    else if (cp > k)
+    } else if (cp > k) {
       lo = mid + 1;
-    else {
+    } else {
       unsigned int cnt = ds_ucd_fold_cnt[mid];
       unsigned int off = ds_ucd_fold_off[mid];
       unsigned int i;
       for (i = 0; i < cnt; ++i) {
-        if (out->push(out, ds_ucd_fold_pool[off + i]) != 0)
+        if (out->push(out, ds_ucd_fold_pool[off + i]) != 0) {
           return -1;
+        }
       }
       return 0;
     }
@@ -315,12 +330,13 @@ unsigned long ds__map_simple(const unsigned long *keys,
   while (lo < hi) {
     size_t mid = lo + ((hi - lo) >> 1);
     unsigned long k = keys[mid];
-    if (cp < k)
+    if (cp < k) {
       hi = mid;
-    else if (cp > k)
+    } else if (cp > k) {
       lo = mid + 1;
-    else
+    } else {
       return vals[mid];
+    }
   }
   return cp;
 }
@@ -329,12 +345,13 @@ unsigned long ds_gb_get(unsigned long cp) {
   size_t lo = 0, hi = ds_ucd_gb_len;
   while (lo < hi) {
     size_t mid = lo + ((hi - lo) >> 1);
-    if (cp < ds_ucd_gb_ranges[mid].start)
+    if (cp < ds_ucd_gb_ranges[mid].start) {
       hi = mid;
-    else if (cp > ds_ucd_gb_ranges[mid].end)
+    } else if (cp > ds_ucd_gb_ranges[mid].end) {
       lo = mid + 1;
-    else
+    } else {
       return ds_ucd_gb_ranges[mid].prop;
+    }
   }
   return GB_Other;
 }
@@ -343,12 +360,13 @@ int ds_is_EP(unsigned long cp) {
   size_t lo = 0, hi = ds_ucd_ep_len;
   while (lo < hi) {
     size_t mid = lo + ((hi - lo) >> 1);
-    if (cp < ds_ucd_ep_ranges[mid].start)
+    if (cp < ds_ucd_ep_ranges[mid].start) {
       hi = mid;
-    else if (cp > ds_ucd_ep_ranges[mid].end)
+    } else if (cp > ds_ucd_ep_ranges[mid].end) {
       lo = mid + 1;
-    else
+    } else {
       return 1;
+    }
   }
   return 0;
 }
@@ -360,8 +378,9 @@ int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat,
   unsigned long cp;
   int r;
 
-  if (!dst || !src)
+  if (!dst || !src) {
     return -1;
+  }
 
   ds_u32vec_init(&tmp, dst);
 
@@ -377,15 +396,17 @@ int ds__ucd_normalize(ds_str_t *dst, const ds_str_t *src, int compat,
     return -1;
   }
   ds_reorder_ccc(&tmp);
-  if (compose)
+  if (compose) {
     ds_compose_vec(&tmp);
+  }
 
   ds_str_clear(dst);
-  for (i = 0; i < tmp.n; ++i)
+  for (i = 0; i < tmp.n; ++i) {
     if (ds_u8_push(dst, tmp.p[i]) != 0) {
       ds_u32vec_free(&tmp);
       return -1;
     }
+  }
   ds_u32vec_free(&tmp);
   return 0;
 }
@@ -396,8 +417,9 @@ int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src) {
   unsigned long cp;
   int r;
 
-  if (!dst || !src)
+  if (!dst || !src) {
     return -1;
+  }
 
   ds_u32vec_init(&out, dst);
 
@@ -413,11 +435,12 @@ int ds__ucd_casefold(ds_str_t *dst, const ds_str_t *src) {
     return -1;
   }
   ds_str_clear(dst);
-  for (i = 0; i < out.n; ++i)
+  for (i = 0; i < out.n; ++i) {
     if (ds_u8_push(dst, out.p[i]) != 0) {
       ds_u32vec_free(&out);
       return -1;
     }
+  }
   ds_u32vec_free(&out);
   return 0;
 }
@@ -432,8 +455,9 @@ static int ucd_map_simple(ds_str_t *dst, const ds_str_t *src,
   unsigned long cp;
   int r;
 
-  if (!dst || !src)
+  if (!dst || !src) {
     return -1;
+  }
 
   ds_u32vec_init(&out, dst);
   while ((r = ds_u8_next(src->buf, src->len, &i, &cp)) == 1) {
@@ -447,11 +471,12 @@ static int ucd_map_simple(ds_str_t *dst, const ds_str_t *src,
     return -1;
   }
   ds_str_clear(dst);
-  for (i = 0; i < out.n; ++i)
+  for (i = 0; i < out.n; ++i) {
     if (ds_u8_push(dst, out.p[i]) != 0) {
       ds_u32vec_free(&out);
       return -1;
     }
+  }
   ds_u32vec_free(&out);
   return 0;
 }
@@ -472,21 +497,26 @@ long ds__ucd_grapheme_len(const ds_str_t *s) {
   size_t a, l;
   int r;
 
-  if (!s)
+  if (!s) {
     return -1;
-  if (ds__grapheme_iter_init(&it, s->buf, s->len) != 0)
+  }
+  if (ds__grapheme_iter_init(&it, s->buf, s->len) != 0) {
     return -1;
-  while ((r = ds__grapheme_iter_next(&it, &a, &l)) == 1)
+  }
+  while ((r = ds__grapheme_iter_next(&it, &a, &l)) == 1) {
     ++n;
-  if (r < 0)
+  }
+  if (r < 0) {
     return -1;
+  }
   return n;
 }
 
 int ds__grapheme_iter_init(ds__grapheme_iter_t *it, const char *buf,
                            size_t len) {
-  if (!it)
+  if (!it) {
     return -1;
+  }
   it->buf = buf;
   it->len = buf ? len : 0;
   it->i = 0;
@@ -509,12 +539,13 @@ static unsigned long incb_get(unsigned long cp) {
   size_t lo = 0, hi = ds_ucd_incb_len;
   while (lo < hi) {
     size_t mid = lo + ((hi - lo) >> 1);
-    if (cp < ds_ucd_incb_ranges[mid].start)
+    if (cp < ds_ucd_incb_ranges[mid].start) {
       hi = mid;
-    else if (cp > ds_ucd_incb_ranges[mid].end)
+    } else if (cp > ds_ucd_incb_ranges[mid].end) {
       lo = mid + 1;
-    else
+    } else {
       return ds_ucd_incb_ranges[mid].prop;
+    }
   }
   return INCB_None;
 }
@@ -523,12 +554,13 @@ static unsigned long incb_get(unsigned long cp) {
  * as a state, see incb_state */
 static void gb9c_update(ds__grapheme_iter_t *it) {
   unsigned long v = incb_get(it->cp);
-  if (v == INCB_Consonant)
+  if (v == INCB_Consonant) {
     it->incb_state = 1;
-  else if (v == INCB_Linker)
+  } else if (v == INCB_Linker) {
     it->incb_state = it->incb_state != 0 ? 2 : 0;
-  else if (v != INCB_Extend)
+  } else if (v != INCB_Extend) {
     it->incb_state = 0;
+  }
 }
 
 /* GB11 (ExtPict Extend* ZWJ x ExtPict) as a state: last_base_is_EP says
@@ -554,15 +586,18 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
     int break_here = 1;
     int r;
 
-    if (!it)
+    if (!it) {
       return -1;
+    }
 
     if (it->i >= it->len) { /* also the end of an empty, unallocated text */
       if (it->cur_start < it->len) {
-        if (out_start)
+        if (out_start) {
           *out_start = it->cur_start;
-        if (out_len)
+        }
+        if (out_len) {
           *out_len = it->len - it->cur_start;
+        }
         it->cur_start = it->len;
         return 1;
       }
@@ -571,8 +606,9 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
 
     cp_start = it->i;
     r = ds_u8_next(it->buf, it->len, &it->i, &it->cp);
-    if (r != 1)
+    if (r != 1) {
       return -1;
+    }
     prop = ds_gb_get(it->cp);
 
     if (!it->have_prev) {
@@ -593,48 +629,52 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
     it->cur_is_Control =
         (prop == GB_Control || prop == GB_CR || prop == GB_LF);
 
-    if (it->prev_prop == GB_CR && prop == GB_LF)
+    if (it->prev_prop == GB_CR && prop == GB_LF) {
       break_here = 0;
-    else if (it->prev_is_Control || it->cur_is_Control)
+    } else if (it->prev_is_Control || it->cur_is_Control) {
       break_here = 1;
-    else if (it->prev_prop == GB_L &&
-             (prop == GB_L || prop == GB_V || prop == GB_LV || prop == GB_LVT))
+    } else if (it->prev_prop == GB_L && (prop == GB_L || prop == GB_V ||
+                                         prop == GB_LV || prop == GB_LVT)) {
       break_here = 0;
-    else if ((it->prev_prop == GB_LV || it->prev_prop == GB_V) &&
-             (prop == GB_V || prop == GB_T))
+    } else if ((it->prev_prop == GB_LV || it->prev_prop == GB_V) &&
+               (prop == GB_V || prop == GB_T)) {
       break_here = 0;
-    else if ((it->prev_prop == GB_LVT || it->prev_prop == GB_T) &&
-             (prop == GB_T))
+    } else if ((it->prev_prop == GB_LVT || it->prev_prop == GB_T) &&
+               (prop == GB_T)) {
       break_here = 0;
-    else if (prop == GB_Extend || prop == GB_ZWJ) /* GB9 */
+    } else if (prop == GB_Extend || prop == GB_ZWJ) { /* GB9 */
       break_here = 0;
-    else if (prop == GB_SpacingMark)
+    } else if (prop == GB_SpacingMark) {
       break_here = 0;
-    else if (it->prev_prop == GB_Prepend)
+    } else if (it->prev_prop == GB_Prepend) {
       break_here = 0;
-    else if (it->incb_state == 2 && incb_get(it->cp) == INCB_Consonant)
-      break_here = 0;                                     /* GB9c */
-    else if (ds_is_EP(it->cp) && it->prev_is_zwj_ign_ext) /* GB11 */
+    } else if (it->incb_state == 2 && incb_get(it->cp) == INCB_Consonant) {
+      break_here = 0;                                         /* GB9c */
+    } else if (ds_is_EP(it->cp) && it->prev_is_zwj_ign_ext) { /* GB11 */
       break_here = 0;
-    else if (it->prev_prop == GB_Regional_Indicator &&
-             prop == GB_Regional_Indicator) {
-      if ((it->ri_run_len % 2) == 1)
+    } else if (it->prev_prop == GB_Regional_Indicator &&
+               prop == GB_Regional_Indicator) {
+      if ((it->ri_run_len % 2) == 1) {
         break_here = 0;
+      }
     }
 
     if (break_here) {
-      if (out_start)
+      if (out_start) {
         *out_start = it->cur_start;
-      if (out_len)
+      }
+      if (out_len) {
         *out_len = cp_start - it->cur_start;
+      }
 
       it->cur_start = cp_start;
       it->prev_prop = prop;
 
-      if (prop == GB_Regional_Indicator)
+      if (prop == GB_Regional_Indicator) {
         it->ri_run_len += 1;
-      else
+      } else {
         it->ri_run_len = 0;
+      }
 
       gb11_update(it, prop);
       gb9c_update(it);
@@ -642,10 +682,11 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
     }
 
     it->prev_prop = prop;
-    if (prop == GB_Regional_Indicator)
+    if (prop == GB_Regional_Indicator) {
       it->ri_run_len += 1;
-    else
+    } else {
       it->ri_run_len = 0;
+    }
 
     gb11_update(it, prop);
     gb9c_update(it);
@@ -662,8 +703,10 @@ int ds__is_control_cc(unsigned long cp) {
 int ds__is_default_ignorable(unsigned long cp) {
   if (cp == 0x00ADul || cp == 0x034Ful || cp == 0x061Cul || cp == 0x115Ful ||
       cp == 0x1160ul || cp == 0x17B4ul || cp == 0x17B5ul || cp == 0x180Eul ||
-      (cp >= 0xFE00ul && cp <= 0xFE0Ful) || cp == 0xFEFFul || cp == 0xE0001ul)
+      (cp >= 0xFE00ul && cp <= 0xFE0Ful) || cp == 0xFEFFul ||
+      cp == 0xE0001ul) {
     return 1;
+  }
 
   if ((cp >= 0x200Bul && cp <= 0x200Ful) ||
       (cp >= 0x202Aul && cp <= 0x202Eul) ||
@@ -671,8 +714,9 @@ int ds__is_default_ignorable(unsigned long cp) {
       (cp >= 0xFFF0ul && cp <= 0xFFFBul) ||
       (cp >= 0x1BCA0ul && cp <= 0x1BCA3ul) ||
       (cp >= 0x1D173ul && cp <= 0x1D17Aul) ||
-      (cp >= 0xE0020ul && cp <= 0xE007Ful))
+      (cp >= 0xE0020ul && cp <= 0xE007Ful)) {
     return 1;
+  }
 
   return 0;
 }
@@ -736,10 +780,12 @@ int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
     size_t prev_i = i;
     unsigned long cp = 0;
     int r = ds_str_u8_next(src->buf, src->len, &i, &cp, DS_U8_STRICT);
-    if (r < 0)
+    if (r < 0) {
       return -1;
-    if (r == 0)
+    }
+    if (r == 0) {
       break;
+    }
 
     if (cp == 0x0Dul) {
       size_t j = i;
@@ -750,13 +796,15 @@ int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
       (void)ds_str_u8_next(src->buf, src->len, &j, &next, DS_U8_STRICT);
       k = ds__encode_one(target, enc);
       if (next == 0x0Aul) {
-        if (ds_str_append(out, enc, k) != 0)
+        if (ds_str_append(out, enc, k) != 0) {
           return -1;
+        }
         i = j;
         continue;
       } else {
-        if (ds_str_append(out, enc, k) != 0)
+        if (ds_str_append(out, enc, k) != 0) {
           return -1;
+        }
         continue;
       }
     }
@@ -764,14 +812,16 @@ int ds__map_newlines(ds_str_t *out, const ds_str_t *src, unsigned int flags) {
     if (cp == 0x0085ul || cp == 0x2028ul || cp == 0x2029ul) {
       unsigned char enc2[4];
       size_t k2 = ds__encode_one(target, enc2);
-      if (ds_str_append(out, enc2, k2) != 0)
+      if (ds_str_append(out, enc2, k2) != 0) {
         return -1;
+      }
       continue;
     }
 
     if (prev_i < i) {
-      if (ds_str_append(out, src->buf + prev_i, i - prev_i) != 0)
+      if (ds_str_append(out, src->buf + prev_i, i - prev_i) != 0) {
         return -1;
+      }
     }
   }
   return rc;
@@ -791,8 +841,9 @@ int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src,
                        &cp, DS_U8_STRICT) <= 0) {
       unsigned char enc[4];
       size_t k = ds__encode_one(DS_U8_REPLACEMENT_CHAR, enc);
-      if (ds_str_append(out, enc, k) != 0)
+      if (ds_str_append(out, enc, k) != 0) {
         return -1;
+      }
       j += 1;
       continue;
     }
@@ -810,14 +861,16 @@ int ds__filter_and_lump(ds_str_t *out, const ds_str_t *src,
       continue;
     }
 
-    if (flags & DS_MAP_LUMP)
+    if (flags & DS_MAP_LUMP) {
       cp = ds__lump(cp);
+    }
 
     {
       unsigned char enc2[4];
       size_t k2 = ds__encode_one(cp, enc2);
-      if (ds_str_append(out, enc2, k2) != 0)
+      if (ds_str_append(out, enc2, k2) != 0) {
         return -1;
+      }
     }
     j += adv;
   }
@@ -829,15 +882,18 @@ int ds__insert_charbound(ds_str_t *out, const ds_str_t *src) {
   size_t a, n;
   int r;
   ds_str_clear(out);
-  if (ds_str_u8_grapheme_iter_init(&git, src) != 0)
+  if (ds_str_u8_grapheme_iter_init(&git, src) != 0) {
     return -1;
+  }
   while ((r = ds_str_u8_grapheme_next(&git, &a, &n)) == 1) {
     unsigned char enc[4];
     size_t k = ds__encode_one(0xFFul, enc);
-    if (ds_str_append(out, enc, k) != 0)
+    if (ds_str_append(out, enc, k) != 0) {
       return -1;
-    if (ds_str_append(out, src->buf + a, n) != 0)
+    }
+    if (ds_str_append(out, src->buf + a, n) != 0) {
       return -1;
+    }
   }
   return (r < 0) ? -1 : 0;
 }

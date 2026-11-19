@@ -91,7 +91,8 @@ ds_status_t ds_self_org_list_set_policy(ds_self_org_list_t *list,
                                         void *func_user);
 size_t ds_self_org_list_size(const ds_self_org_list_t *list);
 /* Appended at the back with count 0 (duplicates are allowed). */
-ds_status_t ds_self_org_list_insert(ds_self_org_list_t *list, const void *elem);
+ds_status_t ds_self_org_list_insert(ds_self_org_list_t *list,
+                                    const void *elem);
 /* Sequential search, then reorganisation: the element is copied to out
  * (may be NULL) and its new index stored (may be NULL). */
 ds_status_t ds_self_org_list_search(ds_self_org_list_t *list, const void *key,

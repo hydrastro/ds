@@ -62,27 +62,27 @@
  *   ds_pq_leftist_ops()    log      log      log      log      log      log
  *     leftist tree (dsa/structures/meldable_heap.h): rank refresh stops within
  * the O(log n) rank bound ds_pq_weight_ops()     log      log      n        n
- * n        log weight-biased leftist tree: removal refreshes subtree weights up
- * the whole ancestor chain, which can be a left chain of linear height
+ * n        log weight-biased leftist tree: removal refreshes subtree weights
+ * up the whole ancestor chain, which can be a left chain of linear height
  *   ds_pq_skew_ops()       n/log    n/log    n/?      n/?      n/?      n/log
  *     skew heap: the amortized analysis covers push, pop and meld only
  *   ds_pq_random_ops()     n/log    n/log    n/log    n/log    n/log    n/log
  *     randomized meldable heap (expected bounds)
  *   ds_pq_pairing_ops()    1        n/log    1/o(log) n/log    n/log    1
- *     pairing heap (dsa/structures/pairing_heap.h); native meld across contexts
- *   ds_pq_hollow_ops()     1        n/log    n/1      n/log    n/log    1
+ *     pairing heap (dsa/structures/pairing_heap.h); native meld across
+ * contexts ds_pq_hollow_ops()     1        n/log    n/1      n/log    n/log 1
  *     hollow heap (dsa/structures/hollow_heap.h): decrease leaves the old node
  * hollow instead of cutting; the linear worst case of decrease is the rebuild
  *     that keeps hollow nodes from outnumbering items. Items live in the
  *     nodes and an update moves its item: DS_PQ_MOVING_ITEMS
  *   ds_pq_rank_pairing_ops()  1   n/log    n/1      n/log    n/log    1
  *   ds_pq_rank_pairing2_ops()
- *     rank-pairing heap (dsa/structures/rank_pairing_heap.h), type 1 and type 2
- * rank rules: half trees linked in one pass at pop, decrease cuts one node and
- * lowers ranks above it (O(1) amortized, no cascading cuts); increase and
- * remove go through the minimum's relinking. Nodes never move, so item pointers
- * stay valid ds_pq_min_max_ops()    n/log    log      log      log      log -
- *     dsa/structures/min_max_heap.h over stable payload pointers; movement
+ *     rank-pairing heap (dsa/structures/rank_pairing_heap.h), type 1 and type
+ * 2 rank rules: half trees linked in one pass at pop, decrease cuts one node
+ * and lowers ranks above it (O(1) amortized, no cascading cuts); increase and
+ * remove go through the minimum's relinking. Nodes never move, so item
+ * pointers stay valid ds_pq_min_max_ops()    n/log    log      log      log
+ * log - dsa/structures/min_max_heap.h over stable payload pointers; movement
  * callbacks maintain handle indices. The underlying heap retains both extrema.
  *   ds_pq_shadow_ops()     n/log    log^2    log      log      log^2    -
  *     dsa/structures/shadow_heap.h over stable payload pointers, automatic

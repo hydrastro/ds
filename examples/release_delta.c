@@ -1,4 +1,5 @@
-/* Reuse an indexed release as the base of streamed and owned update scripts. */
+/* Reuse an indexed release as the base of streamed and owned update scripts.
+ */
 #include <dsa/structures/suffix_array.h>
 #include <dsaa.h>
 #include <stdio.h>
@@ -37,25 +38,29 @@ static ds_status_t release(const ds_hsadelta_config_t *config,
   size_t rebuilt_size;
   ds_status_t st =
       ds_hsadelta_init(&index, reference, reference_size, config, NULL);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     return st;
+  }
   st = ds_hsadelta_emit(&index, target, target_size, show_command, NULL,
                         &progress);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto index_done;
+  }
   printf("Streamed %lu commands for %lu target bytes\n",
          (unsigned long)progress.commands,
          (unsigned long)progress.target_bytes);
   st = ds_hsadelta_build(&index, target, target_size, &script);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto index_done;
+  }
   st = ds_hsadelta_apply(&script, reference, reference_size, 1024, &rebuilt,
                          &rebuilt_size, NULL);
   if (st == DS_OK) {
     printf("Reconstructed release (%lu literal bytes):\n",
            (unsigned long)script.literals.size);
-    if (rebuilt_size > 0)
+    if (rebuilt_size > 0) {
       (void)fwrite(rebuilt, 1, rebuilt_size, stdout);
+    }
     ds_context_free(NULL, rebuilt);
   }
   ds_hsadelta_script_destroy(&script);
@@ -75,16 +80,18 @@ int main(void) {
   puts("Default rolling hash and open-addressed lookup:");
   st = release(&config, old_release, sizeof(old_release) - 1, new_release,
                sizeof(new_release) - 1);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto fail;
+  }
   config.hash = small_hash;
   config.suffix = suffix_policy;
   config.map_ops = ds_map_swiss_ops();
   puts("Two-bit hash, selected suffix builder and Swiss lookup:");
   st = release(&config, old_release, sizeof(old_release) - 1, new_release,
                sizeof(new_release) - 1);
-  if (st != DS_OK)
+  if (st != DS_OK) {
     goto fail;
+  }
   return 0;
 fail:
   fprintf(stderr, "Delta failed: %s\n", ds_status_name(st));

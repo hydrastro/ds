@@ -79,7 +79,8 @@ size_t ds_exponential_search(const void *base, size_t count, size_t elem_size,
     return 0;
   }
   /* Invariant: element[bound / 2] < key. */
-  while (bound < count && compare(CAT(base, bound, elem_size), key, user) < 0) {
+  while (bound < count &&
+         compare(CAT(base, bound, elem_size), key, user) < 0) {
     if (bound > count / 2) {
       bound = count;
       break;
@@ -207,7 +208,8 @@ void ds_minmax_element(const void *base, size_t count, size_t elem_size,
     if (compare(CAT(base, i, elem_size), CAT(base, lo, elem_size), user) < 0) {
       lo = i;
     }
-    if (compare(CAT(base, i, elem_size), CAT(base, hi, elem_size), user) >= 0) {
+    if (compare(CAT(base, i, elem_size), CAT(base, hi, elem_size), user) >=
+        0) {
       hi = i; /* last maximum, as std::minmax_element */
     }
   }
@@ -253,7 +255,8 @@ size_t ds_jump_search(const void *base, size_t count, size_t elem_size,
   }
   /* find the first block whose last element is not less than key */
   end = step < count ? step : count;
-  while (end < count && compare(CAT(base, end - 1, elem_size), key, user) < 0) {
+  while (end < count &&
+         compare(CAT(base, end - 1, elem_size), key, user) < 0) {
     end = count - end > step ? end + step : count;
   }
   for (i = end - (end % step == 0 ? step : end % step); i < end; i++) {
@@ -331,9 +334,10 @@ size_t ds_ternary_search(const void *base, size_t count, size_t elem_size,
   return lo;
 }
 
-static size_t search_interp_seq(size_t count, double pos_frac, const void *base,
-                                size_t elem_size, const void *key,
-                                ds_compare_func_t compare, void *user) {
+static size_t search_interp_seq(size_t count, double pos_frac,
+                                const void *base, size_t elem_size,
+                                const void *key, ds_compare_func_t compare,
+                                void *user) {
   size_t p;
   double f = pos_frac * (double)(count - 1);
   if (!(f > 0.0)) {
@@ -365,8 +369,8 @@ static int search_cmp_long(const void *a, const void *b, void *user) {
   return (x > y) - (x < y);
 }
 
-size_t ds_interpolation_sequential_search_long(const long *values, size_t count,
-                                               long key) {
+size_t ds_interpolation_sequential_search_long(const long *values,
+                                               size_t count, long key) {
   double lo;
   double hi;
   double frac;
@@ -440,8 +444,8 @@ size_t ds_ternary_search_peak(const void *base, size_t count, size_t elem_size,
   return best;
 }
 
-double ds_ternary_search_min(ds_real_func_t f, void *user, double lo, double hi,
-                             double tolerance) {
+double ds_ternary_search_min(ds_real_func_t f, void *user, double lo,
+                             double hi, double tolerance) {
   double m1;
   double m2;
   int round;

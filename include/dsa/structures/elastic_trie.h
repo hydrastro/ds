@@ -77,13 +77,14 @@ ds_status_t ds_bucket_trie_init(ds_bucket_trie_t *t, size_t b, bool elastic,
 void ds_bucket_trie_destroy(ds_bucket_trie_t *t);
 size_t ds_bucket_trie_size(const ds_bucket_trie_t *t);
 /* DS_EXISTS (value replaced) for a present key. */
-ds_status_t ds_bucket_trie_insert(ds_bucket_trie_t *t, const unsigned char *key,
-                                  size_t len, size_t value);
+ds_status_t ds_bucket_trie_insert(ds_bucket_trie_t *t,
+                                  const unsigned char *key, size_t len,
+                                  size_t value);
 ds_status_t ds_bucket_trie_find(const ds_bucket_trie_t *t,
                                 const unsigned char *key, size_t len,
                                 size_t *out_value);
-ds_status_t ds_bucket_trie_remove(ds_bucket_trie_t *t, const unsigned char *key,
-                                  size_t len);
+ds_status_t ds_bucket_trie_remove(ds_bucket_trie_t *t,
+                                  const unsigned char *key, size_t len);
 /* Every key in lexicographic order. */
 ds_status_t ds_bucket_trie_foreach(ds_bucket_trie_t *t,
                                    ds_trie_visit_func_t visit, void *user);

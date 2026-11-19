@@ -11,8 +11,8 @@
  * floor(d first), and slot j holds the keys whose d^x falls in [j, j + 1)
  * (d^x is computed as d^h times d, d, ... until it reaches first, the same
  * way every time, so slot boundaries stay consistent as S moves). Growing
- * advances first by one: that slot retires and its keys spread over the d slots
- * that appear at the top (for d = 2, slot j splits into 2j and 2j + 1);
+ * advances first by one: that slot retires and its keys spread over the d
+ * slots that appear at the top (for d = 2, slot j splits into 2j and 2j + 1);
  * shrinking undoes it. Lower slots are therefore fuller than upper ones, the
  * characteristic spiral load profile. The active slots are kept in a circular
  * physical array indexed by the logical slot number.
@@ -105,8 +105,8 @@ ds_status_t ds_spiral_map_put(ds_spiral_map_t *m, const void *key,
 ds_status_t ds_spiral_map_get(const ds_spiral_map_t *m, const void *key,
                               void *out_value);
 ds_status_t ds_spiral_map_remove(ds_spiral_map_t *m, const void *key);
-ds_status_t ds_spiral_map_walk(ds_spiral_map_t *m, ds_spiral_visit_func_t visit,
-                               void *user);
+ds_status_t ds_spiral_map_walk(ds_spiral_map_t *m,
+                               ds_spiral_visit_func_t visit, void *user);
 /* Every key sits in the chain of its slot; counts agree. */
 bool ds_spiral_map_valid(const ds_spiral_map_t *m);
 

@@ -91,13 +91,16 @@ ds_status_t ds_skip_list_create_context(size_t max_level, unsigned long seed,
                                         ds_skip_list_compare_fn compare,
                                         void *user, ds_context_t *context,
                                         ds_skip_list_t **out) {
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (compare == NULL)
+  if (compare == NULL) {
     return DS_ERR_NULL;
-  if (max_level > DS_SKIP_LIST_MAX_LEVEL)
+  }
+  if (max_level > DS_SKIP_LIST_MAX_LEVEL) {
     return DS_ERR_RANGE;
+  }
   *out = skip_list_create_internal(
       NULL, max_level, seed, context != NULL ? context : ds_default_context(),
       compare, user);
@@ -123,8 +126,9 @@ ds_status_t ds_skip_list_insert_ex(ds_skip_list_t *list,
   if (node == list->nil) {
     return DS_ERR_INVALID;
   }
-  if (list->size == (size_t)-1)
+  if (list->size == (size_t)-1) {
     return DS_ERR_OVERFLOW;
+  }
   current = list->header;
   i = list->level;
   while (i > 0) {
@@ -288,8 +292,9 @@ static void skip_list_destroy_internal(ds_skip_list_t *list,
 }
 void ds_skip_list_destroy_with(ds_skip_list_t *container,
                                ds_skip_list_destroy_fn destroy, void *user) {
-  if (container != NULL)
+  if (container != NULL) {
     skip_list_destroy_internal(container, destroy, user);
+  }
 }
 static void skip_list_destroy_direct(ds_skip_list_node_t *node, void *user) {
   void (**destroy)(ds_skip_list_node_t *) =
@@ -379,13 +384,15 @@ ds_status_t ds_skip_list_walk_with(const ds_skip_list_t *container,
                                    ds_skip_list_visit_fn visit, void *user) {
   ds_skip_list_node_t *node;
   ds_status_t st;
-  if (container == NULL || visit == NULL)
+  if (container == NULL || visit == NULL) {
     return DS_ERR_NULL;
+  }
   for (node = container->header->forward[0]; node != container->nil;
        node = node->forward[0]) {
     st = visit(node, user);
-    if (st != DS_OK)
+    if (st != DS_OK) {
       return st;
+    }
   }
   return DS_OK;
 }
@@ -394,13 +401,16 @@ ds_status_t ds_skip_list_find_ex(ds_skip_list_t *container,
                                  ds_skip_list_node_t *key,
                                  ds_skip_list_node_t **out) {
   ds_skip_list_node_t *node;
-  if (container == NULL || key == NULL || out == NULL)
+  if (container == NULL || key == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (key == container->nil)
+  }
+  if (key == container->nil) {
     return DS_ERR_INVALID;
+  }
   node = ds_skip_list_search(container, key);
-  if (node == container->nil)
+  if (node == container->nil) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -409,13 +419,16 @@ ds_status_t ds_skip_list_remove_ex(ds_skip_list_t *container,
                                    ds_skip_list_node_t *key,
                                    ds_skip_list_node_t **out) {
   ds_skip_list_node_t *node;
-  if (container == NULL || key == NULL || out == NULL)
+  if (container == NULL || key == NULL || out == NULL) {
     return DS_ERR_NULL;
-  if (key == container->nil)
+  }
+  if (key == container->nil) {
     return DS_ERR_INVALID;
+  }
   node = ds_skip_list_remove(container, key);
-  if (node == container->nil)
+  if (node == container->nil) {
     return DS_NOT_FOUND;
+  }
   *out = node;
   return DS_OK;
 }
@@ -431,8 +444,9 @@ static ds_status_t skip_list_clone_visit(ds_skip_list_node_t *source,
   skip_list_clone_policy_t *policy = (skip_list_clone_policy_t *)user;
   ds_skip_list_node_t *node = NULL;
   ds_status_t st = policy->clone(source, &node, policy->user);
-  if (st != DS_OK || node == NULL)
+  if (st != DS_OK || node == NULL) {
     return st < 0 ? st : DS_ERR_CALLBACK;
+  }
   st = ds_skip_list_insert_ex(policy->copy, node);
   if (st != DS_OK) {
     policy->destroy(node, policy->user);
@@ -447,17 +461,20 @@ ds_status_t ds_skip_list_clone_with(const ds_skip_list_t *container,
                                     ds_skip_list_t **out) {
   skip_list_clone_policy_t policy;
   ds_status_t st;
-  if (out == NULL)
+  if (out == NULL) {
     return DS_ERR_NULL;
+  }
   *out = NULL;
-  if (container == NULL || clone == NULL || destroy == NULL)
+  if (container == NULL || clone == NULL || destroy == NULL) {
     return DS_ERR_NULL;
+  }
   policy.copy = skip_list_create_internal(
       container->compare, container->max_level, container->seed,
       context != NULL ? context : container->context, container->compare_with,
       container->compare_user);
-  if (policy.copy == NULL)
+  if (policy.copy == NULL) {
     return DS_ERR_ALLOC;
+  }
   policy.clone = clone;
   policy.destroy = destroy;
   policy.user = user;

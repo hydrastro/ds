@@ -347,7 +347,8 @@ const void *ds_threaded_tree_get(const ds_threaded_tree_t *t, size_t node) {
   return tt_at(t, node);
 }
 
-/* ---- stackless traversal by temporary threading -------------------------- */
+/* ---- stackless traversal by temporary threading --------------------------
+ */
 
 typedef struct cg {
   bool (*visit)(size_t node, void *user);
@@ -396,8 +397,8 @@ static void cg_reverse_visit(cg_t *g, size_t *right, size_t from, size_t to) {
   right[to] = TT_NONE;
 }
 
-ds_status_t ds_cupif_giannini_traverse(size_t *left, size_t *right, size_t root,
-                                       ds_traversal_order_t order,
+ds_status_t ds_cupif_giannini_traverse(size_t *left, size_t *right,
+                                       size_t root, ds_traversal_order_t order,
                                        bool (*visit)(size_t node, void *user),
                                        void *user) {
   cg_t g;

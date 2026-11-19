@@ -118,11 +118,12 @@ static ds_status_t rh_rehash(ds_rh_map_t *map, size_t capacity,
   }
   next.capacity = capacity;
   next.size = 0;
-  next.keys = (unsigned char *)rh_alloc(map->context, capacity * map->key_size);
+  next.keys =
+      (unsigned char *)rh_alloc(map->context, capacity * map->key_size);
   next.values =
       (unsigned char *)rh_alloc(map->context, capacity * map->value_size);
-  next.hashes =
-      (unsigned long *)rh_alloc(map->context, capacity * sizeof(unsigned long));
+  next.hashes = (unsigned long *)rh_alloc(map->context,
+                                          capacity * sizeof(unsigned long));
   next.dist = (unsigned int *)ds_context_calloc(map->context, capacity,
                                                 sizeof(unsigned int));
   if (next.keys == NULL || next.values == NULL || next.hashes == NULL ||
@@ -345,7 +346,8 @@ void ds_rh_map_destroy(ds_rh_map_t *map) {
   map->size = 0;
 }
 
-void *ds_rh_map_emplace(ds_rh_map_t *map, const void *key, bool *out_inserted) {
+void *ds_rh_map_emplace(ds_rh_map_t *map, const void *key,
+                        bool *out_inserted) {
   unsigned long hash;
   size_t i;
   ds_rh_map_t old;
@@ -511,8 +513,8 @@ static int rh_reversed_order(unsigned long a, unsigned long b) {
 
 /* Where slot i stands against (hash, dist) in the stable order: by
  * reversed hash, then (equal hashes share a home) by place in the run. */
-static int rh_stable_order(const ds_rh_map_t *map, size_t i, unsigned long hash,
-                           unsigned int dist) {
+static int rh_stable_order(const ds_rh_map_t *map, size_t i,
+                           unsigned long hash, unsigned int dist) {
   int c = rh_reversed_order(map->hashes[i], hash);
   if (c != 0) {
     return c;

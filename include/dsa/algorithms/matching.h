@@ -42,8 +42,8 @@ extern "C" {
 ds_status_t ds_matching_hopcroft_karp(const ds_gview_t *left,
                                       size_t right_count,
                                       size_t *out_match_left,
-                                      size_t *out_match_right, size_t *out_size,
-                                      ds_context_t *context);
+                                      size_t *out_match_right,
+                                      size_t *out_size, ds_context_t *context);
 
 /* cost is row-major n x m with n <= m; out_assignment[i] is the column of
  * row i. maximize selects a maximum-weight assignment instead. */
