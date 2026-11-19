@@ -456,7 +456,7 @@ ds_status_t ds_veb_tree_init(ds_veb_tree_t *tree, unsigned int universe_bits,
   }
   veb_node_init(&tree->root, universe_bits);
   tree->size = 0;
-  tree->context = context;
+  tree->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

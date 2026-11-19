@@ -47,18 +47,18 @@ static void show_hit(ds_bplus_tree_node_t *node) {
   printf("  byte %lu: pattern %d\n", (unsigned long)hit->offset, hit->pattern);
 }
 
-#define EDIT(call)                                                             \
-  do {                                                                         \
-    st = (call);                                                               \
-    if (DS_FAILED(st))                                                         \
-      goto cleanup;                                                            \
+#define EDIT(call)                                                            \
+  do {                                                                        \
+    st = (call);                                                              \
+    if (DS_FAILED(st))                                                        \
+      goto cleanup;                                                           \
   } while (0)
 
 int main(void) {
   const char *line = "A rope stores text; a tree indexes matches.\n";
-  ds_rope_t *rope = ds_rope_create();
-  ds_rope_t *footer = ds_rope_from_string("End of file.\n", 13);
-  ds_aho_corasick_t *matcher = ds_aho_corasick_create();
+  ds_rope_t *rope = ds_rope_create(NULL);
+  ds_rope_t *footer = ds_rope_from_string("End of file.\n", 13, NULL);
+  ds_aho_corasick_t *matcher = ds_aho_corasick_create(NULL);
   hit_index_t index;
   hit_t low, high;
   ds_status_t st = DS_OK;
@@ -66,8 +66,9 @@ int main(void) {
   size_t i, matches = 0;
   int id;
   memset(&index, 0, sizeof(index));
-  index.tree = ds_bplus_tree_create_alloc(4, true, compare_hit, malloc, free);
-  if (rope == NULL || footer == NULL || matcher == NULL || index.tree == NULL) {
+  index.tree = ds_bplus_tree_create(4, true, compare_hit, NULL);
+  if (rope == NULL || footer == NULL || matcher == NULL ||
+      index.tree == NULL) {
     st = DS_ERR_ALLOC;
     goto cleanup;
   }
@@ -98,7 +99,7 @@ int main(void) {
   ds_bplus_tree_range_walk(index.tree, &low.node, &high.node, show_hit);
 cleanup:
   if (text != NULL)
-    rope->deallocator(text);
+    ds_context_free(rope->context, text);
   if (index.tree != NULL)
     ds_bplus_tree_destroy(index.tree, NULL);
   if (matcher != NULL)

@@ -12,7 +12,7 @@ ds_status_t ds_stage_copy(ds_stage_t *stage, ds_context_t *context,
     return DS_ERR_NULL;
   }
   stage->block = NULL;
-  stage->context = context;
+  stage->context = context != NULL ? context : ds_default_context();
   stage->key = key;
   stage->value = value;
   if (key == NULL) {

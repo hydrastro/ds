@@ -15,7 +15,7 @@ ds_status_t ds_minhash_init(ds_minhash_t *mh, size_t k, ds_random_func_t random,
     return DS_ERR_INVALID;
   }
   mh->k = k;
-  mh->context = context;
+  mh->context = context != NULL ? context : ds_default_context();
   mh->a = (unsigned long *)ds_context_alloc(context, k * sizeof(unsigned long));
   mh->b = (unsigned long *)ds_context_alloc(context, k * sizeof(unsigned long));
   if (mh->a == NULL || mh->b == NULL) {

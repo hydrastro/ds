@@ -49,8 +49,9 @@ typedef void *(*ds_history_payload_read_func_t)(unsigned long id,
 /* Checked reader: DS_OK can publish a NULL payload. Failure must release any
  * partial payload; positive statuses other than DS_OK are callback errors. */
 typedef ds_status_t (*ds_history_payload_read_ex_func_t)(
-    unsigned long id, unsigned long time, int kind, ds_history_read_func_t read,
-    void *io_user, void *payload_user, void **out);
+    unsigned long id, unsigned long time, int kind,
+    ds_history_read_func_t read, void *io_user, void *payload_user,
+    void **out);
 typedef unsigned int (*ds_history_merge_policy_func_t)(
     ds_history_branch_t *target, ds_history_branch_t *source,
     const ds_history_operation_t *source_operation, unsigned long *in_out_time,
@@ -61,12 +62,10 @@ typedef struct ds_history_archive {
   size_t size;
   size_t capacity;
   size_t offset;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_context_t *context;
-  bool use_context;
-  ds_status_t status; /* sticky until clear/rewind; invalid allocator pair stays
-                         invalid */
+
+  ds_status_t status; /* sticky until clear/rewind */
 } ds_history_archive_t;
 
 #define DS_HISTORY_MERGE_PRESERVE_TIME 0U
@@ -97,20 +96,20 @@ struct ds_history_ops {
   ds_history_destroy_payload_func_t destroy_payload;
 };
 
-ds_history_t *ds_history_create(const ds_history_ops_t *ops, void *config);
-ds_history_t *ds_history_create_alloc(const ds_history_ops_t *ops, void *config,
-                                      void *(*allocator)(size_t),
-                                      void (*deallocator)(void *));
+ds_history_t *ds_history_create(const ds_history_ops_t *ops, void *config,
+                                ds_context_t *context);
+
 /* Context-backed storage, including branch paths, names and operation nodes.
  * State/payload storage remains the responsibility of the supplied callbacks.
  */
-ds_status_t ds_history_create_context(const ds_history_ops_t *ops, void *config,
-                                      ds_context_t *context,
+ds_status_t ds_history_create_context(const ds_history_ops_t *ops,
+                                      void *config, ds_context_t *context,
                                       ds_history_t **out);
 void ds_history_destroy(ds_history_t *history);
 
 void ds_history_set_clone_data(ds_history_t *history, void *clone_data);
-void ds_history_set_checkpoint_interval(ds_history_t *history, size_t interval);
+void ds_history_set_checkpoint_interval(ds_history_t *history,
+                                        size_t interval);
 void ds_history_transaction_begin(ds_history_t *history);
 ds_status_t ds_history_transaction_begin_ex(ds_history_t *history);
 void ds_history_transaction_commit(ds_history_t *history);
@@ -211,18 +210,15 @@ bool ds_history_read_size(ds_history_read_func_t read, void *io_user,
 bool ds_history_serialize(ds_history_t *history, ds_history_write_func_t write,
                           ds_history_payload_write_func_t write_payload,
                           void *io_user, void *payload_user);
-ds_history_t *
-ds_history_deserialize(const ds_history_ops_t *ops, void *config,
-                       ds_history_read_func_t read,
-                       ds_history_payload_read_func_t read_payload,
-                       void *io_user, void *payload_user);
-void ds_history_archive_init(ds_history_archive_t *archive);
-void ds_history_archive_init_alloc(ds_history_archive_t *archive,
-                                   void *(*allocator)(size_t),
-                                   void (*deallocator)(void *));
+ds_history_t *ds_history_deserialize(
+    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user, ds_context_t *context);
+void ds_history_archive_init(ds_history_archive_t *archive,
+                             ds_context_t *context);
+
 ds_status_t ds_history_archive_init_ex(ds_history_archive_t *archive,
-                                       void *(*allocator)(size_t),
-                                       void (*deallocator)(void *));
+                                       ds_context_t *context);
 ds_status_t ds_history_archive_init_context(ds_history_archive_t *archive,
                                             ds_context_t *context);
 ds_status_t ds_history_archive_status(const ds_history_archive_t *archive);
@@ -239,11 +235,10 @@ bool ds_history_serialize_portable(
     ds_history_t *history, ds_history_write_func_t write,
     ds_history_payload_write_func_t write_payload, void *io_user,
     void *payload_user);
-ds_history_t *
-ds_history_deserialize_portable(const ds_history_ops_t *ops, void *config,
-                                ds_history_read_func_t read,
-                                ds_history_payload_read_func_t read_payload,
-                                void *io_user, void *payload_user);
+ds_history_t *ds_history_deserialize_portable(
+    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user, ds_context_t *context);
 
 struct ds_ordered_ops;
 

@@ -99,7 +99,7 @@ ds_status_t ds_rindex_build(ds_rindex_t *r, const unsigned char *text, size_t n,
     return DS_ERR_NULL;
   }
   memset(r, 0, sizeof(*r));
-  r->context = context;
+  r->context = context != NULL ? context : ds_default_context();
   r->n = n;
   rows = n + 1;
   if (rows == 0 || !ds_size_mul(rows, sizeof(size_t), &bytes)) {

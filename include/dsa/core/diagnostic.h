@@ -79,9 +79,7 @@ typedef struct ds_diagnostic_snapshot ds_diagnostic_snapshot_t;
 ds_status_t ds_diagnostic_snapshot_create(ds_diagnostic_snapshot_t **out,
                                           const ds_diagnostic_t *diagnostic,
                                           struct ds_context *context);
-ds_status_t ds_diagnostic_snapshot_create_alloc(
-    ds_diagnostic_snapshot_t **out, const ds_diagnostic_t *diagnostic,
-    void *(*allocator)(size_t), void (*deallocator)(void *));
+
 ds_status_t ds_diagnostic_snapshot_retain(ds_diagnostic_snapshot_t *snapshot);
 void ds_diagnostic_snapshot_release(ds_diagnostic_snapshot_t *snapshot);
 const ds_diagnostic_t *
@@ -91,13 +89,13 @@ typedef struct ds_diagnostics {
   ds_diagnostic_t *items;
   size_t size;
   size_t capacity;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_diagnostic_sink_t sink;
   ds_diagnostic_snapshot_t **snapshots;
   struct ds_context *context;
-  bool use_context;
-  ds_status_t status; /* first failure through the void sink; clear resets it */
+
+  ds_status_t
+      status; /* first failure through the void sink; clear resets it */
 } ds_diagnostics_t;
 
 const char *ds_diagnostic_level_name(ds_diagnostic_level_t level);
@@ -114,9 +112,7 @@ int ds_diagnostic_format(const ds_diagnostic_t *diagnostic, char *buffer,
 void ds_diagnostics_init(ds_diagnostics_t *diagnostics);
 void ds_diagnostics_init_context(ds_diagnostics_t *diagnostics,
                                  struct ds_context *context);
-void ds_diagnostics_init_alloc(ds_diagnostics_t *diagnostics,
-                               void *(*allocator)(size_t),
-                               void (*deallocator)(void *));
+
 void ds_diagnostics_destroy(ds_diagnostics_t *diagnostics);
 void ds_diagnostics_clear(ds_diagnostics_t *diagnostics);
 ds_diagnostic_sink_t *ds_diagnostics_sink(ds_diagnostics_t *diagnostics);
@@ -127,7 +123,8 @@ ds_status_t ds_diagnostics_add(ds_diagnostics_t *diagnostics,
 ds_status_t ds_diagnostics_append(ds_diagnostics_t *diagnostics,
                                   const ds_diagnostics_t *more);
 ds_status_t ds_diagnostics_filter(const ds_diagnostics_t *source,
-                                  bool (*keep)(const ds_diagnostic_t *, void *),
+                                  bool (*keep)(const ds_diagnostic_t *,
+                                               void *),
                                   void *user, ds_diagnostics_t *out);
 /* Emission does not clear the sequence. The sink sees records only for the
  * duration of emit; use a snapshot to retain one. */

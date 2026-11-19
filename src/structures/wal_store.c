@@ -711,7 +711,7 @@ ds_status_t ds_page_store_wal(ds_page_store_t *store, ds_page_store_t *data,
   w->ps = ps;
   w->per_group = (ps - WAL_HDR) / WAL_ENTRY;
   w->checkpoint_pages = config->checkpoint_pages;
-  w->context = context;
+  w->context = context != NULL ? context : ds_default_context();
   w->hdr = (unsigned char *)ds_context_calloc(context, 1, ps);
   w->buf = (unsigned char *)ds_context_alloc(context, ps);
   if (w->hdr == NULL || w->buf == NULL) {

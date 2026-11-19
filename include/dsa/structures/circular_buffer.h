@@ -23,18 +23,15 @@ typedef struct circular_buffer {
   size_t capacity;
   bool overwrite;
   ds_circular_buffer_node_t *nil;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_circular_buffer_t;
 
 /* NULL when memory runs out, for a capacity whose slot array cannot be
- * sized, or without an allocator and a deallocator */
-ds_circular_buffer_t *ds_circular_buffer_create(size_t capacity);
-ds_circular_buffer_t *
-ds_circular_buffer_create_alloc(size_t capacity, bool overwrite,
-                                void *(*allocator)(size_t),
-                                void (*deallocator)(void *));
+ * sized */
+
+ds_circular_buffer_t *ds_circular_buffer_create(size_t capacity,
+                                                bool overwrite,
+                                                ds_context_t *context);
 bool ds_circular_buffer_is_empty(ds_circular_buffer_t *buffer);
 bool ds_circular_buffer_is_full(ds_circular_buffer_t *buffer);
 bool ds_circular_buffer_push(ds_circular_buffer_t *buffer,
@@ -43,12 +40,14 @@ bool ds_circular_buffer_push(ds_circular_buffer_t *buffer,
  * On success out_evicted (optional) receives the displaced node, or NULL.
  * Checked pop returns DS_EMPTY without changing *out. Payloads remain owned
  * by the caller; reporting an evicted node lets it release that payload. */
-ds_status_t ds_circular_buffer_push_ex(ds_circular_buffer_t *buffer,
-                                       ds_circular_buffer_node_t *node,
-                                       ds_circular_buffer_node_t **out_evicted);
+ds_status_t
+ds_circular_buffer_push_ex(ds_circular_buffer_t *buffer,
+                           ds_circular_buffer_node_t *node,
+                           ds_circular_buffer_node_t **out_evicted);
 ds_status_t ds_circular_buffer_pop_ex(ds_circular_buffer_t *buffer,
                                       ds_circular_buffer_node_t **out);
-ds_circular_buffer_node_t *ds_circular_buffer_pop(ds_circular_buffer_t *buffer);
+ds_circular_buffer_node_t *
+ds_circular_buffer_pop(ds_circular_buffer_t *buffer);
 ds_circular_buffer_node_t *
 ds_circular_buffer_peek(ds_circular_buffer_t *buffer);
 ds_circular_buffer_node_t *
@@ -92,9 +91,8 @@ typedef ds_status_t (*ds_circular_buffer_visit_fn)(ds_circular_buffer_node_t *,
 typedef int (*ds_circular_buffer_compare_fn)(ds_circular_buffer_node_t *,
                                              ds_circular_buffer_node_t *,
                                              void *);
-typedef ds_status_t (*ds_circular_buffer_clone_fn)(ds_circular_buffer_node_t *,
-                                                   ds_circular_buffer_node_t **,
-                                                   void *);
+typedef ds_status_t (*ds_circular_buffer_clone_fn)(
+    ds_circular_buffer_node_t *, ds_circular_buffer_node_t **, void *);
 typedef void (*ds_circular_buffer_destroy_fn)(ds_circular_buffer_node_t *,
                                               void *);
 ds_status_t ds_circular_buffer_walk_with(ds_circular_buffer_t *container,
@@ -110,11 +108,10 @@ ds_status_t ds_circular_buffer_find_with(ds_circular_buffer_t *container,
  * are rolled back via destroy; positive clone statuses map to DS_ERR_CALLBACK.
  * Output is NULL on failure. Destroy callbacks may release payloads but may
  * not inspect or mutate the container during destruction. */
-ds_status_t ds_circular_buffer_clone_with(const ds_circular_buffer_t *container,
-                                          ds_circular_buffer_clone_fn clone,
-                                          ds_circular_buffer_destroy_fn destroy,
-                                          void *user, ds_context_t *context,
-                                          ds_circular_buffer_t **out);
+ds_status_t ds_circular_buffer_clone_with(
+    const ds_circular_buffer_t *container, ds_circular_buffer_clone_fn clone,
+    ds_circular_buffer_destroy_fn destroy, void *user, ds_context_t *context,
+    ds_circular_buffer_t **out);
 void ds_circular_buffer_destroy_with(ds_circular_buffer_t *container,
                                      ds_circular_buffer_destroy_fn destroy,
                                      void *user);

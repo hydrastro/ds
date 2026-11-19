@@ -131,7 +131,7 @@ ds_status_t ds_shadow_heap_init(ds_shadow_heap_t *heap, size_t elem_size,
   heap->compare = compare;
   heap->user = user;
   heap->threshold = threshold;
-  heap->context = context;
+  heap->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

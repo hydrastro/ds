@@ -184,7 +184,7 @@ ds_status_t ds_suffix_tree_build_multi(ds_suffix_tree_t *t,
     return DS_ERR_INVALID;
   }
   memset(t, 0, sizeof(*t));
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   for (i = 0; i < count; i++) {
     if (strs[i] == NULL && lens[i] > 0) {
       return DS_ERR_NULL;

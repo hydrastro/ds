@@ -68,7 +68,7 @@ ds_status_t ds_rbst_init(ds_rbst_t *t, size_t elem_size,
   t->random = random;
   t->random_state = random_state;
   t->seed = 2463534242UL;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

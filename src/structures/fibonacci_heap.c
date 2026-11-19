@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/core/checked.h>
 #include <dsa/structures/fibonacci_heap.h>
 #include <stdlib.h>
@@ -11,37 +10,29 @@ static int fib_compare(ds_fibonacci_heap_t *heap, ds_fibonacci_heap_node_t *a,
              : heap->compare(a, b);
 }
 
-ds_fibonacci_heap_t *ds_fibonacci_heap_create(
-    int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *)) {
-  return ds_fibonacci_heap_create_alloc(compare, malloc, free);
-}
-
 static ds_fibonacci_heap_t *fib_create_internal(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *),
     ds_context_t *context, ds_fibonacci_heap_compare_fn compare_with,
     void *compare_user) {
   ds_fibonacci_heap_t *heap;
-  if (allocator == NULL || deallocator == NULL ||
-      (compare == NULL && compare_with == NULL)) {
+  if (compare == NULL && compare_with == NULL) {
     return NULL;
   }
-  heap = (ds_fibonacci_heap_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                  sizeof(ds_fibonacci_heap_t));
+  heap = (ds_fibonacci_heap_t *)ds_context_alloc(context,
+                                                 sizeof(ds_fibonacci_heap_t));
   if (heap == NULL) {
     return NULL;
   }
-  heap->context = context;
+  heap->context = context != NULL ? context : ds_default_context();
   heap->compare_with = compare_with;
   heap->compare_user = compare_user;
   heap->compare = compare;
-  heap->allocator = allocator;
-  heap->deallocator = deallocator;
+
   heap->size = 0;
-  heap->nil = (ds_fibonacci_heap_node_t *)DS_OWNER_ALLOCATE(
-      context, allocator, sizeof(ds_fibonacci_heap_node_t));
+  heap->nil = (ds_fibonacci_heap_node_t *)ds_context_alloc(
+      context, sizeof(ds_fibonacci_heap_node_t));
   if (heap->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, heap);
+    ds_context_free(context, heap);
     return NULL;
   }
   heap->nil->parent = heap->nil;
@@ -53,10 +44,10 @@ static ds_fibonacci_heap_t *fib_create_internal(
   heap->min = heap->nil;
   return heap;
 }
-ds_fibonacci_heap_t *ds_fibonacci_heap_create_alloc(
+ds_fibonacci_heap_t *ds_fibonacci_heap_create(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  return fib_create_internal(compare, allocator, deallocator, NULL, NULL, NULL);
+    ds_context_t *context) {
+  return fib_create_internal(compare, context, NULL, NULL);
 }
 ds_status_t
 ds_fibonacci_heap_create_context(ds_fibonacci_heap_compare_fn compare,
@@ -67,9 +58,8 @@ ds_fibonacci_heap_create_context(ds_fibonacci_heap_compare_fn compare,
   *out = NULL;
   if (compare == NULL)
     return DS_ERR_NULL;
-  *out = fib_create_internal(NULL, malloc, free,
-                             context != NULL ? context : ds_default_context(),
-                             compare, user);
+  *out = fib_create_internal(
+      NULL, context != NULL ? context : ds_default_context(), compare, user);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -193,7 +183,8 @@ static void fib_consolidate(ds_fibonacci_heap_t *heap) {
   }
 }
 
-ds_fibonacci_heap_node_t *ds_fibonacci_heap_extract(ds_fibonacci_heap_t *heap) {
+ds_fibonacci_heap_node_t *
+ds_fibonacci_heap_extract(ds_fibonacci_heap_t *heap) {
   ds_fibonacci_heap_node_t *z;
   z = heap->min;
   if (z == heap->nil) {
@@ -354,8 +345,8 @@ void ds_fibonacci_heap_destroy_with(ds_fibonacci_heap_t *heap,
       destroy(x, user);
     }
   }
-  DS_OWNER_FREE(heap, heap->nil);
-  DS_OWNER_FREE(heap, heap);
+  ds_context_free(heap->context, heap->nil);
+  ds_context_free(heap->context, heap);
 }
 
 static void fib_destroy_direct(ds_fibonacci_heap_node_t *node, void *user) {
@@ -457,10 +448,9 @@ ds_status_t ds_fibonacci_heap_clone_with(const ds_fibonacci_heap_t *heap,
   *out = NULL;
   if (heap == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  policy.copy =
-      fib_create_internal(heap->compare, heap->allocator, heap->deallocator,
-                          context != NULL ? context : heap->context,
-                          heap->compare_with, heap->compare_user);
+  policy.copy = fib_create_internal(heap->compare,
+                                    context != NULL ? context : heap->context,
+                                    heap->compare_with, heap->compare_user);
   if (policy.copy == NULL)
     return DS_ERR_ALLOC;
   policy.clone = clone;
@@ -555,7 +545,7 @@ ds_status_t ds_fib_heap_init(ds_fib_heap_t *h, size_t item_size,
   h->item_size = item_size;
   h->compare = compare;
   h->user = user;
-  h->context = context;
+  h->context = context != NULL ? context : ds_default_context();
   for (i = 0; i < DS_FIB_MAX_DEGREE; i++) {
     h->table[i] = NULL;
   }

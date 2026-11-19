@@ -18,7 +18,7 @@ ds_status_t ds_cactus_stack_init(ds_cactus_stack_t *cs, size_t elem_size,
   memset(cs, 0, sizeof(*cs));
   cs->free_list = CS_EMPTY;
   cs->elem_size = elem_size;
-  cs->context = context;
+  cs->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

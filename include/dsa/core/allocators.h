@@ -98,7 +98,7 @@ void ds_context_use_pool(ds_context_t *context, ds_pool_t *pool);
 
 /*
  * A context over allocator functions: the malloc- and free-shaped pair
- * used by allocator-pair constructors (bitset, hash table, trie). Each block
+ * supplied by an external allocation service. Each block
  * carries its size in a header of DS_MAX_ALIGN bytes or more, so the
  * context can reallocate (a new block, the contents, the old block
  * released; the old block stays when the new one cannot be had) and

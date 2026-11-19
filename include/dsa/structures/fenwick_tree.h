@@ -13,17 +13,12 @@ extern "C" {
 typedef struct fenwick_tree {
   long *data;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_fenwick_tree_t;
 
-/* NULL when memory runs out, for a size too large, or without an
- * allocator and a deallocator (create_alloc and clone too) */
-ds_fenwick_tree_t *ds_fenwick_tree_create(size_t size);
-ds_fenwick_tree_t *ds_fenwick_tree_create_alloc(size_t size,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *));
+/* Creation and cloning return NULL on allocation failure or size overflow. */
+
+ds_fenwick_tree_t *ds_fenwick_tree_create(size_t size, ds_context_t *context);
 void ds_fenwick_tree_update(ds_fenwick_tree_t *tree, size_t index, long delta);
 /* Checked operations use half-open ranges. prefix_ex(count) sums [0,count);
  * range_ex(left,right) sums [left,right). Empty ranges give zero. Queries
@@ -40,8 +35,8 @@ ds_status_t ds_fenwick_tree_set_ex(ds_fenwick_tree_t *tree, size_t index,
                                    long value);
 ds_status_t ds_fenwick_tree_prefix_ex(const ds_fenwick_tree_t *tree,
                                       size_t count, long *out);
-ds_status_t ds_fenwick_tree_range_ex(const ds_fenwick_tree_t *tree, size_t left,
-                                     size_t right, long *out);
+ds_status_t ds_fenwick_tree_range_ex(const ds_fenwick_tree_t *tree,
+                                     size_t left, size_t right, long *out);
 ds_status_t ds_fenwick_tree_at_ex(const ds_fenwick_tree_t *tree, size_t index,
                                   long *out);
 void ds_fenwick_tree_set(ds_fenwick_tree_t *tree, size_t index, long value);

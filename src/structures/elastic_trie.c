@@ -120,7 +120,7 @@ ds_status_t ds_bucket_trie_init(ds_bucket_trie_t *t, size_t b, bool elastic,
   t->node_free = ET_NONE;
   t->b = b;
   t->elastic = elastic;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   tk_init(&t->keys);
   return DS_OK;
 }
@@ -652,7 +652,7 @@ ds_status_t ds_blind_trie_init(ds_blind_trie_t *t, ds_context_t *context) {
   memset(t, 0, sizeof(*t));
   t->root = ET_NONE;
   t->node_free = ET_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   tk_init(&t->keys);
   return DS_OK;
 }

@@ -4,7 +4,8 @@
 
 #define SM_NONE DS_SPARSE_NONE
 
-/* ---- orthogonal-list sparse matrix --------------------------------------- */
+/* ---- orthogonal-list sparse matrix ---------------------------------------
+ */
 
 static ds_status_t sm_heads(ds_sparse_matrix_t *a, size_t rows, size_t cols) {
   size_t i;
@@ -46,7 +47,7 @@ ds_status_t ds_sparse_matrix_init(ds_sparse_matrix_t *a, size_t rows,
     return DS_ERR_NULL;
   }
   memset(a, 0, sizeof(*a));
-  a->context = context;
+  a->context = context != NULL ? context : ds_default_context();
   a->free_list = SM_NONE;
   return sm_heads(a, rows, cols);
 }
@@ -232,7 +233,8 @@ ds_status_t ds_sparse_matrix_get(const ds_sparse_matrix_t *a, size_t i,
   return v == SM_NONE ? DS_NOT_FOUND : DS_OK;
 }
 
-ds_status_t ds_sparse_matrix_remove(ds_sparse_matrix_t *a, size_t i, size_t j) {
+ds_status_t ds_sparse_matrix_remove(ds_sparse_matrix_t *a, size_t i,
+                                    size_t j) {
   size_t prow;
   size_t pcol;
   size_t v;
@@ -314,8 +316,8 @@ static ds_status_t sm_begin(sm_builder_t *b, ds_sparse_matrix_t *out,
   b->m = out;
   b->row_tail = SM_NONE;
   b->cur_row = SM_NONE;
-  b->col_tail = (size_t *)ds_context_alloc(out->context, (cols > 0 ? cols : 1) *
-                                                             sizeof(size_t));
+  b->col_tail = (size_t *)ds_context_alloc(
+      out->context, (cols > 0 ? cols : 1) * sizeof(size_t));
   if (b->col_tail == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -532,7 +534,8 @@ ds_status_t ds_sparse_matrix_to_csr(const ds_sparse_matrix_t *a,
   return DS_OK;
 }
 
-/* ---- ragged matrix ------------------------------------------------------- */
+/* ---- ragged matrix -------------------------------------------------------
+ */
 
 ds_status_t ds_ragged_matrix_init(ds_ragged_matrix_t *r, size_t elem_size,
                                   ds_context_t *context) {
@@ -544,7 +547,7 @@ ds_status_t ds_ragged_matrix_init(ds_ragged_matrix_t *r, size_t elem_size,
   }
   memset(r, 0, sizeof(*r));
   r->elem_size = elem_size;
-  r->context = context;
+  r->context = context != NULL ? context : ds_default_context();
   r->offset = (size_t *)ds_context_alloc(context, sizeof(size_t));
   if (r->offset == NULL) {
     return DS_ERR_ALLOC;
@@ -639,7 +642,8 @@ void *ds_ragged_matrix_at(const ds_ragged_matrix_t *r, size_t i, size_t j) {
   return r->data + (r->offset[i] + j) * r->elem_size;
 }
 
-/* ---- huge sparse array --------------------------------------------------- */
+/* ---- huge sparse array ---------------------------------------------------
+ */
 
 #define HA_BITMAP (DS_HUGE_PAGE / 8)
 
@@ -653,7 +657,7 @@ ds_status_t ds_huge_array_init(ds_huge_array_t *h, size_t elem_size,
   }
   memset(h, 0, sizeof(*h));
   h->elem_size = elem_size;
-  h->context = context;
+  h->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

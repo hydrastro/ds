@@ -1,41 +1,29 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/disjoint_set.h>
 #include <stdlib.h>
 
-ds_disjoint_set_t *ds_disjoint_set_create(void) {
-  return ds_disjoint_set_create_alloc(malloc, free);
-}
-
-static ds_disjoint_set_t *
-disjoint_set_create_internal(void *(*allocator)(size_t),
-                             void (*deallocator)(void *),
-                             ds_context_t *context) {
+static ds_disjoint_set_t *disjoint_set_create_internal(ds_context_t *context) {
   ds_disjoint_set_t *set;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  set = (ds_disjoint_set_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                               sizeof(ds_disjoint_set_t));
+
+  set = (ds_disjoint_set_t *)ds_context_alloc(context,
+                                              sizeof(ds_disjoint_set_t));
   if (set == NULL) {
     return NULL;
   }
-  set->context = context;
-  set->allocator = allocator;
-  set->deallocator = deallocator;
+  set->context = context != NULL ? context : ds_default_context();
+
   set->count = 0;
   return set;
 }
 
-ds_disjoint_set_t *ds_disjoint_set_create_alloc(void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
-  return disjoint_set_create_internal(allocator, deallocator, NULL);
+ds_disjoint_set_t *ds_disjoint_set_create(ds_context_t *context) {
+  return disjoint_set_create_internal(context);
 }
 ds_status_t ds_disjoint_set_create_context(ds_context_t *context,
                                            ds_disjoint_set_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = disjoint_set_create_internal(
-      malloc, free, context != NULL ? context : ds_default_context());
+  *out = disjoint_set_create_internal(context != NULL ? context
+                                                      : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -102,7 +90,7 @@ size_t ds_disjoint_set_count(ds_disjoint_set_t *set) {
 }
 
 void ds_disjoint_set_destroy(ds_disjoint_set_t *set) {
-  DS_OWNER_FREE(set, set);
+  ds_context_free(set->context, set);
 }
 
 ds_status_t ds_disjoint_set_make_ex(ds_disjoint_set_t *set,

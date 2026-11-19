@@ -157,7 +157,7 @@ ds_status_t ds_fixed_grid_init(ds_fixed_grid_t *g, size_t dim,
   memcpy(g->domain, domain, 2 * dim * sizeof(double));
   memcpy(g->cells, cells, dim * sizeof(size_t));
   g->cell_count = n;
-  g->context = context;
+  g->context = context != NULL ? context : ds_default_context();
   g->points = (double **)ds_context_calloc(context, n, sizeof(double *));
   g->values = (size_t **)ds_context_calloc(context, n, sizeof(size_t *));
   g->count = (size_t *)ds_context_calloc(context, n, sizeof(size_t));
@@ -331,9 +331,10 @@ static int gf_cmp_cand(const void *a, const void *b) {
   return (x > y) - (x < y);
 }
 
-ds_status_t ds_fixed_grid_nearest(const ds_fixed_grid_t *g, const double *point,
-                                  size_t k, size_t *out_values,
-                                  double *out_dist, size_t *out_found) {
+ds_status_t ds_fixed_grid_nearest(const ds_fixed_grid_t *g,
+                                  const double *point, size_t k,
+                                  size_t *out_values, double *out_dist,
+                                  size_t *out_found) {
   gf_cand_t *cand;
   double *dk;
   size_t *vk;
@@ -454,11 +455,11 @@ static ds_status_t gf_new_bucket(ds_grid_file_t *g, size_t *out) {
     if (g->buckets == g->bucket_capacity) {
       size_t nc = g->bucket_capacity < 8 ? 8 : g->bucket_capacity * 2;
       void *p;
-#define GF_RE(field, type, per)                                                \
-  p = ds_context_realloc(g->context, g->field, nc * (per) * sizeof(type));     \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define GF_RE(field, type, per)                                               \
+  p = ds_context_realloc(g->context, g->field, nc * (per) * sizeof(type));    \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   g->field = (type *)p;
       GF_RE(lo, size_t, g->dim)
       GF_RE(hi, size_t, g->dim)
@@ -519,7 +520,7 @@ static ds_status_t gf_init_any(ds_grid_file_t *g, size_t dim, size_t width,
   g->bucket = bucket;
   g->max_cells = max_cells;
   g->free_list = GF_NONE;
-  g->context = context;
+  g->context = context != NULL ? context : ds_default_context();
   g->dir = (size_t *)ds_context_alloc(context, sizeof(size_t));
   if (g->dir == NULL) {
     return DS_ERR_ALLOC;
@@ -1042,7 +1043,8 @@ static ds_status_t gf_query_items(ds_grid_file_t *g, const double *box,
       g->stamp[b] = g->epoch;
       for (i = 0; i < g->count[b]; i++) {
         const double *it = g->items[b] + i * w;
-        bool in = w == d ? gf_point_in_box(it, box, d) : gf_box_hit(it, box, d);
+        bool in =
+            w == d ? gf_point_in_box(it, box, d) : gf_box_hit(it, box, d);
         if (in && !visit(it, g->values[b][i], user)) {
           return DS_STOP;
         }
@@ -1070,8 +1072,8 @@ ds_status_t ds_grid_file_query(ds_grid_file_t *g, const double *box,
 }
 
 ds_status_t ds_grid_file_nearest(const ds_grid_file_t *g, const double *point,
-                                 size_t k, size_t *out_values, double *out_dist,
-                                 size_t *out_found) {
+                                 size_t k, size_t *out_values,
+                                 double *out_dist, size_t *out_found) {
   gf_cand_t *cand;
   double *dk;
   size_t *vk;
@@ -1089,8 +1091,8 @@ ds_status_t ds_grid_file_nearest(const ds_grid_file_t *g, const double *point,
     return DS_OK;
   }
   d = g->dim;
-  cand =
-      (gf_cand_t *)ds_context_alloc(g->context, g->buckets * sizeof(gf_cand_t));
+  cand = (gf_cand_t *)ds_context_alloc(g->context,
+                                       g->buckets * sizeof(gf_cand_t));
   dk = (double *)ds_context_alloc(g->context, k * sizeof(double));
   vk = (size_t *)ds_context_alloc(g->context, k * sizeof(size_t));
   if (cand == NULL || dk == NULL || vk == NULL) {
@@ -1370,7 +1372,7 @@ ds_status_t ds_grid_file2_init(ds_grid_file2_t *g, size_t dim, size_t bucket,
   memset(g, 0, sizeof(*g));
   g->page_cells = page_cells;
   g->bucket = bucket;
-  g->context = context;
+  g->context = context != NULL ? context : ds_default_context();
   st = gf_init_any(&g->top, dim, dim, 2, 0, context);
   if (st != DS_OK) {
     return st;
@@ -1454,8 +1456,8 @@ static ds_status_t gf2_split_page(ds_grid_file2_t *g, size_t b,
   if (best == d) {
     /* refine a top scale at the median of the page's points */
     ds_grid_file_t *pg = &g->pages[b];
-    double *vals =
-        (double *)ds_context_alloc(g->context, (pg->size + 1) * sizeof(double));
+    double *vals = (double *)ds_context_alloc(g->context,
+                                              (pg->size + 1) * sizeof(double));
     double bspread = 0.0;
     size_t i;
     size_t j;
@@ -1725,7 +1727,7 @@ ds_status_t ds_mlgrid_file_init(ds_mlgrid_file_t *g, size_t dim, size_t bucket,
   g->dim = dim;
   g->bucket = bucket;
   g->max_layers = max_layers;
-  g->context = context;
+  g->context = context != NULL ? context : ds_default_context();
   g->layer = (ds_grid_file_t *)ds_context_alloc(
       context, max_layers * sizeof(ds_grid_file_t));
   return g->layer == NULL ? DS_ERR_ALLOC : DS_OK;

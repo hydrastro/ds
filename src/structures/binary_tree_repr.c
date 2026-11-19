@@ -17,7 +17,7 @@ ds_status_t ds_lcrs_tree_init(ds_lcrs_tree_t *t, size_t elem_size,
   t->root = LC_NONE;
   t->free_list = LC_NONE;
   t->elem_size = elem_size;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -508,7 +508,7 @@ ds_status_t ds_dc_trie_init(ds_dc_trie_t *t, ds_context_t *context) {
     return DS_ERR_NULL;
   }
   memset(t, 0, sizeof(*t));
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   t->free_list = DC_NONE;
   return DS_OK;
 }

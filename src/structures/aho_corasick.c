@@ -1,11 +1,10 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/aho_corasick.h>
 #include <limits.h>
 #include <stdlib.h>
 
 static ds_aho_corasick_node_t *aho_corasick_new_node(ds_aho_corasick_t *ac) {
-  ds_aho_corasick_node_t *node = (ds_aho_corasick_node_t *)DS_OWNER_ALLOC(
-      ac, sizeof(ds_aho_corasick_node_t));
+  ds_aho_corasick_node_t *node = (ds_aho_corasick_node_t *)ds_context_alloc(
+      ac->context, sizeof(ds_aho_corasick_node_t));
   int i;
   if (node == NULL) {
     return NULL;
@@ -21,47 +20,36 @@ static ds_aho_corasick_node_t *aho_corasick_new_node(ds_aho_corasick_t *ac) {
   return node;
 }
 
-ds_aho_corasick_t *ds_aho_corasick_create(void) {
-  return ds_aho_corasick_create_alloc(malloc, free);
-}
-
-static ds_aho_corasick_t *
-aho_corasick_create_internal(void *(*allocator)(size_t),
-                             void (*deallocator)(void *),
-                             ds_context_t *context) {
+static ds_aho_corasick_t *aho_corasick_create_internal(ds_context_t *context) {
   ds_aho_corasick_t *ac;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  ac = (ds_aho_corasick_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                              sizeof(ds_aho_corasick_t));
+
+  ac = (ds_aho_corasick_t *)ds_context_alloc(context,
+                                             sizeof(ds_aho_corasick_t));
   if (ac == NULL) {
     return NULL;
   }
-  ac->context = context;
-  ac->allocator = allocator;
-  ac->deallocator = deallocator;
+  ac->context = context != NULL ? context : ds_default_context();
+
   ac->num_patterns = 0;
   ac->num_nodes = 0;
   ac->compiled = false;
   ac->root = aho_corasick_new_node(ac);
   if (ac->root == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, ac);
+    ds_context_free(context, ac);
     return NULL;
   }
   return ac;
 }
 
-ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
-  return aho_corasick_create_internal(allocator, deallocator, NULL);
+ds_aho_corasick_t *ds_aho_corasick_create(ds_context_t *context) {
+  return aho_corasick_create_internal(context);
 }
 ds_status_t ds_aho_corasick_create_context(ds_context_t *context,
                                            ds_aho_corasick_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = aho_corasick_create_internal(
-      malloc, free, context != NULL ? context : ds_default_context());
+  *out = aho_corasick_create_internal(context != NULL ? context
+                                                      : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -90,7 +78,7 @@ ds_status_t ds_aho_corasick_add_ex(ds_aho_corasick_t *ac, const void *pattern,
     if (fresh == NULL) {
       while (pending != NULL) {
         ds_aho_corasick_node_t *next = pending->fail;
-        DS_OWNER_FREE(ac, pending);
+        ds_context_free(ac->context, pending);
         pending = next;
       }
       ac->num_nodes = old_nodes;
@@ -131,8 +119,8 @@ ds_status_t ds_aho_corasick_compile_ex(ds_aho_corasick_t *ac) {
     return DS_ERR_NULL;
   if (ac->num_nodes > (size_t)-1 / sizeof(*queue))
     return DS_ERR_OVERFLOW;
-  queue = (ds_aho_corasick_node_t **)DS_OWNER_ALLOC(
-      ac, ac->num_nodes * sizeof(ds_aho_corasick_node_t *));
+  queue = (ds_aho_corasick_node_t **)ds_context_alloc(
+      ac->context, ac->num_nodes * sizeof(ds_aho_corasick_node_t *));
   if (queue == NULL)
     return DS_ERR_ALLOC;
   /* depth-1 nodes fail to root */
@@ -173,7 +161,7 @@ ds_status_t ds_aho_corasick_compile_ex(ds_aho_corasick_t *ac) {
       tail += 1;
     }
   }
-  DS_OWNER_FREE(ac, queue);
+  ds_context_free(ac->context, queue);
   ac->compiled = true;
   return DS_OK;
 }
@@ -288,13 +276,14 @@ size_t ds_aho_corasick_search(
     ds_aho_corasick_t *ac, const void *haystack, size_t length,
     void (*callback)(const ds_aho_corasick_match_t *, void *), void *user) {
   size_t count = 0;
-  (void)ds_aho_corasick_search_ex(ac, haystack, length, callback, user, &count);
+  (void)ds_aho_corasick_search_ex(ac, haystack, length, callback, user,
+                                  &count);
   return count;
 }
 
 ds_status_t ds_aho_corasick_contains_any_ex(ds_aho_corasick_t *ac,
-                                            const void *haystack, size_t length,
-                                            bool *out) {
+                                            const void *haystack,
+                                            size_t length, bool *out) {
   const unsigned char *bytes = (const unsigned char *)haystack;
   ds_aho_corasick_node_t *node;
   bool found = false;
@@ -350,7 +339,7 @@ void ds_aho_corasick_destroy(ds_aho_corasick_t *ac) {
         list = node->children[c];
       }
     }
-    DS_OWNER_FREE(ac, node);
+    ds_context_free(ac->context, node);
   }
-  DS_OWNER_FREE(ac, ac);
+  ds_context_free(ac->context, ac);
 }

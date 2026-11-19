@@ -113,7 +113,7 @@ ds_status_t ds_bdd_init(ds_bdd_t *m, size_t vars, const size_t *order,
   }
   memset(m, 0, sizeof(*m));
   m->vars = vars;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   m->level_of =
       (size_t *)bdd_realloc(context, NULL, 2 * vars + 1, sizeof(size_t));
   m->capacity = 64;

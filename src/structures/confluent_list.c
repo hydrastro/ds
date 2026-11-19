@@ -21,7 +21,7 @@ ds_status_t ds_confluent_store_init(ds_confluent_store_t *s, size_t elem_size,
   memset(s, 0, sizeof(*s));
   s->elem_size = elem_size;
   s->free_list = CE;
-  s->context = context;
+  s->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

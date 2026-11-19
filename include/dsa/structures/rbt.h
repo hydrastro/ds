@@ -29,53 +29,50 @@ typedef struct rbt_node {
 #define RBT_RED 0
 #define RBT_BLACK 1
 
-#define RBT_GET_PARENT_FROM_COLOR(color)                                       \
+#define RBT_GET_PARENT_FROM_COLOR(color)                                      \
   ((ds_rbt_node_t *)((color) & (long unsigned int)~3))
 #define RBT_GET_COLOR_FROM_COLOR(color) ((color) & 1)
-#define RBT_IS_RED_FROM_COLOR(color)                                           \
+#define RBT_IS_RED_FROM_COLOR(color)                                          \
   (RBT_GET_COLOR_FROM_COLOR(color) == RBT_RED)
-#define RBT_IS_BLACK_FROM_COLOR(color)                                         \
+#define RBT_IS_BLACK_FROM_COLOR(color)                                        \
   (RBT_GET_COLOR_FROM_COLOR(color) == RBT_BLACK)
 #define RBT_SET_RED_FROM_COLOR(color) ((color) &= (long unsigned int)~1)
 #define RBT_SET_BLACK_FROM_COLOR(color) ((color) |= (long unsigned int)1)
 
-#define RBT_GET_PARENT_FROM_NODE(node)                                         \
+#define RBT_GET_PARENT_FROM_NODE(node)                                        \
   (RBT_GET_PARENT_FROM_COLOR((node)->parent_color))
-#define RBT_GET_COLOR_FROM_NODE(node)                                          \
+#define RBT_GET_COLOR_FROM_NODE(node)                                         \
   (RBT_GET_COLOR_FROM_COLOR((node)->parent_color))
-#define RBT_IS_RED_FROM_NODE(node)                                             \
+#define RBT_IS_RED_FROM_NODE(node)                                            \
   (RBT_IS_RED_FROM_COLOR(RBT_GET_COLOR_FROM_NODE(node)))
-#define RBT_IS_BLACK_FROM_NODE(node)                                           \
+#define RBT_IS_BLACK_FROM_NODE(node)                                          \
   (RBT_IS_BLACK_FROM_COLOR(RBT_GET_COLOR_FROM_NODE(node)))
-#define RBT_SET_RED_FROM_NODE(node)                                            \
+#define RBT_SET_RED_FROM_NODE(node)                                           \
   (RBT_SET_RED_FROM_COLOR((node)->parent_color))
-#define RBT_SET_BLACK_FROM_NODE(node)                                          \
+#define RBT_SET_BLACK_FROM_NODE(node)                                         \
   (RBT_SET_BLACK_FROM_COLOR((node)->parent_color))
-#define RBT_SET_COLOR_FROM_NODE(node, color)                                   \
-  ((node)->parent_color = (unsigned long)RBT_GET_PARENT_FROM_NODE(node) |      \
+#define RBT_SET_COLOR_FROM_NODE(node, color)                                  \
+  ((node)->parent_color = (unsigned long)RBT_GET_PARENT_FROM_NODE(node) |     \
                           ((long unsigned int)color))
 
 typedef struct rbt {
   ds_rbt_node_t *root;
   ds_rbt_node_t *nil;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
+
 } DS_RBT_ALIGNED ds_rbt_t;
 
 void ds_rbt_set_parent(ds_rbt_node_t *node, ds_rbt_node_t *parent);
 void ds_rbt_set_parent_color(ds_rbt_node_t *node, ds_rbt_node_t *parent,
                              int color);
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_rbt_create_context(ds_context_t *context, ds_rbt_t **out);
 
-ds_rbt_t *ds_rbt_create(void);
-ds_rbt_t *ds_rbt_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *));
+ds_rbt_t *ds_rbt_create(ds_context_t *context);
 ds_rbt_node_t *ds_rbt_minimum(ds_rbt_t *tree, ds_rbt_node_t *node_x);
 ds_rbt_node_t *ds_rbt_maximum(ds_rbt_t *tree, ds_rbt_node_t *node_x);
 ds_rbt_node_t *ds_rbt_successor(ds_rbt_t *tree, ds_rbt_node_t *node_x);
@@ -158,9 +155,11 @@ ds_status_t ds_rbt_traverse_with(const ds_rbt_t *tree, ds_rbt_node_t *root,
                                  ds_rbt_visit_fn visit, void *user);
 ds_status_t ds_rbt_walk_with(const ds_rbt_t *tree, ds_rbt_visit_fn visit,
                              void *user);
-/* Destroys container storage; optional destroy releases each intrusive payload.
- * The callback must not inspect/traverse/mutate the tree during destruction. */
-void ds_rbt_destroy_with(ds_rbt_t *tree, ds_rbt_destroy_fn destroy, void *user);
+/* Destroys container storage; optional destroy releases each intrusive
+ * payload. The callback must not inspect/traverse/mutate the tree during
+ * destruction. */
+void ds_rbt_destroy_with(ds_rbt_t *tree, ds_rbt_destroy_fn destroy,
+                         void *user);
 /* clone must return DS_OK and a fresh non-NULL node with equivalent key/data.
  * On callback failure it owns any unfinished node. Completed nodes roll back
  * through destroy. Negative callback statuses propagate; positive statuses or

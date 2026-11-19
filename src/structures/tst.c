@@ -10,7 +10,7 @@ ds_status_t ds_tst_init(ds_tst_t *t, ds_context_t *context) {
   memset(t, 0, sizeof(*t));
   t->root = TS_NONE;
   t->free_list = TS_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

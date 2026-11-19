@@ -219,7 +219,7 @@ ds_status_t ds_bsp_tree_init(ds_bsp_tree_t *t, size_t dim, size_t bucket,
   t->plane = plane != NULL ? plane : ds_bsp_principal_plane;
   t->plane_user = plane_user;
   t->free_list = BSP_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = bsp_node(t, &t->root);
   if (st != DS_OK) {
     ds_bsp_tree_destroy(t);
@@ -756,7 +756,7 @@ ds_status_t ds_cell_tree_init(ds_cell_tree_t *t, size_t bucket,
   t->bucket = bucket;
   t->max_depth = max_depth;
   t->poly_free = BSP_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = ct_node(t, 0, &t->root);
   if (st != DS_OK) {
     ds_cell_tree_destroy(t);

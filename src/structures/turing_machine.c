@@ -32,7 +32,7 @@ ds_status_t ds_tm_init(ds_tm_t *tm, size_t states, unsigned symbols,
   tm->blank = blank;
   tm->start = start;
   tm->sorted = true;
-  tm->context = context;
+  tm->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -377,7 +377,7 @@ ds_status_t ds_tm_config_init(ds_tm_config_t *cfg, const ds_tm_t *tm,
   cfg->tapes = tm->tapes;
   cfg->blank = tm->blank;
   cfg->outcome = DS_TM_RUNNING;
-  cfg->context = context;
+  cfg->context = context != NULL ? context : ds_default_context();
   if (length > 0) {
     ds_tm_tape_t *t = &cfg->tape[0];
     st = tm_ensure(context, t, 0, tm->blank);

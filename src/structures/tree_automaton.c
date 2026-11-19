@@ -79,9 +79,9 @@ static size_t ta_key_hash(size_t head, const size_t *v, size_t k) {
 }
 
 /* the indexed entry with this key, or TA_NONE */
-static size_t ta_index_find(const size_t *slot, size_t slots, const void *owner,
-                            ta_key_fn key, size_t head, const size_t *v,
-                            size_t k) {
+static size_t ta_index_find(const size_t *slot, size_t slots,
+                            const void *owner, ta_key_fn key, size_t head,
+                            const size_t *v, size_t k) {
   size_t at;
   if (slots == 0) {
     return TA_NONE;
@@ -203,7 +203,7 @@ ds_status_t ds_fta_init(ds_fta_t *fta, size_t states, size_t symbols,
   memcpy(fta->rank, rank, symbols * sizeof(size_t));
   fta->states = states;
   fta->symbols = symbols;
-  fta->context = context;
+  fta->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -701,8 +701,8 @@ ds_status_t ds_fta_intersection(const ds_fta_t *a, const ds_fta_t *b,
 }
 
 ds_status_t ds_fta_intersection_ex(const ds_fta_t *a, const ds_fta_t *b,
-                                   const ds_fta_budget_t *budget, ds_fta_t *out,
-                                   ds_context_t *context) {
+                                   const ds_fta_budget_t *budget,
+                                   ds_fta_t *out, ds_context_t *context) {
   size_t max_states = ta_limit(budget == NULL ? 0 : budget->max_states);
   size_t max_trans = ta_limit(budget == NULL ? 0 : budget->max_transitions);
   size_t max_work = ta_limit(budget == NULL ? 0 : budget->max_work);
@@ -965,7 +965,7 @@ ds_status_t ds_tdta_init(ds_tdta_t *tdta, size_t states, size_t symbols,
   tdta->states = states;
   tdta->symbols = symbols;
   tdta->initial = initial;
-  tdta->context = context;
+  tdta->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -1029,7 +1029,8 @@ ds_status_t ds_tdta_add(ds_tdta_t *tdta, size_t from, size_t symbol,
   }
   if (ta_index_find(tdta->index, tdta->index_slots, tdta, ta_tdta_key, symbol,
                     &from, 1) == TA_NONE) {
-    ta_index_put(tdta->index, tdta->index_slots, symbol, &from, 1, tdta->count);
+    ta_index_put(tdta->index, tdta->index_slots, symbol, &from, 1,
+                 tdta->count);
   } else {
     tdta->nondet++;
   }
@@ -1148,7 +1149,7 @@ ds_status_t ds_tt_init(ds_tree_transducer_t *tt, size_t states,
   tt->states = states;
   tt->in_symbols = in_symbols;
   tt->out_symbols = out_symbols;
-  tt->context = context;
+  tt->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -1232,11 +1233,11 @@ ds_status_t ds_tt_add(ds_tree_transducer_t *tt, size_t symbol,
   cap = tt->capacity;
   st = ta_reserve(tt->context, (void **)&tt->sym, &cap, tt->count + 1,
                   sizeof(size_t));
-#define TT_GROW(field)                                                         \
-  if (st == DS_OK) {                                                           \
-    cap = tt->capacity;                                                        \
-    st = ta_reserve(tt->context, (void **)&tt->field, &cap, tt->count + 1,     \
-                    sizeof(size_t));                                           \
+#define TT_GROW(field)                                                        \
+  if (st == DS_OK) {                                                          \
+    cap = tt->capacity;                                                       \
+    st = ta_reserve(tt->context, (void **)&tt->field, &cap, tt->count + 1,    \
+                    sizeof(size_t));                                          \
   }
   TT_GROW(target)
   TT_GROW(args)

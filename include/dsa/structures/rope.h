@@ -38,21 +38,18 @@ typedef struct rope_node {
 
 typedef struct rope {
   ds_rope_node_t *root;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_rope_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_rope_create_context(ds_context_t *context, ds_rope_t **out);
 
-ds_rope_t *ds_rope_create(void);
-ds_rope_t *ds_rope_create_alloc(void *(*allocator)(size_t),
-                                void (*deallocator)(void *));
-ds_rope_t *ds_rope_from_string(const char *str, size_t length);
+ds_rope_t *ds_rope_create(ds_context_t *context);
+ds_rope_t *ds_rope_from_string(const char *str, size_t length,
+                               ds_context_t *context);
 size_t ds_rope_length(ds_rope_t *rope);
 /* character at index, or '\0' if out of range */
 char ds_rope_char_at(ds_rope_t *rope, size_t index);
@@ -72,17 +69,16 @@ void ds_rope_insert(ds_rope_t *rope, size_t index, const char *str,
                     size_t length);
 /* delete `count` bytes starting at index */
 void ds_rope_delete(ds_rope_t *rope, size_t index, size_t count);
-/* copy [index, index+count) into out (caller-provided), returns bytes copied */
+/* copy [index, index+count) into out (caller-provided), returns bytes copied
+ */
 size_t ds_rope_substring(ds_rope_t *rope, size_t index, size_t count,
                          char *out);
 /* materialize the whole rope into a freshly allocated NUL-terminated buffer */
-/* Release returned text through rope->context when non-NULL, otherwise through
- * the configured deallocator. Do not use the allocator function pair for
- * context-owned storage. The rope retains no ownership of the returned text. */
+/* Release returned text with ds_context_free(rope->context, text).
+ * The rope retains no ownership of the returned text. */
 char *ds_rope_to_string(ds_rope_t *rope);
 /* concatenate other onto the end of rope; other is emptied on success.
- * Self-concatenation, incompatible contexts, mixed allocator-pair/context
- * ownership, or different allocator pairs are DS_ERR_INVALID. */
+ * Self-concatenation or incompatible contexts are DS_ERR_INVALID. */
 void ds_rope_concat(ds_rope_t *rope, ds_rope_t *other);
 void ds_rope_rebalance(ds_rope_t *rope);
 void ds_rope_destroy(ds_rope_t *rope);

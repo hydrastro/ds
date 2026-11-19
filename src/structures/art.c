@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/art.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,9 +53,7 @@ typedef struct art_leaf {
 struct art {
   art_node_t *root;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 };
 
 static unsigned char *art_prefix(art_inner_t *n) {
@@ -69,7 +66,7 @@ static art_inner_t *art_inner_new(ds_art_t *a, unsigned char type) {
                  : type == ART_NODE16 ? sizeof(art_node16_t)
                  : type == ART_NODE48 ? sizeof(art_node48_t)
                                       : sizeof(art_node256_t);
-  n = (art_inner_t *)DS_OWNER_ALLOC(a, bytes);
+  n = (art_inner_t *)ds_context_alloc(a->context, bytes);
   if (n != NULL) {
     memset(n, 0, bytes);
     n->node.type = type;
@@ -80,7 +77,7 @@ static art_inner_t *art_inner_new(ds_art_t *a, unsigned char type) {
 static bool art_prefix_init(ds_art_t *a, art_inner_t *n,
                             const unsigned char *bytes, size_t len) {
   if (len > ART_INLINE_PREFIX) {
-    n->large = (unsigned char *)DS_OWNER_ALLOC(a, len);
+    n->large = (unsigned char *)ds_context_alloc(a->context, len);
     if (n->large == NULL) {
       return false;
     }
@@ -94,9 +91,9 @@ static bool art_prefix_init(ds_art_t *a, art_inner_t *n,
 
 static void art_inner_free(ds_art_t *a, art_inner_t *n) {
   if (n->large != NULL) {
-    DS_OWNER_FREE(a, n->large);
+    ds_context_free(a->context, n->large);
   }
-  DS_OWNER_FREE(a, n);
+  ds_context_free(a->context, n);
 }
 
 static void art_prefix_drop(ds_art_t *a, art_inner_t *n, size_t skip) {
@@ -105,7 +102,7 @@ static void art_prefix_drop(ds_art_t *a, art_inner_t *n, size_t skip) {
     if (left != 0) {
       memcpy(n->small, n->large + skip, left);
     }
-    DS_OWNER_FREE(a, n->large);
+    ds_context_free(a->context, n->large);
     n->large = NULL;
   } else if (left != 0) {
     unsigned char *p = art_prefix(n);
@@ -116,7 +113,7 @@ static void art_prefix_drop(ds_art_t *a, art_inner_t *n, size_t skip) {
 
 static art_leaf_t *art_leaf_new(ds_art_t *a, const unsigned char *key,
                                 size_t len, void *value) {
-  art_leaf_t *n = (art_leaf_t *)DS_OWNER_ALLOC(a, sizeof(*n) + len);
+  art_leaf_t *n = (art_leaf_t *)ds_context_alloc(a->context, sizeof(*n) + len);
   if (n == NULL) {
     return NULL;
   }
@@ -201,7 +198,8 @@ static art_node_t **art_ref(ds_art_t *a, art_node_t *n) {
   if (n->parent == NULL)
     return &a->root;
   parent = (art_inner_t *)(void *)n->parent;
-  return parent->terminal == n ? &parent->terminal : art_child(parent, n->edge);
+  return parent->terminal == n ? &parent->terminal
+                               : art_child(parent, n->edge);
 }
 
 /* The caller has reserved a slot. No allocation and no failure. */
@@ -267,7 +265,7 @@ static art_inner_t *art_resize(ds_art_t *a, art_inner_t *n,
   if (p->terminal != NULL)
     p->terminal->parent = &p->node;
   *ref = &p->node;
-  DS_OWNER_FREE(a, n); /* prefix ownership moved to p */
+  ds_context_free(a->context, n); /* prefix ownership moved to p */
   return p;
 }
 
@@ -298,34 +296,24 @@ static size_t art_shared(art_inner_t *n, const unsigned char *key, size_t len,
   return shared;
 }
 
-ds_art_t *ds_art_create(void) { return ds_art_create_alloc(malloc, free); }
-
-static ds_art_t *art_create_internal(void *(*allocator)(size_t),
-                                     void (*deallocator)(void *),
-                                     ds_context_t *context) {
+static ds_art_t *art_create_internal(ds_context_t *context) {
   ds_art_t *a;
-  if (allocator == NULL || deallocator == NULL)
-    return NULL;
-  a = (ds_art_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(*a));
+  a = (ds_art_t *)ds_context_alloc(context, sizeof(*a));
   if (a != NULL) {
     a->root = NULL;
     a->size = 0;
-    a->context = context;
-    a->allocator = allocator;
-    a->deallocator = deallocator;
+    a->context = context != NULL ? context : ds_default_context();
   }
   return a;
 }
 
-ds_art_t *ds_art_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
-  return art_create_internal(allocator, deallocator, NULL);
+ds_art_t *ds_art_create(ds_context_t *context) {
+  return art_create_internal(context);
 }
 ds_status_t ds_art_create_context(ds_context_t *context, ds_art_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = art_create_internal(malloc, free,
-                             context != NULL ? context : ds_default_context());
+  *out = art_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -448,7 +436,7 @@ ds_status_t ds_art_insert_ex(ds_art_t *a, const unsigned char *key, size_t len,
         return DS_ERR_ALLOC;
       st = art_add(a, n, key[depth], &fresh->node);
       if (st != DS_OK) {
-        DS_OWNER_FREE(a, fresh);
+        ds_context_free(a->context, fresh);
         return st;
       }
       a->size++;
@@ -553,7 +541,7 @@ static bool art_collapse(ds_art_t *a, art_inner_t *n, art_node_t *child) {
       return false;
     len = n->prefix_len + 1 + c->prefix_len;
     if (len > ART_INLINE_PREFIX) {
-      joined = (unsigned char *)DS_OWNER_ALLOC(a, len);
+      joined = (unsigned char *)ds_context_alloc(a->context, len);
       if (joined == NULL)
         return false;
     }
@@ -563,7 +551,7 @@ static bool art_collapse(ds_art_t *a, art_inner_t *n, art_node_t *child) {
     if (c->prefix_len != 0)
       memcpy(joined + n->prefix_len + 1, art_prefix(c), c->prefix_len);
     if (c->large != NULL)
-      DS_OWNER_FREE(a, c->large);
+      ds_context_free(a->context, c->large);
     c->large = joined == local ? NULL : joined;
     if (joined == local)
       memcpy(c->small, local, len);
@@ -592,7 +580,7 @@ bool ds_art_remove(ds_art_t *a, const unsigned char *key, size_t len,
     else
       art_erase_child(n, leaf->node.edge);
   }
-  DS_OWNER_FREE(a, leaf);
+  ds_context_free(a->context, leaf);
   a->size--;
   while (parent != NULL) {
     art_inner_t *n = (art_inner_t *)(void *)parent;
@@ -715,12 +703,12 @@ void ds_art_destroy_with(ds_art_t *a, void (*destroy_value)(void *, void *),
       art_leaf_t *leaf = (art_leaf_t *)(void *)node;
       if (destroy_value != NULL)
         destroy_value(leaf->value, user);
-      DS_OWNER_FREE(a, node);
+      ds_context_free(a->context, node);
     } else
       art_inner_free(a, (art_inner_t *)(void *)node);
     node = parent;
   }
-  DS_OWNER_FREE(a, a);
+  ds_context_free(a->context, a);
 }
 static void art_destroy_direct(void *value, void *user) {
   void (**destroy)(void *) = (void (**)(void *))user;

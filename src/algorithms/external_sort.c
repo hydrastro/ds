@@ -106,7 +106,7 @@ ds_status_t ds_ext_memory_tapes_init(ds_ext_memory_tapes_t *tapes, size_t count,
   }
   tapes->count = count;
   tapes->elem_size = elem_size;
-  tapes->context = context;
+  tapes->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -249,7 +249,7 @@ ds_status_t ds_ext_file_tapes_init(ds_ext_file_tapes_t *tapes, size_t count,
   }
   tapes->count = count;
   tapes->elem_size = elem_size;
-  tapes->context = context;
+  tapes->context = context != NULL ? context : ds_default_context();
   for (i = 0; i < count; i++) {
     tapes->tapes[i].file = tmpfile();
     if (tapes->tapes[i].file == NULL) {

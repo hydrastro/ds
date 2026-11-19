@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/core/checked.h>
 #include <dsa/structures/segment_tree.h>
 #include <limits.h>
@@ -18,7 +17,8 @@ static bool seg_combine(const ds_segment_tree_t *st, long a, long b,
   return true;
 }
 static unsigned long seg_magnitude(long value) {
-  return value < 0 ? (unsigned long)(-(value + 1)) + 1UL : (unsigned long)value;
+  return value < 0 ? (unsigned long)(-(value + 1)) + 1UL
+                   : (unsigned long)value;
 }
 /* base + value * count, allowing the product to exceed LONG_MAX when it
  * cancels against base. An unsigned magnitude can hold every fitting case. */
@@ -87,12 +87,13 @@ static ds_status_t seg_record(seg_journal_t *journal, size_t node) {
     if (journal->capacity > (size_t)-1 / 2 / sizeof(*data))
       return DS_ERR_OVERFLOW;
     capacity = journal->capacity * 2;
-    data = (seg_snapshot_t *)DS_OWNER_ALLOC(st, capacity * sizeof(*data));
+    data = (seg_snapshot_t *)ds_context_alloc(st->context,
+                                              capacity * sizeof(*data));
     if (data == NULL)
       return DS_ERR_ALLOC;
     memcpy(data, journal->data, journal->size * sizeof(*data));
     if (journal->data != journal->local)
-      DS_OWNER_FREE(st, journal->data);
+      ds_context_free(st->context, journal->data);
     journal->data = data;
     journal->capacity = capacity;
   }
@@ -121,7 +122,7 @@ static void seg_journal_end(seg_journal_t *journal, bool rollback) {
     }
   }
   if (journal->data != journal->local)
-    DS_OWNER_FREE(st, journal->data);
+    ds_context_free(st->context, journal->data);
 }
 static ds_status_t seg_apply(seg_journal_t *journal, size_t node, size_t count,
                              long value, bool assign) {
@@ -181,14 +182,14 @@ static ds_status_t seg_push(seg_journal_t *journal, size_t node, size_t left,
         seg_apply(journal, 2 * node, mid - left + 1, st->lazy_set[node], true);
     if (status != DS_OK)
       return status;
-    status =
-        seg_apply(journal, 2 * node + 1, right - mid, st->lazy_set[node], true);
+    status = seg_apply(journal, 2 * node + 1, right - mid, st->lazy_set[node],
+                       true);
     if (status != DS_OK)
       return status;
   }
   if (st->lazy_add[node] != 0) {
-    status =
-        seg_apply(journal, 2 * node, mid - left + 1, st->lazy_add[node], false);
+    status = seg_apply(journal, 2 * node, mid - left + 1, st->lazy_add[node],
+                       false);
     if (status != DS_OK)
       return status;
     status = seg_apply(journal, 2 * node + 1, right - mid, st->lazy_add[node],
@@ -230,15 +231,15 @@ static ds_status_t seg_build(ds_segment_tree_t *st, const long *values,
                           : st->maximum[node * 2 + 1];
   return DS_OK;
 }
-static ds_status_t
-seg_create_internal(const long *values, size_t n, ds_segment_tree_op_t op,
-                    void *(*allocator)(size_t), void (*deallocator)(void *),
-                    ds_context_t *context, ds_segment_tree_t **out) {
+static ds_status_t seg_create_internal(const long *values, size_t n,
+                                       ds_segment_tree_op_t op,
+                                       ds_context_t *context,
+                                       ds_segment_tree_t **out) {
   ds_segment_tree_t *st;
   ds_status_t status;
   size_t capacity, i;
   *out = NULL;
-  if (allocator == NULL || deallocator == NULL || (values == NULL && n != 0))
+  if (values == NULL && n != 0)
     return DS_ERR_NULL;
   if (op != DS_SEGMENT_TREE_SUM && op != DS_SEGMENT_TREE_MIN &&
       op != DS_SEGMENT_TREE_MAX)
@@ -246,21 +247,22 @@ seg_create_internal(const long *values, size_t n, ds_segment_tree_op_t op,
   if (n > (size_t)-1 / 4 / sizeof(long) || n > (size_t)-1 / 4 / sizeof(bool))
     return DS_ERR_OVERFLOW;
   capacity = (n == 0 ? 1 : n) * 4;
-  st = (ds_segment_tree_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(*st));
+  st = (ds_segment_tree_t *)ds_context_alloc(context, sizeof(*st));
   if (st == NULL)
     return DS_ERR_ALLOC;
-  st->context = context;
-  st->allocator = allocator;
-  st->deallocator = deallocator;
+  st->context = context != NULL ? context : ds_default_context();
+
   st->n = n;
   st->capacity = capacity;
   st->op = op;
-  st->tree = (long *)DS_OWNER_ALLOC(st, capacity * sizeof(long));
-  st->lazy_add = (long *)DS_OWNER_ALLOC(st, capacity * sizeof(long));
-  st->lazy_set = (long *)DS_OWNER_ALLOC(st, capacity * sizeof(long));
-  st->minimum = (long *)DS_OWNER_ALLOC(st, capacity * sizeof(long));
-  st->maximum = (long *)DS_OWNER_ALLOC(st, capacity * sizeof(long));
-  st->has_set = (bool *)DS_OWNER_ALLOC(st, capacity * sizeof(bool));
+  st->tree = (long *)ds_context_alloc(st->context, capacity * sizeof(long));
+  st->lazy_add =
+      (long *)ds_context_alloc(st->context, capacity * sizeof(long));
+  st->lazy_set =
+      (long *)ds_context_alloc(st->context, capacity * sizeof(long));
+  st->minimum = (long *)ds_context_alloc(st->context, capacity * sizeof(long));
+  st->maximum = (long *)ds_context_alloc(st->context, capacity * sizeof(long));
+  st->has_set = (bool *)ds_context_alloc(st->context, capacity * sizeof(bool));
   if (st->tree == NULL || st->lazy_add == NULL || st->lazy_set == NULL ||
       st->minimum == NULL || st->maximum == NULL || st->has_set == NULL) {
     ds_segment_tree_destroy(st);
@@ -285,22 +287,17 @@ ds_status_t ds_segment_tree_create_context(const long *values, size_t n,
                                            ds_segment_tree_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  return seg_create_internal(values, n, op, malloc, free,
-                             context != NULL ? context : ds_default_context(),
-                             out);
-}
-ds_segment_tree_t *ds_segment_tree_create_alloc(const long *values, size_t n,
-                                                ds_segment_tree_op_t op,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
-  ds_segment_tree_t *out;
-  (void)seg_create_internal(values, n, op, allocator, deallocator, NULL, &out);
-  return out;
+  return seg_create_internal(
+      values, n, op, context != NULL ? context : ds_default_context(), out);
 }
 ds_segment_tree_t *ds_segment_tree_create(const long *values, size_t n,
-                                          ds_segment_tree_op_t op) {
-  return ds_segment_tree_create_alloc(values, n, op, malloc, free);
+                                          ds_segment_tree_op_t op,
+                                          ds_context_t *context) {
+  ds_segment_tree_t *out;
+  (void)seg_create_internal(values, n, op, context, &out);
+  return out;
 }
+
 static ds_status_t seg_update(seg_journal_t *journal, size_t node, size_t left,
                               size_t right, size_t ql, size_t qr, long value,
                               bool assign) {
@@ -354,8 +351,9 @@ ds_status_t ds_segment_tree_update_add_ex(ds_segment_tree_t *st, size_t left,
                                           size_t right, long value) {
   return seg_update_checked(st, left, right, value, false);
 }
-ds_status_t ds_segment_tree_update_assign_ex(ds_segment_tree_t *st, size_t left,
-                                             size_t right, long value) {
+ds_status_t ds_segment_tree_update_assign_ex(ds_segment_tree_t *st,
+                                             size_t left, size_t right,
+                                             long value) {
   return seg_update_checked(st, left, right, value, true);
 }
 void ds_segment_tree_update_add(ds_segment_tree_t *st, size_t left,
@@ -422,16 +420,16 @@ void ds_segment_tree_destroy(ds_segment_tree_t *st) {
   if (st == NULL)
     return;
   if (st->tree != NULL)
-    DS_OWNER_FREE(st, st->tree);
+    ds_context_free(st->context, st->tree);
   if (st->lazy_add != NULL)
-    DS_OWNER_FREE(st, st->lazy_add);
+    ds_context_free(st->context, st->lazy_add);
   if (st->lazy_set != NULL)
-    DS_OWNER_FREE(st, st->lazy_set);
+    ds_context_free(st->context, st->lazy_set);
   if (st->minimum != NULL)
-    DS_OWNER_FREE(st, st->minimum);
+    ds_context_free(st->context, st->minimum);
   if (st->maximum != NULL)
-    DS_OWNER_FREE(st, st->maximum);
+    ds_context_free(st->context, st->maximum);
   if (st->has_set != NULL)
-    DS_OWNER_FREE(st, st->has_set);
-  DS_OWNER_FREE(st, st);
+    ds_context_free(st->context, st->has_set);
+  ds_context_free(st->context, st);
 }

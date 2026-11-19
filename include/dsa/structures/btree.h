@@ -27,10 +27,8 @@ typedef struct btree {
   ds_btree_internal_node_t *root;
   ds_btree_node_t *nil;
   size_t size;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_context_t *context;
-  bool use_context;
 } ds_btree_t;
 
 /* Intrusive multiset: equal keys may be inserted as separate nodes. Nodes must
@@ -48,8 +46,9 @@ ds_status_t ds_btree_create_context(int degree, ds_context_t *context,
                                     ds_btree_t **out);
 /* Strong allocation guarantee: required split nodes are staged before edits;
  * an error preserves the tree, size and incoming node. No allocation occurs
- * when the selected path has no full nodes. Direct void insert discards status.
- * Helpers insert_non_full/split_child do not update the tree's size. */
+ * when the selected path has no full nodes. Direct void insert discards
+ * status. Helpers insert_non_full/split_child do not update the tree's size.
+ */
 ds_status_t ds_btree_insert_with(ds_btree_t *tree, ds_btree_node_t *node,
                                  ds_btree_compare_fn compare, void *user);
 ds_status_t ds_btree_insert_ex(ds_btree_t *tree, ds_btree_node_t *node,
@@ -71,19 +70,19 @@ void ds_btree_destroy_with(ds_btree_t *tree, ds_btree_destroy_fn destroy,
                            void *user);
 
 /* Successful clones must be distinct unlinked nodes. A failing clone callback
- * cleans its own partial output; later failure releases all accepted clones. */
-ds_status_t ds_btree_clone_with(const ds_btree_t *tree, ds_btree_clone_fn clone,
+ * cleans its own partial output; later failure releases all accepted clones.
+ */
+ds_status_t ds_btree_clone_with(const ds_btree_t *tree,
+                                ds_btree_clone_fn clone,
                                 ds_btree_destroy_fn destroy, void *user,
                                 ds_btree_t **out);
 
 /* NULL when memory runs out */
 ds_btree_internal_node_t *ds_btree_create_node(ds_btree_t *tree, bool is_leaf);
 /* NULL for a degree below 2 (the minimum degree t: nodes hold t - 1 to
- * 2t - 1 keys), one too large to size the nodes, when memory runs out, or
- * without an allocator and a deallocator */
-ds_btree_t *ds_btree_create(int degree);
-ds_btree_t *ds_btree_create_alloc(int degree, void *(*allocator)(size_t),
-                                  void (*deallocator)(void *));
+ * 2t - 1 keys), one too large to size the nodes, or on allocation failure. */
+
+ds_btree_t *ds_btree_create(int degree, ds_context_t *context);
 void ds_btree_split_child(ds_btree_t *tree, ds_btree_internal_node_t *parent,
                           int index);
 void ds_btree_insert_non_full(ds_btree_t *tree, ds_btree_internal_node_t *node,
@@ -148,10 +147,10 @@ ds_btree_t *ds_btree_clone(ds_btree_t *tree,
  * DS_ERR_ALLOC when memory runs out (the clones are rolled back too). All
  * callbacks are required. On any error *out is NULL and the source is
  * unchanged. */
-ds_status_t ds_btree_clone_ex(const ds_btree_t *tree,
-                              ds_btree_node_t *(*clone_node)(ds_btree_node_t *),
-                              void (*destroy_clone)(ds_btree_node_t *),
-                              ds_btree_t **out);
+ds_status_t
+ds_btree_clone_ex(const ds_btree_t *tree,
+                  ds_btree_node_t *(*clone_node)(ds_btree_node_t *),
+                  void (*destroy_clone)(ds_btree_node_t *), ds_btree_t **out);
 
 #ifdef __cplusplus
 }

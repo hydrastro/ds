@@ -39,10 +39,9 @@ typedef struct treap {
   size_t size;
   unsigned long seed;
   int (*compare)(ds_treap_node_t *, ds_treap_node_t *);
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_context_t *context;
-  bool use_context;
+
   ds_treap_compare_fn compare_with;
   void *user;
   unsigned long (*priority)(void *);
@@ -50,8 +49,8 @@ typedef struct treap {
 } ds_treap_t;
 
 /* Nodes are intrusive, unique by comparator, and must not already be linked.
- * Compare/priority callbacks must not mutate the tree. Context/user outlive it.
- * All operations use constant C-stack space even for a degenerate priority
+ * Compare/priority callbacks must not mutate the tree. Context/user outlive
+ * it. All operations use constant C-stack space even for a degenerate priority
  * stream. Search/update remain O(height), expected O(log n) only with suitable
  * priorities independent of key order. Cloning preserves shape and priorities.
  */
@@ -76,13 +75,11 @@ ds_status_t ds_treap_clone_with(const ds_treap_t *treap,
                                 ds_treap_destroy_fn destroy, void *user,
                                 ds_treap_t **out);
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
+
 ds_treap_t *ds_treap_create(int (*compare)(ds_treap_node_t *,
-                                           ds_treap_node_t *));
-ds_treap_t *
-ds_treap_create_alloc(int (*compare)(ds_treap_node_t *, ds_treap_node_t *),
-                      unsigned long seed, void *(*allocator)(size_t),
-                      void (*deallocator)(void *));
+                                           ds_treap_node_t *),
+                            unsigned long seed, ds_context_t *context);
 void ds_treap_node_init(ds_treap_node_t *node);
 void ds_treap_insert(ds_treap_t *treap, ds_treap_node_t *node);
 ds_treap_node_t *ds_treap_search(ds_treap_t *treap, ds_treap_node_t *node);
@@ -106,10 +103,10 @@ ds_treap_t *ds_treap_clone(ds_treap_t *treap,
  * made so far through destroy_clone and returns DS_ERR_CALLBACK;
  * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
  * are required. On any error *out is NULL and the source is unchanged. */
-ds_status_t ds_treap_clone_ex(const ds_treap_t *treap,
-                              ds_treap_node_t *(*clone_node)(ds_treap_node_t *),
-                              void (*destroy_clone)(ds_treap_node_t *),
-                              ds_treap_t **out);
+ds_status_t
+ds_treap_clone_ex(const ds_treap_t *treap,
+                  ds_treap_node_t *(*clone_node)(ds_treap_node_t *),
+                  void (*destroy_clone)(ds_treap_node_t *), ds_treap_t **out);
 
 #ifdef __cplusplus
 }

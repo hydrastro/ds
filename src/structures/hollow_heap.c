@@ -286,7 +286,7 @@ ds_status_t ds_hollow_heap_init(ds_hollow_heap_t *h, size_t item_size,
   h->item_size = item_size;
   h->compare = compare;
   h->user = user;
-  h->context = context;
+  h->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

@@ -89,7 +89,7 @@ ds_status_t ds_spiral_map_init(ds_spiral_map_t *m, size_t key_size,
     m->head[i] = SP_NONE;
   }
   m->free_list = SP_NONE;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

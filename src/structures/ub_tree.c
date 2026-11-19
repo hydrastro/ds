@@ -125,7 +125,7 @@ ds_status_t ds_ub_tree_init(ds_ub_tree_t *t, size_t dim, size_t bits,
   t->fanout = fanout;
   t->slots = (leaf_cap > fanout ? leaf_cap : fanout) + 1;
   t->free_list = UB_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = ub_node(t, true, &t->root);
   if (st != DS_OK) {
     ds_ub_tree_destroy(t);
@@ -592,7 +592,7 @@ ds_status_t ds_ubranch_tree_init(ds_ubranch_tree_t *t, ds_context_t *context) {
   }
   memset(t, 0, sizeof(*t));
   t->free_list = UB_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

@@ -19,20 +19,16 @@ typedef struct stack {
   ds_stack_node_t *top;
   ds_stack_node_t *nil;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_stack_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_stack_create_context(ds_context_t *context, ds_stack_t **out);
 
-ds_stack_t *ds_stack_create(void);
-ds_stack_t *ds_stack_create_alloc(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *));
+ds_stack_t *ds_stack_create(ds_context_t *context);
 void ds_stack_push(ds_stack_t *stack, ds_stack_node_t *node);
 ds_stack_node_t *ds_stack_pop(ds_stack_t *stack);
 ds_stack_node_t *ds_stack_peek(ds_stack_t *stack);
@@ -63,10 +59,10 @@ ds_stack_t *ds_stack_clone(ds_stack_t *stack,
  * made so far through destroy_clone and returns DS_ERR_CALLBACK;
  * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
  * are required. On any error *out is NULL and the source is unchanged. */
-ds_status_t ds_stack_clone_ex(const ds_stack_t *stack,
-                              ds_stack_node_t *(*clone_node)(ds_stack_node_t *),
-                              void (*destroy_clone)(ds_stack_node_t *),
-                              ds_stack_t **out);
+ds_status_t
+ds_stack_clone_ex(const ds_stack_t *stack,
+                  ds_stack_node_t *(*clone_node)(ds_stack_node_t *),
+                  void (*destroy_clone)(ds_stack_node_t *), ds_stack_t **out);
 
 /* Callback policies require stable topology during calls. Views are borrowed.
  * Walk stops on the first non-DS_OK result; find leaves out unchanged on

@@ -384,7 +384,7 @@ void ds_rdf_dataset_init(ds_rdf_dataset_t *dataset, ds_context_t *context) {
   dataset->count = 0;
   dataset->capacity = 0;
   dataset->chunks = NULL;
-  dataset->context = context;
+  dataset->context = context != NULL ? context : ds_default_context();
 }
 
 static void rc_free_chunks(ds_rdf_dataset_t *d, ds_rdf_chunk_t *stop) {

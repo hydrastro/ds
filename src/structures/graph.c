@@ -67,9 +67,7 @@ static ds_status_t graph_reserve_edges(ds_graph_t *graph, size_t vertex,
   return DS_OK;
 }
 
-ds_graph_t *ds_graph_create(void) { return ds_graph_create_ctx(NULL); }
-
-ds_graph_t *ds_graph_create_ctx(ds_context_t *context) {
+ds_graph_t *ds_graph_create(ds_context_t *context) {
   ds_graph_t *graph;
   if (context == NULL) {
     context = ds_default_context();
@@ -81,7 +79,7 @@ ds_graph_t *ds_graph_create_ctx(ds_context_t *context) {
   graph->vertices = NULL;
   graph->vertex_count = 0U;
   graph->vertex_capacity = 0U;
-  graph->context = context;
+  graph->context = context != NULL ? context : ds_default_context();
   return graph;
 }
 
@@ -150,7 +148,8 @@ ds_status_t ds_graph_add_weighted_edge(ds_graph_t *graph, size_t from,
   if (from >= graph->vertex_count || to >= graph->vertex_count) {
     return DS_ERR_RANGE;
   }
-  if (graph->vertices[from].edge_count == graph->vertices[from].edge_capacity) {
+  if (graph->vertices[from].edge_count ==
+      graph->vertices[from].edge_capacity) {
     size_t capacity;
     status = graph_grown(graph->vertices[from].edge_capacity, 4U,
                          sizeof(ds_graph_edge_t), &capacity);
@@ -237,7 +236,8 @@ ds_status_t ds_graph_remove_edge(ds_graph_t *graph, size_t from, size_t to,
 }
 
 ds_status_t ds_graph_visit_edges(ds_graph_t *graph, size_t from,
-                                 ds_graph_edge_visit_func_t visit, void *user) {
+                                 ds_graph_edge_visit_func_t visit,
+                                 void *user) {
   size_t i;
 
   if (graph == NULL || visit == NULL) {
@@ -343,8 +343,8 @@ ds_status_t ds_graph_dfs(ds_graph_t *graph, size_t start,
   }
   seen = (bool *)ds_context_calloc(graph->context, graph->vertex_count,
                                    sizeof(*seen));
-  vstack = (size_t *)ds_context_alloc(graph->context,
-                                      2 * graph->vertex_count * sizeof(size_t));
+  vstack = (size_t *)ds_context_alloc(graph->context, 2 * graph->vertex_count *
+                                                          sizeof(size_t));
   if (seen == NULL || vstack == NULL) {
     ds_context_free(graph->context, vstack);
     ds_context_free(graph->context, seen);
@@ -905,7 +905,8 @@ static void graph_scc_order_dfs(ds_graph_t *graph, size_t root, bool *seen,
 static void graph_scc_reverse_mark(size_t root, size_t component,
                                    size_t *components,
                                    const size_t *reverse_offsets,
-                                   const size_t *reverse_edges, size_t *stack) {
+                                   const size_t *reverse_edges,
+                                   size_t *stack) {
   size_t top = 1;
   components[root] = component;
   stack[0] = root;

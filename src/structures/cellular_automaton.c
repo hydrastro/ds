@@ -57,7 +57,7 @@ ds_status_t ds_ca1_init(ds_ca1_t *ca, size_t width, unsigned states,
   ca->radius = radius;
   ca->boundary = boundary;
   ca->kind = DS_CA_RULE_CALLBACK;
-  ca->context = context;
+  ca->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -313,7 +313,7 @@ ds_status_t ds_ca2_init(ds_ca2_t *ca, size_t width, size_t height,
   ca->boundary = boundary;
   ca->max_neighbors = m;
   ca->kind = DS_CA_RULE_TOTALISTIC;
-  ca->context = context;
+  ca->context = context != NULL ? context : ds_default_context();
   if (m >= 3) {
     ca->birth[3] = true;
     ca->survive[2] = true;

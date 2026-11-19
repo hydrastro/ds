@@ -1,68 +1,57 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/circular_buffer.h>
 #include <stdlib.h>
 
-ds_circular_buffer_t *ds_circular_buffer_create(size_t capacity) {
-  return ds_circular_buffer_create_alloc(capacity, false, malloc, free);
-}
-
-static ds_circular_buffer_t *circular_buffer_create_internal(
-    size_t capacity, bool overwrite, void *(*allocator)(size_t),
-    void (*deallocator)(void *), ds_context_t *context) {
+static ds_circular_buffer_t *
+circular_buffer_create_internal(size_t capacity, bool overwrite,
+                                ds_context_t *context) {
   ds_circular_buffer_t *buffer;
   size_t slots = capacity > 0 ? capacity : 1;
-  if (allocator == NULL || deallocator == NULL ||
-      slots > (size_t)-1 / sizeof(ds_circular_buffer_node_t *)) {
+  if (slots > (size_t)-1 / sizeof(ds_circular_buffer_node_t *)) {
     return NULL;
   }
-  buffer = (ds_circular_buffer_t *)DS_OWNER_ALLOCATE(
-      context, allocator, sizeof(ds_circular_buffer_t));
+  buffer = (ds_circular_buffer_t *)ds_context_alloc(
+      context, sizeof(ds_circular_buffer_t));
   if (buffer == NULL) {
     return NULL;
   }
-  buffer->context = context;
-  buffer->allocator = allocator;
-  buffer->deallocator = deallocator;
+  buffer->context = context != NULL ? context : ds_default_context();
+
   buffer->capacity = slots;
   buffer->overwrite = overwrite;
   buffer->head = 0;
   buffer->tail = 0;
   buffer->size = 0;
-  buffer->nil = (ds_circular_buffer_node_t *)DS_OWNER_ALLOCATE(
-      context, allocator, sizeof(ds_circular_buffer_node_t));
+  buffer->nil = (ds_circular_buffer_node_t *)ds_context_alloc(
+      context, sizeof(ds_circular_buffer_node_t));
   if (buffer->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, buffer);
+    ds_context_free(context, buffer);
     return NULL;
   }
   buffer->nil->placeholder = buffer->nil;
-  buffer->data = (ds_circular_buffer_node_t **)DS_OWNER_ALLOCATE(
-      context, allocator, slots * sizeof(ds_circular_buffer_node_t *));
+  buffer->data = (ds_circular_buffer_node_t **)ds_context_alloc(
+      context, slots * sizeof(ds_circular_buffer_node_t *));
   if (buffer->data == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, buffer->nil);
-    DS_OWNER_RELEASE(context, deallocator, buffer);
+    ds_context_free(context, buffer->nil);
+    ds_context_free(context, buffer);
     return NULL;
   }
   return buffer;
 }
-ds_circular_buffer_t *
-ds_circular_buffer_create_alloc(size_t capacity, bool overwrite,
-                                void *(*allocator)(size_t),
-                                void (*deallocator)(void *)) {
-  return circular_buffer_create_internal(capacity, overwrite, allocator,
-                                         deallocator, NULL);
+ds_circular_buffer_t *ds_circular_buffer_create(size_t capacity,
+                                                bool overwrite,
+                                                ds_context_t *context) {
+  return circular_buffer_create_internal(capacity, overwrite, context);
 }
 ds_status_t ds_circular_buffer_create_context(size_t capacity, bool overwrite,
                                               ds_context_t *context,
                                               ds_circular_buffer_t **out) {
-
   if (out == NULL)
     return DS_ERR_NULL;
   *out = NULL;
   if (capacity > (size_t)-1 / sizeof(ds_circular_buffer_node_t *))
     return DS_ERR_OVERFLOW;
   *out = circular_buffer_create_internal(
-      capacity, overwrite, malloc, free,
-      context != NULL ? context : ds_default_context());
+      capacity, overwrite, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -194,9 +183,9 @@ circular_buffer_destroy_internal(ds_circular_buffer_t *buffer,
       destroy(buffer->data[(buffer->head + i) % buffer->capacity], user);
     }
   }
-  DS_OWNER_FREE(buffer, buffer->data);
-  DS_OWNER_FREE(buffer, buffer->nil);
-  DS_OWNER_FREE(buffer, buffer);
+  ds_context_free(buffer->context, buffer->data);
+  ds_context_free(buffer->context, buffer->nil);
+  ds_context_free(buffer->context, buffer);
 }
 void ds_circular_buffer_destroy_with(ds_circular_buffer_t *container,
                                      ds_circular_buffer_destroy_fn destroy,
@@ -243,7 +232,6 @@ ds_circular_buffer_t *ds_circular_buffer_clone(
     return NULL;
   }
   copy = circular_buffer_create_internal(buffer->capacity, buffer->overwrite,
-                                         buffer->allocator, buffer->deallocator,
                                          buffer->context);
   if (copy != NULL && !circular_buffer_clone_nodes(buffer, copy, clone_node)) {
     /* the clones made so far are not released */
@@ -267,7 +255,6 @@ ds_status_t ds_circular_buffer_clone_ex(
     return DS_ERR_NULL;
   }
   copy = circular_buffer_create_internal(buffer->capacity, buffer->overwrite,
-                                         buffer->allocator, buffer->deallocator,
                                          buffer->context);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
@@ -319,11 +306,10 @@ ds_status_t ds_circular_buffer_find_with(ds_circular_buffer_t *container,
   return DS_NOT_FOUND;
 }
 
-ds_status_t ds_circular_buffer_clone_with(const ds_circular_buffer_t *container,
-                                          ds_circular_buffer_clone_fn clone,
-                                          ds_circular_buffer_destroy_fn destroy,
-                                          void *user, ds_context_t *context,
-                                          ds_circular_buffer_t **out) {
+ds_status_t ds_circular_buffer_clone_with(
+    const ds_circular_buffer_t *container, ds_circular_buffer_clone_fn clone,
+    ds_circular_buffer_destroy_fn destroy, void *user, ds_context_t *context,
+    ds_circular_buffer_t **out) {
   ds_circular_buffer_t *copy;
   size_t i, position;
   ds_circular_buffer_node_t *node;
@@ -336,8 +322,8 @@ ds_status_t ds_circular_buffer_clone_with(const ds_circular_buffer_t *container,
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
   copy = circular_buffer_create_internal(
-      container->capacity, container->overwrite, container->allocator,
-      container->deallocator, context != NULL ? context : container->context);
+      container->capacity, container->overwrite,
+      context != NULL ? context : container->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
 

@@ -122,7 +122,7 @@ ds_status_t ds_weak_heap_init(ds_weak_heap_t *heap, size_t elem_size,
   heap->bits_capacity = 0;
   heap->compare = compare;
   heap->user = user;
-  heap->context = context;
+  heap->context = context != NULL ? context : ds_default_context();
   heap->fixed = false;
   return ds_vec_init(&heap->items, elem_size, context);
 }

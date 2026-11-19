@@ -30,7 +30,7 @@ ds_status_t ds_scapegoat_tree_init(ds_scapegoat_tree_t *t, size_t elem_size,
   t->alpha_den = alpha_den;
   t->compare = compare;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

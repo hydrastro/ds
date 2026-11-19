@@ -1,28 +1,20 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/avl.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-ds_avl_t *ds_avl_create(void) { return ds_avl_create_alloc(malloc, free); }
-
-static ds_avl_t *avl_create_internal(void *(*allocator)(size_t),
-                                     void (*deallocator)(void *),
-                                     ds_context_t *context) {
+static ds_avl_t *avl_create_internal(ds_context_t *context) {
   ds_avl_t *tree;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  tree = (ds_avl_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_avl_t));
+
+  tree = (ds_avl_t *)ds_context_alloc(context, sizeof(ds_avl_t));
   if (tree == NULL) {
     return NULL;
   }
-  tree->context = context;
-  tree->allocator = allocator;
-  tree->deallocator = deallocator;
-  tree->nil = (ds_avl_node_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                 sizeof(ds_avl_node_t));
+  tree->context = context != NULL ? context : ds_default_context();
+
+  tree->nil =
+      (ds_avl_node_t *)ds_context_alloc(context, sizeof(ds_avl_node_t));
   if (tree->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, tree);
+    ds_context_free(context, tree);
     return NULL;
   }
   tree->nil->height = 0;
@@ -37,15 +29,13 @@ static ds_avl_t *avl_create_internal(void *(*allocator)(size_t),
   return tree;
 }
 
-ds_avl_t *ds_avl_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
-  return avl_create_internal(allocator, deallocator, NULL);
+ds_avl_t *ds_avl_create(ds_context_t *context) {
+  return avl_create_internal(context);
 }
 ds_status_t ds_avl_create_context(ds_context_t *context, ds_avl_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = avl_create_internal(malloc, free,
-                             context != NULL ? context : ds_default_context());
+  *out = avl_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -105,7 +95,8 @@ void ds_avl_postorder_walk_tree(ds_avl_t *tree,
 }
 
 ds_avl_node_t *ds_avl_search(ds_avl_t *tree, ds_avl_node_t *data,
-                             int (*compare)(ds_avl_node_t *, ds_avl_node_t *)) {
+                             int (*compare)(ds_avl_node_t *,
+                                            ds_avl_node_t *)) {
   ds_avl_node_t *node;
   node = tree->root;
   while (node != tree->nil) {
@@ -148,8 +139,8 @@ void ds_avl_destroy_recursive(ds_avl_t *tree, ds_avl_node_t *node,
 void ds_avl_destroy_tree(ds_avl_t *tree, void (*destroy)(ds_avl_node_t *)) {
   ds_avl_destroy_recursive(tree, tree->root, destroy);
   tree->root = tree->nil;
-  DS_OWNER_FREE(tree, tree->nil);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->nil);
+  ds_context_free(tree->context, tree);
 }
 
 #pragma GCC diagnostic push
@@ -440,8 +431,7 @@ ds_avl_t *ds_avl_clone(ds_avl_t *tree,
   if (tree == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_tree =
-      avl_create_internal(tree->allocator, tree->deallocator, tree->context);
+  new_tree = avl_create_internal(tree->context);
   if (new_tree == NULL) {
     return NULL;
   }
@@ -472,8 +462,7 @@ ds_status_t ds_avl_clone_ex(const ds_avl_t *tree,
   if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_tree =
-      avl_create_internal(tree->allocator, tree->deallocator, tree->context);
+  new_tree = avl_create_internal(tree->context);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -586,8 +575,8 @@ void ds_avl_destroy_with(ds_avl_t *tree, ds_avl_destroy_fn destroy,
       destroy(node, user);
     node = parent;
   }
-  DS_OWNER_FREE(tree, tree->nil);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->nil);
+  ds_context_free(tree->context, tree);
 }
 ds_status_t ds_avl_clone_with(const ds_avl_t *tree, ds_avl_clone_fn clone,
                               ds_avl_destroy_fn destroy, void *user,
@@ -599,8 +588,7 @@ ds_status_t ds_avl_clone_with(const ds_avl_t *tree, ds_avl_clone_fn clone,
   *out = NULL;
   if (tree == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = avl_create_internal(tree->allocator, tree->deallocator,
-                             context != NULL ? context : tree->context);
+  copy = avl_create_internal(context != NULL ? context : tree->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
   policy.direct = NULL;

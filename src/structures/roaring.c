@@ -645,7 +645,7 @@ void ds_roaring_init(ds_roaring_t *r, ds_context_t *context) {
   r->containers = NULL;
   r->size = 0;
   r->capacity = 0;
-  r->context = context;
+  r->context = context != NULL ? context : ds_default_context();
 }
 
 void ds_roaring_destroy(ds_roaring_t *r) {

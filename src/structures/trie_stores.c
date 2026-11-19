@@ -1,4 +1,3 @@
-#include <dsa/core/allocators.h>
 #include <dsa/core/checked.h>
 #include <dsa/structures/rh_map.h>
 #include <dsa/structures/trie_stores.h>
@@ -9,10 +8,7 @@
 typedef void (*trie_visit_t)(ds_trie_t *, ds_trie_node_t *, va_list *);
 
 static void *ts_alloc(ds_trie_t *trie, size_t size) {
-  if (trie != NULL && (trie->use_context || trie->allocator != NULL)) {
-    return ds_trie_alloc(trie, size);
-  }
-  return ds_context_alloc(NULL, size);
+  return ds_context_alloc(trie != NULL ? trie->context : NULL, size);
 }
 
 /* apply and clone come from the trie's generic walk and copy, which need
@@ -27,52 +23,14 @@ static void ts_apply(ds_trie_t *trie, void *store, trie_visit_t f,
 
 /* ---- Robin Hood map store: slice -> child ---- */
 
-/* Each store remembers how it was allocated (a context, else a
- * deallocator): a cloned store may outlive the trie it was created
- * through. The map or vector inside a store takes its arrays from the
- * same place as the trie's nodes: the trie's context, or, for a trie
- * given its own allocator functions, a context over them (allocators.h)
- * that the store carries after itself in the same block. A context-owned trie
- * needs no adapter: its arrays use that same context. */
+/* A store borrows its allocation context even if the creating trie goes away.
+ */
 typedef struct ts_owner {
-  void (*deallocator)(void *);
-  ds_context_t *context; /* when the trie allocates from its context */
-  ds_context_t *arrays;  /* where the store's map or vector allocates */
+  ds_context_t *context;
 } ts_owner_t;
-
-typedef struct ts_functions {
-  ds_allocator_functions_t functions;
-  ds_context_t context;
-} ts_functions_t;
-
-static bool ts_own_functions(const ds_trie_t *trie) {
-  return trie != NULL && !trie->use_context && trie->allocator != NULL &&
-         trie->deallocator != NULL;
-}
-
-/* A store of size bytes, followed (aligned) by the context over the
- * trie's allocator functions when it needs one; owner is set up. */
 static void *ts_create_store(ds_trie_t *trie, size_t size, ts_owner_t *owner) {
-  size_t at = (size + DS_MAX_ALIGN - 1) / DS_MAX_ALIGN * DS_MAX_ALIGN;
-  bool own = ts_own_functions(trie);
-  unsigned char *block =
-      (unsigned char *)ts_alloc(trie, own ? at + sizeof(ts_functions_t) : size);
-  if (block == NULL) {
-    return NULL;
-  }
-  owner->deallocator = trie != NULL ? trie->deallocator : NULL;
-  owner->context = trie != NULL && trie->use_context ? trie->context : NULL;
-  owner->arrays = owner->context; /* NULL: the default context */
-  if (own) {
-    ts_functions_t *f = (ts_functions_t *)(void *)(block + at);
-    f->functions.allocate = trie->allocator;
-    f->functions.release = trie->deallocator;
-    ds_context_init(&f->context);
-    ds_context_use_allocator_functions(&f->context, &f->functions);
-    f->context.diagnostic_sink = trie->context->diagnostic_sink;
-    owner->arrays = &f->context;
-  }
-  return block;
+  owner->context = trie != NULL ? trie->context : ds_default_context();
+  return ts_alloc(trie, size);
 }
 
 typedef struct ts_rh_store {
@@ -81,13 +39,7 @@ typedef struct ts_rh_store {
 } ts_rh_store_t;
 
 static void ts_free(ts_owner_t owner, void *block) {
-  if (owner.context != NULL) {
-    ds_context_free(owner.context, block);
-  } else if (owner.deallocator != NULL) {
-    owner.deallocator(block);
-  } else {
-    ds_context_free(NULL, block);
-  }
+  ds_context_free(owner.context, block);
 }
 
 static ds_trie_node_t *ts_rh_search(void *store, size_t slice) {
@@ -111,7 +63,7 @@ static void *ts_rh_create(ds_trie_t *trie, size_t size) {
   config.value_size = sizeof(ds_trie_node_t *);
   config.hash = ds_rh_map_hash_size;
   config.equal = ds_rh_map_equal_size;
-  config.context = owner.arrays;
+  config.context = owner.context;
   if (ds_rh_map_init(&s->map, &config, 0) != DS_OK) {
     ts_free(s->owner, s);
     return NULL;
@@ -169,7 +121,9 @@ static const ds_trie_store_ops_t ts_rh_ops = {
     ts_rh_search,  ts_rh_create, ts_rh_insert, ts_rh_remove, ts_rh_remove,
     ts_rh_destroy, ts_rh_size,   ts_rh_apply,  ts_rh_clone,  ts_rh_next};
 
-const ds_trie_store_ops_t *ds_trie_rh_map_store_ops(void) { return &ts_rh_ops; }
+const ds_trie_store_ops_t *ds_trie_rh_map_store_ops(void) {
+  return &ts_rh_ops;
+}
 
 /* ---- sorted vector store: children ordered by slice ---- */
 
@@ -191,7 +145,8 @@ static ds_status_t ts_vec_find(ts_vec_store_t *s, size_t slice,
   ds_trie_node_t probe;
   ds_trie_node_t *key = &probe;
   probe.data_slice = slice;
-  return ds_vec_binary_search(&s->children, &key, ts_by_slice, NULL, out_index);
+  return ds_vec_binary_search(&s->children, &key, ts_by_slice, NULL,
+                              out_index);
 }
 
 static ds_trie_node_t *ts_vec_search(void *store, size_t slice) {
@@ -213,7 +168,7 @@ static void *ts_vec_create(ds_trie_t *trie, size_t size) {
   }
   s->owner = owner;
   s->hint = 0;
-  ds_vec_init(&s->children, sizeof(ds_trie_node_t *), owner.arrays);
+  ds_vec_init(&s->children, sizeof(ds_trie_node_t *), owner.context);
   return s;
 }
 
@@ -297,7 +252,8 @@ static void ts_vec_apply(ds_trie_t *trie, void *store, trie_visit_t f,
 static void *ts_vec_clone(ds_trie_t *trie, void *store,
                           ds_trie_node_t *parent_node,
                           void *(*clone_data)(void *)) {
-  return ds_trie_clone_store(trie, store, parent_node, clone_data, ts_vec_next);
+  return ds_trie_clone_store(trie, store, parent_node, clone_data,
+                             ts_vec_next);
 }
 
 static const ds_trie_store_ops_t ts_vec_ops = {

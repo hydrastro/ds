@@ -72,7 +72,7 @@ ds_status_t ds_multiflow_build(const ds_multiflow_spec_t *s,
       if (!mf_finite(s->costs[e]))
         return DS_ERR_INVALID;
   memset(&m, 0, sizeof(m));
-  p->context = context;
+  p->context = context != NULL ? context : ds_default_context();
   p->a = (double *)ds_context_calloc(context, cells > 0 ? cells : 1,
                                      sizeof(double));
   p->b =

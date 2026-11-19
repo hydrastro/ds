@@ -93,7 +93,7 @@ ds_status_t ds_tournament_init(ds_tournament_t *t,
   }
   km_attach(t, config, block);
   t->block = block;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

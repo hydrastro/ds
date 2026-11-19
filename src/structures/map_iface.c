@@ -493,7 +493,7 @@ ds_status_t ds_map_init(ds_map_t *map, const ds_map_ops_t *ops, size_t key_size,
     return st;
   }
   map->ops = ops;
-  map->context = context;
+  map->context = context != NULL ? context : ds_default_context();
   map->impl = ds_context_alloc(context, ops->instance_size);
   if (map->impl == NULL) {
     return DS_ERR_ALLOC;

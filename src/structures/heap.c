@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/heap.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,62 +66,53 @@ void ds_heapify_down(ds_heap_t *heap, size_t index,
   if (heap != NULL && compare != NULL && index < heap->size)
     ds_heapify_down_with(heap, index, heap_compare_direct, &compare);
 }
-ds_heap_t *ds_heap_create(size_t capacity) {
-  return ds_heap_create_alloc(capacity, malloc, free);
-}
 
 static ds_heap_t *heap_create_internal(size_t capacity,
-                                       void *(*allocator)(size_t),
-                                       void (*deallocator)(void *),
                                        ds_context_t *context) {
   ds_heap_t *heap;
-  if (allocator == NULL || deallocator == NULL ||
-      capacity > (size_t)-1 / sizeof(ds_heap_node_t *)) {
+  if (capacity > (size_t)-1 / sizeof(ds_heap_node_t *)) {
     return NULL;
   }
-  heap = (ds_heap_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_heap_t));
+  heap = (ds_heap_t *)ds_context_alloc(context, sizeof(ds_heap_t));
   if (heap == NULL) {
     return NULL;
   }
-  heap->context = context;
-  heap->allocator = allocator;
-  heap->deallocator = deallocator;
-  heap->data = (capacity == 0U) ? NULL
-                                : (ds_heap_node_t **)DS_OWNER_ALLOCATE(
-                                      context, allocator,
-                                      capacity * sizeof(ds_heap_node_t *));
+  heap->context = context != NULL ? context : ds_default_context();
+
+  heap->data = (capacity == 0U)
+                   ? NULL
+                   : (ds_heap_node_t **)ds_context_alloc(
+                         context, capacity * sizeof(ds_heap_node_t *));
   if (capacity != 0U && heap->data == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, heap);
+    ds_context_free(context, heap);
     return NULL;
   }
   heap->size = 0;
   heap->capacity = capacity;
-  heap->nil = (ds_heap_node_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                  sizeof(ds_heap_node_t));
+  heap->nil =
+      (ds_heap_node_t *)ds_context_alloc(context, sizeof(ds_heap_node_t));
   if (heap->nil == NULL) {
     if (heap->data != NULL) {
-      DS_OWNER_RELEASE(context, deallocator, heap->data);
+      ds_context_free(context, heap->data);
     }
-    DS_OWNER_RELEASE(context, deallocator, heap);
+    ds_context_free(context, heap);
     return NULL;
   }
   heap->nil->index = (size_t)-1;
   return heap;
 }
-ds_heap_t *ds_heap_create_alloc(size_t capacity, void *(*allocator)(size_t),
-                                void (*deallocator)(void *)) {
-  return heap_create_internal(capacity, allocator, deallocator, NULL);
+ds_heap_t *ds_heap_create(size_t capacity, ds_context_t *context) {
+  return heap_create_internal(capacity, context);
 }
 ds_status_t ds_heap_create_context(size_t capacity, ds_context_t *context,
                                    ds_heap_t **out) {
-
   if (out == NULL)
     return DS_ERR_NULL;
   *out = NULL;
   if (capacity > (size_t)-1 / sizeof(ds_heap_node_t *))
     return DS_ERR_OVERFLOW;
-  *out = heap_create_internal(capacity, malloc, free,
-                              context != NULL ? context : ds_default_context());
+  *out = heap_create_internal(
+      capacity, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -141,8 +131,8 @@ ds_status_t ds_heap_insert_with(ds_heap_t *heap, ds_heap_node_t *node,
       return DS_ERR_OVERFLOW;
     }
     new_capacity = heap->capacity == 0U ? 1U : heap->capacity * 2U;
-    new_data = (ds_heap_node_t **)DS_OWNER_ALLOC(heap, new_capacity *
-                                                           sizeof(*new_data));
+    new_data = (ds_heap_node_t **)ds_context_alloc(
+        heap->context, new_capacity * sizeof(*new_data));
     if (new_data == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -150,7 +140,7 @@ ds_status_t ds_heap_insert_with(ds_heap_t *heap, ds_heap_node_t *node,
       new_data[i] = heap->data[i];
     }
     if (heap->data != NULL) {
-      DS_OWNER_FREE(heap, heap->data);
+      ds_context_free(heap->context, heap->data);
     }
     heap->data = new_data;
     heap->capacity = new_capacity;
@@ -192,8 +182,8 @@ ds_status_t ds_heap_extract_with(ds_heap_t *heap, ds_heap_compare_fn compare,
   *out = root;
   return DS_OK;
 }
-void *ds_heap_extract_root(ds_heap_t *heap,
-                           int (*compare)(ds_heap_node_t *, ds_heap_node_t *)) {
+void *ds_heap_extract_root(ds_heap_t *heap, int (*compare)(ds_heap_node_t *,
+                                                           ds_heap_node_t *)) {
   ds_heap_node_t *node;
   if (heap == NULL)
     return NULL;
@@ -220,11 +210,11 @@ static void heap_destroy_internal(ds_heap_t *heap, ds_heap_destroy_fn destroy,
       destroy(heap->data[i], user);
     }
   }
-  DS_OWNER_FREE(heap, heap->nil);
+  ds_context_free(heap->context, heap->nil);
   if (heap->data != NULL) {
-    DS_OWNER_FREE(heap, heap->data);
+    ds_context_free(heap->context, heap->data);
   }
-  DS_OWNER_FREE(heap, heap);
+  ds_context_free(heap->context, heap);
 }
 void ds_heap_destroy_with(ds_heap_t *container, ds_heap_destroy_fn destroy,
                           void *user) {
@@ -263,8 +253,7 @@ ds_heap_t *ds_heap_clone(ds_heap_t *heap,
   if (heap == NULL || clone_node == NULL) {
     return NULL;
   }
-  copy = heap_create_internal(heap->capacity, heap->allocator,
-                              heap->deallocator, heap->context);
+  copy = heap_create_internal(heap->capacity, heap->context);
   if (copy != NULL && !heap_clone_nodes(heap, copy, clone_node)) {
     /* the clones made so far are not released */
     ds_heap_destroy(copy, NULL);
@@ -285,8 +274,7 @@ ds_status_t ds_heap_clone_ex(const ds_heap_t *heap,
   if (heap == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  copy = heap_create_internal(heap->capacity, heap->allocator,
-                              heap->deallocator, heap->context);
+  copy = heap_create_internal(heap->capacity, heap->context);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -349,8 +337,7 @@ ds_status_t ds_heap_clone_with(const ds_heap_t *container,
   *out = NULL;
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = heap_create_internal(container->capacity, container->allocator,
-                              container->deallocator,
+  copy = heap_create_internal(container->capacity,
                               context != NULL ? context : container->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;

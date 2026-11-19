@@ -26,20 +26,16 @@ typedef struct hamt_node ds_hamt_node_t;
 typedef struct hamt {
   ds_hamt_node_t *root;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_hamt_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_hamt_create_context(ds_context_t *context, ds_hamt_t **out);
 
-ds_hamt_t *ds_hamt_create(void);
-ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
-                                void (*deallocator)(void *));
+ds_hamt_t *ds_hamt_create(ds_context_t *context);
 /* DS_OK for a new key, DS_EXISTS for an update. Allocation/size failure
  * leaves all existing keys and values unchanged; values remain borrowed. */
 ds_status_t ds_hamt_insert_ex(ds_hamt_t *hamt, const void *key,

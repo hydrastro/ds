@@ -38,8 +38,7 @@ typedef struct ds_graph {
   ds_context_t *context;
 } ds_graph_t;
 
-ds_graph_t *ds_graph_create(void);
-ds_graph_t *ds_graph_create_ctx(ds_context_t *context);
+ds_graph_t *ds_graph_create(ds_context_t *context);
 void ds_graph_destroy(ds_graph_t *graph, void (*destroy_vertex)(void *),
                       void (*destroy_edge)(void *));
 ds_status_t ds_graph_add_vertex(ds_graph_t *graph, void *data,

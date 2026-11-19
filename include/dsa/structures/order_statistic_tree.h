@@ -11,11 +11,11 @@ extern "C" {
 #endif
 
 /*
- * Order-statistic tree: an intrusive, AVL-balanced binary search tree augmented
- * with subtree sizes, giving O(log n) select(k) (k-th smallest) and rank(x)
- * (number of keys strictly less than x) in addition to the usual ordered-set
- * operations. Users embed ds_ost_node_t as the first member of their struct and
- * recover the container with CAST().
+ * Order-statistic tree: an intrusive, AVL-balanced binary search tree
+ * augmented with subtree sizes, giving O(log n) select(k) (k-th smallest) and
+ * rank(x) (number of keys strictly less than x) in addition to the usual
+ * ordered-set operations. Users embed ds_ost_node_t as the first member of
+ * their struct and recover the container with CAST().
  */
 
 typedef struct ost_node {
@@ -33,18 +33,15 @@ typedef struct ost {
   ds_ost_node_t *nil;
   size_t size;
   int (*compare)(ds_ost_node_t *, ds_ost_node_t *);
-  ds_context_t *context; /* NULL for allocator functions */
+  ds_context_t *context; /* borrowed allocation owner */
   ds_ost_compare_fn compare_with;
   void *compare_user;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
 } ds_ost_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
-ds_ost_t *ds_ost_create(int (*compare)(ds_ost_node_t *, ds_ost_node_t *));
-ds_ost_t *ds_ost_create_alloc(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
-                              void *(*allocator)(size_t),
-                              void (*deallocator)(void *));
+/* NULL when memory runs out */
+
+ds_ost_t *ds_ost_create(int (*compare)(ds_ost_node_t *, ds_ost_node_t *),
+                        ds_context_t *context);
 bool ds_ost_insert(ds_ost_t *tree, ds_ost_node_t *node);
 ds_ost_node_t *ds_ost_search(ds_ost_t *tree, ds_ost_node_t *key);
 bool ds_ost_remove(ds_ost_t *tree, ds_ost_node_t *key,

@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/str.h>
 #include <dsa/structures/str_io.h>
 #include <dsa/structures/str_unicode.h>
@@ -16,7 +15,7 @@ void ds_ensure_ucd_once_lock(void){}
 /* Unicode scalar values: noncharacters are valid text and pass through
  * normalization, case mapping and segmentation; surrogates, overlong forms
  * and values past U+10FFFF are errors. */
-#define U8_SCALAR                                                              \
+#define U8_SCALAR                                                             \
   (DS_U8_REJECT_SURROGATE | DS_U8_REJECT_OVERLONG | DS_U8_REJECT_OUT_OF_RANGE)
 
 int ds_u8_next(const char *buf, size_t len, size_t *ioff,
@@ -88,7 +87,8 @@ int ds_u32vec_push(u32vec_like *v, unsigned long x) {
     if (nc > (size_t)-1 / sizeof(*np))
       return -1;
     np = (unsigned long *)(v->owner != NULL
-                               ? DS_OWNER_ALLOC(v->owner, nc * sizeof(*np))
+                               ? ds_context_alloc((v->owner)->context,
+                                                  nc * sizeof(*np))
                                : ds_context_alloc(NULL, nc * sizeof(*np)));
     if (np == NULL)
       return -1;
@@ -96,7 +96,7 @@ int ds_u32vec_push(u32vec_like *v, unsigned long x) {
       memcpy(np, v->p, v->n * sizeof(*np));
     if (v->owner != NULL) {
       if (v->p != NULL)
-        DS_OWNER_FREE(v->owner, v->p);
+        ds_context_free((v->owner)->context, v->p);
     } else {
       ds_context_free(NULL, v->p);
     }
@@ -109,7 +109,7 @@ int ds_u32vec_push(u32vec_like *v, unsigned long x) {
 void ds_u32vec_free(u32vec_like *v) {
   if (v->p != NULL) {
     if (v->owner != NULL)
-      DS_OWNER_FREE(v->owner, v->p);
+      ds_context_free((v->owner)->context, v->p);
     else
       ds_context_free(NULL, v->p);
   }
@@ -590,7 +590,8 @@ int ds__grapheme_iter_next(ds__grapheme_iter_t *it, size_t *out_start,
 
     it->prev_is_Control = (it->prev_prop == GB_Control ||
                            it->prev_prop == GB_CR || it->prev_prop == GB_LF);
-    it->cur_is_Control = (prop == GB_Control || prop == GB_CR || prop == GB_LF);
+    it->cur_is_Control =
+        (prop == GB_Control || prop == GB_CR || prop == GB_LF);
 
     if (it->prev_prop == GB_CR && prop == GB_LF)
       break_here = 0;

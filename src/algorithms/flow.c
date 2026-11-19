@@ -13,7 +13,7 @@ ds_status_t ds_flow_network_init(ds_flow_network_t *net, size_t vertex_count,
     return DS_ERR_NULL;
   }
   memset(net, 0, sizeof *net);
-  net->context = context;
+  net->context = context != NULL ? context : ds_default_context();
   net->vertex_count = vertex_count;
   net->epsilon = 0;
   if (vertex_count > ((size_t)-1) / 4 / sizeof(size_t)) {

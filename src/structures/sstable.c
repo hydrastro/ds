@@ -12,7 +12,8 @@
 #define SST_FOOTER_V3 36
 #define SST_MAXLEN DS_SSTABLE_MAX_LEN
 
-/* ---- encoding helpers -------------------------------------------------------
+/* ---- encoding helpers
+ * -------------------------------------------------------
  */
 
 static void sst_put_u32(unsigned char *p, unsigned long v) {
@@ -216,8 +217,8 @@ static bool sst_cmp_valid(const ds_sstable_comparator_t *c) {
                        (c->id != 0 || c->compare == sst_bytewise_cmp));
 }
 
-static ds_status_t sst_grow(ds_context_t *ctx, unsigned char **buf, size_t *cap,
-                            size_t need) {
+static ds_status_t sst_grow(ds_context_t *ctx, unsigned char **buf,
+                            size_t *cap, size_t need) {
   size_t nc;
   void *q;
   if (need <= *cap) {
@@ -305,7 +306,8 @@ static bool sst_at(size_t base, unsigned long rel, size_t limit, size_t *out) {
   return true;
 }
 
-/* ---- builder ----------------------------------------------------------------
+/* ---- builder
+ * ----------------------------------------------------------------
  */
 
 void ds_sstable_options_init(ds_sstable_options_t *options) {
@@ -358,7 +360,7 @@ ds_status_t ds_sstable_builder_init_opts(ds_sstable_builder_t *b,
       b->filter_ops = NULL;
     }
   }
-  b->context = context;
+  b->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -416,7 +418,8 @@ static ds_status_t sst_flush_block(ds_sstable_builder_t *b) {
   size = b->len - b->block_start;
   /* index entry: full last key, value = offset, size */
   if (st == DS_OK) {
-    st = sst_put_varint(b->context, &b->index, &b->index_len, &b->index_cap, 0);
+    st =
+        sst_put_varint(b->context, &b->index, &b->index_len, &b->index_cap, 0);
   }
   if (st == DS_OK) {
     st = sst_put_varint(b->context, &b->index, &b->index_len, &b->index_cap,
@@ -603,8 +606,8 @@ static ds_status_t sst_put_amq(ds_sstable_builder_t *b) {
   int attempt;
   ds_status_t st = DS_ERR_OVERFLOW;
   for (attempt = 0; attempt < 4 && st == DS_ERR_OVERFLOW; attempt++) {
-    st =
-        ds_amq_init(&f, b->filter_ops, capacity, b->filter_fp_bits, b->context);
+    st = ds_amq_init(&f, b->filter_ops, capacity, b->filter_fp_bits,
+                     b->context);
     if (st != DS_OK) {
       return st;
     }
@@ -658,7 +661,8 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
   st = sst_flush_block(b);
   index_off = b->len;
   if (st == DS_OK) {
-    st = sst_put(b->context, &b->buf, &b->len, &b->cap, b->index, b->index_len);
+    st =
+        sst_put(b->context, &b->buf, &b->len, &b->cap, b->index, b->index_len);
   }
   /* every index entry is a restart */
   for (pos = 0; pos < b->index_len && st == DS_OK; count++) {
@@ -735,9 +739,10 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
     sst_put_u32(foot + 16, (unsigned long)b->entries);
     sst_put_u32(foot + 20, b->cmp.id);
     if (foot_len == SST_FOOTER_V3) {
-      sst_put_u32(foot + 24, (b->filter_ops != NULL ? DS_SSTABLE_FILTER_AMQ
-                                                    : DS_SSTABLE_FILTER_BLOOM) |
-                                 (b->keyed ? DS_SSTABLE_FILTER_KEYED : 0U));
+      sst_put_u32(foot + 24,
+                  (b->filter_ops != NULL ? DS_SSTABLE_FILTER_AMQ
+                                         : DS_SSTABLE_FILTER_BLOOM) |
+                      (b->keyed ? DS_SSTABLE_FILTER_KEYED : 0U));
     }
     /* the checksum covers the data and the footer fields before it */
     crc = sst_crc_update(0xFFFFFFFFUL, b->buf, b->len);
@@ -759,7 +764,8 @@ ds_status_t ds_sstable_builder_finish(ds_sstable_builder_t *b,
   return DS_OK;
 }
 
-/* ---- reader -----------------------------------------------------------------
+/* ---- reader
+ * -----------------------------------------------------------------
  */
 
 struct ds_sstable_reader {
@@ -1034,7 +1040,7 @@ ds_status_t ds_sstable_open_reader(ds_sstable_t *t,
     goto fail;
   }
   t->reader = r;
-  r->context = context;
+  r->context = context != NULL ? context : ds_default_context();
   r->source = *source;
   r->data_end = t->index_off;
   r->metadata_len = meta_len;
@@ -1331,7 +1337,8 @@ ds_status_t ds_sstable_get(const ds_sstable_t *t, const void *key,
   return st;
 }
 
-/* ---- iterator ---------------------------------------------------------------
+/* ---- iterator
+ * ---------------------------------------------------------------
  */
 
 ds_status_t ds_sstable_iter_init(ds_sstable_iter_t *it, const ds_sstable_t *t,
@@ -1341,7 +1348,7 @@ ds_status_t ds_sstable_iter_init(ds_sstable_iter_t *it, const ds_sstable_t *t,
   }
   memset(it, 0, sizeof(*it));
   it->table = t;
-  it->context = context;
+  it->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -1373,8 +1380,9 @@ static void sst_iter_view(const ds_sstable_iter_t *it, ds_sstable_t *v) {
 }
 
 /* Read a block and return a local parser view. On failure no current entry. */
-static ds_status_t sst_iter_read(ds_sstable_iter_t *it, size_t off, size_t size,
-                                 ds_sstable_t *v, size_t *local_off) {
+static ds_status_t sst_iter_read(ds_sstable_iter_t *it, size_t off,
+                                 size_t size, ds_sstable_t *v,
+                                 size_t *local_off) {
   const ds_sstable_t *t = it->table;
   it->valid = false;
   if (t->reader != NULL) {
@@ -1574,7 +1582,8 @@ ds_status_t ds_sstable_iter_seek(ds_sstable_iter_t *it, const void *key,
   return st;
 }
 
-/* ---- verification -----------------------------------------------------------
+/* ---- verification
+ * -----------------------------------------------------------
  */
 
 typedef struct sst_keybuf {
@@ -1675,7 +1684,8 @@ static size_t sst_footer_len(const ds_sstable_t *t) {
 
 ds_status_t ds_sstable_verify(const ds_sstable_t *table, bool check_filter,
                               ds_context_t *context) {
-  ds_sstable_t tv, index; /* the table, with its AMQ filter loaded if need be */
+  ds_sstable_t tv,
+      index; /* the table, with its AMQ filter loaded if need be */
   const ds_sstable_t *t = &tv;
   bool loaded = false;
   ds_sstable_iter_t reader;
@@ -1757,8 +1767,8 @@ ds_status_t ds_sstable_verify(const ds_sstable_t *table, bool check_filter,
       size_t local;
       st = sst_iter_read(&reader, off, size, &block, &local);
       if (st == DS_OK)
-        st = sst_verify_block(&block, local, size, check_filter, t, &prev, &cur,
-                              &have_prev, &count, context);
+        st = sst_verify_block(&block, local, size, check_filter, t, &prev,
+                              &cur, &have_prev, &count, context);
     }
     /* the index key is the block's last key */
     if (st == DS_OK &&
@@ -1780,7 +1790,8 @@ ds_status_t ds_sstable_verify(const ds_sstable_t *table, bool check_filter,
   return st;
 }
 
-/* ---- merge ------------------------------------------------------------------
+/* ---- merge
+ * ------------------------------------------------------------------
  */
 
 ds_status_t ds_sstable_merge(const ds_sstable_t *tables, size_t n,

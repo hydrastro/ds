@@ -25,19 +25,16 @@ typedef struct splay_tree {
   ds_splay_tree_node_t *nil;
   size_t size;
   int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *);
-  ds_context_t *context; /* NULL for allocator functions */
+  ds_context_t *context; /* borrowed allocation owner */
   ds_splay_tree_compare_fn compare_with;
   void *compare_user;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
 } ds_splay_tree_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
+
 ds_splay_tree_t *ds_splay_tree_create(int (*compare)(ds_splay_tree_node_t *,
-                                                     ds_splay_tree_node_t *));
-ds_splay_tree_t *ds_splay_tree_create_alloc(
-    int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *));
+                                                     ds_splay_tree_node_t *),
+                                      ds_context_t *context);
 void ds_splay_tree_insert(ds_splay_tree_t *tree, ds_splay_tree_node_t *node);
 ds_splay_tree_node_t *ds_splay_tree_search(ds_splay_tree_t *tree,
                                            ds_splay_tree_node_t *node);

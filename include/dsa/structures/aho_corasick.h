@@ -30,21 +30,17 @@ typedef struct aho_corasick {
   size_t num_patterns;
   size_t num_nodes;
   bool compiled;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_aho_corasick_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_aho_corasick_create_context(ds_context_t *context,
                                            ds_aho_corasick_t **out);
 
-ds_aho_corasick_t *ds_aho_corasick_create(void);
-ds_aho_corasick_t *ds_aho_corasick_create_alloc(void *(*allocator)(size_t),
-                                                void (*deallocator)(void *));
+ds_aho_corasick_t *ds_aho_corasick_create(ds_context_t *context);
 int ds_aho_corasick_add(ds_aho_corasick_t *ac, const void *pattern,
                         size_t length);
 /* DS_OK/new or DS_EXISTS/existing ID; a failed addition leaves the old
@@ -69,8 +65,8 @@ ds_status_t ds_aho_corasick_search_ex(
     void (*callback)(const ds_aho_corasick_match_t *, void *), void *user,
     size_t *out_count);
 ds_status_t ds_aho_corasick_contains_any_ex(ds_aho_corasick_t *ac,
-                                            const void *haystack, size_t length,
-                                            bool *out);
+                                            const void *haystack,
+                                            size_t length, bool *out);
 /* Direct wrappers return -1/0/false on failure. Use _ex to distinguish
  * absence from allocation failure. Match-count overflow may follow callbacks
  * already delivered; no callback may mutate/destroy the automaton. */

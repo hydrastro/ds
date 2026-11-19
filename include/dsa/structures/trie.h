@@ -64,10 +64,9 @@ typedef struct trie {
                       va_list *);
   void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
                        void *(*clone_data)(void *));
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_context_t *context;
-  bool use_context;           /* nodes and stores come from context */
+
   ds_trie_next_fn store_next; /* NULL for stores without next */
 } ds_trie_t;
 
@@ -90,15 +89,14 @@ typedef struct ds_trie_store_ops {
 typedef struct ds_trie_config {
   size_t num_splits;
   const ds_trie_store_ops_t *store_ops;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_context_t *context;
 } ds_trie_config_t;
 
 const ds_trie_store_ops_t *ds_trie_hash_store_ops(void);
 void ds_trie_config_init(ds_trie_config_t *config);
 ds_trie_t *ds_trie_create_config(const ds_trie_config_t *config);
-ds_trie_t *ds_trie_create_hash(size_t num_splits);
+ds_trie_t *ds_trie_create_hash(size_t num_splits, ds_context_t *context);
 ds_status_t ds_trie_insert(ds_trie_t *trie, void *data,
                            size_t (*get_slice)(void *, size_t),
                            bool (*has_slice)(void *, size_t));
@@ -113,16 +111,11 @@ void ds_trie_destroy(ds_trie_t *trie);
 
 /* NULL when the node or its child store cannot be allocated */
 ds_trie_node_t *ds_trie_create_node(ds_trie_t *trie);
-/* Allocation for the trie and its child stores: through the configured
- * context when one was given to ds_trie_create_config (and no explicit
- * allocator), else through the allocator functions. Custom stores should
- * use these. */
+/* Allocation through the trie context, shared by its child stores.
+ * Custom stores should use these helpers or inherit trie->context. */
 void *ds_trie_alloc(ds_trie_t *trie, size_t size);
 void ds_trie_free(ds_trie_t *trie, void *ptr);
 
-ds_trie_t *ds_trie_create_hash_alloc(size_t num_splits,
-                                     void *(*allocator)(size_t),
-                                     void (*deallocator)(void *));
 ds_trie_node_t *ds_trie_hash_table_store_search(void *store, size_t slice);
 void *ds_trie_hash_table_store_create(struct trie *trie, size_t size);
 void ds_trie_hash_table_store_insert(void *store, ds_trie_node_t *node);
@@ -139,6 +132,7 @@ void *ds_trie_hash_table_store_clone(struct trie *trie, void *store,
                                      void *(*clone_data)(void *));
 ds_trie_node_t *ds_trie_hash_table_store_next(void *store,
                                               const ds_trie_node_t *after);
+
 ds_trie_t *ds_trie_create(
     size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
     void *(*store_create)(struct trie *, size_t),
@@ -150,20 +144,8 @@ ds_trie_t *ds_trie_create(
                         void (*)(struct trie *, ds_trie_node_t *, va_list *),
                         va_list *),
     void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
-                         void *(*clone_data)(void *)));
-ds_trie_t *ds_trie_create_alloc(
-    size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
-    void *(*store_create)(struct trie *, size_t),
-    void (*store_insert)(void *, ds_trie_node_t *),
-    void (*store_remove)(void *, ds_trie_node_t *),
-    void (*store_destroy_entry)(void *, ds_trie_node_t *),
-    void (*store_destroy)(void *), size_t (*store_get_size)(void *),
-    void (*store_apply)(struct trie *, void *,
-                        void (*)(struct trie *, ds_trie_node_t *, va_list *),
-                        va_list *),
-    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
                          void *(*clone_data)(void *)),
-    void *(*allocator)(size_t), void (*deallocator)(void *));
+    ds_context_t *context);
 
 ds_trie_node_t *ds_trie_search(ds_trie_t *trie, void *data,
                                size_t (*get_slice)(void *, size_t),
@@ -205,14 +187,14 @@ void *ds_trie_clone_store(ds_trie_t *trie, void *store,
 
 /* Typed key extraction: DS_OK produces one slice, DS_STOP ends the key;
  * negative errors abort, other positive statuses are callback errors.
- * Extraction must be deterministic for one call. NULL data is passed through to
- * the policy. Insert borrows data and rolls back newly created nodes on
+ * Extraction must be deterministic for one call. NULL data is passed through
+ * to the policy. Insert borrows data and rolls back newly created nodes on
  * failure; updates return DS_EXISTS. out_previous (optional) is set only on
  * success, NULL for a new key. Get leaves out unchanged on absence/error.
  * Remove returns borrowed payload through optional out_data and never destroys
  * it. */
-typedef ds_status_t (*ds_trie_slice_fn)(void *data, size_t index, size_t *slice,
-                                        void *user);
+typedef ds_status_t (*ds_trie_slice_fn)(void *data, size_t index,
+                                        size_t *slice, void *user);
 typedef ds_status_t (*ds_trie_visit_fn)(ds_trie_t *, ds_trie_node_t *,
                                         void *user);
 typedef ds_status_t (*ds_trie_clone_fn)(void *data, void **out, void *user);
@@ -246,7 +228,8 @@ ds_status_t ds_trie_destroy_with(ds_trie_t *trie,
  * through destroy_with using the matching payload policy. */
 ds_status_t ds_trie_clone_with(ds_trie_t *trie, ds_trie_clone_fn clone,
                                ds_trie_data_destroy_fn destroy, void *user,
-                               const ds_trie_config_t *config, ds_trie_t **out);
+                               const ds_trie_config_t *config,
+                               ds_trie_t **out);
 
 #ifdef __cplusplus
 }

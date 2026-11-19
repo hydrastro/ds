@@ -20,20 +20,16 @@ typedef struct linked_list {
   ds_list_node_t *tail;
   ds_list_node_t *nil;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_list_t;
 
-/* NULL on allocation failure (or a missing allocator/deallocator). */
+/* NULL on allocation failure. */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_list_create_context(ds_context_t *context, ds_list_t **out);
 
-ds_list_t *ds_list_create(void);
-ds_list_t *ds_list_create_alloc(void *(*allocator)(size_t),
-                                void (*deallocator)(void *));
+ds_list_t *ds_list_create(ds_context_t *context);
 void ds_list_append(ds_list_t *list, ds_list_node_t *node);
 void ds_list_prepend(ds_list_t *list, ds_list_node_t *node);
 ds_list_node_t *ds_list_search(ds_list_t *list, ds_list_node_t *node,

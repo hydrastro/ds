@@ -359,7 +359,7 @@ void ds_i18n_text_init(ds_i18n_text_t *text, ds_context_t *context) {
   if (text == NULL)
     return;
   memset(text, 0, sizeof(*text));
-  text->context = context;
+  text->context = context != NULL ? context : ds_default_context();
 }
 
 void ds_i18n_text_destroy(ds_i18n_text_t *text) {

@@ -1066,7 +1066,7 @@ ds_status_t ds_ordered_init(ds_ordered_t *s, const ds_ordered_ops_t *ops,
     return st;
   }
   s->ops = ops;
-  s->context = context;
+  s->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

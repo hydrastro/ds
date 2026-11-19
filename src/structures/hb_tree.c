@@ -256,7 +256,8 @@ static void hb_dz_box(const double *domain, size_t d, const unsigned long *z,
     double quantum = span / HB_SCALE;
     double lo = (double)z[a];
     double hi = lo + ldexp(1.0, (int)(HB_B - n));
-    box[a] = z[a] == 0 ? -HUGE_VAL : domain[a] + span * lo / HB_SCALE - quantum;
+    box[a] =
+        z[a] == 0 ? -HUGE_VAL : domain[a] + span * lo / HB_SCALE - quantum;
     box[d + a] = !(hi < HB_SCALE) ? HUGE_VAL
                                   : domain[a] + span * hi / HB_SCALE + quantum;
   }
@@ -297,8 +298,8 @@ static size_t hb_carve(const unsigned long *keys, const size_t *len, size_t n,
       break;
     }
     for (i = 0; i < n; i++) {
-      if (in[i] &&
-          ((len != NULL && len[i] <= j) || hb_bit(keys + i * d, d, j) != bit)) {
+      if (in[i] && ((len != NULL && len[i] <= j) ||
+                    hb_bit(keys + i * d, d, j) != bit)) {
         in[i] = 0;
       }
     }
@@ -459,7 +460,7 @@ ds_status_t ds_hb_tree_init(ds_hb_tree_t *t, size_t dim, ds_hb_mode_t mode,
     t->domain[dim + a] = mode == DS_HB_BUDDY ? domain[dim + a] : HUGE_VAL;
   }
   t->kfree = t->ifree = t->pfree = HB_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = hb_inode(t, 1, &t->root);
   if (st == DS_OK) {
     st = hb_knode(t, t->root, &leaf);
@@ -658,8 +659,8 @@ static void hb_index_mbb(const ds_hb_tree_t *t, size_t i, double *b,
 }
 
 /* Turn leaf v into an inner node (axis, x) with two fresh leaves. */
-static ds_status_t hb_cut_leaf(ds_hb_tree_t *t, size_t v, size_t axis, double x,
-                               size_t *lo, size_t *hi) {
+static ds_status_t hb_cut_leaf(ds_hb_tree_t *t, size_t v, size_t axis,
+                               double x, size_t *lo, size_t *hi) {
   size_t a;
   size_t b;
   ds_status_t st = hb_knode(t, t->kowner[v], &a);
@@ -1472,7 +1473,8 @@ bool ds_hb_tree_valid(const ds_hb_tree_t *t) {
     }
     for (i = 0; i < t->count[p] && ok; i++) {
       double cell[2 * HB_MAXD];
-      size_t leaf = hb_descend(t, t->points[p] + i * d, cell, NULL, NULL, NULL);
+      size_t leaf =
+          hb_descend(t, t->points[p] + i * d, cell, NULL, NULL, NULL);
       ok = t->ktarget[leaf] == p;
     }
     total += t->count[p];
@@ -1624,7 +1626,7 @@ ds_status_t ds_bd_tree_init(ds_bd_tree_t *t, size_t dim, const double *domain,
   t->bucket = bucket;
   memcpy(t->domain, domain, 2 * dim * sizeof(double));
   t->free_list = HB_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = bd_node(t, &t->root);
   if (st != DS_OK) {
     ds_bd_tree_destroy(t);
@@ -1665,8 +1667,8 @@ size_t ds_bd_tree_leaves(const ds_bd_tree_t *t) {
   }
   /* walk the tree: free nodes are not reachable */
   {
-    size_t *stack =
-        (size_t *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(size_t));
+    size_t *stack = (size_t *)ds_context_alloc(t->context, (t->nodes + 1) *
+                                                               sizeof(size_t));
     size_t top = 0;
     if (stack == NULL) {
       return 0;
@@ -2006,8 +2008,9 @@ static void gbd_free(ds_gbd_tree_t *t, size_t v) {
   t->nfree = v;
 }
 
-ds_status_t ds_gbd_tree_init(ds_gbd_tree_t *t, size_t dim, const double *domain,
-                             size_t fanout, ds_context_t *context) {
+ds_status_t ds_gbd_tree_init(ds_gbd_tree_t *t, size_t dim,
+                             const double *domain, size_t fanout,
+                             ds_context_t *context) {
   ds_status_t st;
   if (t == NULL) {
     return DS_ERR_NULL;
@@ -2027,7 +2030,7 @@ ds_status_t ds_gbd_tree_init(ds_gbd_tree_t *t, size_t dim, const double *domain,
   t->fanout = fanout;
   memcpy(t->domain, domain, 2 * dim * sizeof(double));
   t->nfree = HB_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = gbd_node(t, true, &t->root);
   if (st != DS_OK) {
     ds_gbd_tree_destroy(t);
@@ -2426,7 +2429,8 @@ bool ds_gbd_tree_valid(const ds_gbd_tree_t *t) {
   d = t->dim;
   stack =
       (size_t *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(size_t));
-  lvl = (size_t *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(size_t));
+  lvl =
+      (size_t *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(size_t));
   if (stack == NULL || lvl == NULL) {
     ds_context_free(t->context, stack);
     ds_context_free(t->context, lvl);
@@ -2582,7 +2586,7 @@ ds_status_t ds_bv_tree_init(ds_bv_tree_t *t, size_t dim, const double *domain,
   t->bucket = bucket;
   t->fanout = fanout;
   memcpy(t->domain, domain, 2 * dim * sizeof(double));
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   memset(z, 0, sizeof(z));
   st = bv_inode(t, 1, &t->root);
   if (st == DS_OK) {
@@ -2758,8 +2762,9 @@ static ds_status_t bv_split(ds_bv_tree_t *t, size_t m) {
     }
     hb_dz_of(keys + i * d, depth, d, z);
     for (i = 0; i < n; i++) {
-      best_in[i] = (unsigned char)(t->edepth[m][i] >= depth &&
-                                   hb_dz_match(t->edz[m] + i * d, z, depth, d));
+      best_in[i] =
+          (unsigned char)(t->edepth[m][i] >= depth &&
+                          hb_dz_match(t->edz[m] + i * d, z, depth, d));
     }
   }
   if (m == t->root) {
@@ -3011,7 +3016,8 @@ ds_status_t ds_bv_tree_query(const ds_bv_tree_t *t, const double *box,
         size_t j;
         for (j = 0; j < t->count[ch]; j++) {
           const double *p = t->points[ch] + j * d;
-          if (hb_point_in_box(p, box, d) && !visit(p, t->values[ch][j], user)) {
+          if (hb_point_in_box(p, box, d) &&
+              !visit(p, t->values[ch][j], user)) {
             st = DS_STOP;
             break;
           }

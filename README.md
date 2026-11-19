@@ -82,7 +82,8 @@ orders yourself.
 **Memory and ownership are explicit.** Intrusive containers hold links in your
 records. Value containers copy elements; pointer containers document whether
 values are borrowed or owned. Allocator contexts and copy/destroy callbacks let
-you choose the lifetime policy. Read [ownership](docs/ownership.md) before
+you choose the lifetime policy. Allocating containers take a context directly or
+through their configuration and pass it to their nested storage. Read [ownership](docs/ownership.md) before
 sharing values between containers.
 
 **Composition includes contracts.** Map, ordered-map, priority-queue,
@@ -93,7 +94,8 @@ allocation and cursor guarantees matter to the structures built on them. See
 **Errors carry information.** `ds_status_t` reports an operation's outcome.
 `ds_result_t` carries a domain success or error, a payload and an ordered log of
 diagnostics. i18n renders messages at the presentation boundary, without changing
-the Result's meaning. See [Results and localization](docs/result-i18n.md).
+the Result's meaning. Sequential pipelines and independent validation have
+distinct composition operations; diagnostic storage is selectable. See [Results and localization](docs/result-i18n.md).
 
 **Versions and history are available when you need them.** Persistent containers
 share immutable storage between versions. The [history layer](docs/history.md)

@@ -1,30 +1,19 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/ring_list.h>
 #include <stdlib.h>
 
-ds_ring_list_t *ds_ring_list_create(void) {
-  return ds_ring_list_create_alloc(malloc, free);
-}
-
-static ds_ring_list_t *ring_list_create_internal(void *(*allocator)(size_t),
-                                                 void (*deallocator)(void *),
-                                                 ds_context_t *context) {
+static ds_ring_list_t *ring_list_create_internal(ds_context_t *context) {
   ds_ring_list_t *list;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  list = (ds_ring_list_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                             sizeof(ds_ring_list_t));
+
+  list = (ds_ring_list_t *)ds_context_alloc(context, sizeof(ds_ring_list_t));
   if (list == NULL) {
     return NULL;
   }
-  list->context = context;
-  list->allocator = allocator;
-  list->deallocator = deallocator;
-  list->nil = (ds_ring_list_node_t *)DS_OWNER_ALLOCATE(
-      context, allocator, sizeof(ds_ring_list_node_t));
+  list->context = context != NULL ? context : ds_default_context();
+
+  list->nil = (ds_ring_list_node_t *)ds_context_alloc(
+      context, sizeof(ds_ring_list_node_t));
   if (list->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, list);
+    ds_context_free(context, list);
     return NULL;
   }
   list->nil->next = list->nil;
@@ -33,16 +22,15 @@ static ds_ring_list_t *ring_list_create_internal(void *(*allocator)(size_t),
   return list;
 }
 
-ds_ring_list_t *ds_ring_list_create_alloc(void *(*allocator)(size_t),
-                                          void (*deallocator)(void *)) {
-  return ring_list_create_internal(allocator, deallocator, NULL);
+ds_ring_list_t *ds_ring_list_create(ds_context_t *context) {
+  return ring_list_create_internal(context);
 }
 ds_status_t ds_ring_list_create_context(ds_context_t *context,
                                         ds_ring_list_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = ring_list_create_internal(
-      malloc, free, context != NULL ? context : ds_default_context());
+  *out = ring_list_create_internal(context != NULL ? context
+                                                   : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -133,7 +121,8 @@ ds_ring_list_node_t *ds_ring_list_search(
   return list->nil;
 }
 
-void ds_ring_list_delete_node(ds_ring_list_t *list, ds_ring_list_node_t *node) {
+void ds_ring_list_delete_node(ds_ring_list_t *list,
+                              ds_ring_list_node_t *node) {
   ds_ring_list_node_t *current;
   ds_ring_list_node_t *previous;
   size_t i;
@@ -200,8 +189,8 @@ static void ring_list_destroy_internal(ds_ring_list_t *list,
       remaining -= 1;
     }
   }
-  DS_OWNER_FREE(list, list->nil);
-  DS_OWNER_FREE(list, list);
+  ds_context_free(list->context, list->nil);
+  ds_context_free(list->context, list);
 }
 void ds_ring_list_destroy_with(ds_ring_list_t *container,
                                ds_ring_list_destroy_fn destroy, void *user) {
@@ -248,8 +237,7 @@ ds_ring_list_clone(ds_ring_list_t *list,
   if (list == NULL || clone_node == NULL) {
     return NULL;
   }
-  copy = ring_list_create_internal(list->allocator, list->deallocator,
-                                   list->context);
+  copy = ring_list_create_internal(list->context);
   if (copy != NULL && !ring_list_clone_nodes(list, copy, clone_node)) {
     /* the clones made so far are not released */
     ds_ring_list_destroy(copy, NULL);
@@ -258,11 +246,10 @@ ds_ring_list_clone(ds_ring_list_t *list,
   return copy;
 }
 
-ds_status_t
-ds_ring_list_clone_ex(const ds_ring_list_t *list,
-                      ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *),
-                      void (*destroy_clone)(ds_ring_list_node_t *),
-                      ds_ring_list_t **out) {
+ds_status_t ds_ring_list_clone_ex(
+    const ds_ring_list_t *list,
+    ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *),
+    void (*destroy_clone)(ds_ring_list_node_t *), ds_ring_list_t **out) {
   ds_ring_list_t *copy;
   if (out == NULL) {
     return DS_ERR_NULL;
@@ -271,8 +258,7 @@ ds_ring_list_clone_ex(const ds_ring_list_t *list,
   if (list == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  copy = ring_list_create_internal(list->allocator, list->deallocator,
-                                   list->context);
+  copy = ring_list_create_internal(list->context);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -293,7 +279,6 @@ ds_status_t ds_ring_list_walk_with(ds_ring_list_t *container,
     return DS_ERR_NULL;
   node = container->tail->next;
   for (i = 0; i < container->size; ++i) {
-
     st = visit(node, user);
     if (st != DS_OK)
       return st;
@@ -311,7 +296,6 @@ ds_status_t ds_ring_list_find_with(ds_ring_list_t *container,
     return DS_ERR_NULL;
   node = container->tail->next;
   for (i = 0; i < container->size; ++i) {
-
     if (compare(node, key, user) == 0) {
       *out = node;
       return DS_OK;
@@ -323,8 +307,8 @@ ds_status_t ds_ring_list_find_with(ds_ring_list_t *container,
 
 ds_status_t ds_ring_list_clone_with(const ds_ring_list_t *container,
                                     ds_ring_list_clone_fn clone,
-                                    ds_ring_list_destroy_fn destroy, void *user,
-                                    ds_context_t *context,
+                                    ds_ring_list_destroy_fn destroy,
+                                    void *user, ds_context_t *context,
                                     ds_ring_list_t **out) {
   ds_ring_list_t *copy;
   size_t i;
@@ -337,15 +321,13 @@ ds_status_t ds_ring_list_clone_with(const ds_ring_list_t *container,
   *out = NULL;
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy =
-      ring_list_create_internal(container->allocator, container->deallocator,
-                                context != NULL ? context : container->context);
+  copy = ring_list_create_internal(context != NULL ? context
+                                                   : container->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
 
   node = container->tail->next;
   for (i = 0; i < container->size; ++i) {
-
     new_node = NULL;
     st = clone(node, &new_node, user);
     if (st != DS_OK || new_node == NULL) {
@@ -403,7 +385,6 @@ ds_status_t ds_ring_list_remove_ex(ds_ring_list_t *container,
     return DS_ERR_INVALID;
   node = container->tail->next;
   for (i = 0; i < container->size; ++i) {
-
     if (node == target) {
       ds_ring_list_delete_node(container, node);
       return DS_OK;

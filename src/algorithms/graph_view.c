@@ -614,7 +614,7 @@ ds_status_t ds_gview_workspace_init(ds_gview_workspace_t *w, size_t vertices,
     return DS_ERR_NULL;
   }
   memset(w, 0, sizeof(*w));
-  w->context = context;
+  w->context = context != NULL ? context : ds_default_context();
   return ds_gview_workspace_reserve(w, vertices);
 }
 

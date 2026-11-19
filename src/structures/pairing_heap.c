@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/pairing_heap.h>
 #include <stdlib.h>
 
@@ -10,36 +9,28 @@ static int pairing_heap_compare(ds_pairing_heap_t *owner,
              : owner->compare(a, b);
 }
 
-ds_pairing_heap_t *ds_pairing_heap_create(
-    int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *)) {
-  return ds_pairing_heap_create_alloc(compare, malloc, free);
-}
-
 static ds_pairing_heap_t *pairing_heap_create_internal(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *),
     ds_context_t *context, ds_pairing_heap_compare_fn compare_with,
     void *compare_user) {
   ds_pairing_heap_t *heap;
-  if (allocator == NULL || deallocator == NULL ||
-      (compare == NULL && compare_with == NULL)) {
+  if (compare == NULL && compare_with == NULL) {
     return NULL;
   }
-  heap = (ds_pairing_heap_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                sizeof(ds_pairing_heap_t));
+  heap = (ds_pairing_heap_t *)ds_context_alloc(context,
+                                               sizeof(ds_pairing_heap_t));
   if (heap == NULL) {
     return NULL;
   }
-  heap->context = context;
+  heap->context = context != NULL ? context : ds_default_context();
   heap->compare_with = compare_with;
   heap->compare_user = compare_user;
-  heap->allocator = allocator;
-  heap->deallocator = deallocator;
+
   heap->compare = compare;
-  heap->nil = (ds_pairing_heap_node_t *)DS_OWNER_ALLOCATE(
-      context, allocator, sizeof(ds_pairing_heap_node_t));
+  heap->nil = (ds_pairing_heap_node_t *)ds_context_alloc(
+      context, sizeof(ds_pairing_heap_node_t));
   if (heap->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, heap);
+    ds_context_free(context, heap);
     return NULL;
   }
   heap->nil->child = NULL;
@@ -49,11 +40,10 @@ static ds_pairing_heap_t *pairing_heap_create_internal(
   heap->size = 0;
   return heap;
 }
-ds_pairing_heap_t *ds_pairing_heap_create_alloc(
+ds_pairing_heap_t *ds_pairing_heap_create(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  return pairing_heap_create_internal(compare, allocator, deallocator, NULL,
-                                      NULL, NULL);
+    ds_context_t *context) {
+  return pairing_heap_create_internal(compare, context, NULL, NULL);
 }
 ds_status_t ds_pairing_heap_create_context(ds_pairing_heap_compare_fn compare,
                                            void *user, ds_context_t *context,
@@ -65,8 +55,7 @@ ds_status_t ds_pairing_heap_create_context(ds_pairing_heap_compare_fn compare,
     return DS_ERR_NULL;
 
   *out = pairing_heap_create_internal(
-      NULL, malloc, free, context != NULL ? context : ds_default_context(),
-      compare, user);
+      NULL, context != NULL ? context : ds_default_context(), compare, user);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -304,8 +293,8 @@ static void pairing_heap_destroy_internal(ds_pairing_heap_t *heap,
       destroy(node, user);
     }
   }
-  DS_OWNER_FREE(heap, heap->nil);
-  DS_OWNER_FREE(heap, heap);
+  ds_context_free(heap->context, heap->nil);
+  ds_context_free(heap->context, heap);
 }
 void ds_pairing_heap_destroy_with(ds_pairing_heap_t *container,
                                   ds_pairing_heap_destroy_fn destroy,
@@ -352,7 +341,6 @@ ds_status_t ds_pairing_heap_walk_with(const ds_pairing_heap_t *container,
 
 ds_status_t ds_pairing_heap_insert_ex(ds_pairing_heap_t *container,
                                       ds_pairing_heap_node_t *node) {
-
   if (container == NULL || node == NULL)
     return DS_ERR_NULL;
   if (node == container->nil)
@@ -396,9 +384,8 @@ ds_status_t ds_pairing_heap_clone_with(const ds_pairing_heap_t *container,
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
   policy.copy = pairing_heap_create_internal(
-      container->compare, container->allocator, container->deallocator,
-      context != NULL ? context : container->context, container->compare_with,
-      container->compare_user);
+      container->compare, context != NULL ? context : container->context,
+      container->compare_with, container->compare_user);
   if (policy.copy == NULL)
     return DS_ERR_ALLOC;
   policy.clone = clone;

@@ -25,7 +25,7 @@ static ds_status_t lw_init(lp_work_t *w, const ds_lp_t *lp,
   size_t cap, cells, bytes;
   memset(w, 0, sizeof(*w));
   w->cols = lp->cols;
-  w->context = context;
+  w->context = context != NULL ? context : ds_default_context();
   if (!ds_size_add(lp->rows, lp->cols, &cap) || !ds_size_add(cap, 16, &cap) ||
       !ds_size_mul(cap, lp->cols, &cells) ||
       !ds_size_mul(cells > 0 ? cells : 1, sizeof(double), &bytes) ||
@@ -440,7 +440,7 @@ ds_status_t ds_lp_dual_build(const ds_lp_t *lp, ds_lp_owned_t *d,
     return DS_ERR_NULL;
   }
   memset(d, 0, sizeof(*d));
-  d->context = context;
+  d->context = context != NULL ? context : ds_default_context();
   m = lp->rows;
   n = lp->cols;
   /* one dual variable per row, two for an equality (free variable) */

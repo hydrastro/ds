@@ -9,6 +9,7 @@
 #include <dsa/core/common.h>
 #include <dsa/core/context.h>
 #include <dsa/core/diagnostic.h>
+#include <dsa/core/diagnostic_log.h>
 #include <dsa/core/error.h>
 #include <dsa/core/executor.h>
 #include <dsa/core/i18n.h>

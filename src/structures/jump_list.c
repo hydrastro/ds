@@ -53,7 +53,7 @@ ds_status_t ds_jump_list_init(ds_jump_list_t *l, size_t elem_size,
   l->user = user;
   l->free_list = JL_NONE;
   l->head = l->tail = JL_NONE;
-  l->context = context;
+  l->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

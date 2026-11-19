@@ -33,22 +33,19 @@ typedef struct wavelet_tree {
   ds_wavelet_node_t *root;
   size_t length;         /* sequence length */
   size_t sigma;          /* alphabet size (symbols are in [0, sigma)) */
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_wavelet_tree_t;
 
 #define DS_WAVELET_NPOS ((size_t) - 1)
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
-ds_wavelet_tree_t *ds_wavelet_tree_create(const size_t *sequence, size_t length,
-                                          size_t sigma);
-ds_wavelet_tree_t *ds_wavelet_tree_create_alloc(const size_t *sequence,
-                                                size_t length, size_t sigma,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *));
+/* NULL when memory runs out */
+
+ds_wavelet_tree_t *ds_wavelet_tree_create(const size_t *sequence,
+                                          size_t length, size_t sigma,
+                                          ds_context_t *context);
 size_t ds_wavelet_tree_access(ds_wavelet_tree_t *wt, size_t index);
-size_t ds_wavelet_tree_rank(ds_wavelet_tree_t *wt, size_t symbol, size_t index);
+size_t ds_wavelet_tree_rank(ds_wavelet_tree_t *wt, size_t symbol,
+                            size_t index);
 size_t ds_wavelet_tree_select(ds_wavelet_tree_t *wt, size_t symbol, size_t k);
 size_t ds_wavelet_tree_quantile(ds_wavelet_tree_t *wt, size_t left,
                                 size_t right, size_t k);

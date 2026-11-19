@@ -23,7 +23,7 @@ ds_status_t ds_self_org_list_init(ds_self_org_list_t *list, size_t elem_size,
   list->user = user;
   list->policy = policy;
   list->k = 1;
-  list->context = context;
+  list->context = context != NULL ? context : ds_default_context();
   list->swap = (unsigned char *)ds_context_alloc(context, elem_size);
   return list->swap == NULL ? DS_ERR_ALLOC : DS_OK;
 }
@@ -315,7 +315,7 @@ ds_status_t ds_mtr_tree_init(ds_mtr_tree_t *t, size_t elem_size,
   t->policy = policy;
   t->compare = compare;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

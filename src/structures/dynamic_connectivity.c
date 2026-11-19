@@ -272,7 +272,7 @@ ds_status_t ds_dc_init(ds_dynconn_t *g, size_t n, ds_context_t *context) {
   }
   memset(g, 0, sizeof(*g));
   g->n = n;
-  g->context = context;
+  g->context = context != NULL ? context : ds_default_context();
   g->free_edge = DC_NONE;
   g->levels = 1; /* floor(log2 n) + 1 */
   for (m = n; m > 1; m >>= 1) {

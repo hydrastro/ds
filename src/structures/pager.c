@@ -118,7 +118,7 @@ ds_status_t ds_page_store_memory(ds_page_store_t *store, size_t page_size,
     return DS_ERR_ALLOC;
   }
   m->page_size = page_size;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   store->ops = &pg_mem_ops;
   store->impl = m;
   store->page_size = page_size;
@@ -169,7 +169,8 @@ static ds_status_t file_read(void *impl, unsigned long page, void *buf) {
   return DS_OK;
 }
 
-static ds_status_t file_write(void *impl, unsigned long page, const void *buf) {
+static ds_status_t file_write(void *impl, unsigned long page,
+                              const void *buf) {
   pg_file_t *p = (pg_file_t *)impl;
   ds_status_t st;
   /* fill a gap with zero pages instead of seeking past the end */
@@ -265,7 +266,7 @@ ds_status_t ds_page_store_file(ds_page_store_t *store, const char *path,
   p->page_size = page_size;
   p->count = ((unsigned long)size + (unsigned long)page_size - 1) /
              (unsigned long)page_size;
-  p->context = context;
+  p->context = context != NULL ? context : ds_default_context();
   store->ops = &pg_file_ops;
   store->impl = p;
   store->page_size = page_size;
@@ -361,7 +362,7 @@ ds_status_t ds_pager_init_policy(ds_pager_t *pager, ds_page_store_t *store,
   if (!ds_size_mul(frames, store->page_size, &bytes)) {
     return DS_ERR_OVERFLOW;
   }
-  pager->context = context;
+  pager->context = context != NULL ? context : ds_default_context();
   pager->data = (unsigned char *)ds_context_alloc(context, bytes);
   pager->frame = (ds_pager_frame_t *)ds_context_calloc(
       context, frames, sizeof(ds_pager_frame_t));

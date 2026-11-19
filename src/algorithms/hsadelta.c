@@ -189,7 +189,7 @@ ds_status_t ds_hsadelta_init(ds_hsadelta_index_t *out, const void *reference,
   ds_context_free(context, symbols);
   ds_context_free(context, records);
   out->impl = s;
-  out->context = context;
+  out->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 fail:
   ds_context_free(context, symbols);

@@ -16,24 +16,18 @@ typedef struct bloom_filter {
   size_t num_words;
   size_t num_hashes;
   size_t num_items;
-  ds_context_t *context; /* NULL for allocator functions */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_bloom_filter_t;
 
-/* NULL when memory runs out, for sizes no size_t holds, or without an
- * allocator and a deallocator (create_alloc, create_with_params and
- * clone). Adding and querying never allocate. */
+/* Creation and cloning return NULL on allocation failure or size overflow.
+ * Adding and querying never allocate. */
+
 ds_bloom_filter_t *ds_bloom_filter_create(size_t expected_items,
-                                          double false_positive_rate);
-ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
-                                                double false_positive_rate,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *));
-ds_bloom_filter_t *
-ds_bloom_filter_create_with_params(size_t num_bits, size_t num_hashes,
-                                   void *(*allocator)(size_t),
-                                   void (*deallocator)(void *));
+                                          double false_positive_rate,
+                                          ds_context_t *context);
+ds_bloom_filter_t *ds_bloom_filter_create_with_params(size_t num_bits,
+                                                      size_t num_hashes,
+                                                      ds_context_t *context);
 void ds_bloom_filter_add(ds_bloom_filter_t *filter, const void *key,
                          size_t length);
 bool ds_bloom_filter_maybe_contains(ds_bloom_filter_t *filter, const void *key,
@@ -41,7 +35,8 @@ bool ds_bloom_filter_maybe_contains(ds_bloom_filter_t *filter, const void *key,
 void ds_bloom_filter_clear(ds_bloom_filter_t *filter);
 size_t ds_bloom_filter_count(ds_bloom_filter_t *filter);
 double ds_bloom_filter_estimated_fpr(ds_bloom_filter_t *filter);
-bool ds_bloom_filter_union(ds_bloom_filter_t *filter, ds_bloom_filter_t *other);
+bool ds_bloom_filter_union(ds_bloom_filter_t *filter,
+                           ds_bloom_filter_t *other);
 ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter);
 void ds_bloom_filter_destroy(ds_bloom_filter_t *filter);
 

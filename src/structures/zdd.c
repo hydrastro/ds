@@ -221,7 +221,7 @@ ds_status_t ds_zdd_init(ds_zdd_t *m, size_t vars, const size_t *order,
     return DS_ERR_OVERFLOW;
   }
   m->vars = vars;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   m->level_of = (size_t *)zdd_array(context, NULL, 2 * vars, sizeof(size_t));
   m->mark = (unsigned char *)ds_context_calloc(context, vars + 1, 1);
   m->capacity = 64;

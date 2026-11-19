@@ -31,7 +31,7 @@ ds_status_t ds_two_choice_map_init(ds_two_choice_map_t *m, size_t key_size,
   m->bucket_size = bucket_size;
   m->policy = policy;
   m->rng = 88172645UL;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

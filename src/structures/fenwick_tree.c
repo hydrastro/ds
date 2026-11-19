@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/core/checked.h>
 #include <dsa/structures/fenwick_tree.h>
 #include <limits.h>
@@ -48,8 +47,8 @@ static ds_status_t fw_sum_terms(const fw_term_t *terms, size_t count,
               : (long)magnitude;
   return DS_OK;
 }
-static size_t fw_collect(const ds_fenwick_tree_t *tree, size_t end, bool negate,
-                         fw_term_t *terms, size_t count) {
+static size_t fw_collect(const ds_fenwick_tree_t *tree, size_t end,
+                         bool negate, fw_term_t *terms, size_t count) {
   while (end > 0) {
     long value = tree->data[end];
     terms[count].magnitude =
@@ -60,8 +59,8 @@ static size_t fw_collect(const ds_fenwick_tree_t *tree, size_t end, bool negate,
   }
   return count;
 }
-ds_status_t ds_fenwick_tree_range_ex(const ds_fenwick_tree_t *tree, size_t left,
-                                     size_t right, long *out) {
+ds_status_t ds_fenwick_tree_range_ex(const ds_fenwick_tree_t *tree,
+                                     size_t left, size_t right, long *out) {
   fw_term_t terms[2 * sizeof(size_t) * CHAR_BIT];
   size_t count;
   if (tree == NULL || out == NULL)
@@ -131,33 +130,24 @@ ds_status_t ds_fenwick_tree_set_ex(ds_fenwick_tree_t *tree, size_t index,
   return fw_mutate(tree, index, value, true);
 }
 
-ds_fenwick_tree_t *ds_fenwick_tree_create(size_t size) {
-  return ds_fenwick_tree_create_alloc(size, malloc, free);
-}
-
-static ds_fenwick_tree_t *
-fenwick_tree_create_internal(size_t size, void *(*allocator)(size_t),
-                             void (*deallocator)(void *),
-                             ds_context_t *context) {
+static ds_fenwick_tree_t *fenwick_tree_create_internal(size_t size,
+                                                       ds_context_t *context) {
   ds_fenwick_tree_t *tree;
   size_t i;
-  if (allocator == NULL || deallocator == NULL ||
-      size >= (size_t)-1 / sizeof(long)) {
+  if (size >= (size_t)-1 / sizeof(long)) {
     return NULL;
   }
-  tree = (ds_fenwick_tree_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                sizeof(ds_fenwick_tree_t));
+  tree = (ds_fenwick_tree_t *)ds_context_alloc(context,
+                                               sizeof(ds_fenwick_tree_t));
   if (tree == NULL) {
     return NULL;
   }
-  tree->context = context;
-  tree->allocator = allocator;
-  tree->deallocator = deallocator;
+  tree->context = context != NULL ? context : ds_default_context();
+
   tree->size = size;
-  tree->data =
-      (long *)DS_OWNER_ALLOCATE(context, allocator, (size + 1) * sizeof(long));
+  tree->data = (long *)ds_context_alloc(context, (size + 1) * sizeof(long));
   if (tree->data == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, tree);
+    ds_context_free(context, tree);
     return NULL;
   }
   for (i = 0; i <= size; i++) {
@@ -165,25 +155,23 @@ fenwick_tree_create_internal(size_t size, void *(*allocator)(size_t),
   }
   return tree;
 }
-ds_fenwick_tree_t *ds_fenwick_tree_create_alloc(size_t size,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
-  return fenwick_tree_create_internal(size, allocator, deallocator, NULL);
+ds_fenwick_tree_t *ds_fenwick_tree_create(size_t size, ds_context_t *context) {
+  return fenwick_tree_create_internal(size, context);
 }
 ds_status_t ds_fenwick_tree_create_context(size_t size, ds_context_t *context,
                                            ds_fenwick_tree_t **out) {
-
   if (out == NULL)
     return DS_ERR_NULL;
   *out = NULL;
   if (size >= (size_t)-1 / sizeof(long))
     return DS_ERR_OVERFLOW;
   *out = fenwick_tree_create_internal(
-      size, malloc, free, context != NULL ? context : ds_default_context());
+      size, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
-void ds_fenwick_tree_update(ds_fenwick_tree_t *tree, size_t index, long delta) {
+void ds_fenwick_tree_update(ds_fenwick_tree_t *tree, size_t index,
+                            long delta) {
   size_t i;
   if (index >= tree->size) {
     return;
@@ -266,8 +254,7 @@ ds_fenwick_tree_t *ds_fenwick_tree_clone(ds_fenwick_tree_t *tree) {
   if (tree == NULL) {
     return NULL;
   }
-  new_tree = fenwick_tree_create_internal(tree->size, tree->allocator,
-                                          tree->deallocator, tree->context);
+  new_tree = fenwick_tree_create_internal(tree->size, tree->context);
   if (new_tree == NULL) {
     return NULL;
   }
@@ -278,6 +265,6 @@ ds_fenwick_tree_t *ds_fenwick_tree_clone(ds_fenwick_tree_t *tree) {
 }
 
 void ds_fenwick_tree_destroy(ds_fenwick_tree_t *tree) {
-  DS_OWNER_FREE(tree, tree->data);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->data);
+  ds_context_free(tree->context, tree);
 }

@@ -154,8 +154,8 @@ static void kd_best_push(double *dk, size_t *vk, size_t k, size_t *found,
 
 /* Insert (node, key) into a stack kept so that the smallest key is on top
  * within [base, top). */
-static void kd_push_sorted(size_t *stack, double *key, size_t base, size_t *top,
-                           size_t node, double s) {
+static void kd_push_sorted(size_t *stack, double *key, size_t base,
+                           size_t *top, size_t node, double s) {
   size_t j;
   for (j = *top; j > base && key[j - 1] < s; j--) {
     key[j] = key[j - 1];
@@ -276,7 +276,7 @@ ds_status_t ds_kdb_tree_init(ds_kdb_tree_t *t, size_t dim, size_t bucket,
   t->fanout = fanout;
   t->axis_rule = axis_rule;
   t->free_list = KD_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = kdb_new_page(t, true, &t->root);
   if (st != DS_OK) {
     ds_kdb_tree_destroy(t);
@@ -866,8 +866,8 @@ static void akd_swap(ds_akd_tree_t *t, size_t i, size_t j) {
 }
 
 /* Move points of [lo, hi) with coordinate < x first; returns the count. */
-static size_t akd_partition(ds_akd_tree_t *t, size_t lo, size_t hi, size_t axis,
-                            double x) {
+static size_t akd_partition(ds_akd_tree_t *t, size_t lo, size_t hi,
+                            size_t axis, double x) {
   size_t i;
   size_t m = lo;
   for (i = lo; i < hi; i++) {
@@ -950,7 +950,7 @@ ds_status_t ds_akd_tree_build(ds_akd_tree_t *t, size_t dim,
   memset(t, 0, sizeof(*t));
   t->dim = dim;
   t->count = n;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   cap = 2 * (n > 0 ? n : 1);
   t->points = (double *)ds_context_alloc(context, (n > 0 ? n : 1) * dim *
                                                       sizeof(double));
@@ -1201,7 +1201,8 @@ ds_status_t ds_akd_tree_nearest(const ds_akd_tree_t *t, const double *point,
   d = t->dim;
   stack =
       (size_t *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(size_t));
-  key = (double *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(double));
+  key =
+      (double *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(double));
   dk = (double *)ds_context_alloc(t->context, k * sizeof(double));
   vk = (size_t *)ds_context_alloc(t->context, k * sizeof(size_t));
   if (stack == NULL || key == NULL || dk == NULL || vk == NULL) {
@@ -1324,11 +1325,11 @@ static ds_status_t kd_nodes_grow(ds_context_t *ctx, kd_nodes_t *n, size_t *cap,
   while (nc < need) {
     nc *= 2;
   }
-#define KD_RE(field, type)                                                     \
-  p = ds_context_realloc(ctx, *n->field, nc * sizeof(type));                   \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define KD_RE(field, type)                                                    \
+  p = ds_context_realloc(ctx, *n->field, nc * sizeof(type));                  \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   *n->field = (type *)p;
   KD_RE(axis, size_t)
   KD_RE(cut, double)
@@ -1342,8 +1343,8 @@ static ds_status_t kd_nodes_grow(ds_context_t *ctx, kd_nodes_t *n, size_t *cap,
   return DS_OK;
 }
 
-static ds_status_t kd_item_add(ds_context_t *ctx, size_t **items, size_t *count,
-                               size_t *cap, size_t id) {
+static ds_status_t kd_item_add(ds_context_t *ctx, size_t **items,
+                               size_t *count, size_t *cap, size_t id) {
   if (*count == *cap) {
     size_t nc = *cap < 4 ? 4 : *cap * 2;
     void *p = ds_context_realloc(ctx, *items, nc * sizeof(size_t));
@@ -1411,7 +1412,7 @@ ds_status_t ds_ekd_tree_init(ds_ekd_tree_t *t, size_t dim, size_t bucket,
   t->bucket = bucket;
   t->max_depth = max_depth;
   t->objects.free_list = KD_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = ekd_new_leaf(t, &root);
   if (st != DS_OK) {
     ds_ekd_tree_destroy(t);
@@ -1653,7 +1654,8 @@ ds_status_t ds_ekd_tree_remove(ds_ekd_tree_t *t, const double *box,
       size_t i;
       for (i = 0; i < t->item_count[v]; i++) {
         size_t it = t->items[v][i];
-        if (id == KD_NONE ? obj_is(&t->objects, it, d, box, value) : it == id) {
+        if (id == KD_NONE ? obj_is(&t->objects, it, d, box, value)
+                          : it == id) {
           break;
         }
       }
@@ -1718,7 +1720,8 @@ ds_status_t ds_ekd_tree_query(ds_ekd_tree_t *t, const double *box,
         for (a = 0; a < d; a++) {
           p[a] = b[a] > box[a] ? b[a] : box[a];
         }
-        if (kd_in_region(p, cell, d) && !visit(b, t->objects.value[id], user)) {
+        if (kd_in_region(p, cell, d) &&
+            !visit(b, t->objects.value[id], user)) {
           return DS_STOP;
         }
       }
@@ -1824,7 +1827,7 @@ ds_status_t ds_skd_tree_init(ds_skd_tree_t *t, size_t dim, size_t bucket,
   t->bucket = bucket;
   t->objects.free_list = KD_NONE;
   t->free_list = KD_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = skd_new_leaf(t, &t->root);
   if (st != DS_OK) {
     ds_skd_tree_destroy(t);
@@ -2037,10 +2040,10 @@ ds_status_t ds_skd_tree_remove(ds_skd_tree_t *t, const double *box,
     size_t lc = t->left[u];
     size_t rc = t->right[u];
     size_t mc = t->item_count[lc] + t->item_count[rc];
-    void *p =
-        mc <= t->item_capacity[lc]
-            ? (void *)t->items[lc]
-            : ds_context_realloc(t->context, t->items[lc], mc * sizeof(size_t));
+    void *p = mc <= t->item_capacity[lc]
+                  ? (void *)t->items[lc]
+                  : ds_context_realloc(t->context, t->items[lc],
+                                       mc * sizeof(size_t));
     if (p != NULL || mc == 0) {
       size_t *merged = (size_t *)p;
       if (t->item_count[rc] > 0) {
@@ -2122,8 +2125,8 @@ ds_status_t ds_skd_tree_query_point(ds_skd_tree_t *t, const double *point,
   return ds_skd_tree_query(t, b, visit, user);
 }
 
-ds_status_t ds_skd_tree_nearest(ds_skd_tree_t *t, const double *point, size_t k,
-                                size_t *out_values, double *out_dist,
+ds_status_t ds_skd_tree_nearest(ds_skd_tree_t *t, const double *point,
+                                size_t k, size_t *out_values, double *out_dist,
                                 size_t *out_found) {
   double *key;
   double *dk;
@@ -2146,7 +2149,8 @@ ds_status_t ds_skd_tree_nearest(ds_skd_tree_t *t, const double *point, size_t k,
   if (st != DS_OK) {
     return st;
   }
-  key = (double *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(double));
+  key =
+      (double *)ds_context_alloc(t->context, (t->nodes + 1) * sizeof(double));
   dk = (double *)ds_context_alloc(t->context, k * sizeof(double));
   vk = (size_t *)ds_context_alloc(t->context, k * sizeof(size_t));
   if (key == NULL || dk == NULL || vk == NULL) {

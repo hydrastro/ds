@@ -116,8 +116,8 @@ int ds_str_u8_pop_cp(ds_str_t *s, unsigned long *out_cp) {
     if ((c & 0xC0u) != 0x80u) {
       size_t adv;
       unsigned long cp;
-      if (ds__decode_one(p + (i - 1), len - (i - 1), &adv, &cp, DS_U8_STRICT) <=
-          0)
+      if (ds__decode_one(p + (i - 1), len - (i - 1), &adv, &cp,
+                         DS_U8_STRICT) <= 0)
         return -1;
       if (i - 1 + adv != len)
         return -1;
@@ -275,27 +275,24 @@ int ds_str_u8_slice_cp(ds_str_t *dst, const ds_str_t *src, size_t start_cp,
     a = start_byte;
     b = src->len;
   } else {
-    size_t end_cp = start_cp + count_cp;
-    size_t end_byte = ds_str_u8_cp_to_byte(src, end_cp, flags);
+    size_t end_cp, end_byte;
+    if (count_cp > (size_t)-1 - start_cp)
+      return -1;
+    end_cp = start_cp + count_cp;
+    end_byte = ds_str_u8_cp_to_byte(src, end_cp, flags);
     if (end_byte == SIZE_MAX)
       return -1;
     a = start_byte;
     b = end_byte;
   }
 
-  if (dst == src) {
-    ds_str_t *tmp = ds_str_from(src->buf + a, b - a);
-    if (!tmp)
-      return -1;
-    ds_str_clear(dst);
-    (void)ds_str_append(dst, tmp->buf, tmp->len);
-    ds_str_destroy(tmp);
-    return 0;
-  }
-  return ds_str_assign(dst, src->buf + a, b - a);
+  /* Assignment handles overlap, so a self-slice needs no scratch allocation.
+   */
+  return ds_str_assign(dst, b != a ? src->buf + a : NULL, b - a);
 }
 
-int ds_str_u8_sanitize(ds_str_t *dst, const ds_str_t *src, unsigned int flags) {
+int ds_str_u8_sanitize(ds_str_t *dst, const ds_str_t *src,
+                       unsigned int flags) {
   size_t i = 0, n;
   const unsigned char *p;
   unsigned char enc[4];
@@ -304,7 +301,7 @@ int ds_str_u8_sanitize(ds_str_t *dst, const ds_str_t *src, unsigned int flags) {
     return -1;
 
   if (dst == src) {
-    ds_str_t *tmp = ds_str_create();
+    ds_str_t *tmp = ds_str_create(dst->context);
     int rc;
     if (!tmp)
       return -1;
@@ -455,8 +452,8 @@ int ds_str_view_u8_next(ds_str_view_t v, size_t *ioff, unsigned long *out_cp,
   int r;
   if (i >= v.len)
     return 0;
-  r = ds__decode_one((const unsigned char *)v.data + i, v.len - i, &adv, out_cp,
-                     flags);
+  r = ds__decode_one((const unsigned char *)v.data + i, v.len - i, &adv,
+                     out_cp, flags);
   if (r <= 0)
     return -1;
   if (ioff)
@@ -490,7 +487,8 @@ int ds_str_view_u8_prev(ds_str_view_t v, size_t *ioff, unsigned long *out_cp,
   return 1;
 }
 
-int ds_str_u8_grapheme_iter_init(ds_u8_grapheme_iter_t *it, const ds_str_t *s) {
+int ds_str_u8_grapheme_iter_init(ds_u8_grapheme_iter_t *it,
+                                 const ds_str_t *s) {
   if (!it || !s)
     return -1;
   if (ds_ucd_init_once() != 0)
@@ -542,7 +540,8 @@ int ds_str_u8_slice_graphemes(ds_str_t *dst, const ds_str_t *src,
 
       if (count_gc == (size_t)-1) {
         end_byte = src->len;
-        return ds_str_assign(dst, src->buf + start_byte, end_byte - start_byte);
+        return ds_str_assign(dst, src->buf + start_byte,
+                             end_byte - start_byte);
       }
 
       {
@@ -625,7 +624,8 @@ int ds_str_u8_truncate_graphemes(ds_str_t *s, size_t max_gc) {
   return ds_str_erase(s, cut_byte, s->len - cut_byte);
 }
 
-int ds_str_u8_grapheme_to_byte(const ds_str_t *s, size_t gi, size_t *byte_out) {
+int ds_str_u8_grapheme_to_byte(const ds_str_t *s, size_t gi,
+                               size_t *byte_out) {
   ds_u8_grapheme_iter_t it;
   size_t a, n, idx = 0;
   int r;
@@ -656,7 +656,8 @@ int ds_str_u8_grapheme_to_byte(const ds_str_t *s, size_t gi, size_t *byte_out) {
   return -1;
 }
 
-int ds_str_u8_byte_to_grapheme(const ds_str_t *s, size_t byte, size_t *gi_out) {
+int ds_str_u8_byte_to_grapheme(const ds_str_t *s, size_t byte,
+                               size_t *gi_out) {
   ds_u8_grapheme_iter_t it;
   size_t a, n, idx = 0;
   int r;
@@ -751,8 +752,8 @@ long ds_str_u8_find_folded(const ds_str_t *s, const ds_str_t *needle) {
   if (ds_ucd_init_once() != 0)
     return -1;
 
-  hs = ds_str_create();
-  ns = ds_str_create();
+  hs = ds_str_create(s->context);
+  ns = ds_str_create(s->context);
   if (!hs || !ns)
     goto done;
 

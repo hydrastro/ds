@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/bplus_tree.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -50,8 +49,8 @@ static int bplus_min_keys(ds_bplus_tree_t *tree) {
 static ds_bplus_tree_internal_node_t *bplus_create_node(ds_bplus_tree_t *tree,
                                                         bool is_leaf) {
   ds_bplus_tree_internal_node_t *node =
-      (ds_bplus_tree_internal_node_t *)DS_OWNER_ALLOC(
-          tree, sizeof(ds_bplus_tree_internal_node_t));
+      (ds_bplus_tree_internal_node_t *)ds_context_alloc(
+          tree->context, sizeof(ds_bplus_tree_internal_node_t));
   if (node == NULL) {
     return NULL;
   }
@@ -61,21 +60,22 @@ static ds_bplus_tree_internal_node_t *bplus_create_node(ds_bplus_tree_t *tree,
   node->next = NULL;
   node->prev = NULL;
   /* allocate room for one extra slot to simplify overflow-before-split */
-  node->keys = (ds_bplus_tree_node_t **)DS_OWNER_ALLOC(
-      tree, (size_t)(tree->order + 1) * sizeof(ds_bplus_tree_node_t *));
+  node->keys = (ds_bplus_tree_node_t **)ds_context_alloc(
+      tree->context,
+      (size_t)(tree->order + 1) * sizeof(ds_bplus_tree_node_t *));
   if (node->keys == NULL) {
-    DS_OWNER_FREE(tree, node);
+    ds_context_free(tree->context, node);
     return NULL;
   }
   if (is_leaf) {
     node->children = NULL;
   } else {
-    node->children = (ds_bplus_tree_internal_node_t **)DS_OWNER_ALLOC(
-        tree,
+    node->children = (ds_bplus_tree_internal_node_t **)ds_context_alloc(
+        tree->context,
         (size_t)(tree->order + 2) * sizeof(ds_bplus_tree_internal_node_t *));
     if (node->children == NULL) {
-      DS_OWNER_FREE(tree, node->keys);
-      DS_OWNER_FREE(tree, node);
+      ds_context_free(tree->context, node->keys);
+      ds_context_free(tree->context, node);
       return NULL;
     }
   }
@@ -84,69 +84,59 @@ static ds_bplus_tree_internal_node_t *bplus_create_node(ds_bplus_tree_t *tree,
 
 static void bplus_free_node(ds_bplus_tree_t *tree,
                             ds_bplus_tree_internal_node_t *node) {
-  DS_OWNER_FREE(tree, node->keys);
+  ds_context_free(tree->context, node->keys);
   if (node->children != NULL) {
-    DS_OWNER_FREE(tree, node->children);
+    ds_context_free(tree->context, node->children);
   }
-  DS_OWNER_FREE(tree, node);
-}
-
-ds_bplus_tree_t *ds_bplus_tree_create(int order,
-                                      int (*compare)(ds_bplus_tree_node_t *,
-                                                     ds_bplus_tree_node_t *)) {
-  return ds_bplus_tree_create_alloc(order, false, compare, malloc, free);
+  ds_context_free(tree->context, node);
 }
 
 static ds_bplus_tree_t *bplus_tree_create_internal(
     int order, bool bstar,
     int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *),
     ds_context_t *context, ds_bplus_tree_compare_fn compare_with,
     void *compare_user) {
   ds_bplus_tree_t *tree;
   int clamped = order < 3 ? 3 : order;
-  if (allocator == NULL || deallocator == NULL ||
-      (compare == NULL && compare_with == NULL) ||
+  if ((compare == NULL && compare_with == NULL) ||
       clamped > (INT_MAX - 2) / 2 ||
       (size_t)clamped > (size_t)-1 / sizeof(void *) - 2) {
     return NULL;
   }
-  tree = (ds_bplus_tree_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                              sizeof(ds_bplus_tree_t));
+  tree = (ds_bplus_tree_t *)ds_context_alloc(context, sizeof(ds_bplus_tree_t));
   if (tree == NULL) {
     return NULL;
   }
   tree->order = order < 3 ? 3 : order;
   tree->bstar = bstar;
   tree->compare = compare;
-  tree->context = context;
+  tree->context = context != NULL ? context : ds_default_context();
   tree->compare_with = compare_with;
   tree->compare_user = compare_user;
-  tree->allocator = allocator;
-  tree->deallocator = deallocator;
+
   tree->size = 0;
-  tree->nil = (ds_bplus_tree_node_t *)DS_OWNER_ALLOCATE(
-      context, allocator, sizeof(ds_bplus_tree_node_t));
+  tree->nil = (ds_bplus_tree_node_t *)ds_context_alloc(
+      context, sizeof(ds_bplus_tree_node_t));
   if (tree->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, tree);
+    ds_context_free(context, tree);
     return NULL;
   }
   tree->nil->internal = NULL;
   tree->root = bplus_create_node(tree, true);
   if (tree->root == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, tree->nil);
-    DS_OWNER_RELEASE(context, deallocator, tree);
+    ds_context_free(context, tree->nil);
+    ds_context_free(context, tree);
     return NULL;
   }
   tree->head = tree->root;
   return tree;
 }
-ds_bplus_tree_t *ds_bplus_tree_create_alloc(
-    int order, bool bstar,
-    int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  return bplus_tree_create_internal(order, bstar, compare, allocator,
-                                    deallocator, NULL, NULL, NULL);
+ds_bplus_tree_t *ds_bplus_tree_create(int order, bool bstar,
+                                      int (*compare)(ds_bplus_tree_node_t *,
+                                                     ds_bplus_tree_node_t *),
+                                      ds_context_t *context) {
+  return bplus_tree_create_internal(order, bstar, compare, context, NULL,
+                                    NULL);
 }
 ds_status_t ds_bplus_tree_create_context(int order, bool bstar,
                                          ds_bplus_tree_compare_fn compare,
@@ -163,8 +153,8 @@ ds_status_t ds_bplus_tree_create_context(int order, bool bstar,
       (size_t)order > (size_t)-1 / sizeof(void *) - 2)
     return DS_ERR_OVERFLOW;
   *out = bplus_tree_create_internal(
-      order, bstar, NULL, malloc, free,
-      context != NULL ? context : ds_default_context(), compare, user);
+      order, bstar, NULL, context != NULL ? context : ds_default_context(),
+      compare, user);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -228,7 +218,8 @@ ds_bplus_tree_node_t *ds_bplus_tree_maximum(ds_bplus_tree_t *tree) {
   return result;
 }
 
-/* insert a separator key + right child into an internal node at position idx */
+/* insert a separator key + right child into an internal node at position idx
+ */
 static void bplus_internal_insert_at(ds_bplus_tree_internal_node_t *node,
                                      int idx, ds_bplus_tree_node_t *key,
                                      ds_bplus_tree_internal_node_t *right) {
@@ -555,9 +546,9 @@ static void bplus_plan_free(ds_bplus_tree_t *tree, bplus_plan_t *plan) {
   for (i = plan->used; i < plan->count; i++)
     bplus_free_node(tree, plan->nodes[i]);
   if (plan->keys != NULL)
-    DS_OWNER_FREE(tree, plan->keys);
+    ds_context_free(tree->context, plan->keys);
   if (plan->kids != NULL)
-    DS_OWNER_FREE(tree, plan->kids);
+    ds_context_free(tree->context, plan->kids);
 }
 
 static ds_status_t bplus_prepare(ds_bplus_tree_t *tree,
@@ -598,10 +589,10 @@ static ds_status_t bplus_prepare(ds_bplus_tree_t *tree,
       bplus_plan_free(tree, plan);
       return DS_ERR_OVERFLOW;
     }
-    plan->keys =
-        (ds_bplus_tree_node_t **)DS_OWNER_ALLOC(tree, n * sizeof(*plan->keys));
-    plan->kids = (ds_bplus_tree_internal_node_t **)DS_OWNER_ALLOC(
-        tree, (n + 1) * sizeof(*plan->kids));
+    plan->keys = (ds_bplus_tree_node_t **)ds_context_alloc(
+        tree->context, n * sizeof(*plan->keys));
+    plan->kids = (ds_bplus_tree_internal_node_t **)ds_context_alloc(
+        tree->context, (n + 1) * sizeof(*plan->kids));
     if (plan->keys == NULL || plan->kids == NULL) {
       bplus_plan_free(tree, plan);
       return DS_ERR_ALLOC;
@@ -726,8 +717,8 @@ static void bplus_tree_destroy_internal(ds_bplus_tree_t *tree,
                                         ds_bplus_tree_destroy_fn destroy,
                                         void *user) {
   bplus_destroy_recursive(tree, tree->root, destroy, user);
-  DS_OWNER_FREE(tree, tree->nil);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->nil);
+  ds_context_free(tree->context, tree);
 }
 void ds_bplus_tree_destroy_with(ds_bplus_tree_t *container,
                                 ds_bplus_tree_destroy_fn destroy, void *user) {
@@ -748,10 +739,10 @@ void ds_bplus_tree_destroy(ds_bplus_tree_t *container,
 /* clones of the source's records, in order, inserted into new_tree;
  * false when clone_node returns NULL (the clones made so far are in
  * new_tree) */
-static ds_status_t
-bplus_clone_records(const ds_bplus_tree_t *tree, ds_bplus_tree_t *new_tree,
-                    ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *),
-                    void (*destroy_clone)(ds_bplus_tree_node_t *)) {
+static ds_status_t bplus_clone_records(
+    const ds_bplus_tree_t *tree, ds_bplus_tree_t *new_tree,
+    ds_bplus_tree_node_t *(*clone_node)(ds_bplus_tree_node_t *),
+    void (*destroy_clone)(ds_bplus_tree_node_t *)) {
   ds_bplus_tree_internal_node_t *leaf;
   int i;
   for (leaf = tree->head; leaf != NULL; leaf = leaf->next) {
@@ -779,8 +770,8 @@ ds_bplus_tree_t *ds_bplus_tree_clone(
     return NULL;
   }
   new_tree = bplus_tree_create_internal(
-      tree->order, tree->bstar, tree->compare, tree->allocator,
-      tree->deallocator, tree->context, tree->compare_with, tree->compare_user);
+      tree->order, tree->bstar, tree->compare, tree->context,
+      tree->compare_with, tree->compare_user);
   if (new_tree != NULL &&
       bplus_clone_records(tree, new_tree, clone_node, NULL) != DS_OK) {
     ds_bplus_tree_destroy(new_tree, NULL); /* the clones are not released */
@@ -803,8 +794,8 @@ ds_status_t ds_bplus_tree_clone_ex(
     return DS_ERR_NULL;
   }
   new_tree = bplus_tree_create_internal(
-      tree->order, tree->bstar, tree->compare, tree->allocator,
-      tree->deallocator, tree->context, tree->compare_with, tree->compare_user);
+      tree->order, tree->bstar, tree->compare, tree->context,
+      tree->compare_with, tree->compare_user);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -1109,7 +1100,6 @@ ds_status_t ds_bplus_tree_clone_with(const ds_bplus_tree_t *container,
     return DS_ERR_NULL;
   policy.copy = bplus_tree_create_internal(
       container->order, container->bstar, container->compare,
-      container->allocator, container->deallocator,
       context != NULL ? context : container->context, container->compare_with,
       container->compare_user);
   if (policy.copy == NULL)
@@ -1129,7 +1119,8 @@ ds_status_t ds_bplus_tree_clone_with(const ds_bplus_tree_t *container,
 ds_status_t ds_bplus_tree_range_with(ds_bplus_tree_t *tree,
                                      ds_bplus_tree_node_t *low,
                                      ds_bplus_tree_node_t *high,
-                                     ds_bplus_tree_visit_fn visit, void *user) {
+                                     ds_bplus_tree_visit_fn visit,
+                                     void *user) {
   ds_bplus_tree_internal_node_t *leaf;
   ds_status_t st;
   int i;

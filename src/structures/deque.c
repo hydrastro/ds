@@ -1,30 +1,19 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/deque.h>
 #include <stdlib.h>
 
-ds_deque_t *ds_deque_create(void) {
-  return ds_deque_create_alloc(malloc, free);
-}
-
-static ds_deque_t *deque_create_internal(void *(*allocator)(size_t),
-                                         void (*deallocator)(void *),
-                                         ds_context_t *context) {
+static ds_deque_t *deque_create_internal(ds_context_t *context) {
   ds_deque_t *deque;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  deque =
-      (ds_deque_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_deque_t));
+
+  deque = (ds_deque_t *)ds_context_alloc(context, sizeof(ds_deque_t));
   if (deque == NULL) {
     return NULL;
   }
-  deque->context = context;
-  deque->allocator = allocator;
-  deque->deallocator = deallocator;
-  deque->nil = (ds_deque_node_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                    sizeof(ds_deque_node_t));
+  deque->context = context != NULL ? context : ds_default_context();
+
+  deque->nil =
+      (ds_deque_node_t *)ds_context_alloc(context, sizeof(ds_deque_node_t));
   if (deque->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, deque);
+    ds_context_free(context, deque);
     return NULL;
   }
   deque->nil->next = deque->nil;
@@ -36,15 +25,14 @@ static ds_deque_t *deque_create_internal(void *(*allocator)(size_t),
   return deque;
 }
 
-ds_deque_t *ds_deque_create_alloc(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
-  return deque_create_internal(allocator, deallocator, NULL);
+ds_deque_t *ds_deque_create(ds_context_t *context) {
+  return deque_create_internal(context);
 }
 ds_status_t ds_deque_create_context(ds_context_t *context, ds_deque_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = deque_create_internal(
-      malloc, free, context != NULL ? context : ds_default_context());
+  *out =
+      deque_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -140,9 +128,9 @@ static void deque_destroy_internal(ds_deque_t *deque,
     }
     node = next;
   }
-  DS_OWNER_FREE(deque, deque->nil);
+  ds_context_free(deque->context, deque->nil);
 
-  DS_OWNER_FREE(deque, deque);
+  ds_context_free(deque->context, deque);
 }
 void ds_deque_destroy_with(ds_deque_t *container, ds_deque_destroy_fn destroy,
                            void *user) {
@@ -274,8 +262,7 @@ ds_deque_t *ds_deque_clone(ds_deque_t *deque,
   if (deque == NULL || clone_node == NULL) {
     return NULL;
   }
-  copy = deque_create_internal(deque->allocator, deque->deallocator,
-                               deque->context);
+  copy = deque_create_internal(deque->context);
   if (copy != NULL && !deque_clone_nodes(deque, copy, clone_node)) {
     /* the clones made so far are not released */
     ds_deque_destroy(copy, NULL);
@@ -284,10 +271,10 @@ ds_deque_t *ds_deque_clone(ds_deque_t *deque,
   return copy;
 }
 
-ds_status_t ds_deque_clone_ex(const ds_deque_t *deque,
-                              ds_deque_node_t *(*clone_node)(ds_deque_node_t *),
-                              void (*destroy_clone)(ds_deque_node_t *),
-                              ds_deque_t **out) {
+ds_status_t
+ds_deque_clone_ex(const ds_deque_t *deque,
+                  ds_deque_node_t *(*clone_node)(ds_deque_node_t *),
+                  void (*destroy_clone)(ds_deque_node_t *), ds_deque_t **out) {
   ds_deque_t *copy;
   if (out == NULL) {
     return DS_ERR_NULL;
@@ -296,8 +283,7 @@ ds_status_t ds_deque_clone_ex(const ds_deque_t *deque,
   if (deque == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  copy = deque_create_internal(deque->allocator, deque->deallocator,
-                               deque->context);
+  copy = deque_create_internal(deque->context);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -318,7 +304,6 @@ ds_status_t ds_deque_walk_with(ds_deque_t *container, ds_deque_visit_fn visit,
     return DS_ERR_NULL;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     st = visit(node, user);
     if (st != DS_OK)
       return st;
@@ -335,7 +320,6 @@ ds_status_t ds_deque_find_with(ds_deque_t *container, ds_deque_node_t *key,
     return DS_ERR_NULL;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     if (compare(node, key, user) == 0) {
       *out = node;
       return DS_OK;
@@ -360,14 +344,12 @@ ds_status_t ds_deque_clone_with(const ds_deque_t *container,
   *out = NULL;
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = deque_create_internal(container->allocator, container->deallocator,
-                               context != NULL ? context : container->context);
+  copy = deque_create_internal(context != NULL ? context : container->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
 
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     new_node = NULL;
     st = clone(node, &new_node, user);
     if (st != DS_OK || new_node == NULL) {
@@ -415,7 +397,8 @@ ds_status_t ds_deque_pop_front_ex(ds_deque_t *container,
   return DS_OK;
 }
 
-ds_status_t ds_deque_pop_back_ex(ds_deque_t *container, ds_deque_node_t **out) {
+ds_status_t ds_deque_pop_back_ex(ds_deque_t *container,
+                                 ds_deque_node_t **out) {
   if (container == NULL || out == NULL)
     return DS_ERR_NULL;
   if (container->size == 0)
@@ -424,7 +407,8 @@ ds_status_t ds_deque_pop_back_ex(ds_deque_t *container, ds_deque_node_t **out) {
   return DS_OK;
 }
 
-ds_status_t ds_deque_remove_ex(ds_deque_t *container, ds_deque_node_t *target) {
+ds_status_t ds_deque_remove_ex(ds_deque_t *container,
+                               ds_deque_node_t *target) {
   size_t i;
   ds_deque_node_t *node;
   if (container == NULL || target == NULL)
@@ -433,7 +417,6 @@ ds_status_t ds_deque_remove_ex(ds_deque_t *container, ds_deque_node_t *target) {
     return DS_ERR_INVALID;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     if (node == target) {
       ds_deque_delete_node(container, node);
       return DS_OK;

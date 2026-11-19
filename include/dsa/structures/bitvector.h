@@ -24,28 +24,24 @@ typedef struct bitvector {
   size_t num_bits;
   size_t num_words;
   /* rank index, populated by ds_bitvector_build */
-  size_t *superblock_rank;    /* cumulative popcount at each superblock start */
+  size_t *superblock_rank; /* cumulative popcount at each superblock start */
   unsigned short *block_rank; /* popcount within superblock at each block */
   size_t num_superblocks;
   size_t num_blocks;
   size_t total_ones;
   bool built;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_bitvector_t;
 
 #define DS_BITVECTOR_NPOS ((size_t) - 1)
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
-ds_bitvector_t *ds_bitvector_create(size_t num_bits);
-ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *));
+/* NULL when memory runs out */
+
+ds_bitvector_t *ds_bitvector_create(size_t num_bits, ds_context_t *context);
 void ds_bitvector_set(ds_bitvector_t *bv, size_t index, bool value);
 /* Checked set rejects writes after build (DS_ERR_STATE). Checked rank/select
- * require a completed build; errors preserve outputs. Rank accepts 0..num_bits;
- * select returns DS_NOT_FOUND when k has no corresponding bit. */
+ * require a completed build; errors preserve outputs. Rank accepts
+ * 0..num_bits; select returns DS_NOT_FOUND when k has no corresponding bit. */
 ds_status_t ds_bitvector_set_ex(ds_bitvector_t *bv, size_t index, bool value);
 ds_status_t ds_bitvector_rank1_ex(ds_bitvector_t *bv, size_t index,
                                   size_t *out);

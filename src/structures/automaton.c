@@ -27,7 +27,7 @@ ds_status_t ds_dfa_init(ds_dfa_t *dfa, size_t alphabet, ds_context_t *context) {
   memset(dfa, 0, sizeof(*dfa));
   dfa->alphabet = alphabet;
   dfa->start = AU_NONE;
-  dfa->context = context;
+  dfa->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -170,7 +170,7 @@ ds_status_t ds_nfa_init(ds_nfa_t *nfa, size_t alphabet, ds_context_t *context) {
   memset(nfa, 0, sizeof(*nfa));
   nfa->alphabet = alphabet;
   nfa->start = AU_NONE;
-  nfa->context = context;
+  nfa->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

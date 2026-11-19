@@ -5,7 +5,7 @@ int main(void) {
   ds_string_map_t *map;
   void *value;
 
-  map = ds_string_map_create();
+  map = ds_string_map_create(NULL);
   ds_string_map_put(map, "hello", "world");
   if (ds_string_map_get(map, "hello", &value) == DS_OK) {
     printf("%s\n", (char *)value);

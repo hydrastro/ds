@@ -24,19 +24,16 @@ typedef struct pairing_heap {
   ds_pairing_heap_node_t *nil;
   size_t size;
   int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *);
-  ds_context_t *context; /* NULL for allocator functions */
+  ds_context_t *context; /* borrowed allocation owner */
   ds_pairing_heap_compare_fn compare_with;
   void *compare_user;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
 } ds_pairing_heap_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
+
 ds_pairing_heap_t *ds_pairing_heap_create(
-    int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *));
-ds_pairing_heap_t *ds_pairing_heap_create_alloc(
     int (*compare)(ds_pairing_heap_node_t *, ds_pairing_heap_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *));
+    ds_context_t *context);
 void ds_pairing_heap_node_init(ds_pairing_heap_node_t *node);
 void ds_pairing_heap_insert(ds_pairing_heap_t *heap,
                             ds_pairing_heap_node_t *node);

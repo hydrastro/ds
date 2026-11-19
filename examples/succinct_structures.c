@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 static void bitset_demo(void) {
-  ds_bitset_t *bs = ds_bitset_create(64);
+  ds_bitset_t *bs = ds_bitset_create(64, NULL);
   size_t i;
 
   for (i = 0; i < 64; ++i) {
@@ -24,7 +24,7 @@ static void bitset_demo(void) {
 }
 
 static void bitvector_demo(void) {
-  ds_bitvector_t *bv = ds_bitvector_create(32);
+  ds_bitvector_t *bv = ds_bitvector_create(32, NULL);
   size_t i;
 
   /* set even positions, then freeze with build() to enable rank/select */
@@ -35,7 +35,8 @@ static void bitvector_demo(void) {
   }
   ds_bitvector_build(bv);
 
-  /* rank1(i) = set bits in [0, i); select1(k) = position of the k-th set bit */
+  /* rank1(i) = set bits in [0, i); select1(k) = position of the k-th set bit
+   */
   printf("bitvector: ones=%lu, rank1(10)=%lu, select1(3)=%lu\n",
          (unsigned long)ds_bitvector_count_ones(bv),
          (unsigned long)ds_bitvector_rank1(bv, 10),
@@ -57,7 +58,7 @@ static void wavelet_demo(void) {
   seq[7] = 4;
   seq[8] = 3;
 
-  wt = ds_wavelet_tree_create(seq, 9, 6);
+  wt = ds_wavelet_tree_create(seq, 9, 6, NULL);
 
   /* access(i) returns the symbol; rank(c, i) counts c in the prefix [0, i);
    * quantile(l, r, k) is the k-th smallest symbol in [l, r) */

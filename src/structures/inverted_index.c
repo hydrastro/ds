@@ -58,7 +58,8 @@ static size_t ii_get_varint(const unsigned char *buf, size_t *at) {
 /* ---- posting codecs over bit streams ---- */
 
 /* n bits of v (n < II_W) at bit *pos, least significant first */
-static void ii_put_bits(unsigned char *buf, size_t *pos, size_t v, unsigned n) {
+static void ii_put_bits(unsigned char *buf, size_t *pos, size_t v,
+                        unsigned n) {
   unsigned done = 0;
   while (done < n) {
     unsigned off = (unsigned)(*pos & 7u);
@@ -138,7 +139,8 @@ static void ii_vb_put(unsigned char *buf, size_t *pos, size_t v,
   ii_put_bits(buf, pos, v, 8);
 }
 
-static size_t ii_vb_get(const unsigned char *buf, size_t *pos, unsigned param) {
+static size_t ii_vb_get(const unsigned char *buf, size_t *pos,
+                        unsigned param) {
   size_t v = 0;
   unsigned shift = 0;
   size_t c;
@@ -207,7 +209,8 @@ static size_t ii_delta_get(const unsigned char *buf, size_t *pos,
 /* Rice: v >> k in unary, then the low k bits */
 static size_t ii_rice_bits(size_t v, unsigned k) { return (v >> k) + 1 + k; }
 
-static void ii_rice_put(unsigned char *buf, size_t *pos, size_t v, unsigned k) {
+static void ii_rice_put(unsigned char *buf, size_t *pos, size_t v,
+                        unsigned k) {
   ii_put_unary(buf, pos, v >> k);
   ii_put_bits(buf, pos, v, k);
 }
@@ -217,12 +220,12 @@ static size_t ii_rice_get(const unsigned char *buf, size_t *pos, unsigned k) {
   return (q << k) | ii_get_bits(buf, pos, k);
 }
 
-static const ds_invidx_codec_t ii_codec_vbyte = {"vbyte", ii_vb_bits, ii_vb_put,
-                                                 ii_vb_get, 0};
-static const ds_invidx_codec_t ii_codec_gamma = {"gamma", ii_gamma_bits,
-                                                 ii_gamma_put, ii_gamma_get, 0};
-static const ds_invidx_codec_t ii_codec_delta = {"delta", ii_delta_bits,
-                                                 ii_delta_put, ii_delta_get, 0};
+static const ds_invidx_codec_t ii_codec_vbyte = {"vbyte", ii_vb_bits,
+                                                 ii_vb_put, ii_vb_get, 0};
+static const ds_invidx_codec_t ii_codec_gamma = {
+    "gamma", ii_gamma_bits, ii_gamma_put, ii_gamma_get, 0};
+static const ds_invidx_codec_t ii_codec_delta = {
+    "delta", ii_delta_bits, ii_delta_put, ii_delta_get, 0};
 #define II_RICE(k) {"rice", ii_rice_bits, ii_rice_put, ii_rice_get, k}
 static const ds_invidx_codec_t ii_codec_rice[32] = {
     II_RICE(0),  II_RICE(1),  II_RICE(2),  II_RICE(3),  II_RICE(4),
@@ -234,9 +237,15 @@ static const ds_invidx_codec_t ii_codec_rice[32] = {
     II_RICE(30), II_RICE(31)};
 #undef II_RICE
 
-const ds_invidx_codec_t *ds_invidx_codec_vbyte(void) { return &ii_codec_vbyte; }
-const ds_invidx_codec_t *ds_invidx_codec_gamma(void) { return &ii_codec_gamma; }
-const ds_invidx_codec_t *ds_invidx_codec_delta(void) { return &ii_codec_delta; }
+const ds_invidx_codec_t *ds_invidx_codec_vbyte(void) {
+  return &ii_codec_vbyte;
+}
+const ds_invidx_codec_t *ds_invidx_codec_gamma(void) {
+  return &ii_codec_gamma;
+}
+const ds_invidx_codec_t *ds_invidx_codec_delta(void) {
+  return &ii_codec_delta;
+}
 const ds_invidx_codec_t *ds_invidx_codec_rice(unsigned k) {
   return k < 32 ? &ii_codec_rice[k] : NULL;
 }
@@ -333,7 +342,7 @@ static ds_status_t ii_open_init(void *d, const void *param,
   ii_open_t *o = (ii_open_t *)d;
   (void)param;
   memset(o, 0, sizeof(*o));
-  o->context = context;
+  o->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -360,7 +369,8 @@ static size_t ii_open_find(const void *d, const void *text, size_t length) {
   return II_NONE;
 }
 
-static void ii_open_place(ii_entry_t *slot, size_t slots, const ii_entry_t *e) {
+static void ii_open_place(ii_entry_t *slot, size_t slots,
+                          const ii_entry_t *e) {
   size_t at = ii_hash(e->text, e->length) & (slots - 1);
   while (slot[at].term != II_NONE) {
     at = (at + 1) & (slots - 1);
@@ -553,7 +563,7 @@ static ds_status_t ii_sorted_init(void *d, const void *param,
   ii_sorted_t *o = (ii_sorted_t *)d;
   (void)param;
   memset(o, 0, sizeof(*o));
-  o->context = context;
+  o->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -675,9 +685,9 @@ static size_t ii_sorted_next(const void *d, ds_invidx_dict_cursor_t *c) {
   const ii_sorted_t *o = (const ii_sorted_t *)d;
   size_t i = c->state[0];
   size_t j = c->state[1];
-  if (i < o->main_n &&
-      (j >= o->side_n || ii_text_cmp(o->main[i].text, o->main[i].length,
-                                     o->side[j].text, o->side[j].length) < 0)) {
+  if (i < o->main_n && (j >= o->side_n ||
+                        ii_text_cmp(o->main[i].text, o->main[i].length,
+                                    o->side[j].text, o->side[j].length) < 0)) {
     c->state[0]++;
     return o->main[i].term;
   }
@@ -836,7 +846,7 @@ ds_status_t ds_invidx_init_opts(ds_inverted_index_t *idx,
   idx->mode = mode;
   idx->block_size = mode == DS_INVIDX_BLOCK ? block_size : 1;
   idx->keep_forward = keep_forward;
-  idx->context = context;
+  idx->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -897,13 +907,13 @@ static ds_status_t ii_intern(ds_inverted_index_t *idx, const void *text,
                   sizeof(const unsigned char *));
   if (st == DS_OK) {
     cap = idx->term_capacity;
-    st = ii_reserve(idx->context, (void **)&idx->term_len, &cap, idx->terms + 1,
-                    sizeof(size_t));
+    st = ii_reserve(idx->context, (void **)&idx->term_len, &cap,
+                    idx->terms + 1, sizeof(size_t));
   }
   if (st == DS_OK) {
     cap = idx->term_capacity;
-    st = ii_reserve(idx->context, (void **)&idx->postings, &cap, idx->terms + 1,
-                    sizeof(ds_invidx_posting_list_t));
+    st = ii_reserve(idx->context, (void **)&idx->postings, &cap,
+                    idx->terms + 1, sizeof(ds_invidx_posting_list_t));
   }
   if (st != DS_OK) {
     return st;
@@ -1174,7 +1184,8 @@ ds_status_t ds_invidx_add_text(ds_inverted_index_t *idx, size_t doc_id,
     }
     src = folded;
   }
-  while (st == DS_OK && tokenizer(text, length, &cursor, &start, &tlen, user)) {
+  while (st == DS_OK &&
+         tokenizer(text, length, &cursor, &start, &tlen, user)) {
     if (start > length || tlen > length - start) {
       st = DS_ERR_CALLBACK;
       break;
@@ -1269,8 +1280,8 @@ ds_status_t ds_invidx_block_documents(const ds_inverted_index_t *idx,
     return DS_ERR_RANGE;
   }
   *ids = idx->doc_id + first;
-  *count =
-      idx->docs - first < idx->block_size ? idx->docs - first : idx->block_size;
+  *count = idx->docs - first < idx->block_size ? idx->docs - first
+                                               : idx->block_size;
   return DS_OK;
 }
 
@@ -1807,9 +1818,9 @@ ds_invidx_boolean(const ds_inverted_index_t *idx, const ds_invidx_term_t *must,
       how = df_best < df_max / 16 ? DS_INVIDX_INTERSECT_SKIP
                                   : DS_INVIDX_INTERSECT_MERGE;
     }
-    st =
-        ii_list(idx, ds_invidx_term_id(idx, must[best].text, must[best].length),
-                &acc, &na);
+    st = ii_list(idx,
+                 ds_invidx_term_id(idx, must[best].text, must[best].length),
+                 &acc, &na);
     if (how == DS_INVIDX_INTERSECT_SKIP) {
       /* probe the candidates into every other list */
       if (st == DS_OK && na > 0) {
@@ -1883,8 +1894,9 @@ static int ii_size_cmp(const void *x, const void *y) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-ds_status_t ds_invidx_prefix(const ds_inverted_index_t *idx, const void *prefix,
-                             size_t length, ds_invidx_result_t *result,
+ds_status_t ds_invidx_prefix(const ds_inverted_index_t *idx,
+                             const void *prefix, size_t length,
+                             ds_invidx_result_t *result,
                              size_t *terms_matched) {
   ds_invidx_dict_cursor_t c;
   size_t *acc = NULL;
@@ -2066,8 +2078,8 @@ static double ii_bm25_score(const ds_invidx_stats_t *st, double weight,
   return weight * f * (k1 + 1.0) / (f + k1 * (1.0 - b + b * norm));
 }
 
-static double ii_tfidf_weight(const ds_invidx_stats_t *st, size_t df, size_t cf,
-                              const double *param) {
+static double ii_tfidf_weight(const ds_invidx_stats_t *st, size_t df,
+                              size_t cf, const double *param) {
   (void)cf;
   (void)param;
   return log(1.0 + st->documents / (double)(df > 0 ? df : 1));

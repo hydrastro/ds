@@ -500,7 +500,7 @@ ds_status_t ds_parens_build(ds_parens_t *p, const unsigned long *words,
   if (n > (size_t)LONG_MAX / 2) {
     return DS_ERR_RANGE; /* excess values fit a long */
   }
-  p->context = context;
+  p->context = context != NULL ? context : ds_default_context();
   p->n = n;
   nw = n / W + 1;
   p->blocks = (n + B - 1) / B;

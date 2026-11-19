@@ -590,7 +590,7 @@ ds_status_t ds_rs_build(ds_rs_t *rs, const ds_rs_ops_t *ops,
   }
   rs->ops = ops;
   rs->n = n;
-  rs->context = context;
+  rs->context = context != NULL ? context : ds_default_context();
   rs->ones = n == 0 ? 0 : ops->rank1(rs->state, n);
   return DS_OK;
 }

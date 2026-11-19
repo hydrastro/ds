@@ -90,7 +90,7 @@ ds_status_t ds_k2_tree_build(ds_k2_tree_t *t, size_t n, size_t k,
   memset(t, 0, sizeof(*t));
   t->n = n;
   t->k = k;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   kk = k * k;
   t->side = k;
   t->height = 1;

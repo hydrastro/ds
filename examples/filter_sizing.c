@@ -23,7 +23,8 @@ int main(void) {
   double predicted = 0.0, density = 0.0;
 
   for (j = 0; j < 3; j++) {
-    ds_bloom_filter_t *filter = ds_bloom_filter_create(inserted, targets[j]);
+    ds_bloom_filter_t *filter =
+        ds_bloom_filter_create(inserted, targets[j], NULL);
     size_t positives = 0;
     if (filter == NULL)
       return 1;

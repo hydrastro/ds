@@ -34,7 +34,7 @@ ds_status_t ds_radix_heap_init(ds_radix_heap_t *heap, size_t elem_size,
   heap->last = 0;
   heap->size = 0;
   heap->elem_size = elem_size;
-  heap->context = context;
+  heap->context = context != NULL ? context : ds_default_context();
   for (i = 0; i < DS_RADIX_HEAP_BUCKETS; i++) {
     status = ds_vec_init(&heap->buckets[i], rx_rec_size(heap), context);
     if (status != DS_OK) {

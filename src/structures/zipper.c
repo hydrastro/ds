@@ -41,7 +41,7 @@ ds_status_t ds_zipper_store_init(ds_zipper_store_t *s, size_t elem_size,
   s->elem_size = elem_size;
   s->node_free = ZE;
   s->frame_free = ZE;
-  s->context = context;
+  s->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

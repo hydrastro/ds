@@ -41,7 +41,7 @@ int main(void) {
   char first[] = "parser";
   char second[] = "index";
   named_item_t a, b;
-  ds_list_t *source = ds_list_create();
+  ds_list_t *source = ds_list_create(NULL);
   ds_list_t *copy = NULL;
   ds_list_node_t *node;
   ds_status_t st;

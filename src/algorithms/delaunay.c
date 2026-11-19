@@ -484,7 +484,7 @@ ds_status_t ds_delaunay_build(ds_delaunay_t *dt, const double *xy, size_t n,
   }
   memset(dt, 0, sizeof(*dt));
   dt->points = n;
-  dt->context = context;
+  dt->context = context != NULL ? context : ds_default_context();
   for (i = 0; i < 2 * n; i++) {
     if (!(xy[i] - xy[i] < 1.0)) { /* NaN or infinite */
       return DS_ERR_INVALID;

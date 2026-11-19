@@ -98,7 +98,7 @@ ds_status_t ds_ab_init(ds_ab_tree_t *t, size_t a, size_t b, size_t item_size,
   t->item_size = item_size;
   t->compare = compare;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   t->node_bytes = bytes;
   return DS_OK;
 }

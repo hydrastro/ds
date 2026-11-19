@@ -120,7 +120,7 @@ ds_status_t ds_xor_filter_build(ds_xor_filter_t *f, const unsigned long *hashes,
     return DS_ERR_INVALID;
   }
   f->fp_bits = fp_bits;
-  f->context = context;
+  f->context = context != NULL ? context : ds_default_context();
   /* every size below derives from n: check it once, generously (the table
    * holds about 1.25 n + 32 slots of fp_bits bits, the work arrays n or
    * capacity words) */

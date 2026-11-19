@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/algorithms/hash.h>
 #include <dsa/structures/bloom_filter.h>
 #include <limits.h>
@@ -14,16 +13,9 @@ static size_t bloom_compute_words(size_t num_bits) {
   return (num_bits + DS_BLOOM_BITS_PER_WORD - 1) / DS_BLOOM_BITS_PER_WORD;
 }
 
-ds_bloom_filter_t *ds_bloom_filter_create(size_t expected_items,
-                                          double false_positive_rate) {
-  return ds_bloom_filter_create_alloc(expected_items, false_positive_rate,
-                                      malloc, free);
-}
-
 static ds_status_t bloom_dimensions(size_t expected_items,
                                     double false_positive_rate,
                                     size_t *num_bits, size_t *num_hashes) {
-
   double n;
   double p;
   double ln2;
@@ -51,22 +43,18 @@ static ds_status_t bloom_dimensions(size_t expected_items,
   }
   return DS_OK;
 }
-ds_bloom_filter_t *ds_bloom_filter_create_alloc(size_t expected_items,
-                                                double false_positive_rate,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
+ds_bloom_filter_t *ds_bloom_filter_create(size_t expected_items,
+                                          double false_positive_rate,
+                                          ds_context_t *context) {
   size_t bits, hashes;
   if (bloom_dimensions(expected_items, false_positive_rate, &bits, &hashes) !=
       DS_OK)
     return NULL;
-  return ds_bloom_filter_create_with_params(bits, hashes, allocator,
-                                            deallocator);
+  return ds_bloom_filter_create_with_params(bits, hashes, context);
 }
 
 static ds_bloom_filter_t *bloom_create_internal(size_t num_bits,
                                                 size_t num_hashes,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *),
                                                 ds_context_t *context) {
   ds_bloom_filter_t *filter;
   size_t num_words;
@@ -77,27 +65,25 @@ static ds_bloom_filter_t *bloom_create_internal(size_t num_bits,
   if (num_hashes < 1) {
     num_hashes = 1;
   }
-  if (allocator == NULL || deallocator == NULL ||
-      num_bits > (size_t)-1 - DS_BLOOM_BITS_PER_WORD) {
+  if (num_bits > (size_t)-1 - DS_BLOOM_BITS_PER_WORD) {
     return NULL;
   }
   num_words = bloom_compute_words(num_bits);
-  filter = (ds_bloom_filter_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                  sizeof(ds_bloom_filter_t));
+  filter = (ds_bloom_filter_t *)ds_context_alloc(context,
+                                                 sizeof(ds_bloom_filter_t));
   if (filter == NULL) {
     return NULL;
   }
-  filter->context = context;
-  filter->allocator = allocator;
-  filter->deallocator = deallocator;
+  filter->context = context != NULL ? context : ds_default_context();
+
   filter->num_bits = num_words * DS_BLOOM_BITS_PER_WORD;
   filter->num_words = num_words;
   filter->num_hashes = num_hashes;
   filter->num_items = 0;
-  filter->words = (unsigned long *)DS_OWNER_ALLOCATE(
-      context, allocator, num_words * sizeof(unsigned long));
+  filter->words = (unsigned long *)ds_context_alloc(
+      context, num_words * sizeof(unsigned long));
   if (filter->words == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, filter);
+    ds_context_free(context, filter);
     return NULL;
   }
   for (i = 0; i < num_words; i++) {
@@ -105,11 +91,10 @@ static ds_bloom_filter_t *bloom_create_internal(size_t num_bits,
   }
   return filter;
 }
-ds_bloom_filter_t *
-ds_bloom_filter_create_with_params(size_t bits, size_t hashes,
-                                   void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
-  return bloom_create_internal(bits, hashes, allocator, deallocator, NULL);
+ds_bloom_filter_t *ds_bloom_filter_create_with_params(size_t bits,
+                                                      size_t hashes,
+                                                      ds_context_t *context) {
+  return bloom_create_internal(bits, hashes, context);
 }
 ds_status_t ds_bloom_filter_create_params_context(size_t bits, size_t hashes,
                                                   ds_context_t *context,
@@ -121,9 +106,8 @@ ds_status_t ds_bloom_filter_create_params_context(size_t bits, size_t hashes,
     return DS_ERR_RANGE;
   if (bits > (size_t)-1 - DS_BLOOM_BITS_PER_WORD)
     return DS_ERR_OVERFLOW;
-  *out =
-      bloom_create_internal(bits, hashes, malloc, free,
-                            context != NULL ? context : ds_default_context());
+  *out = bloom_create_internal(
+      bits, hashes, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 ds_status_t ds_bloom_filter_create_context(size_t expected, double rate,
@@ -244,7 +228,6 @@ ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter) {
     return NULL;
   }
   new_filter = bloom_create_internal(filter->num_bits, filter->num_hashes,
-                                     filter->allocator, filter->deallocator,
                                      filter->context);
   if (new_filter == NULL) {
     return NULL;
@@ -259,8 +242,8 @@ ds_bloom_filter_t *ds_bloom_filter_clone(ds_bloom_filter_t *filter) {
 void ds_bloom_filter_destroy(ds_bloom_filter_t *filter) {
   if (filter == NULL)
     return;
-  DS_OWNER_FREE(filter, filter->words);
-  DS_OWNER_FREE(filter, filter);
+  ds_context_free(filter->context, filter->words);
+  ds_context_free(filter->context, filter);
 }
 
 ds_status_t ds_bloom_filter_add_ex(ds_bloom_filter_t *filter, const void *key,
@@ -305,7 +288,6 @@ ds_status_t ds_bloom_filter_clone_with(const ds_bloom_filter_t *filter,
   if (filter == NULL)
     return DS_ERR_NULL;
   copy = bloom_create_internal(filter->num_bits, filter->num_hashes,
-                               filter->allocator, filter->deallocator,
                                context != NULL ? context : filter->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;

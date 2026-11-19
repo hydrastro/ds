@@ -44,7 +44,7 @@ ds_status_t ds_buddy_init(ds_buddy_t *b, void *buffer, size_t min_block,
   b->min_block = min_block;
   b->max_order = max_order;
   b->blocks = (size_t)1 << max_order;
-  b->context = context;
+  b->context = context != NULL ? context : ds_default_context();
   if (b->blocks > ((size_t)-1) / min_block ||
       b->blocks > ((size_t)-1) / sizeof(size_t)) {
     return DS_ERR_OVERFLOW;

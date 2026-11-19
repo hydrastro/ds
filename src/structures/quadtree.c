@@ -4,16 +4,18 @@
 
 #define QT_NONE (~(size_t)0)
 
-/* ---- region trees (PR quadtree, octree, bintree) ----------------------------
+/* ---- region trees (PR quadtree, octree, bintree)
+ * ----------------------------
  */
 
 static double *rt_pt(const ds_regtree_t *t, size_t p) {
   return t->coord + p * t->dim;
 }
 
-ds_status_t ds_regtree_init(ds_regtree_t *t, size_t dim, ds_regtree_mode_t mode,
-                            const double *lo, const double *hi, size_t bucket,
-                            size_t max_depth, ds_context_t *context) {
+ds_status_t ds_regtree_init(ds_regtree_t *t, size_t dim,
+                            ds_regtree_mode_t mode, const double *lo,
+                            const double *hi, size_t bucket, size_t max_depth,
+                            ds_context_t *context) {
   size_t a;
   if (t == NULL || lo == NULL || hi == NULL) {
     return DS_ERR_NULL;
@@ -39,7 +41,7 @@ ds_status_t ds_regtree_init(ds_regtree_t *t, size_t dim, ds_regtree_mode_t mode,
   }
   t->node_free = QT_NONE;
   t->point_free = QT_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   /* node 0: the root leaf */
   t->child = (size_t *)ds_context_alloc(context, 16 * 4 * sizeof(size_t));
   t->depth = (unsigned char *)ds_context_alloc(context, 16);
@@ -435,7 +437,8 @@ static ds_status_t rt_frames_need(ds_regtree_t *t, rt_frames_t *f,
   while (cap < need) {
     cap *= 2;
   }
-  p = ds_context_realloc(t->context, f->box, cap * 2 * t->dim * sizeof(double));
+  p = ds_context_realloc(t->context, f->box,
+                         cap * 2 * t->dim * sizeof(double));
   if (p == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -444,8 +447,8 @@ static ds_status_t rt_frames_need(ds_regtree_t *t, rt_frames_t *f,
   return DS_OK;
 }
 
-static bool rt_inside(const ds_regtree_t *t, const double *p, const double *qlo,
-                      const double *qhi) {
+static bool rt_inside(const ds_regtree_t *t, const double *p,
+                      const double *qlo, const double *qhi) {
   size_t a;
   for (a = 0; a < t->dim; a++) {
     if (p[a] < qlo[a] || p[a] > qhi[a]) {
@@ -544,7 +547,8 @@ ds_status_t ds_regtree_query(ds_regtree_t *t, const double *qlo,
   return rt_box_walk(t, qlo, qhi, 0, visit, user, &n);
 }
 
-size_t ds_regtree_count(ds_regtree_t *t, const double *qlo, const double *qhi) {
+size_t ds_regtree_count(ds_regtree_t *t, const double *qlo,
+                        const double *qhi) {
   size_t n = 0;
   if (t == NULL || qlo == NULL || qhi == NULL) {
     return 0;
@@ -727,7 +731,7 @@ ds_status_t ds_point_quadtree_init(ds_point_quadtree_t *t,
   memset(t, 0, sizeof(*t));
   t->root = QT_NONE;
   t->free_list = QT_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -793,8 +797,8 @@ static void pq_link(ds_point_quadtree_t *t, size_t n) {
   }
 }
 
-ds_status_t ds_point_quadtree_insert(ds_point_quadtree_t *t, double x, double y,
-                                     size_t value) {
+ds_status_t ds_point_quadtree_insert(ds_point_quadtree_t *t, double x,
+                                     double y, size_t value) {
   size_t n;
   size_t cap;
   void *p;
@@ -861,8 +865,8 @@ ds_status_t ds_point_quadtree_find(ds_point_quadtree_t *t, double x, double y,
   return DS_NOT_FOUND;
 }
 
-ds_status_t ds_point_quadtree_remove(ds_point_quadtree_t *t, double x, double y,
-                                     size_t value) {
+ds_status_t ds_point_quadtree_remove(ds_point_quadtree_t *t, double x,
+                                     double y, size_t value) {
   size_t v;
   size_t parent = QT_NONE;
   size_t pc = 0;
@@ -926,7 +930,8 @@ ds_status_t ds_point_quadtree_remove(ds_point_quadtree_t *t, double x, double y,
 
 ds_status_t ds_point_quadtree_query(ds_point_quadtree_t *t, double xlo,
                                     double ylo, double xhi, double yhi,
-                                    ds_spatial_visit_func_t visit, void *user) {
+                                    ds_spatial_visit_func_t visit,
+                                    void *user) {
   size_t top = 0;
   size_t v;
   double p[2];
@@ -1089,7 +1094,7 @@ ds_status_t ds_linear_quadtree_init(ds_linear_quadtree_t *t,
     return DS_ERR_NULL;
   }
   memset(t, 0, sizeof(*t));
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

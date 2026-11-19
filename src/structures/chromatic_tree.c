@@ -115,7 +115,7 @@ ds_status_t ds_chromatic_init(ds_chromatic_tree_t *t, size_t elem_size,
   t->elem_size = elem_size;
   t->compare = compare;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   /* eager mode never needs more: a red-black tree that deep has more
    * than 2^63 leaves */
   if (!cr_reserve_path(t, CR_PATH_START)) {

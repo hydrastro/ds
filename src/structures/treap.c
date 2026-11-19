@@ -3,42 +3,36 @@
 #include <string.h>
 
 static void *tr_alloc(ds_treap_t *t, size_t n) {
-  return t->use_context ? ds_context_alloc(t->context, n) : t->allocator(n);
+  return ds_context_alloc(t->context, n);
 }
-static void tr_free(ds_treap_t *t, void *p) {
-  if (t->use_context)
-    ds_context_free(t->context, p);
-  else if (p != NULL)
-    t->deallocator(p);
-}
+static void tr_free(ds_treap_t *t, void *p) { ds_context_free(t->context, p); }
 static int tr_compare(ds_treap_t *t, ds_treap_node_t *a, ds_treap_node_t *b) {
   return t->compare_with != NULL ? t->compare_with(a, b, t->user)
                                  : t->compare(a, b);
 }
 
-static ds_treap_t *
-tr_create(int (*compare)(ds_treap_node_t *, ds_treap_node_t *),
-          unsigned long seed, void *(*allocator)(size_t),
-          void (*deallocator)(void *), const ds_treap_config_t *config) {
+static ds_treap_t *tr_create(int (*compare)(ds_treap_node_t *,
+                                            ds_treap_node_t *),
+                             unsigned long seed, ds_context_t *context,
+                             const ds_treap_config_t *config) {
   ds_treap_t *t;
-  if (allocator == NULL || deallocator == NULL ||
-      (compare == NULL && config == NULL))
+  if (compare == NULL && config == NULL)
     return NULL;
-  t = (ds_treap_t *)(config == NULL
-                         ? allocator(sizeof(*t))
-                         : ds_context_alloc(config->context, sizeof(*t)));
+  if (config != NULL)
+    context = config->context;
+  if (context == NULL)
+    context = ds_default_context();
+  t = (ds_treap_t *)ds_context_alloc(context, sizeof(*t));
   if (t == NULL)
     return NULL;
   memset(t, 0, sizeof(*t));
-  t->allocator = allocator;
-  t->deallocator = deallocator;
+  t->context = context != NULL ? context : ds_default_context();
+
   t->compare = compare;
   t->seed = seed & 0xffffffffUL;
   if (t->seed == 0)
     t->seed = 0x9e3779b9UL;
   if (config != NULL) {
-    t->use_context = true;
-    t->context = config->context;
     t->compare_with = config->compare;
     t->user = config->user;
     t->priority = config->priority;
@@ -69,20 +63,14 @@ ds_status_t ds_treap_create_with(const ds_treap_config_t *config,
   *out = NULL;
   if (config == NULL || config->compare == NULL)
     return DS_ERR_NULL;
-  *out = tr_create(NULL, config->seed, malloc, free, config);
+  *out = tr_create(NULL, config->seed, NULL, config);
   return *out == NULL ? DS_ERR_ALLOC : DS_OK;
 }
 
 ds_treap_t *ds_treap_create(int (*compare)(ds_treap_node_t *,
-                                           ds_treap_node_t *)) {
-  return ds_treap_create_alloc(compare, 0UL, malloc, free);
-}
-
-ds_treap_t *
-ds_treap_create_alloc(int (*compare)(ds_treap_node_t *, ds_treap_node_t *),
-                      unsigned long seed, void *(*allocator)(size_t),
-                      void (*deallocator)(void *)) {
-  return tr_create(compare, seed, allocator, deallocator, NULL);
+                                           ds_treap_node_t *),
+                            unsigned long seed, ds_context_t *context) {
+  return tr_create(compare, seed, context, NULL);
 }
 
 static unsigned long treap_random(ds_treap_t *t) {
@@ -413,8 +401,7 @@ static ds_status_t tr_clone(const ds_treap_t *t,
   config.context = t->context;
   config.priority = t->priority;
   config.priority_user = t->priority_user;
-  copy = tr_create(t->compare, t->seed, t->allocator, t->deallocator,
-                   t->use_context ? &config : NULL);
+  copy = tr_create(t->compare, t->seed, t->context, &config);
   if (copy == NULL)
     return DS_ERR_ALLOC;
   if (t->root == t->nil) {

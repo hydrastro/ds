@@ -616,7 +616,7 @@ ds_status_t ds_coding_tree_build(ds_coding_tree_t *tree,
   tree->symbol = (size_t *)ds_context_alloc(context, cap * sizeof(size_t));
   tree->capacity = cap;
   tree->nodes = 0;
-  tree->context = context;
+  tree->context = context != NULL ? context : ds_default_context();
   if (tree->child == NULL || tree->symbol == NULL) {
     ds_coding_tree_destroy(tree);
     return DS_ERR_ALLOC;

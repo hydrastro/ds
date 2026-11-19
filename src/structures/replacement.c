@@ -279,7 +279,7 @@ ds_status_t ds_replacement_init(ds_replacement_t *r,
     return st;
   }
   r->ops = ops;
-  r->context = context;
+  r->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

@@ -44,7 +44,7 @@ ds_status_t ds_wb_tree_init(ds_wb_tree_t *t, size_t elem_size,
   t->gamma_den = gamma_den;
   t->compare = compare;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

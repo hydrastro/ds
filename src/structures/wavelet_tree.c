@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/wavelet_tree.h>
 #include <stdlib.h>
 
@@ -18,7 +17,8 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
   size_t *right_seq;
   size_t li;
   size_t ri;
-  node = (ds_wavelet_node_t *)DS_OWNER_ALLOC(wt, sizeof(ds_wavelet_node_t));
+  node = (ds_wavelet_node_t *)ds_context_alloc(wt->context,
+                                               sizeof(ds_wavelet_node_t));
   if (node == NULL) {
     return NULL;
   }
@@ -32,12 +32,8 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
     return node;
   }
   mid = lo + (hi - lo) / 2;
-  if (wt->context != NULL) {
-    if (ds_bitvector_create_context(length, wt->context, &node->bv) != DS_OK)
-      node->bv = NULL;
-  } else
-    node->bv =
-        ds_bitvector_create_alloc(length, wt->allocator, wt->deallocator);
+  if (ds_bitvector_create_context(length, wt->context, &node->bv) != DS_OK)
+    node->bv = NULL;
   if (node->bv == NULL) {
     wavelet_destroy_node(wt, node);
     return NULL;
@@ -51,20 +47,22 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
     }
   }
   /* partition into child subsequences (stable order preserved) */
-  left_seq = left_len > 0
-                 ? (size_t *)DS_OWNER_ALLOC(wt, left_len * sizeof(size_t))
-                 : NULL;
-  right_seq = right_len > 0
-                  ? (size_t *)DS_OWNER_ALLOC(wt, right_len * sizeof(size_t))
-                  : NULL;
+  left_seq =
+      left_len > 0
+          ? (size_t *)ds_context_alloc(wt->context, left_len * sizeof(size_t))
+          : NULL;
+  right_seq =
+      right_len > 0
+          ? (size_t *)ds_context_alloc(wt->context, right_len * sizeof(size_t))
+          : NULL;
   if (ds_bitvector_build_ex(node->bv) != DS_OK ||
       (left_len > 0 && left_seq == NULL) ||
       (right_len > 0 && right_seq == NULL)) {
     if (left_seq != NULL) {
-      DS_OWNER_FREE(wt, left_seq);
+      ds_context_free(wt->context, left_seq);
     }
     if (right_seq != NULL) {
-      DS_OWNER_FREE(wt, right_seq);
+      ds_context_free(wt->context, right_seq);
     }
     wavelet_destroy_node(wt, node);
     return NULL;
@@ -82,13 +80,13 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
   }
   node->left = wavelet_build(wt, left_seq, left_len, lo, mid);
   if (left_seq != NULL) {
-    DS_OWNER_FREE(wt, left_seq);
+    ds_context_free(wt->context, left_seq);
   }
   if (node->left != NULL) {
     node->right = wavelet_build(wt, right_seq, right_len, mid + 1, hi);
   }
   if (right_seq != NULL) {
-    DS_OWNER_FREE(wt, right_seq);
+    ds_context_free(wt->context, right_seq);
   }
   if (node->left == NULL || node->right == NULL) {
     wavelet_destroy_node(wt, node);
@@ -97,42 +95,34 @@ static ds_wavelet_node_t *wavelet_build(ds_wavelet_tree_t *wt, size_t *seq,
   return node;
 }
 
-ds_wavelet_tree_t *ds_wavelet_tree_create(const size_t *sequence, size_t length,
-                                          size_t sigma) {
-  return ds_wavelet_tree_create_alloc(sequence, length, sigma, malloc, free);
-}
-
-static ds_wavelet_tree_t *
-wavelet_tree_create_internal(const size_t *sequence, size_t length,
-                             size_t sigma, void *(*allocator)(size_t),
-                             void (*deallocator)(void *),
-                             ds_context_t *context) {
+static ds_wavelet_tree_t *wavelet_tree_create_internal(const size_t *sequence,
+                                                       size_t length,
+                                                       size_t sigma,
+                                                       ds_context_t *context) {
   ds_wavelet_tree_t *wt;
   size_t *work;
   size_t i;
-  if (allocator == NULL || deallocator == NULL ||
-      (length > 0 && sequence == NULL) ||
+  if ((length > 0 && sequence == NULL) ||
       length > (size_t)-1 / sizeof(size_t)) {
     return NULL;
   }
   for (i = 0; i < length; i++)
     if (sequence[i] >= (sigma > 0 ? sigma : 1))
       return NULL;
-  wt = (ds_wavelet_tree_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                              sizeof(ds_wavelet_tree_t));
+  wt = (ds_wavelet_tree_t *)ds_context_alloc(context,
+                                             sizeof(ds_wavelet_tree_t));
   if (wt == NULL) {
     return NULL;
   }
-  wt->context = context;
-  wt->allocator = allocator;
-  wt->deallocator = deallocator;
+  wt->context = context != NULL ? context : ds_default_context();
+
   wt->length = length;
   wt->sigma = sigma < 1 ? 1 : sigma;
-  work = length > 0 ? (size_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                  length * sizeof(size_t))
-                    : NULL;
+  work = length > 0
+             ? (size_t *)ds_context_alloc(context, length * sizeof(size_t))
+             : NULL;
   if (length > 0 && work == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, wt);
+    ds_context_free(context, wt);
     return NULL;
   }
   for (i = 0; i < length; i++) {
@@ -140,20 +130,18 @@ wavelet_tree_create_internal(const size_t *sequence, size_t length,
   }
   wt->root = wavelet_build(wt, work, length, 0, wt->sigma - 1);
   if (work != NULL) {
-    DS_OWNER_RELEASE(context, deallocator, work);
+    ds_context_free(context, work);
   }
   if (wt->root == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, wt);
+    ds_context_free(context, wt);
     return NULL;
   }
   return wt;
 }
-ds_wavelet_tree_t *ds_wavelet_tree_create_alloc(const size_t *sequence,
-                                                size_t length, size_t sigma,
-                                                void *(*allocator)(size_t),
-                                                void (*deallocator)(void *)) {
-  return wavelet_tree_create_internal(sequence, length, sigma, allocator,
-                                      deallocator, NULL);
+ds_wavelet_tree_t *ds_wavelet_tree_create(const size_t *sequence,
+                                          size_t length, size_t sigma,
+                                          ds_context_t *context) {
+  return wavelet_tree_create_internal(sequence, length, sigma, context);
 }
 ds_status_t ds_wavelet_tree_create_context(const size_t *sequence,
                                            size_t length, size_t sigma,
@@ -172,7 +160,7 @@ ds_status_t ds_wavelet_tree_create_context(const size_t *sequence,
   for (i = 0; i < length; i++)
     if (sequence[i] >= sigma)
       return DS_ERR_RANGE;
-  *out = wavelet_tree_create_internal(sequence, length, sigma, malloc, free,
+  *out = wavelet_tree_create_internal(sequence, length, sigma,
                                       context != NULL ? context
                                                       : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -306,12 +294,12 @@ static void wavelet_destroy_node(ds_wavelet_tree_t *wt,
   if (node->bv != NULL) {
     ds_bitvector_destroy(node->bv);
   }
-  DS_OWNER_FREE(wt, node);
+  ds_context_free(wt->context, node);
 }
 
 void ds_wavelet_tree_destroy(ds_wavelet_tree_t *wt) {
   wavelet_destroy_node(wt, wt->root);
-  DS_OWNER_FREE(wt, wt);
+  ds_context_free(wt->context, wt);
 }
 
 ds_status_t ds_wavelet_tree_access_ex(ds_wavelet_tree_t *tree, size_t index,

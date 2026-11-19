@@ -17,7 +17,7 @@ ds_status_t ds_pagoda_pool_init(ds_pagoda_pool_t *pool, size_t elem_size,
   pool->elem_size = elem_size;
   pool->compare = compare;
   pool->user = user;
-  pool->context = context;
+  pool->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

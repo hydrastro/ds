@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/splay_tree.h>
 #include <stdlib.h>
 
@@ -9,36 +8,27 @@ static int splay_tree_compare(ds_splay_tree_t *owner, ds_splay_tree_node_t *a,
              : owner->compare(a, b);
 }
 
-ds_splay_tree_t *ds_splay_tree_create(int (*compare)(ds_splay_tree_node_t *,
-                                                     ds_splay_tree_node_t *)) {
-  return ds_splay_tree_create_alloc(compare, malloc, free);
-}
-
 static ds_splay_tree_t *splay_tree_create_internal(
     int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *),
     ds_context_t *context, ds_splay_tree_compare_fn compare_with,
     void *compare_user) {
   ds_splay_tree_t *tree;
-  if (allocator == NULL || deallocator == NULL ||
-      (compare == NULL && compare_with == NULL)) {
+  if (compare == NULL && compare_with == NULL) {
     return NULL;
   }
-  tree = (ds_splay_tree_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                              sizeof(ds_splay_tree_t));
+  tree = (ds_splay_tree_t *)ds_context_alloc(context, sizeof(ds_splay_tree_t));
   if (tree == NULL) {
     return NULL;
   }
-  tree->context = context;
+  tree->context = context != NULL ? context : ds_default_context();
   tree->compare_with = compare_with;
   tree->compare_user = compare_user;
-  tree->allocator = allocator;
-  tree->deallocator = deallocator;
+
   tree->compare = compare;
-  tree->nil = (ds_splay_tree_node_t *)DS_OWNER_ALLOCATE(
-      context, allocator, sizeof(ds_splay_tree_node_t));
+  tree->nil = (ds_splay_tree_node_t *)ds_context_alloc(
+      context, sizeof(ds_splay_tree_node_t));
   if (tree->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, tree);
+    ds_context_free(context, tree);
     return NULL;
   }
   tree->nil->left = tree->nil;
@@ -48,11 +38,10 @@ static ds_splay_tree_t *splay_tree_create_internal(
   tree->size = 0;
   return tree;
 }
-ds_splay_tree_t *ds_splay_tree_create_alloc(
-    int (*compare)(ds_splay_tree_node_t *, ds_splay_tree_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  return splay_tree_create_internal(compare, allocator, deallocator, NULL, NULL,
-                                    NULL);
+ds_splay_tree_t *ds_splay_tree_create(int (*compare)(ds_splay_tree_node_t *,
+                                                     ds_splay_tree_node_t *),
+                                      ds_context_t *context) {
+  return splay_tree_create_internal(compare, context, NULL, NULL);
 }
 ds_status_t ds_splay_tree_create_context(ds_splay_tree_compare_fn compare,
                                          void *user, ds_context_t *context,
@@ -64,8 +53,7 @@ ds_status_t ds_splay_tree_create_context(ds_splay_tree_compare_fn compare,
     return DS_ERR_NULL;
 
   *out = splay_tree_create_internal(
-      NULL, malloc, free, context != NULL ? context : ds_default_context(),
-      compare, user);
+      NULL, context != NULL ? context : ds_default_context(), compare, user);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -320,8 +308,8 @@ void ds_splay_tree_inorder_walk(ds_splay_tree_t *tree,
   }
 }
 
-void ds_splay_tree_inorder_walk_tree(ds_splay_tree_t *tree,
-                                     void (*callback)(ds_splay_tree_node_t *)) {
+void ds_splay_tree_inorder_walk_tree(
+    ds_splay_tree_t *tree, void (*callback)(ds_splay_tree_node_t *)) {
   ds_splay_tree_inorder_walk(tree, tree->root, callback);
 }
 
@@ -359,8 +347,8 @@ static void splay_tree_destroy_internal(ds_splay_tree_t *tree,
                                         ds_splay_tree_destroy_fn destroy,
                                         void *user) {
   splay_tree_destroy_all(tree, tree->root, destroy, user);
-  DS_OWNER_FREE(tree, tree->nil);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->nil);
+  ds_context_free(tree->context, tree);
 }
 void ds_splay_tree_destroy_with(ds_splay_tree_t *container,
                                 ds_splay_tree_destroy_fn destroy, void *user) {
@@ -423,9 +411,8 @@ ds_splay_tree_t *ds_splay_tree_clone(
   if (tree == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_tree = splay_tree_create_internal(tree->compare, tree->allocator,
-                                        tree->deallocator, tree->context,
-                                        tree->compare_with, tree->compare_user);
+  new_tree = splay_tree_create_internal(
+      tree->compare, tree->context, tree->compare_with, tree->compare_user);
   if (new_tree != NULL &&
       !splay_tree_clone_all(tree, new_tree, tree->root, clone_node)) {
     ds_splay_tree_destroy(new_tree, NULL); /* the clones are not released */
@@ -446,9 +433,8 @@ ds_status_t ds_splay_tree_clone_ex(
   if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_tree = splay_tree_create_internal(tree->compare, tree->allocator,
-                                        tree->deallocator, tree->context,
-                                        tree->compare_with, tree->compare_user);
+  new_tree = splay_tree_create_internal(
+      tree->compare, tree->context, tree->compare_with, tree->compare_user);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -565,9 +551,8 @@ ds_status_t ds_splay_tree_clone_with(const ds_splay_tree_t *container,
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
   policy.copy = splay_tree_create_internal(
-      container->compare, container->allocator, container->deallocator,
-      context != NULL ? context : container->context, container->compare_with,
-      container->compare_user);
+      container->compare, context != NULL ? context : container->context,
+      container->compare_with, container->compare_user);
   if (policy.copy == NULL)
     return DS_ERR_ALLOC;
   policy.clone = clone;

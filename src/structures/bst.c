@@ -1,27 +1,19 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/bst.h>
 #include <stdlib.h>
 
-ds_bst_t *ds_bst_create(void) { return ds_bst_create_alloc(malloc, free); }
-
-static ds_bst_t *bst_create_internal(void *(*allocator)(size_t),
-                                     void (*deallocator)(void *),
-                                     ds_context_t *context) {
+static ds_bst_t *bst_create_internal(ds_context_t *context) {
   ds_bst_t *tree;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  tree = (ds_bst_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_bst_t));
+
+  tree = (ds_bst_t *)ds_context_alloc(context, sizeof(ds_bst_t));
   if (tree == NULL) {
     return NULL;
   }
-  tree->context = context;
-  tree->allocator = allocator;
-  tree->deallocator = deallocator;
-  tree->nil = (ds_bst_node_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                 sizeof(ds_bst_node_t));
+  tree->context = context != NULL ? context : ds_default_context();
+
+  tree->nil =
+      (ds_bst_node_t *)ds_context_alloc(context, sizeof(ds_bst_node_t));
   if (tree->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, tree);
+    ds_context_free(context, tree);
     return NULL;
   }
   tree->nil->left = tree->nil;
@@ -33,15 +25,13 @@ static ds_bst_t *bst_create_internal(void *(*allocator)(size_t),
   return tree;
 }
 
-ds_bst_t *ds_bst_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
-  return bst_create_internal(allocator, deallocator, NULL);
+ds_bst_t *ds_bst_create(ds_context_t *context) {
+  return bst_create_internal(context);
 }
 ds_status_t ds_bst_create_context(ds_context_t *context, ds_bst_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = bst_create_internal(malloc, free,
-                             context != NULL ? context : ds_default_context());
+  *out = bst_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -93,7 +83,8 @@ void ds_bst_insert(ds_bst_t *tree, ds_bst_node_t *node,
 }
 
 ds_bst_node_t *ds_bst_search(ds_bst_t *tree, ds_bst_node_t *data,
-                             int (*compare)(ds_bst_node_t *, ds_bst_node_t *)) {
+                             int (*compare)(ds_bst_node_t *,
+                                            ds_bst_node_t *)) {
   ds_bst_node_t *current;
   current = tree->root;
   while (current != tree->nil && compare(data, current) != 0) {
@@ -258,9 +249,9 @@ void ds_bst_destroy_recursive(ds_bst_t *tree, ds_bst_node_t *node,
 void ds_bst_destroy_tree(ds_bst_t *tree, void (*destroy)(ds_bst_node_t *)) {
   ds_bst_destroy_recursive(tree, tree->root, destroy);
 
-  DS_OWNER_FREE(tree, tree->nil);
+  ds_context_free(tree->context, tree->nil);
 
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree);
 }
 
 void ds_bst_inorder_walk_helper(ds_bst_t *tree, ds_bst_node_t *node,
@@ -439,8 +430,7 @@ ds_bst_t *ds_bst_clone(ds_bst_t *tree,
   if (tree == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_tree =
-      bst_create_internal(tree->allocator, tree->deallocator, tree->context);
+  new_tree = bst_create_internal(tree->context);
   if (new_tree == NULL) {
     return NULL;
   }
@@ -471,8 +461,7 @@ ds_status_t ds_bst_clone_ex(const ds_bst_t *tree,
   if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_tree =
-      bst_create_internal(tree->allocator, tree->deallocator, tree->context);
+  new_tree = bst_create_internal(tree->context);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -585,8 +574,8 @@ void ds_bst_destroy_with(ds_bst_t *tree, ds_bst_destroy_fn destroy,
       destroy(node, user);
     node = parent;
   }
-  DS_OWNER_FREE(tree, tree->nil);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->nil);
+  ds_context_free(tree->context, tree);
 }
 ds_status_t ds_bst_clone_with(const ds_bst_t *tree, ds_bst_clone_fn clone,
                               ds_bst_destroy_fn destroy, void *user,
@@ -598,8 +587,7 @@ ds_status_t ds_bst_clone_with(const ds_bst_t *tree, ds_bst_clone_fn clone,
   *out = NULL;
   if (tree == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = bst_create_internal(tree->allocator, tree->deallocator,
-                             context != NULL ? context : tree->context);
+  copy = bst_create_internal(context != NULL ? context : tree->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
   policy.direct = NULL;

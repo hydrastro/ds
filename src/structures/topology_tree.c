@@ -50,7 +50,7 @@ ds_status_t ds_topology_tree_init(ds_topology_tree_t *t, size_t vertices,
   t->value_size = value_size;
   t->combine = combine;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   t->free_list = TT_NONE;
   t->dead = TT_NONE;
   t->capacity = 2 * vertices;

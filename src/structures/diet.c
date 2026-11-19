@@ -11,7 +11,7 @@ ds_status_t ds_diet_init(ds_diet_t *d, ds_context_t *context) {
   memset(d, 0, sizeof(*d));
   d->root = DT_NONE;
   d->free_list = DT_NONE;
-  d->context = context;
+  d->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

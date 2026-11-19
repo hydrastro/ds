@@ -44,22 +44,17 @@ typedef struct bplus_tree {
   ds_bplus_tree_node_t *nil;
   size_t size;
   int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *);
-  ds_context_t *context; /* NULL for allocator functions */
+  ds_context_t *context; /* borrowed allocation owner */
   ds_bplus_tree_compare_fn compare_with;
   void *compare_user;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
 } ds_bplus_tree_t;
 
-/* NULL when memory runs out, for an order too large to size the nodes,
- * or without an allocator and a deallocator */
-ds_bplus_tree_t *ds_bplus_tree_create(int order,
+/* NULL on allocation failure, invalid comparison policy or size overflow. */
+
+ds_bplus_tree_t *ds_bplus_tree_create(int order, bool bstar,
                                       int (*compare)(ds_bplus_tree_node_t *,
-                                                     ds_bplus_tree_node_t *));
-ds_bplus_tree_t *ds_bplus_tree_create_alloc(
-    int order, bool bstar,
-    int (*compare)(ds_bplus_tree_node_t *, ds_bplus_tree_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *));
+                                                     ds_bplus_tree_node_t *),
+                                      ds_context_t *context);
 bool ds_bplus_tree_insert(ds_bplus_tree_t *tree, ds_bplus_tree_node_t *data);
 /* DS_OK/new or DS_EXISTS/unchanged duplicate. All split nodes and B* scratch
  * are reserved before modifying the tree, so allocation failure leaves
@@ -138,7 +133,8 @@ ds_status_t ds_bplus_tree_clone_with(const ds_bplus_tree_t *container,
 void ds_bplus_tree_destroy_with(ds_bplus_tree_t *container,
                                 ds_bplus_tree_destroy_fn destroy, void *user);
 
-/* Inclusive range in the configured comparison order; low > high is invalid. */
+/* Inclusive range in the configured comparison order; low > high is invalid.
+ */
 ds_status_t ds_bplus_tree_range_with(ds_bplus_tree_t *tree,
                                      ds_bplus_tree_node_t *low,
                                      ds_bplus_tree_node_t *high,

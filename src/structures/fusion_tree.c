@@ -243,7 +243,7 @@ ds_status_t ds_fusion_init(ds_fusion_tree_t *t, size_t value_size,
   t->root = NULL;
   t->value_size = 0;
   t->value_at = at;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   if (value_size > ((size_t)-1 - at) / (FZ_K + 1)) {
     return DS_ERR_INVALID;
   }

@@ -20,12 +20,8 @@
  * growth); the vector finds a child by address, at the place it answered
  * last, so walking it costs O(1) a step.
  *
- * Memory: a store, and the map or vector inside it, come from where the
- * trie's nodes come from: its context, or its allocator functions. Given
- * functions other than malloc and free, each store carries a context over
- * them (ds_context_use_allocator_functions in allocators.h) in its own
- * block, about 130 bytes more per node on 64-bit systems; a trie given a
- * context instead needs none.
+ * Memory: the store and its nested map or vector use the trie's context.
+ * That context and its user state must outlive the trie and all its copies.
  *
  * Contract notes for anyone writing a store (as these do):
  *   - provide next (trie.h); apply and clone can then be ds_trie_walk and

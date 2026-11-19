@@ -21,6 +21,9 @@ int main(void) {
     goto done;
   printf("%s (%lu bytes); arena used: %lu bytes\n", text->buf,
          (unsigned long)text->len, (unsigned long)ds_arena_used(&arena));
+  if (ds_str_u8_slice_cp(text, text, 1, 2, 0) != 0)
+    goto done;
+  printf("Self-slice: %s\n", text->buf);
   result = 0;
 done:
   ds_str_destroy(text);

@@ -129,7 +129,7 @@ says what remains:
 | pointer-returning constructors (`dsa/structures/order_statistic_tree.h`, `dsa/structures/bitvector.h`, `dsa/structures/wavelet_tree.h`, `dsa/structures/bloom_filter.h`, `dsa/structures/fenwick_tree.h`, `dsa/structures/segment_tree.h`, `dsa/structures/disjoint_set.h`, `dsa/structures/pairing_heap.h`, `dsa/structures/fibonacci_heap.h`, `dsa/structures/radix_trie.h`, `dsa/structures/aho_corasick.h`, `dsa/structures/hamt.h`, `dsa/structures/art.h`, `dsa/structures/rope.h`, `dsa/structures/bitset.h`, `dsa/structures/str.h`) | return NULL when memory runs out, releasing what they took, as do the clones they offer; `ds_bitvector_build_ex` keeps the old rank directory when the new one cannot be allocated |
 | `dsa/structures/hamt.h`, `dsa/structures/art.h`, `dsa/structures/radix_trie.h` | checked insertion prepares every new node, key and layout before publishing; errors preserve keys and values; ART/radix removal may skip optional compression without losing the deletion |
 | `dsa/structures/aho_corasick.h` | checked add constructs a missing path privately; checked compile reserves the BFS queue before replacing failure links; checked searches report compilation failure |
-| `dsa/structures/rope.h` | checked append, insert, delete, concat and rebalance prepare a balanced replacement root; errors preserve both inputs; concat rejects different allocator pairs and self-concat |
+| `dsa/structures/rope.h` | checked append, insert, delete, concat and rebalance prepare a balanced replacement root; errors preserve both inputs; concat rejects incompatible allocation contexts and self-concat |
 | `dsa/core/result.h` | operations stage the payload handle and persistent diagnostic sequence; failure preserves inputs and output; callback side effects are outside this guarantee |
 | `dsa/core/i18n.h` | registration copies storage before replacing an entry; rendering publishes complete output only on success, including when a formatter ignores a writer failure |
 | `dsa/structures/persistent_rbt.h`, `dsa/structures/persistent_trie.h` | every update builds a new version; when memory or a clone is refused it returns NULL with its base unchanged and nothing leaked (also a prefix copy or move that fails partway) |
@@ -216,10 +216,11 @@ the map.
   in its byte length. Split-based edits have a conservative O(log² leaves)
   bound plus copied bytes. Reference counting keeps old paths alive until
   the new root is ready; release follows balanced height.
-- **Result logs.** Copying a version retains a payload owner and RRB root.
-  Same-config binding concatenates RRB logs in O(M log_M n), where M is the
-  configurable branching factor. Different configs import the preceding log
-  into the callback's config; that conversion is not a logarithmic join.
+- **Result logs.** Copying a version retains a payload owner and an immutable
+  log state in O(1). Compatible RRB logs concatenate in O(M log_M n), with
+  branching M. The flat backend copies snapshot handles in O(n + m). Different
+  policies import the right log into the left policy through ordered append.
+  See [Result and i18n](result-i18n.md) for composition and backend contracts.
 - **Priority queues.** Each operation states a worst-case and an amortized
   (or expected) cost class. Algorithms that take a queue inherit those costs:
   the graph-view `*_with` functions say what that means for Dijkstra, Prim
@@ -472,7 +473,7 @@ Payload readers can distinguish a successful NULL value from an error.
 `history_adapters` provides FILE serialization with sticky I/O errors and transfer
 budgets. `fflush` is not a durability barrier; atomic file replacement and fsync
 remain the caller's storage policy. The memory archive also accepts a context,
-checks allocator pairs, exposes sticky status, and safely appends its own data.
+uses allocation contexts, exposes sticky status, and safely appends its own data.
 
 The keyed merge adapter projects semantic keys into a configurable map, supports
 four conflict policies or a resolver callback, and reports partial progress.

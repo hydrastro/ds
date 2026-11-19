@@ -20,9 +20,7 @@ typedef struct heap {
   size_t size;
   size_t capacity;
   ds_heap_node_t *nil;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_heap_t;
 
 void ds_heap_swap(ds_heap_node_t **a, ds_heap_node_t **b);
@@ -31,10 +29,9 @@ void ds_heapify_up(ds_heap_t *heap, size_t index,
 void ds_heapify_down(ds_heap_t *heap, size_t index,
                      int (*compare)(ds_heap_node_t *, ds_heap_node_t *));
 /* NULL when memory runs out, for a capacity whose array cannot be sized,
- * or without an allocator and a deallocator */
-ds_heap_t *ds_heap_create(size_t capacity);
-ds_heap_t *ds_heap_create_alloc(size_t capacity, void *(*allocator)(size_t),
-                                void (*deallocator)(void *));
+ */
+
+ds_heap_t *ds_heap_create(size_t capacity, ds_context_t *context);
 /* Direct insert: when the array cannot grow, the node is not inserted
  * (heap->size is unchanged); insert_ex reports it */
 void ds_heap_insert(ds_heap_t *heap, ds_heap_node_t *node,

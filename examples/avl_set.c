@@ -31,7 +31,7 @@ static entry_t *make_entry(int key) {
 }
 
 int main(void) {
-  ds_avl_t *tree = ds_avl_create();
+  ds_avl_t *tree = ds_avl_create(NULL);
   int keys[7];
   int i;
   entry_t probe;

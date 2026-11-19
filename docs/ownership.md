@@ -97,13 +97,17 @@ pool allocators have stricter behavior than `malloc`:
 Use the default context or a debug allocator when a module requires general
 `realloc` behavior.
 
-Allocator-pair constructors take a pair of allocator functions instead of a context
-(`void *(*)(size_t)` and `void (*)(void *)`, as the bitset, the hash table
-and the trie do). `ds_context_use_allocator_functions` makes a context over
-such a pair, with a size header per block so that it can reallocate; a
-structure built through the pair can hand it to the context-based modules
-inside it. The trie's Robin Hood and sorted-vector stores do this for their
-arrays.
+Every allocating container uses `ds_context_t`. Pass a context to its constructor
+(or configuration), or pass NULL for the default context. The selected context
+is borrowed and must outlive the container, its copies and returned owned buffers.
+Clones retain their source context unless their API explicitly accepts a new
+owner. Nested structures inherit the enclosing structure's context: a wavelet
+tree's bitvectors and a trie's child stores have the same allocation policy.
+
+`ds_context_use_allocator_functions` adapts an external pair of allocation and
+release functions at the application boundary. It adds a size header to support
+allocate/copy/release resizing. The adapter state and context must outlive all
+allocations made through them. Containers themselves only see the context.
 
 ## Allocation failure
 
@@ -149,7 +153,7 @@ ART and radix-trie deletion may keep a larger layout or unary node when
 optional compression cannot allocate. The key is still removed. Rope edits
 share immutable AVL subtrees while preparing a replacement root; a failed edit
 leaves the old root intact. The rope's public node fields are read-only, and
-concatenation requires matching allocator/deallocator functions.
+concatenation requires compatible contexts (`ds_context_compatible`).
 
 **Allocator capability limits are not memory exhaustion.** A fixed pool
 running out of blocks and an arena refusing to `realloc` an existing
@@ -195,6 +199,8 @@ previous one as soon as the next is produced.
 Normalization, case folding and case mapping allocate their temporary code-point
 sequences through the destination string's allocation owner. Growth checks size
 overflow and uses allocate/copy/release, so an allocator without realloc can
-serve these operations. An arena retains released blocks until reset; budget
+serve these operations. Sanitization uses the destination context; folded
+search uses the searched string's context for both temporary strings.
+Self-slicing uses overlapping assignment without a temporary allocation. An arena retains released blocks until reset; budget
 for intermediate buffers as well as the final text. See
 [arena_text.c](../examples/arena_text.c).

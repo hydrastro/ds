@@ -83,7 +83,7 @@ ds_status_t ds_result_value_take(ds_result_value_t *out, void *data,
     return DS_ERR_ALLOC;
   o->refs = 1;
   o->data = data;
-  o->context = context;
+  o->context = context != NULL ? context : ds_default_context();
   o->destroy = destroy;
   o->user = user;
   ds_result_value_release(out);
@@ -120,7 +120,7 @@ ds_status_t ds_result_value_from_schema(ds_result_value_t *out,
     return st;
   }
   o->refs = 1;
-  o->context = context;
+  o->context = context != NULL ? context : ds_default_context();
   o->schema = *schema;
   o->uses_schema = true;
   ds_result_value_release(out);
@@ -129,32 +129,9 @@ ds_status_t ds_result_value_from_schema(ds_result_value_t *out,
   return DS_OK;
 }
 
-static bool result_diag_copy(void *dst, const void *src, void *user) {
-  ds_diagnostic_snapshot_t *s;
-  (void)user;
-  memcpy(&s, src, sizeof(s));
-  if (ds_diagnostic_snapshot_retain(s) != DS_OK)
-    return false;
-  memcpy(dst, &s, sizeof(s));
-  return true;
-}
-
-static void result_diag_destroy(void *elem, void *user) {
-  ds_diagnostic_snapshot_t *s;
-  (void)user;
-  memcpy(&s, elem, sizeof(s));
-  ds_diagnostic_snapshot_release(s);
-}
-
-static const ds_result_config_t result_default = {
-    {sizeof(ds_diagnostic_snapshot_t *), 5, result_diag_copy,
-     result_diag_destroy, NULL, NULL}};
-
 void ds_result_config_init(ds_result_config_t *config, ds_context_t *context) {
-  if (config == NULL)
-    return;
-  *config = result_default;
-  config->diagnostics.context = context;
+  if (config != NULL)
+    ds_diagnostic_log_config_init(&config->diagnostics, context);
 }
 
 void ds_result_init(ds_result_t *r) {
@@ -166,8 +143,7 @@ void ds_result_destroy(ds_result_t *r) {
   if (r == NULL)
     return;
   ds_result_value_release(&r->payload);
-  if (r->diagnostics.config != NULL)
-    ds_rrb_release(&r->diagnostics);
+  ds_diagnostic_log_destroy(&r->diagnostics);
   ds_result_init(r);
 }
 
@@ -192,20 +168,21 @@ ds_status_t ds_result_copy(const ds_result_t *src, ds_result_t *out) {
     return DS_ERR_STATE;
   if (src == out)
     return DS_OK;
-  if (src->diagnostics.root != NULL &&
-      src->diagnostics.root->refs == (size_t)-1)
-    return DS_ERR_OVERFLOW;
   ds_result_init(&temp);
   st = ds_result_value_copy(&src->payload, &temp.payload);
   if (st != DS_OK)
     return st;
-  ds_rrb_copy(&src->diagnostics, &temp.diagnostics);
-  temp.state = src->state;
-  ds_result_move(&temp, out);
-  return DS_OK;
+  st = ds_diagnostic_log_copy(&src->diagnostics, &temp.diagnostics);
+  if (st == DS_OK) {
+    temp.state = src->state;
+    ds_result_move(&temp, out);
+  }
+  ds_result_destroy(&temp);
+  return st;
 }
 
-static ds_status_t result_append(ds_rrb_t *log, const ds_diagnostics_t *more) {
+static ds_status_t result_append(ds_diagnostic_log_t *log,
+                                 const ds_diagnostics_t *more) {
   size_t i;
   ds_status_t st = DS_OK;
   if (more == NULL)
@@ -213,7 +190,7 @@ static ds_status_t result_append(ds_rrb_t *log, const ds_diagnostics_t *more) {
   if (more->status != DS_OK)
     return more->status;
   for (i = 0; i < more->size && st == DS_OK; i++)
-    st = ds_rrb_push_back(log, &more->snapshots[i], log);
+    st = ds_diagnostic_log_append(log, more->snapshots[i], log);
   return st;
 }
 
@@ -225,14 +202,9 @@ static ds_status_t result_make(ds_result_t *out, ds_result_state_t state,
   ds_status_t st;
   if (out == NULL || value == NULL)
     return DS_ERR_NULL;
-  if (config == NULL)
-    config = &result_default;
-  if (config->diagnostics.elem_size != sizeof(ds_diagnostic_snapshot_t *) ||
-      config->diagnostics.copy_elem != result_diag_copy ||
-      config->diagnostics.destroy_elem != result_diag_destroy)
-    return DS_ERR_INVALID;
   ds_result_init(&temp);
-  st = ds_rrb_init(&temp.diagnostics, &config->diagnostics);
+  st = ds_diagnostic_log_init(&temp.diagnostics,
+                              config != NULL ? &config->diagnostics : NULL);
   if (st == DS_OK)
     st = ds_result_value_copy(value, &temp.payload);
   if (st == DS_OK)
@@ -305,20 +277,12 @@ const void *ds_result_value_or(const ds_result_t *r, const void *fallback) {
 }
 
 size_t ds_result_diagnostic_count(const ds_result_t *r) {
-  return result_valid(r) ? ds_rrb_size(&r->diagnostics) : 0;
+  return result_valid(r) ? ds_diagnostic_log_count(&r->diagnostics) : 0;
 }
 
 const ds_diagnostic_t *ds_result_diagnostic_at(const ds_result_t *r,
                                                size_t index) {
-  const void *p;
-  ds_diagnostic_snapshot_t *s;
-  if (!result_valid(r))
-    return NULL;
-  p = ds_rrb_get(&r->diagnostics, index);
-  if (p == NULL)
-    return NULL;
-  memcpy(&s, p, sizeof(s));
-  return ds_diagnostic_snapshot_get(s);
+  return result_valid(r) ? ds_diagnostic_log_at(&r->diagnostics, index) : NULL;
 }
 
 ds_status_t ds_result_with_diagnostics(const ds_result_t *src,
@@ -382,7 +346,7 @@ static ds_status_t result_bind(const ds_result_t *src, ds_result_bind_fn f,
                                void *user, ds_result_t *out,
                                ds_result_state_t branch) {
   ds_result_t next;
-  ds_rrb_t joined;
+  ds_diagnostic_log_t joined;
   ds_status_t st;
   if (src == NULL || out == NULL || f == NULL)
     return DS_ERR_NULL;
@@ -395,28 +359,16 @@ static ds_status_t result_bind(const ds_result_t *src, ds_result_bind_fn f,
   st = f(&src->payload, user, &next);
   if (st > DS_OK || (st == DS_OK && !result_valid(&next)))
     st = DS_ERR_CALLBACK;
-  if (st == DS_OK && src->diagnostics.config == next.diagnostics.config) {
-    st = ds_rrb_concat(&src->diagnostics, &next.diagnostics, &joined);
-  } else if (st == DS_OK) {
-    ds_rrb_iter_t it;
-    const void *item;
-    /* Different allocator/branching configs cannot share RRB inner nodes.
-     * Snapshot records still share their own immutable allocations. */
-    st = ds_rrb_init(&joined, next.diagnostics.config);
-    ds_rrb_iter_init(&it, &src->diagnostics, 0);
-    while (st == DS_OK && (item = ds_rrb_iter_next(&it)) != NULL)
-      st = ds_rrb_push_back(&joined, item, &joined);
-    if (st == DS_OK)
-      st = ds_rrb_concat(&joined, &next.diagnostics, &joined);
-  }
+  if (st == DS_OK)
+    st = ds_diagnostic_log_concat(&src->diagnostics, &next.diagnostics,
+                                  &joined);
   if (st == DS_OK) {
-    ds_rrb_release(&next.diagnostics);
+    ds_diagnostic_log_destroy(&next.diagnostics);
     next.diagnostics = joined;
     memset(&joined, 0, sizeof(joined));
     ds_result_move(&next, out);
   }
-  if (joined.config != NULL)
-    ds_rrb_release(&joined);
+  ds_diagnostic_log_destroy(&joined);
   ds_result_destroy(&next);
   return st;
 }
@@ -431,15 +383,53 @@ ds_status_t ds_result_or_else(const ds_result_t *src, ds_result_bind_fn f,
   return result_bind(src, f, user, out, DS_RESULT_ERR);
 }
 
-void ds_result_drain_to(const ds_result_t *r, ds_diagnostic_sink_t *sink) {
-  ds_rrb_iter_t it;
-  const void *item;
-  if (!result_valid(r) || sink == NULL)
-    return;
-  ds_rrb_iter_init(&it, &r->diagnostics, 0);
-  while ((item = ds_rrb_iter_next(&it)) != NULL) {
-    ds_diagnostic_snapshot_t *s;
-    memcpy(&s, item, sizeof(s));
-    ds_diagnostic_sink_emit(sink, ds_diagnostic_snapshot_get(s));
+ds_status_t ds_result_zip(const ds_result_t *left, const ds_result_t *right,
+                          ds_result_combine_fn combine_ok,
+                          ds_result_combine_fn combine_error, void *user,
+                          ds_result_t *out) {
+  ds_result_t temp;
+  ds_result_combine_fn combine;
+  ds_status_t st;
+  if (left == NULL || right == NULL || out == NULL)
+    return DS_ERR_NULL;
+  if (!result_valid(left) || !result_valid(right))
+    return DS_ERR_STATE;
+  combine = left->state == DS_RESULT_OK ? combine_ok : combine_error;
+  if (left->state == right->state && combine == NULL)
+    return DS_ERR_NULL;
+  ds_result_init(&temp);
+  st = ds_diagnostic_log_concat(&left->diagnostics, &right->diagnostics,
+                                &temp.diagnostics);
+  if (st == DS_OK) {
+    if (left->state == right->state) {
+      temp.state = left->state;
+      st = combine(&left->payload, &right->payload, user, &temp.payload);
+      if (st > DS_OK)
+        st = DS_ERR_CALLBACK;
+    } else {
+      temp.state = DS_RESULT_ERR;
+      st = ds_result_value_copy(left->state == DS_RESULT_ERR ? &left->payload
+                                                             : &right->payload,
+                                &temp.payload);
+    }
   }
+  if (st == DS_OK)
+    ds_result_move(&temp, out);
+  ds_result_destroy(&temp);
+  return st;
+}
+
+static ds_status_t result_emit(ds_diagnostic_snapshot_t *snapshot,
+                               void *user) {
+  ds_diagnostic_sink_emit((ds_diagnostic_sink_t *)user,
+                          ds_diagnostic_snapshot_get(snapshot));
+  return DS_OK;
+}
+ds_status_t ds_result_drain_to(const ds_result_t *r,
+                               ds_diagnostic_sink_t *sink) {
+  if (r == NULL || sink == NULL)
+    return DS_ERR_NULL;
+  if (!result_valid(r))
+    return DS_ERR_STATE;
+  return ds_diagnostic_log_walk(&r->diagnostics, result_emit, sink);
 }

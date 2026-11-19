@@ -181,7 +181,7 @@ ds_status_t ds_suffix_automaton_init(ds_suffix_automaton_t *sa,
     return DS_ERR_NULL;
   }
   memset(sa, 0, sizeof(*sa));
-  sa->context = context;
+  sa->context = context != NULL ? context : ds_default_context();
   sa->last = 0;
   return sam_new_state(sa, 0, SAM_NONE, 0, &root);
 }
@@ -484,7 +484,7 @@ ds_status_t ds_cdawg_build(ds_cdawg_t *cd, const ds_suffix_automaton_t *sa,
   memset(cd, 0, sizeof(*cd));
   cd->text = text;
   cd->length = n;
-  cd->context = context;
+  cd->context = context != NULL ? context : ds_default_context();
   node_of =
       (size_t *)sam_realloc(context, NULL, 2 * sa->states, sizeof(size_t));
   final = (unsigned char *)ds_context_calloc(context, sa->states + 1, 1);

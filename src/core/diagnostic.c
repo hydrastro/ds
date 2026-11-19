@@ -91,7 +91,6 @@ struct ds_diagnostic_snapshot {
   ds_diagnostic_t diagnostic;
   size_t refs;
   ds_context_t *context;
-  void (*deallocator)(void *);
 };
 
 static bool diag_string_size(const char *s, size_t *size) {
@@ -116,9 +115,7 @@ static const char *diag_string_copy(const char *s, char **cursor) {
 
 static ds_status_t diag_snapshot(ds_diagnostic_snapshot_t **out,
                                  const ds_diagnostic_t *d,
-                                 ds_context_t *context,
-                                 void *(*allocator)(size_t),
-                                 void (*deallocator)(void *)) {
+                                 ds_context_t *context) {
   ds_diagnostic_snapshot_t *s;
   ds_diagnostic_arg_t *args;
   size_t head, bytes, strings = 0, i;
@@ -146,14 +143,12 @@ static ds_status_t diag_snapshot(ds_diagnostic_snapshot_t **out,
   }
   if (!ds_size_add(bytes, strings, &bytes))
     return DS_ERR_OVERFLOW;
-  s = (ds_diagnostic_snapshot_t *)(allocator != NULL
-                                       ? allocator(bytes)
-                                       : ds_context_alloc(context, bytes));
+  s = (ds_diagnostic_snapshot_t *)ds_context_alloc(context, bytes);
   if (s == NULL)
     return DS_ERR_ALLOC;
   s->refs = 1;
-  s->context = context;
-  s->deallocator = deallocator;
+  s->context = context != NULL ? context : ds_default_context();
+
   s->diagnostic = *d;
   args = (ds_diagnostic_arg_t *)(void *)((unsigned char *)s + head);
   cursor = (char *)(void *)(args + d->arg_count);
@@ -176,15 +171,7 @@ static ds_status_t diag_snapshot(ds_diagnostic_snapshot_t **out,
 ds_status_t ds_diagnostic_snapshot_create(ds_diagnostic_snapshot_t **out,
                                           const ds_diagnostic_t *diagnostic,
                                           ds_context_t *context) {
-  return diag_snapshot(out, diagnostic, context, NULL, NULL);
-}
-
-ds_status_t ds_diagnostic_snapshot_create_alloc(
-    ds_diagnostic_snapshot_t **out, const ds_diagnostic_t *diagnostic,
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
-  if (allocator == NULL || deallocator == NULL)
-    return DS_ERR_NULL;
-  return diag_snapshot(out, diagnostic, NULL, allocator, deallocator);
+  return diag_snapshot(out, diagnostic, context);
 }
 
 ds_status_t ds_diagnostic_snapshot_retain(ds_diagnostic_snapshot_t *s) {
@@ -197,12 +184,8 @@ ds_status_t ds_diagnostic_snapshot_retain(ds_diagnostic_snapshot_t *s) {
 }
 
 void ds_diagnostic_snapshot_release(ds_diagnostic_snapshot_t *s) {
-  if (s != NULL && --s->refs == 0) {
-    if (s->deallocator != NULL)
-      s->deallocator(s);
-    else
-      ds_context_free(s->context, s);
-  }
+  if (s != NULL && --s->refs == 0)
+    ds_context_free(s->context, s);
 }
 
 const ds_diagnostic_t *
@@ -211,16 +194,14 @@ ds_diagnostic_snapshot_get(const ds_diagnostic_snapshot_t *s) {
 }
 
 static void *diag_alloc(ds_diagnostics_t *d, size_t n) {
-  return d->use_context ? ds_context_alloc(d->context, n) : d->allocator(n);
+  return ds_context_alloc(d->context, n);
 }
 
 static void diag_free(ds_diagnostics_t *d, void *p) {
   if (p == NULL)
     return;
-  if (d->use_context)
-    ds_context_free(d->context, p);
-  else
-    d->deallocator(p);
+
+  ds_context_free(d->context, p);
 }
 
 void ds_diagnostics_init_context(ds_diagnostics_t *d, ds_context_t *context) {
@@ -228,29 +209,13 @@ void ds_diagnostics_init_context(ds_diagnostics_t *d, ds_context_t *context) {
     return;
   memset(d, 0, sizeof(*d));
   d->context = context != NULL ? context : ds_default_context();
-  d->use_context = true;
+
   d->sink.emit = diagnostics_collector_emit;
   d->sink.user = d;
 }
 
 void ds_diagnostics_init(ds_diagnostics_t *d) {
   ds_diagnostics_init_context(d, NULL);
-}
-
-void ds_diagnostics_init_alloc(ds_diagnostics_t *d, void *(*allocator)(size_t),
-                               void (*deallocator)(void *)) {
-  ds_diagnostics_init_context(d, NULL);
-  if (d == NULL)
-    return;
-  if ((allocator == NULL) != (deallocator == NULL)) {
-    d->status = DS_ERR_INVALID;
-    return;
-  }
-  if (allocator != NULL) {
-    d->use_context = false;
-    d->allocator = allocator;
-    d->deallocator = deallocator;
-  }
 }
 
 void ds_diagnostics_clear(ds_diagnostics_t *d) {
@@ -322,9 +287,7 @@ ds_status_t ds_diagnostics_add(ds_diagnostics_t *d,
     return DS_ERR_NULL;
   if (d->size == (size_t)-1)
     return DS_ERR_OVERFLOW;
-  st = d->use_context ? ds_diagnostic_snapshot_create(&s, item, d->context)
-                      : ds_diagnostic_snapshot_create_alloc(
-                            &s, item, d->allocator, d->deallocator);
+  st = ds_diagnostic_snapshot_create(&s, item, d->context);
   if (st != DS_OK)
     return st;
   st = diag_reserve(d, d->size + 1);
@@ -369,7 +332,8 @@ ds_status_t ds_diagnostics_append(ds_diagnostics_t *d,
 }
 
 ds_status_t ds_diagnostics_filter(const ds_diagnostics_t *source,
-                                  bool (*keep)(const ds_diagnostic_t *, void *),
+                                  bool (*keep)(const ds_diagnostic_t *,
+                                               void *),
                                   void *user, ds_diagnostics_t *out) {
   ds_diagnostics_t temp;
   ds_status_t st = DS_OK;
@@ -378,10 +342,8 @@ ds_status_t ds_diagnostics_filter(const ds_diagnostics_t *source,
     return DS_ERR_NULL;
   if (source->status != DS_OK)
     return source->status;
-  if (out->use_context)
-    ds_diagnostics_init_context(&temp, out->context);
-  else
-    ds_diagnostics_init_alloc(&temp, out->allocator, out->deallocator);
+
+  ds_diagnostics_init_context(&temp, out->context);
   for (i = 0; i < source->size; i++) {
     if (keep(&source->items[i], user)) {
       ds_diagnostic_snapshot_t *snapshot = source->snapshots[i];

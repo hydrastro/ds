@@ -35,7 +35,7 @@ ds_status_t ds_enfilade_init(ds_enfilade_t *e, size_t elem_size,
   e->free_list = EN_NONE;
   e->elem_size = elem_size;
   e->seed = 1234567UL;
-  e->context = context;
+  e->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

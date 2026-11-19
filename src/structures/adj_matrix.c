@@ -18,7 +18,7 @@ ds_status_t ds_adj_matrix_init(ds_adj_matrix_t *m, size_t n, bool directed,
   }
   m->n = n;
   m->directed = directed;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   if (cells == 0) {
     cells = 1;
   }

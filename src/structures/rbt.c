@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/rbt.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -13,26 +12,19 @@ void ds_rbt_set_parent_color(ds_rbt_node_t *node, ds_rbt_node_t *parent,
   node->parent_color = (unsigned long)parent + (long unsigned int)color;
 }
 
-ds_rbt_t *ds_rbt_create(void) { return ds_rbt_create_alloc(malloc, free); }
-
-static ds_rbt_t *rbt_create_internal(void *(*allocator)(size_t),
-                                     void (*deallocator)(void *),
-                                     ds_context_t *context) {
+static ds_rbt_t *rbt_create_internal(ds_context_t *context) {
   ds_rbt_t *tree;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  tree = (ds_rbt_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_rbt_t));
+
+  tree = (ds_rbt_t *)ds_context_alloc(context, sizeof(ds_rbt_t));
   if (tree == NULL) {
     return NULL;
   }
-  tree->context = context;
-  tree->allocator = allocator;
-  tree->deallocator = deallocator;
-  tree->nil = (ds_rbt_node_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                 sizeof(ds_rbt_node_t));
+  tree->context = context != NULL ? context : ds_default_context();
+
+  tree->nil =
+      (ds_rbt_node_t *)ds_context_alloc(context, sizeof(ds_rbt_node_t));
   if (tree->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, tree);
+    ds_context_free(context, tree);
     return NULL;
   }
   tree->nil->parent_color = RBT_BLACK;
@@ -45,15 +37,13 @@ static ds_rbt_t *rbt_create_internal(void *(*allocator)(size_t),
   return tree;
 }
 
-ds_rbt_t *ds_rbt_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *)) {
-  return rbt_create_internal(allocator, deallocator, NULL);
+ds_rbt_t *ds_rbt_create(ds_context_t *context) {
+  return rbt_create_internal(context);
 }
 ds_status_t ds_rbt_create_context(ds_context_t *context, ds_rbt_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = rbt_create_internal(malloc, free,
-                             context != NULL ? context : ds_default_context());
+  *out = rbt_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -97,9 +87,9 @@ ds_rbt_node_t *ds_rbt_predecessor(ds_rbt_t *tree, ds_rbt_node_t *node_x) {
   return node_y;
 }
 
-ds_rbt_node_t *ds_rbt_search(ds_rbt_t *tree, ds_rbt_node_t *node_x,
-                             ds_rbt_node_t *data,
-                             int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
+ds_rbt_node_t *
+ds_rbt_search(ds_rbt_t *tree, ds_rbt_node_t *node_x, ds_rbt_node_t *data,
+              int (*compare)(ds_rbt_node_t *, ds_rbt_node_t *)) {
   int cmp;
   while (node_x != tree->nil) {
     cmp = compare(data, node_x);
@@ -216,7 +206,8 @@ void ds_rbt_insert_fixup(ds_rbt_t *tree, ds_rbt_node_t *node_z) {
       }
     } else {
       ds_rbt_node_t *node_y;
-      node_y = RBT_GET_PARENT_FROM_NODE(RBT_GET_PARENT_FROM_NODE(node_z))->left;
+      node_y =
+          RBT_GET_PARENT_FROM_NODE(RBT_GET_PARENT_FROM_NODE(node_z))->left;
       if (RBT_IS_RED_FROM_NODE(node_y)) {
         RBT_SET_BLACK_FROM_NODE(RBT_GET_PARENT_FROM_NODE(node_z));
         RBT_SET_BLACK_FROM_NODE(node_y);
@@ -476,8 +467,8 @@ void ds_rbt_destroy_recursive(ds_rbt_t *tree, ds_rbt_node_t *node,
 
 void ds_rbt_destroy_tree(ds_rbt_t *tree, void (*destroy)(ds_rbt_node_t *)) {
   ds_rbt_destroy_recursive(tree, tree->root, destroy);
-  DS_OWNER_FREE(tree, tree->nil);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->nil);
+  ds_context_free(tree->context, tree);
 }
 
 /* a copy of the subtree at node, colors included, whose root has
@@ -563,8 +554,7 @@ ds_rbt_t *ds_rbt_clone(ds_rbt_t *tree,
   if (tree == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_tree =
-      rbt_create_internal(tree->allocator, tree->deallocator, tree->context);
+  new_tree = rbt_create_internal(tree->context);
   if (new_tree == NULL) {
     return NULL;
   }
@@ -595,8 +585,7 @@ ds_status_t ds_rbt_clone_ex(const ds_rbt_t *tree,
   if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_tree =
-      rbt_create_internal(tree->allocator, tree->deallocator, tree->context);
+  new_tree = rbt_create_internal(tree->context);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -709,8 +698,8 @@ void ds_rbt_destroy_with(ds_rbt_t *tree, ds_rbt_destroy_fn destroy,
       destroy(node, user);
     node = parent;
   }
-  DS_OWNER_FREE(tree, tree->nil);
-  DS_OWNER_FREE(tree, tree);
+  ds_context_free(tree->context, tree->nil);
+  ds_context_free(tree->context, tree);
 }
 ds_status_t ds_rbt_clone_with(const ds_rbt_t *tree, ds_rbt_clone_fn clone,
                               ds_rbt_destroy_fn destroy, void *user,
@@ -722,8 +711,7 @@ ds_status_t ds_rbt_clone_with(const ds_rbt_t *tree, ds_rbt_clone_fn clone,
   *out = NULL;
   if (tree == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = rbt_create_internal(tree->allocator, tree->deallocator,
-                             context != NULL ? context : tree->context);
+  copy = rbt_create_internal(context != NULL ? context : tree->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
   policy.direct = NULL;

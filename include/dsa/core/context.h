@@ -22,7 +22,8 @@ extern "C" {
  * DS_CONTEXT_NO_LAST_ERROR so the context is never written by error
  * reporting (statuses are still returned and diagnostics still emitted).
  * The allocator functions themselves must be safe for however the
- * context is shared.
+ * context is shared. Keep allocation callbacks, their user state and resource
+ * traits unchanged while allocations using them remain live.
  */
 #define DS_CONTEXT_NO_LAST_ERROR 0x1u
 
@@ -40,7 +41,7 @@ extern "C" {
 #define DS_RESOURCE_FALLIBLE 0x4u     /* may return NULL */
 #define DS_RESOURCE_BOUNDED 0x8u      /* fixed total capacity */
 #define DS_RESOURCE_FIXED_BLOCK 0x10u /* one block size only */
-#define DS_RESOURCE_HEAP                                                       \
+#define DS_RESOURCE_HEAP                                                      \
   (DS_RESOURCE_REALLOC | DS_RESOURCE_FREE | DS_RESOURCE_FALLIBLE)
 
 typedef struct ds_context {
@@ -92,16 +93,16 @@ void ds_context_emit_diagnostic(ds_context_t *context,
                                 size_t arg_count, const char *file,
                                 unsigned long line, const char *function);
 
-#define DS_CONTEXT_ERROR(ctx, status, id, module, message)                     \
-  ds_context_set_error((ctx), (status), (id), (module), (message), __FILE__,   \
+#define DS_CONTEXT_ERROR(ctx, status, id, module, message)                    \
+  ds_context_set_error((ctx), (status), (id), (module), (message), __FILE__,  \
                        (unsigned long)__LINE__, DS_FUNCTION)
 
-#define DS_CONTEXT_ERROR_DESC(ctx, desc)                                       \
-  ds_context_set_error_desc((ctx), (desc), __FILE__, (unsigned long)__LINE__,  \
+#define DS_CONTEXT_ERROR_DESC(ctx, desc)                                      \
+  ds_context_set_error_desc((ctx), (desc), __FILE__, (unsigned long)__LINE__, \
                             DS_FUNCTION)
 
-#define DS_CONTEXT_DIAG(ctx, desc, args, arg_count)                            \
-  ds_context_emit_diagnostic((ctx), (desc), (args), (arg_count), __FILE__,     \
+#define DS_CONTEXT_DIAG(ctx, desc, args, arg_count)                           \
+  ds_context_emit_diagnostic((ctx), (desc), (args), (arg_count), __FILE__,    \
                              (unsigned long)__LINE__, DS_FUNCTION)
 
 #ifdef __cplusplus

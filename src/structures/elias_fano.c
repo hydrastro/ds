@@ -287,7 +287,7 @@ ds_status_t ds_elias_fano_build(ds_elias_fano_t *ef,
   ef->n = n;
   ef->universe = universe;
   ef->low_bits = l;
-  ef->context = context;
+  ef->context = context != NULL ? context : ds_default_context();
   ef->high_bits = n + (size_t)(universe >> l) + 1;
   words = ef->high_bits / EF_W + 2;
   ef->high =

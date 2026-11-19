@@ -102,7 +102,7 @@ ds_status_t ds_xfast_init(ds_xfast_t *t, unsigned bits, size_t value_size,
   t->bits = bits;
   t->value_size = value_size;
   t->leaf_size = xf_round(sizeof(xf_leaf_t)) + value_size;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   for (l = 0; l <= bits && st == DS_OK; l++) {
     st = ds_map_init(&t->levels[l], ops, sizeof(unsigned long),
                      l == bits ? t->leaf_size : sizeof(xf_node_t),

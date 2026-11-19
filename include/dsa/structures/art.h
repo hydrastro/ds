@@ -14,8 +14,8 @@ extern "C" {
 /*
  * Adaptive Radix Tree (ART): a space-efficient radix tree mapping byte-string
  * keys to void* values. Its defining trick is adaptive node sizing: each inner
- * node is one of four layouts -- Node4, Node16, Node48, Node256 -- and grows or
- * shrinks with hysteresis as its child count changes, so sparse nodes stay
+ * node is one of four layouts -- Node4, Node16, Node48, Node256 -- and grows
+ * or shrinks with hysteresis as its child count changes, so sparse nodes stay
  * small while dense nodes stay O(1) to index. Path compression
  * collapses chains of single-child nodes. This is a portable scalar
  * implementation (no SIMD). Keys are arbitrary byte strings, including empty
@@ -27,15 +27,13 @@ extern "C" {
 
 typedef struct art ds_art_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_art_create_context(ds_context_t *context, ds_art_t **out);
 
-ds_art_t *ds_art_create(void);
-ds_art_t *ds_art_create_alloc(void *(*allocator)(size_t),
-                              void (*deallocator)(void *));
+ds_art_t *ds_art_create(ds_context_t *context);
 /* DS_OK for a new key, DS_EXISTS for an update. Errors leave the tree and
  * borrowed values unchanged; every allocation precedes the commit. */
 ds_status_t ds_art_insert_ex(ds_art_t *art, const unsigned char *key,
@@ -69,7 +67,8 @@ ds_status_t ds_art_find_ex(ds_art_t *tree, const unsigned char *key,
 /* Stops on the visitor's first non-DS_OK status. Visits already performed are
  * not rolled back; borrowed key/value views may not be retained or mutated.
  * Radix traversal also reports allocation/overflow failures in its scratch. */
-ds_status_t ds_art_walk_with(ds_art_t *tree, ds_art_visit_fn visit, void *user);
+ds_status_t ds_art_walk_with(ds_art_t *tree, ds_art_visit_fn visit,
+                             void *user);
 /* Optional destroy receives each stored value and the supplied user data;
  * it must not inspect/traverse/mutate this container during destruction. */
 void ds_art_destroy_with(ds_art_t *tree, void (*destroy)(void *, void *),

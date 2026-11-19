@@ -15,8 +15,7 @@ static ds_trie_t *trie_create_internal(
                         va_list *),
     void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
                          void *(*clone_data)(void *)),
-    ds_trie_next_fn store_next, void *(*allocator)(size_t),
-    void (*deallocator)(void *), ds_context_t *context);
+    ds_trie_next_fn store_next, ds_context_t *context);
 
 static int trie_hash_table_compare_slice(void *a, void *b) {
   size_t slice_a;
@@ -247,19 +246,14 @@ void *ds_trie_alloc(ds_trie_t *trie, size_t size) {
   if (trie == NULL) {
     return NULL;
   }
-  return trie->use_context ? ds_context_alloc(trie->context, size)
-                           : trie->allocator(size);
+  return ds_context_alloc(trie->context, size);
 }
 
 void ds_trie_free(ds_trie_t *trie, void *ptr) {
   if (trie == NULL || ptr == NULL) {
     return;
   }
-  if (trie->use_context) {
-    ds_context_free(trie->context, ptr);
-  } else {
-    trie->deallocator(ptr);
-  }
+  ds_context_free(trie->context, ptr);
 }
 
 ds_trie_node_t *ds_trie_create_node(ds_trie_t *trie) {
@@ -280,18 +274,6 @@ ds_trie_node_t *ds_trie_create_node(ds_trie_t *trie) {
   return node;
 }
 
-ds_trie_t *ds_trie_create_hash_alloc(size_t num_splits,
-                                     void *(*allocator)(size_t),
-                                     void (*deallocator)(void *)) {
-  return ds_trie_create_alloc(
-      num_splits, ds_trie_hash_table_store_search,
-      ds_trie_hash_table_store_create, ds_trie_hash_table_store_insert,
-      ds_trie_hash_table_store_remove, ds_trie_hash_table_store_destroy_entry,
-      ds_trie_hash_table_store_destroy, ds_trie_hash_table_store_get_size,
-      ds_trie_hash_table_store_apply, ds_trie_hash_table_store_clone, allocator,
-      deallocator);
-}
-
 ds_trie_node_t *ds_trie_hash_table_store_search(void *store, size_t slice) {
   ds_hash_table_t *table;
   ds_trie_node_t *result;
@@ -306,15 +288,11 @@ ds_trie_node_t *ds_trie_hash_table_store_search(void *store, size_t slice) {
 }
 
 void *ds_trie_hash_table_store_create(ds_trie_t *trie, size_t size) {
-  if (trie->use_context) {
-    ds_hash_table_config_t config;
-    ds_hash_table_config_init(&config);
-    config.capacity = size;
-    config.context = trie->context;
-    return (void *)ds_hash_table_create_config(&config);
-  }
-  return (void *)ds_hash_table_create_alloc(size, HASH_CHAINING, NULL,
-                                            trie->allocator, trie->deallocator);
+  ds_hash_table_config_t config;
+  ds_hash_table_config_init(&config);
+  config.capacity = size;
+  config.context = trie->context;
+  return (void *)ds_hash_table_create_config(&config);
 }
 
 void ds_trie_hash_table_store_insert(void *store, ds_trie_node_t *node) {
@@ -329,7 +307,8 @@ void ds_trie_hash_table_store_remove(void *store, ds_trie_node_t *node) {
   ds_trie_hash_table_store_destroy_entry(store, node);
 }
 
-void ds_trie_hash_table_store_destroy_entry(void *store, ds_trie_node_t *node) {
+void ds_trie_hash_table_store_destroy_entry(void *store,
+                                            ds_trie_node_t *node) {
   ds_hash_table_t *table;
   table = (ds_hash_table_t *)store;
   ds_hash_table_remove_with(table, (void *)node->data_slice,
@@ -403,26 +382,8 @@ ds_trie_t *ds_trie_create(
                         void (*)(struct trie *, ds_trie_node_t *, va_list *),
                         va_list *),
     void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
-                         void *(*clone_data)(void *))) {
-  return ds_trie_create_alloc(num_splits, store_search, store_create,
-                              store_insert, store_remove, store_destroy_entry,
-                              store_destroy, store_get_size, store_apply,
-                              store_clone, malloc, free);
-}
-
-ds_trie_t *ds_trie_create_alloc(
-    size_t num_splits, ds_trie_node_t *(*store_search)(void *, size_t),
-    void *(*store_create)(struct trie *, size_t),
-    void (*store_insert)(void *, ds_trie_node_t *),
-    void (*store_remove)(void *, ds_trie_node_t *),
-    void (*store_destroy_entry)(void *, ds_trie_node_t *),
-    void (*store_destroy)(void *), size_t (*store_get_size)(void *),
-    void (*store_apply)(struct trie *, void *,
-                        void (*)(struct trie *, ds_trie_node_t *, va_list *),
-                        va_list *),
-    void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
                          void *(*clone_data)(void *)),
-    void *(*allocator)(size_t), void (*deallocator)(void *)) {
+    ds_context_t *context) {
   /* the built-in hash store has a next operation */
   ds_trie_next_fn next =
       store_search == ds_trie_hash_table_store_search &&
@@ -434,7 +395,7 @@ ds_trie_t *ds_trie_create_alloc(
   return trie_create_internal(num_splits, store_search, store_create,
                               store_insert, store_remove, store_destroy_entry,
                               store_destroy, store_get_size, store_apply,
-                              store_clone, next, allocator, deallocator, NULL);
+                              store_clone, next, context);
 }
 
 static ds_trie_t *trie_create_internal(
@@ -449,19 +410,14 @@ static ds_trie_t *trie_create_internal(
                         va_list *),
     void *(*store_clone)(struct trie *, void *, ds_trie_node_t *,
                          void *(*clone_data)(void *)),
-    ds_trie_next_fn store_next, void *(*allocator)(size_t),
-    void (*deallocator)(void *), ds_context_t *context) {
+    ds_trie_next_fn store_next, ds_context_t *context) {
   ds_trie_t *trie;
   /* the context (if any) is in place before the root and its store */
-  trie = context != NULL
-             ? (ds_trie_t *)ds_context_alloc(context, sizeof(ds_trie_t))
-             : (ds_trie_t *)allocator(sizeof(ds_trie_t));
+  trie = (ds_trie_t *)ds_context_alloc(context, sizeof(*trie));
   if (trie == NULL) {
     return NULL;
   }
-  trie->allocator = allocator;
-  trie->deallocator = deallocator;
-  trie->use_context = context != NULL;
+
   trie->context = context != NULL ? context : ds_default_context();
   trie->num_splits = num_splits;
   trie->store_search = store_search;
@@ -527,8 +483,9 @@ ds_status_t ds_trie_insert_with(ds_trie_t *trie, void *data,
       break;
     if (status != DS_OK || i == (size_t)-1) {
       trie_unwind(trie, first, current_node);
-      return status < 0 ? status
-                        : (status == DS_OK ? DS_ERR_OVERFLOW : DS_ERR_CALLBACK);
+      return status < 0
+                 ? status
+                 : (status == DS_OK ? DS_ERR_OVERFLOW : DS_ERR_CALLBACK);
     }
     result = trie->store_search(current_node->children, current_slice);
 
@@ -764,42 +721,26 @@ void ds_trie_config_init(ds_trie_config_t *config) {
   }
   config->num_splits = 256U;
   config->store_ops = NULL;
-  config->allocator = NULL;
-  config->deallocator = NULL;
   config->context = NULL;
 }
 
 ds_trie_t *ds_trie_create_config(const ds_trie_config_t *config) {
   const ds_trie_store_ops_t *ops;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
-  ds_trie_t *trie;
-
-  if (config == NULL) {
+  if (config == NULL)
     return NULL;
-  }
   ops =
       config->store_ops != NULL ? config->store_ops : ds_trie_hash_store_ops();
-  allocator = config->allocator != NULL ? config->allocator : malloc;
-  deallocator = config->deallocator != NULL ? config->deallocator : free;
-
-  trie = trie_create_internal(
-      config->num_splits, ops->search, ops->create, ops->insert, ops->remove,
-      ops->destroy_entry, ops->destroy, ops->get_size, ops->apply, ops->clone,
-      ops->next, allocator, deallocator,
-      config->allocator == NULL
-          ? (config->context != NULL ? config->context : ds_default_context())
-          : NULL);
-  if (trie != NULL && !trie->use_context && config->context != NULL) {
-    trie->context = config->context; /* diagnostics only */
-  }
-  return trie;
+  return trie_create_internal(config->num_splits, ops->search, ops->create,
+                              ops->insert, ops->remove, ops->destroy_entry,
+                              ops->destroy, ops->get_size, ops->apply,
+                              ops->clone, ops->next, config->context);
 }
 
-ds_trie_t *ds_trie_create_hash(size_t num_splits) {
+ds_trie_t *ds_trie_create_hash(size_t num_splits, ds_context_t *context) {
   ds_trie_config_t config;
   ds_trie_config_init(&config);
   config.num_splits = num_splits;
+  config.context = context;
   config.store_ops = ds_trie_hash_store_ops();
   return ds_trie_create_config(&config);
 }
@@ -872,8 +813,6 @@ ds_status_t ds_trie_create_config_ex(const ds_trie_config_t *config,
   if (config == NULL)
     return DS_ERR_NULL;
   normalized = *config;
-  if ((config->allocator == NULL) != (config->deallocator == NULL))
-    return DS_ERR_INVALID;
   ops =
       config->store_ops != NULL ? config->store_ops : ds_trie_hash_store_ops();
   if (ops->search == NULL || ops->create == NULL || ops->insert == NULL ||
@@ -881,7 +820,7 @@ ds_status_t ds_trie_create_config_ex(const ds_trie_config_t *config,
       ops->destroy == NULL || ops->get_size == NULL ||
       (ops->next == NULL && (ops->apply == NULL || ops->clone == NULL)))
     return DS_ERR_INVALID;
-  if (normalized.allocator == NULL && normalized.context == NULL)
+  if (normalized.context == NULL)
     normalized.context = ds_default_context();
   *out = ds_trie_create_config(&normalized);
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
@@ -987,8 +926,6 @@ ds_status_t ds_trie_clone_with(ds_trie_t *trie, ds_trie_clone_fn clone,
   if (config == NULL) {
     ds_trie_config_init(&inherited);
     inherited.num_splits = trie->num_splits;
-    inherited.allocator = trie->use_context ? NULL : trie->allocator;
-    inherited.deallocator = trie->use_context ? NULL : trie->deallocator;
     inherited.context = trie->context;
     ops.search = trie->store_search;
     ops.create = trie->store_create;

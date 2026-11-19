@@ -31,22 +31,18 @@ typedef struct skip_list {
   size_t size;
   unsigned long seed;
   int (*compare)(ds_skip_list_node_t *, ds_skip_list_node_t *);
-  ds_context_t *context; /* NULL for allocator functions */
+  ds_context_t *context; /* borrowed allocation owner */
   ds_skip_list_compare_fn compare_with;
   void *compare_user;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
 } ds_skip_list_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator.
+/* NULL when memory runs out.
  * max_level is at most DS_SKIP_LIST_MAX_LEVEL, also the default (0). */
+
 ds_skip_list_t *ds_skip_list_create(int (*compare)(ds_skip_list_node_t *,
-                                                   ds_skip_list_node_t *));
-ds_skip_list_t *ds_skip_list_create_alloc(int (*compare)(ds_skip_list_node_t *,
-                                                         ds_skip_list_node_t *),
-                                          size_t max_level, unsigned long seed,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *));
+                                                   ds_skip_list_node_t *),
+                                    size_t max_level, unsigned long seed,
+                                    ds_context_t *context);
 void ds_skip_list_node_init(ds_skip_list_node_t *node);
 /* Direct insert: when the node's links cannot be allocated, it is not
  * inserted (the size is unchanged); insert_ex reports it */
@@ -81,11 +77,10 @@ ds_skip_list_clone(ds_skip_list_t *list,
  * DS_ERR_ALLOC when memory runs out (the clones are rolled back too). All
  * callbacks are required. On any error *out is NULL and the source is
  * unchanged. */
-ds_status_t
-ds_skip_list_clone_ex(const ds_skip_list_t *list,
-                      ds_skip_list_node_t *(*clone_node)(ds_skip_list_node_t *),
-                      void (*destroy_clone)(ds_skip_list_node_t *),
-                      ds_skip_list_t **out);
+ds_status_t ds_skip_list_clone_ex(
+    const ds_skip_list_t *list,
+    ds_skip_list_node_t *(*clone_node)(ds_skip_list_node_t *),
+    void (*destroy_clone)(ds_skip_list_node_t *), ds_skip_list_t **out);
 
 /* Context owns internal allocations and must outlive the container; NULL
  * selects the default. Comparison/user state must remain stable and alive.
@@ -121,8 +116,8 @@ ds_status_t ds_skip_list_walk_with(const ds_skip_list_t *container,
  * may free payloads but must not inspect or mutate the container. */
 ds_status_t ds_skip_list_clone_with(const ds_skip_list_t *container,
                                     ds_skip_list_clone_fn clone,
-                                    ds_skip_list_destroy_fn destroy, void *user,
-                                    ds_context_t *context,
+                                    ds_skip_list_destroy_fn destroy,
+                                    void *user, ds_context_t *context,
                                     ds_skip_list_t **out);
 void ds_skip_list_destroy_with(ds_skip_list_t *container,
                                ds_skip_list_destroy_fn destroy, void *user);

@@ -24,7 +24,8 @@ static ds_status_t sl_grow_bytes(ds_context_t *ctx, unsigned char **data,
   return DS_OK;
 }
 
-/* ---- sorted array -------------------------------------------------------- */
+/* ---- sorted array --------------------------------------------------------
+ */
 
 static unsigned char *sa_at(const ds_sorted_array_t *a, size_t i) {
   return a->data + i * a->elem_size;
@@ -44,7 +45,7 @@ ds_status_t ds_sorted_array_init(ds_sorted_array_t *a, size_t elem_size,
   a->compare = compare;
   a->user = user;
   a->unique = unique;
-  a->context = context;
+  a->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -260,7 +261,8 @@ ds_status_t ds_sorted_array_merge(ds_sorted_array_t *a,
   return DS_OK;
 }
 
-/* ---- ordered linked list ------------------------------------------------- */
+/* ---- ordered linked list -------------------------------------------------
+ */
 
 #define SL_END DS_SORTED_LIST_END
 
@@ -284,7 +286,7 @@ ds_status_t ds_sorted_list_init(ds_sorted_list_t *l, size_t elem_size,
   l->compare = compare;
   l->user = user;
   l->unique = unique;
-  l->context = context;
+  l->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -515,7 +517,8 @@ ds_status_t ds_sorted_list_merge(ds_sorted_list_t *l, ds_sorted_list_t *src) {
   return DS_OK;
 }
 
-/* ---- unsorted list ------------------------------------------------------- */
+/* ---- unsorted list -------------------------------------------------------
+ */
 
 static unsigned char *ul_at(const ds_unsorted_list_t *l, size_t i) {
   return l->data + i * l->elem_size;
@@ -534,7 +537,7 @@ ds_status_t ds_unsorted_list_init(ds_unsorted_list_t *l, size_t elem_size,
   l->elem_size = elem_size;
   l->equal = equal;
   l->user = user;
-  l->context = context;
+  l->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

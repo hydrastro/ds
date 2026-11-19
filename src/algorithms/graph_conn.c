@@ -17,7 +17,7 @@ ds_status_t ds_greverse_build(ds_greverse_t *r, const ds_gview_t *g,
     return DS_ERR_NULL;
   }
   memset(r, 0, sizeof(*r));
-  r->context = context;
+  r->context = context != NULL ? context : ds_default_context();
   n = g->vertex_count;
   for (v = 0; v < n; v++) {
     d = g->degree(g->graph, v);

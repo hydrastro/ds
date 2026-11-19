@@ -5,16 +5,12 @@
 #include <string.h>
 
 static void *bt_alloc(ds_btree_t *t, size_t n) {
-  return t->use_context ? ds_context_alloc(t->context, n) : t->allocator(n);
+  return ds_context_alloc(t->context, n);
 }
-static void bt_free(ds_btree_t *t, void *p) {
-  if (t->use_context)
-    ds_context_free(t->context, p);
-  else if (p != NULL)
-    t->deallocator(p);
-}
+static void bt_free(ds_btree_t *t, void *p) { ds_context_free(t->context, p); }
 
-ds_btree_internal_node_t *ds_btree_create_node(ds_btree_t *tree, bool is_leaf) {
+ds_btree_internal_node_t *ds_btree_create_node(ds_btree_t *tree,
+                                               bool is_leaf) {
   size_t keys = 2 * (size_t)tree->degree - 1;
   ds_btree_internal_node_t *node = (ds_btree_internal_node_t *)bt_alloc(
       tree, sizeof(ds_btree_internal_node_t));
@@ -42,31 +38,21 @@ ds_btree_internal_node_t *ds_btree_create_node(ds_btree_t *tree, bool is_leaf) {
   return node;
 }
 
-ds_btree_t *ds_btree_create(int degree) {
-  return ds_btree_create_alloc(degree, malloc, free);
-}
-
 /* the tree without its root: NULL for a degree below 2 (a node must hold
  * at least three keys), one whose node arrays cannot be sized, or when
  * memory runs out */
-static ds_btree_t *btree_shell(int degree, void *(*allocator)(size_t),
-                               void (*deallocator)(void *),
-                               ds_context_t *context, bool use_context) {
+static ds_btree_t *btree_shell(int degree, ds_context_t *context) {
   ds_btree_t *tree;
-  if (allocator == NULL || deallocator == NULL || degree < 2 ||
-      degree > INT_MAX / 2 ||
+  if (degree < 2 || degree > INT_MAX / 2 ||
       (size_t)degree > ((size_t)-1 / sizeof(void *) - 1) / 2) {
     return NULL;
   }
-  tree = (ds_btree_t *)(use_context ? ds_context_alloc(context, sizeof(*tree))
-                                    : allocator(sizeof(*tree)));
+  tree = (ds_btree_t *)ds_context_alloc(context, sizeof(*tree));
   if (tree == NULL) {
     return NULL;
   }
-  tree->context = context;
-  tree->use_context = use_context;
-  tree->allocator = allocator;
-  tree->deallocator = deallocator;
+  tree->context = context != NULL ? context : ds_default_context();
+
   tree->degree = degree;
   tree->root = NULL;
   tree->size = 0;
@@ -79,9 +65,8 @@ static ds_btree_t *btree_shell(int degree, void *(*allocator)(size_t),
   return tree;
 }
 
-ds_btree_t *ds_btree_create_alloc(int degree, void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
-  ds_btree_t *tree = btree_shell(degree, allocator, deallocator, NULL, false);
+ds_btree_t *ds_btree_create(int degree, ds_context_t *context) {
+  ds_btree_t *tree = btree_shell(degree, context);
   if (tree == NULL) {
     return NULL;
   }
@@ -145,7 +130,7 @@ ds_status_t ds_btree_create_context(int degree, ds_context_t *context,
   if (degree < 2 || degree > INT_MAX / 2 ||
       (size_t)degree > ((size_t)-1 / sizeof(void *) - 1) / 2)
     return DS_ERR_RANGE;
-  tree = btree_shell(degree, malloc, free, context, true);
+  tree = btree_shell(degree, context);
   if (tree == NULL)
     return DS_ERR_ALLOC;
   tree->root = ds_btree_create_node(tree, true);
@@ -185,8 +170,9 @@ void ds_btree_split_child(ds_btree_t *tree, ds_btree_internal_node_t *parent,
  * the equality convention used after promotion (equal goes to the left half).
  * Staged nodes are linked through their otherwise unused parent fields. */
 static ds_status_t bt_insert(ds_btree_t *tree, ds_btree_internal_node_t *root,
-                             ds_btree_node_t *data, ds_btree_compare_fn compare,
-                             void *user, bool whole_tree) {
+                             ds_btree_node_t *data,
+                             ds_btree_compare_fn compare, void *user,
+                             bool whole_tree) {
   ds_btree_internal_node_t *node, *staged = NULL, *next;
   size_t need = 0;
   int i, lo, hi;
@@ -275,8 +261,8 @@ static ds_status_t bt_insert(ds_btree_t *tree, ds_btree_internal_node_t *root,
 typedef struct bt_direct_compare {
   int (*compare)(ds_btree_node_t *, ds_btree_node_t *);
 } bt_direct_compare_t;
-static int bt_compare_direct(const ds_btree_node_t *a, const ds_btree_node_t *b,
-                             void *user) {
+static int bt_compare_direct(const ds_btree_node_t *a,
+                             const ds_btree_node_t *b, void *user) {
   bt_direct_compare_t *c = (bt_direct_compare_t *)user;
   /* Direct comparators are observational despite their non-const signature. */
   ds_btree_node_t *x, *y;
@@ -376,7 +362,8 @@ ds_btree_node_t *ds_btree_search(ds_btree_t *tree, ds_btree_node_t *key,
   return result;
 }
 
-void *ds_btree_local_minimum(ds_btree_t *tree, ds_btree_internal_node_t *node) {
+void *ds_btree_local_minimum(ds_btree_t *tree,
+                             ds_btree_internal_node_t *node) {
   if (tree == NULL) {
     return NULL;
   }
@@ -390,7 +377,8 @@ void *ds_btree_local_minimum(ds_btree_t *tree, ds_btree_internal_node_t *node) {
   return node->num_keys == 0 ? tree->nil : node->data[0];
 }
 
-void *ds_btree_local_maximum(ds_btree_t *tree, ds_btree_internal_node_t *node) {
+void *ds_btree_local_maximum(ds_btree_t *tree,
+                             ds_btree_internal_node_t *node) {
   if (tree == NULL) {
     return NULL;
   }
@@ -798,8 +786,7 @@ ds_btree_t *ds_btree_clone(ds_btree_t *tree,
   if (tree == NULL || clone_node == NULL) {
     return NULL;
   }
-  new_tree = btree_shell(tree->degree, tree->allocator, tree->deallocator,
-                         tree->context, tree->use_context);
+  new_tree = btree_shell(tree->degree, tree->context);
   if (new_tree == NULL) {
     return NULL;
   }
@@ -813,10 +800,10 @@ ds_btree_t *ds_btree_clone(ds_btree_t *tree,
   return new_tree;
 }
 
-ds_status_t ds_btree_clone_ex(const ds_btree_t *tree,
-                              ds_btree_node_t *(*clone_node)(ds_btree_node_t *),
-                              void (*destroy_clone)(ds_btree_node_t *),
-                              ds_btree_t **out) {
+ds_status_t
+ds_btree_clone_ex(const ds_btree_t *tree,
+                  ds_btree_node_t *(*clone_node)(ds_btree_node_t *),
+                  void (*destroy_clone)(ds_btree_node_t *), ds_btree_t **out) {
   ds_btree_t *new_tree;
   ds_status_t st;
   if (out == NULL) {
@@ -826,8 +813,7 @@ ds_status_t ds_btree_clone_ex(const ds_btree_t *tree,
   if (tree == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  new_tree = btree_shell(tree->degree, tree->allocator, tree->deallocator,
-                         tree->context, tree->use_context);
+  new_tree = btree_shell(tree->degree, tree->context);
   if (new_tree == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -892,7 +878,8 @@ void ds_btree_destroy_with(ds_btree_t *tree, ds_btree_destroy_fn destroy,
   }
 }
 
-ds_status_t ds_btree_clone_with(const ds_btree_t *tree, ds_btree_clone_fn clone,
+ds_status_t ds_btree_clone_with(const ds_btree_t *tree,
+                                ds_btree_clone_fn clone,
                                 ds_btree_destroy_fn destroy, void *user,
                                 ds_btree_t **out) {
   ds_btree_t *copy;
@@ -902,8 +889,7 @@ ds_status_t ds_btree_clone_with(const ds_btree_t *tree, ds_btree_clone_fn clone,
   *out = NULL;
   if (tree == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = btree_shell(tree->degree, tree->allocator, tree->deallocator,
-                     tree->context, tree->use_context);
+  copy = btree_shell(tree->degree, tree->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
   st = btree_clone_subtree(tree, copy, tree->root, NULL, clone, user,

@@ -23,9 +23,9 @@ int main(void) {
   const unsigned char *keys[4];
   size_t lengths[4], i;
   int values[6] = {10, 20, 30, 40, 50, 60};
-  ds_art_t *art = ds_art_create();
-  ds_radix_trie_t *radix = ds_radix_trie_create();
-  ds_hamt_t *hamt = ds_hamt_create();
+  ds_art_t *art = ds_art_create(NULL);
+  ds_radix_trie_t *radix = ds_radix_trie_create(NULL);
+  ds_hamt_t *hamt = ds_hamt_create(NULL);
   ds_status_t st = DS_OK;
   int result = 0;
   keys[0] = NULL;

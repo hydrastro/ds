@@ -69,7 +69,7 @@ ds_status_t ds_quotient_filter_init(ds_quotient_filter_t *f, unsigned q,
     f->meta = NULL;
     return DS_ERR_ALLOC;
   }
-  f->context = context;
+  f->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

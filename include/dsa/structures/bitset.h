@@ -14,15 +14,12 @@ typedef struct bitset {
   unsigned long *words;
   size_t num_bits;
   size_t num_words;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_bitset_t;
 
-/* NULL when memory runs out (create, create_alloc and clone) */
-ds_bitset_t *ds_bitset_create(size_t num_bits);
-ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
-                                    void (*deallocator)(void *));
+/* NULL when memory runs out (create and clone) */
+
+ds_bitset_t *ds_bitset_create(size_t num_bits, ds_context_t *context);
 void ds_bitset_set(ds_bitset_t *bitset, size_t index);
 void ds_bitset_clear(ds_bitset_t *bitset, size_t index);
 void ds_bitset_flip(ds_bitset_t *bitset, size_t index);

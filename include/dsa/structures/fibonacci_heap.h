@@ -18,8 +18,8 @@ extern "C" {
  * extract-min. Nodes live in circular doubly linked sibling lists; extract-min
  * consolidates trees by degree, and decrease-key uses cascading cuts to bound
  * tree shape. Users embed ds_fibonacci_heap_node_t and recover the container
- * with CAST(). decrease_key requires the caller to have already lowered the key
- * before calling (the compare function must observe the new value).
+ * with CAST(). decrease_key requires the caller to have already lowered the
+ * key before calling (the compare function must observe the new value).
  */
 
 typedef struct fibonacci_heap_node {
@@ -32,7 +32,8 @@ typedef struct fibonacci_heap_node {
 } ds_fibonacci_heap_node_t;
 
 typedef int (*ds_fibonacci_heap_compare_fn)(ds_fibonacci_heap_node_t *,
-                                            ds_fibonacci_heap_node_t *, void *);
+                                            ds_fibonacci_heap_node_t *,
+                                            void *);
 typedef ds_status_t (*ds_fibonacci_heap_visit_fn)(ds_fibonacci_heap_node_t *,
                                                   void *);
 typedef ds_status_t (*ds_fibonacci_heap_clone_fn)(ds_fibonacci_heap_node_t *,
@@ -46,19 +47,16 @@ typedef struct fibonacci_heap {
   ds_fibonacci_heap_node_t *nil;
   size_t size;
   int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *);
-  ds_context_t *context; /* NULL for allocator functions */
+  ds_context_t *context; /* borrowed allocation owner */
   ds_fibonacci_heap_compare_fn compare_with;
   void *compare_user;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
 } ds_fibonacci_heap_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
+
 ds_fibonacci_heap_t *ds_fibonacci_heap_create(
-    int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *));
-ds_fibonacci_heap_t *ds_fibonacci_heap_create_alloc(
     int (*compare)(ds_fibonacci_heap_node_t *, ds_fibonacci_heap_node_t *),
-    void *(*allocator)(size_t), void (*deallocator)(void *));
+    ds_context_t *context);
 void ds_fibonacci_heap_node_init(ds_fibonacci_heap_node_t *node);
 void ds_fibonacci_heap_insert(ds_fibonacci_heap_t *heap,
                               ds_fibonacci_heap_node_t *node);

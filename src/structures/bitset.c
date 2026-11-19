@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/bitset.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -22,39 +21,30 @@ static size_t bitset_popcount_word(unsigned long word) {
   return count;
 }
 
-ds_bitset_t *ds_bitset_create(size_t num_bits) {
-  return ds_bitset_create_alloc(num_bits, malloc, free);
-}
-
 static ds_bitset_t *bitset_create_internal(size_t num_bits,
-                                           void *(*allocator)(size_t),
-                                           void (*deallocator)(void *),
                                            ds_context_t *context) {
   ds_bitset_t *bitset;
   size_t num_words;
   size_t i;
   num_words = num_bits / DS_BITSET_BITS_PER_WORD +
               (num_bits % DS_BITSET_BITS_PER_WORD != 0 ? 1 : 0);
-  if (allocator == NULL || deallocator == NULL ||
-      num_words > ((size_t)-1) / sizeof(unsigned long)) {
+  if (num_words > ((size_t)-1) / sizeof(unsigned long)) {
     return NULL;
   }
-  bitset =
-      (ds_bitset_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_bitset_t));
+  bitset = (ds_bitset_t *)ds_context_alloc(context, sizeof(ds_bitset_t));
   if (bitset == NULL) {
     return NULL;
   }
-  bitset->context = context;
-  bitset->allocator = allocator;
-  bitset->deallocator = deallocator;
+  bitset->context = context != NULL ? context : ds_default_context();
+
   bitset->num_bits = num_bits;
   bitset->num_words = num_words;
-  bitset->words = num_words == 0 ? NULL
-                                 : (unsigned long *)DS_OWNER_ALLOCATE(
-                                       context, allocator,
-                                       num_words * sizeof(unsigned long));
+  bitset->words = num_words == 0
+                      ? NULL
+                      : (unsigned long *)ds_context_alloc(
+                            context, num_words * sizeof(unsigned long));
   if (num_words > 0 && bitset->words == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, bitset);
+    ds_context_free(context, bitset);
     return NULL;
   }
   for (i = 0; i < num_words; i++) {
@@ -62,9 +52,8 @@ static ds_bitset_t *bitset_create_internal(size_t num_bits,
   }
   return bitset;
 }
-ds_bitset_t *ds_bitset_create_alloc(size_t num_bits, void *(*allocator)(size_t),
-                                    void (*deallocator)(void *)) {
-  return bitset_create_internal(num_bits, allocator, deallocator, NULL);
+ds_bitset_t *ds_bitset_create(size_t num_bits, ds_context_t *context) {
+  return bitset_create_internal(num_bits, context);
 }
 ds_status_t ds_bitset_create_context(size_t num_bits, ds_context_t *context,
                                      ds_bitset_t **out) {
@@ -76,7 +65,7 @@ ds_status_t ds_bitset_create_context(size_t num_bits, ds_context_t *context,
   if (words > (size_t)-1 / sizeof(unsigned long))
     return DS_ERR_OVERFLOW;
   *out = bitset_create_internal(
-      num_bits, malloc, free, context != NULL ? context : ds_default_context());
+      num_bits, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -131,8 +120,8 @@ ds_status_t ds_bitset_get_ex(const ds_bitset_t *bitset, size_t index,
     return DS_ERR_NULL;
   if (index >= bitset->num_bits)
     return DS_ERR_RANGE;
-  *out =
-      (bitset->words[bitset_word_index(index)] & bitset_bit_mask(index)) != 0UL;
+  *out = (bitset->words[bitset_word_index(index)] & bitset_bit_mask(index)) !=
+         0UL;
   return DS_OK;
 }
 
@@ -311,8 +300,7 @@ bool ds_bitset_equals(ds_bitset_t *bitset, ds_bitset_t *other) {
 ds_bitset_t *ds_bitset_clone(ds_bitset_t *bitset) {
   ds_bitset_t *new_bitset;
   size_t i;
-  new_bitset = bitset_create_internal(bitset->num_bits, bitset->allocator,
-                                      bitset->deallocator, bitset->context);
+  new_bitset = bitset_create_internal(bitset->num_bits, bitset->context);
   if (new_bitset == NULL) {
     return NULL;
   }
@@ -324,7 +312,7 @@ ds_bitset_t *ds_bitset_clone(ds_bitset_t *bitset) {
 
 void ds_bitset_destroy(ds_bitset_t *bitset) {
   if (bitset->words != NULL) {
-    DS_OWNER_FREE(bitset, bitset->words);
+    ds_context_free(bitset->context, bitset->words);
   }
-  DS_OWNER_FREE(bitset, bitset);
+  ds_context_free(bitset->context, bitset);
 }

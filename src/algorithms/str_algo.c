@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/algorithms/str_algo.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,7 +62,8 @@ void ds__maximal_suffix(const unsigned char *x, size_t m, int *ms, int *p) {
   *p = (int)period;
 }
 
-void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms, int *p) {
+void ds__maximal_suffix_rev(const unsigned char *x, size_t m, int *ms,
+                            int *p) {
   size_t start, period;
   tw_max_suffix(x, m, 1, &start, &period);
   *ms = (int)start;
@@ -165,7 +165,8 @@ long ds_str_find_bmh(ds_str_t *s, const void *needle, size_t n, size_t start) {
   if (!s || !needle || n == 0u)
     return -1;
   len = s->len;
-  if (start > len || n > len - start) { /* also an empty string's NULL buffer */
+  if (start > len ||
+      n > len - start) { /* also an empty string's NULL buffer */
     return -1;
   }
   if (n == 1u) {
@@ -397,7 +398,7 @@ int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
     if (ds_str_create_context(s->context, &out) != DS_OK)
       return -1;
   } else
-    out = ds_str_create_alloc(s->allocator, s->deallocator);
+    out = ds_str_create(s->context);
   if (!out) {
     return -1;
   }
@@ -442,7 +443,7 @@ int ds_str_replace_all_builder(ds_str_t *s, const void *from, size_t nfrom,
   }
 
   if (s->buf)
-    DS_OWNER_FREE(s, s->buf);
+    ds_context_free(s->context, s->buf);
   s->buf = out->buf;
   s->len = out->len;
   s->cap = out->cap;

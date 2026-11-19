@@ -30,7 +30,7 @@ static long get(ds_art_t *art, const char *key) {
 }
 
 int main(void) {
-  ds_art_t *art = ds_art_create();
+  ds_art_t *art = ds_art_create(NULL);
 
   /* keys with shared prefixes exercise path compression and node growth */
   put(art, "romane", 1);

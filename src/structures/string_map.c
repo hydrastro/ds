@@ -49,11 +49,7 @@ static char *string_map_strdup(ds_context_t *context, const char *str) {
   return copy;
 }
 
-ds_string_map_t *ds_string_map_create(void) {
-  return ds_string_map_create_ctx(NULL);
-}
-
-ds_string_map_t *ds_string_map_create_ctx(ds_context_t *context) {
+ds_string_map_t *ds_string_map_create(ds_context_t *context) {
   ds_string_map_t *map;
   ds_hash_table_config_t config;
 
@@ -131,11 +127,7 @@ void ds_string_map_destroy(ds_string_map_t *map) {
   ds_context_free(context, map);
 }
 
-ds_string_set_t *ds_string_set_create(void) {
-  return ds_string_set_create_ctx(NULL);
-}
-
-ds_string_set_t *ds_string_set_create_ctx(ds_context_t *context) {
+ds_string_set_t *ds_string_set_create(ds_context_t *context) {
   ds_string_set_t *set;
   if (context == NULL) {
     context = ds_default_context();
@@ -144,7 +136,7 @@ ds_string_set_t *ds_string_set_create_ctx(ds_context_t *context) {
   if (set == NULL) {
     return NULL;
   }
-  set->map = ds_string_map_create_ctx(context);
+  set->map = ds_string_map_create(context);
   if (set->map == NULL) {
     ds_context_free(context, set);
     return NULL;

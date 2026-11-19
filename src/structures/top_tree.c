@@ -344,7 +344,7 @@ ds_status_t ds_top_tree_init(ds_top_tree_t *t, size_t n,
   }
   t->n = n;
   t->ops = *ops;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   if (!ds_size_align(sizeof(tt_v_t), DS_MAX_ALIGN, &t->value_at) ||
       !ds_size_add(t->value_at, ops->value_size, &t->sum_at) ||
       !ds_size_align(t->sum_at, DS_MAX_ALIGN, &t->sum_at) ||

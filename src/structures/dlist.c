@@ -1,31 +1,20 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/dlist.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-ds_dlist_t *ds_dlist_create(void) {
-  return ds_dlist_create_alloc(malloc, free);
-}
-
-static ds_dlist_t *dlist_create_internal(void *(*allocator)(size_t),
-                                         void (*deallocator)(void *),
-                                         ds_context_t *context) {
+static ds_dlist_t *dlist_create_internal(ds_context_t *context) {
   ds_dlist_t *list;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  list =
-      (ds_dlist_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_dlist_t));
+
+  list = (ds_dlist_t *)ds_context_alloc(context, sizeof(ds_dlist_t));
   if (list == NULL) {
     return NULL;
   }
-  list->context = context;
-  list->allocator = allocator;
-  list->deallocator = deallocator;
-  list->nil = (ds_dlist_node_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                   sizeof(ds_dlist_node_t));
+  list->context = context != NULL ? context : ds_default_context();
+
+  list->nil =
+      (ds_dlist_node_t *)ds_context_alloc(context, sizeof(ds_dlist_node_t));
   if (list->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, list);
+    ds_context_free(context, list);
     return NULL;
   }
   list->head = list->nil;
@@ -36,15 +25,14 @@ static ds_dlist_t *dlist_create_internal(void *(*allocator)(size_t),
   return list;
 }
 
-ds_dlist_t *ds_dlist_create_alloc(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
-  return dlist_create_internal(allocator, deallocator, NULL);
+ds_dlist_t *ds_dlist_create(ds_context_t *context) {
+  return dlist_create_internal(context);
 }
 ds_status_t ds_dlist_create_context(ds_context_t *context, ds_dlist_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = dlist_create_internal(
-      malloc, free, context != NULL ? context : ds_default_context());
+  *out =
+      dlist_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -133,8 +121,8 @@ static void dlist_destroy_internal(ds_dlist_t *list,
     }
     node = next;
   }
-  DS_OWNER_FREE(list, list->nil);
-  DS_OWNER_FREE(list, list);
+  ds_context_free(list->context, list->nil);
+  ds_context_free(list->context, list);
 }
 void ds_dlist_destroy_with(ds_dlist_t *container, ds_dlist_destroy_fn destroy,
                            void *user) {
@@ -195,8 +183,7 @@ ds_dlist_t *ds_dlist_clone(ds_dlist_t *list,
   if (list == NULL || clone_node == NULL) {
     return NULL;
   }
-  copy =
-      dlist_create_internal(list->allocator, list->deallocator, list->context);
+  copy = dlist_create_internal(list->context);
   if (copy != NULL && !dlist_clone_nodes(list, copy, clone_node)) {
     /* the clones made so far are not released */
     ds_dlist_destroy(copy, NULL);
@@ -205,10 +192,10 @@ ds_dlist_t *ds_dlist_clone(ds_dlist_t *list,
   return copy;
 }
 
-ds_status_t ds_dlist_clone_ex(const ds_dlist_t *list,
-                              ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *),
-                              void (*destroy_clone)(ds_dlist_node_t *),
-                              ds_dlist_t **out) {
+ds_status_t
+ds_dlist_clone_ex(const ds_dlist_t *list,
+                  ds_dlist_node_t *(*clone_node)(ds_dlist_node_t *),
+                  void (*destroy_clone)(ds_dlist_node_t *), ds_dlist_t **out) {
   ds_dlist_t *copy;
   if (out == NULL) {
     return DS_ERR_NULL;
@@ -217,8 +204,7 @@ ds_status_t ds_dlist_clone_ex(const ds_dlist_t *list,
   if (list == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  copy =
-      dlist_create_internal(list->allocator, list->deallocator, list->context);
+  copy = dlist_create_internal(list->context);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -239,7 +225,6 @@ ds_status_t ds_dlist_walk_with(ds_dlist_t *container, ds_dlist_visit_fn visit,
     return DS_ERR_NULL;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     st = visit(node, user);
     if (st != DS_OK)
       return st;
@@ -256,7 +241,6 @@ ds_status_t ds_dlist_find_with(ds_dlist_t *container, ds_dlist_node_t *key,
     return DS_ERR_NULL;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     if (compare(node, key, user) == 0) {
       *out = node;
       return DS_OK;
@@ -281,14 +265,12 @@ ds_status_t ds_dlist_clone_with(const ds_dlist_t *container,
   *out = NULL;
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = dlist_create_internal(container->allocator, container->deallocator,
-                               context != NULL ? context : container->context);
+  copy = dlist_create_internal(context != NULL ? context : container->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
 
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     new_node = NULL;
     st = clone(node, &new_node, user);
     if (st != DS_OK || new_node == NULL) {
@@ -324,7 +306,8 @@ ds_status_t ds_dlist_prepend_ex(ds_dlist_t *container, ds_dlist_node_t *node) {
   return DS_OK;
 }
 
-ds_status_t ds_dlist_remove_ex(ds_dlist_t *container, ds_dlist_node_t *target) {
+ds_status_t ds_dlist_remove_ex(ds_dlist_t *container,
+                               ds_dlist_node_t *target) {
   size_t i;
   ds_dlist_node_t *node;
   if (container == NULL || target == NULL)
@@ -333,7 +316,6 @@ ds_status_t ds_dlist_remove_ex(ds_dlist_t *container, ds_dlist_node_t *target) {
     return DS_ERR_INVALID;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     if (node == target) {
       ds_dlist_delete_node(container, node);
       return DS_OK;

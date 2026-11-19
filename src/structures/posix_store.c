@@ -220,7 +220,7 @@ static ds_status_t px_adopt(ds_page_store_t *store, int fd, size_t ps,
   p->limit = limit;
   p->read_only = read_only;
   p->dir = dir;
-  p->context = context;
+  p->context = context != NULL ? context : ds_default_context();
   store->ops = &px_ops;
   store->impl = p;
   store->page_size = ps;

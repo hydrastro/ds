@@ -75,7 +75,7 @@ ds_status_t ds_lca_lifting_build(ds_lca_lifting_t *l, const size_t *parent,
   }
   memset(l, 0, sizeof(*l));
   l->n = n;
-  l->context = context;
+  l->context = context != NULL ? context : ds_default_context();
   l->levels = 1;
   while (((size_t)1 << l->levels) < n) {
     l->levels++;
@@ -191,7 +191,7 @@ ds_status_t ds_lca_euler_build(ds_lca_euler_t *e, const size_t *parent,
   }
   memset(e, 0, sizeof(*e));
   e->n = n;
-  e->context = context;
+  e->context = context != NULL ? context : ds_default_context();
   if (n == 0) {
     return DS_OK;
   }

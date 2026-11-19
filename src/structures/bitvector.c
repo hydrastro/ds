@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/bitvector.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -18,39 +17,29 @@ static size_t bv_popcount(unsigned long word) {
   return count;
 }
 
-ds_bitvector_t *ds_bitvector_create(size_t num_bits) {
-  return ds_bitvector_create_alloc(num_bits, malloc, free);
-}
-
 static ds_bitvector_t *bitvector_create_internal(size_t num_bits,
-                                                 void *(*allocator)(size_t),
-                                                 void (*deallocator)(void *),
                                                  ds_context_t *context) {
   ds_bitvector_t *bv;
   size_t num_words;
   size_t i;
   num_words = num_bits / DS_BV_BITS_PER_WORD +
               (num_bits % DS_BV_BITS_PER_WORD != 0 ? 1 : 0);
-  if (allocator == NULL || deallocator == NULL ||
-      num_words > (size_t)-1 / sizeof(unsigned long)) {
+  if (num_words > (size_t)-1 / sizeof(unsigned long)) {
     return NULL;
   }
-  bv = (ds_bitvector_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                           sizeof(ds_bitvector_t));
+  bv = (ds_bitvector_t *)ds_context_alloc(context, sizeof(ds_bitvector_t));
   if (bv == NULL) {
     return NULL;
   }
-  bv->context = context;
-  bv->allocator = allocator;
-  bv->deallocator = deallocator;
+  bv->context = context != NULL ? context : ds_default_context();
+
   bv->num_bits = num_bits;
   bv->num_words = num_words;
-  bv->words = num_words == 0
-                  ? NULL
-                  : (unsigned long *)DS_OWNER_ALLOCATE(
-                        context, allocator, num_words * sizeof(unsigned long));
+  bv->words = num_words == 0 ? NULL
+                             : (unsigned long *)ds_context_alloc(
+                                   context, num_words * sizeof(unsigned long));
   if (num_words != 0 && bv->words == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, bv);
+    ds_context_free(context, bv);
     return NULL;
   }
   for (i = 0; i < num_words; i++) {
@@ -64,10 +53,8 @@ static ds_bitvector_t *bitvector_create_internal(size_t num_bits,
   bv->built = false;
   return bv;
 }
-ds_bitvector_t *ds_bitvector_create_alloc(size_t num_bits,
-                                          void *(*allocator)(size_t),
-                                          void (*deallocator)(void *)) {
-  return bitvector_create_internal(num_bits, allocator, deallocator, NULL);
+ds_bitvector_t *ds_bitvector_create(size_t num_bits, ds_context_t *context) {
+  return bitvector_create_internal(num_bits, context);
 }
 ds_status_t ds_bitvector_create_context(size_t num_bits, ds_context_t *context,
                                         ds_bitvector_t **out) {
@@ -79,7 +66,7 @@ ds_status_t ds_bitvector_create_context(size_t num_bits, ds_context_t *context,
   if (words > (size_t)-1 / sizeof(unsigned long))
     return DS_ERR_OVERFLOW;
   *out = bitvector_create_internal(
-      num_bits, malloc, free, context != NULL ? context : ds_default_context());
+      num_bits, context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -133,23 +120,24 @@ ds_status_t ds_bitvector_build_ex(ds_bitvector_t *bv) {
       blocks >= (size_t)-1 / sizeof(unsigned short))
     return DS_ERR_OVERFLOW;
   /* the new directory first: a failure leaves the old one in place */
-  superblock_rank = (size_t *)DS_OWNER_ALLOC(bv, superblocks * sizeof(size_t));
-  block_rank = (unsigned short *)DS_OWNER_ALLOC(bv, (blocks + 1) *
-                                                        sizeof(unsigned short));
+  superblock_rank =
+      (size_t *)ds_context_alloc(bv->context, superblocks * sizeof(size_t));
+  block_rank = (unsigned short *)ds_context_alloc(
+      bv->context, (blocks + 1) * sizeof(unsigned short));
   if (superblock_rank == NULL || block_rank == NULL) {
     if (superblock_rank != NULL) {
-      DS_OWNER_FREE(bv, superblock_rank);
+      ds_context_free(bv->context, superblock_rank);
     }
     if (block_rank != NULL) {
-      DS_OWNER_FREE(bv, block_rank);
+      ds_context_free(bv->context, block_rank);
     }
     return DS_ERR_ALLOC;
   }
   if (bv->superblock_rank != NULL) {
-    DS_OWNER_FREE(bv, bv->superblock_rank);
+    ds_context_free(bv->context, bv->superblock_rank);
   }
   if (bv->block_rank != NULL) {
-    DS_OWNER_FREE(bv, bv->block_rank);
+    ds_context_free(bv->context, bv->block_rank);
   }
   bv->num_blocks = blocks;
   bv->num_superblocks = superblocks;
@@ -173,7 +161,9 @@ ds_status_t ds_bitvector_build_ex(ds_bitvector_t *bv) {
   return DS_OK;
 }
 
-void ds_bitvector_build(ds_bitvector_t *bv) { (void)ds_bitvector_build_ex(bv); }
+void ds_bitvector_build(ds_bitvector_t *bv) {
+  (void)ds_bitvector_build_ex(bv);
+}
 
 size_t ds_bitvector_size(ds_bitvector_t *bv) {
   size_t result;
@@ -279,19 +269,19 @@ size_t ds_bitvector_select0(ds_bitvector_t *bv, size_t k) {
 
 void ds_bitvector_destroy(ds_bitvector_t *bv) {
   if (bv->words != NULL) {
-    DS_OWNER_FREE(bv, bv->words);
+    ds_context_free(bv->context, bv->words);
   }
   if (bv->superblock_rank != NULL) {
-    DS_OWNER_FREE(bv, bv->superblock_rank);
+    ds_context_free(bv->context, bv->superblock_rank);
   }
   if (bv->block_rank != NULL) {
-    DS_OWNER_FREE(bv, bv->block_rank);
+    ds_context_free(bv->context, bv->block_rank);
   }
-  DS_OWNER_FREE(bv, bv);
+  ds_context_free(bv->context, bv);
 }
 
-static ds_status_t bv_query_checked(ds_bitvector_t *bv, size_t index, bool ones,
-                                    bool select, size_t *out) {
+static ds_status_t bv_query_checked(ds_bitvector_t *bv, size_t index,
+                                    bool ones, bool select, size_t *out) {
   size_t value;
   if (bv == NULL || out == NULL)
     return DS_ERR_NULL;
@@ -318,9 +308,11 @@ ds_status_t ds_bitvector_rank0_ex(ds_bitvector_t *bv, size_t index,
                                   size_t *out) {
   return bv_query_checked(bv, index, false, false, out);
 }
-ds_status_t ds_bitvector_select1_ex(ds_bitvector_t *bv, size_t k, size_t *out) {
+ds_status_t ds_bitvector_select1_ex(ds_bitvector_t *bv, size_t k,
+                                    size_t *out) {
   return bv_query_checked(bv, k, true, true, out);
 }
-ds_status_t ds_bitvector_select0_ex(ds_bitvector_t *bv, size_t k, size_t *out) {
+ds_status_t ds_bitvector_select0_ex(ds_bitvector_t *bv, size_t k,
+                                    size_t *out) {
   return bv_query_checked(bv, k, false, true, out);
 }

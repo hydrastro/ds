@@ -56,7 +56,7 @@ ds_status_t ds_wavelet_matrix_build(ds_wavelet_matrix_t *wm,
     }
   }
   wm->n = n;
-  wm->context = context;
+  wm->context = context != NULL ? context : ds_default_context();
   if (!ds_size_mul(n == 0 ? 1 : n, sizeof(unsigned long), &bytes)) {
     return DS_ERR_OVERFLOW;
   }

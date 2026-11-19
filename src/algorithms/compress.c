@@ -236,7 +236,7 @@ ds_status_t ds_arith_adaptive_model_init(ds_arith_adaptive_model_t *m,
   }
   m->symbols = symbols;
   m->total = 0;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   m->top_bit = 1;
   while (m->top_bit * 2 <= symbols) {
     m->top_bit *= 2;

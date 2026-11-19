@@ -31,7 +31,7 @@ ds_status_t ds_markov_init(ds_markov_chain_t *chain, size_t states,
     chain->p[k] = 0.0;
   }
   chain->states = states;
-  chain->context = context;
+  chain->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

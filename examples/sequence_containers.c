@@ -3,8 +3,8 @@
  *
  * All three share the intrusive pattern: embed the container's node in your
  * struct, hand its address in, and CAST() back out. They differ only in where
- * elements enter and leave. Pop/dequeue return the node (or the container's nil
- * sentinel when empty); the elements here are stack objects, so we free
+ * elements enter and leave. Pop/dequeue return the node (or the container's
+ * nil sentinel when empty); the elements here are stack objects, so we free
  * nothing.
  */
 #include <dsa.h>
@@ -26,9 +26,9 @@ typedef struct di {
 } di_t;
 
 int main(void) {
-  ds_stack_t *stack = ds_stack_create();
-  ds_queue_t *queue = ds_queue_create();
-  ds_deque_t *deque = ds_deque_create();
+  ds_stack_t *stack = ds_stack_create(NULL);
+  ds_queue_t *queue = ds_queue_create(NULL);
+  ds_deque_t *deque = ds_deque_create(NULL);
   si_t s[3];
   qi_t q[3];
   di_t d[3];

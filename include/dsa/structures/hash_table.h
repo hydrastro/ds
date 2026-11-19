@@ -35,10 +35,9 @@ typedef struct ds_hash_table_config ds_hash_table_config_t;
 typedef size_t (*ds_hash_probing_func_t)(size_t base_index, size_t iteration,
                                          size_t capacity);
 typedef void *(*ds_hash_bucket_create_func_t)(ds_hash_table_t *table);
-typedef ds_hash_node_t *(*ds_hash_bucket_search_func_t)(ds_hash_table_t *table,
-                                                        void *bucket, void *key,
-                                                        int (*compare)(void *,
-                                                                       void *));
+typedef ds_hash_node_t *(*ds_hash_bucket_search_func_t)(
+    ds_hash_table_t *table, void *bucket, void *key,
+    int (*compare)(void *, void *));
 typedef void (*ds_hash_bucket_insert_func_t)(ds_hash_table_t *table,
                                              void **bucket,
                                              ds_hash_node_t *node,
@@ -106,8 +105,7 @@ struct hash_table {
   ds_hash_probing_func_t probing_func;
   const ds_hash_bucket_store_t *bucket_store;
   ds_hash_node_t *last_node;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_context_t *context;
   ds_hash_func_t config_hash;
   ds_hash_compare_func_t config_compare;
@@ -116,8 +114,8 @@ struct hash_table {
   ds_hash_destroy_func_t config_destroy_key;
   ds_hash_destroy_func_t config_destroy_value;
   void *config_user;
-  size_t deleted;   /* tombstones in probing mode */
-  bool use_context; /* storage comes from context, not allocator */
+  size_t deleted; /* tombstones in probing mode */
+
   ds_hash_clone_checked_fn config_clone_key_ex;
   ds_hash_clone_checked_fn config_clone_value_ex;
 };
@@ -192,18 +190,12 @@ const ds_hash_bucket_store_t *ds_hash_table_linked_list_bucket_store(void);
 
 ds_hash_table_t *ds_hash_table_create(size_t capacity,
                                       ds_hash_table_mode_t mode,
-                                      ds_hash_probing_func_t probing_func);
+                                      ds_hash_probing_func_t probing_func,
+                                      ds_context_t *context);
 ds_hash_table_t *
 ds_hash_table_create_chain(size_t capacity,
-                           const ds_hash_bucket_store_t *bucket_store);
-ds_hash_table_t *ds_hash_table_create_alloc(size_t capacity,
-                                            ds_hash_table_mode_t mode,
-                                            ds_hash_probing_func_t probing_func,
-                                            void *(*allocator)(size_t),
-                                            void (*deallocator)(void *));
-ds_hash_table_t *ds_hash_table_create_chain_alloc(
-    size_t capacity, const ds_hash_bucket_store_t *bucket_store,
-    void *(*allocator)(size_t), void (*deallocator)(void *));
+                           const ds_hash_bucket_store_t *bucket_store,
+                           ds_context_t *context);
 void ds_hash_table_insert_with(ds_hash_table_t *table, void *key, void *value,
                                size_t (*hash_func)(void *),
                                int (*compare)(void *, void *));
@@ -239,8 +231,9 @@ ds_hash_table_t *ds_hash_table_clone_with(ds_hash_table_t *table,
 
 /* Configured checked construction validates modes, sizing and callback tables;
  * NULL context chooses the default. Output is NULL on failure. */
-ds_status_t ds_hash_table_create_config_ex(const ds_hash_table_config_t *config,
-                                           ds_hash_table_t **out);
+ds_status_t
+ds_hash_table_create_config_ex(const ds_hash_table_config_t *config,
+                               ds_hash_table_t **out);
 typedef ds_status_t (*ds_hash_table_visit_fn)(ds_hash_node_t *, void *);
 /* Newest first; stop on first non-DS_OK status. Callbacks cannot mutate the
  * table or retain node views beyond the existing lifetime rules. */
@@ -248,13 +241,13 @@ ds_status_t ds_hash_table_walk_with(ds_hash_table_t *table,
                                     ds_hash_table_visit_fn visit, void *user);
 /* Checked clone uses *_ex callbacks when present; DS_OK may produce NULL.
  * Pointer-returning clone callbacks use NULL to signal failure here.
- * Each cloned part needs a destroy callback for rollback and must be separately
- * owned; cloning a key preserves hash/equality. Callback failures own
- * unfinished outputs. Completed parts are rolled back. Positive clone statuses
- * become DS_ERR_CALLBACK. A borrowed clone copies pointers and clears
+ * Each cloned part needs a destroy callback for rollback and must be
+ * separately owned; cloning a key preserves hash/equality. Callback failures
+ * own unfinished outputs. Completed parts are rolled back. Positive clone
+ * statuses become DS_ERR_CALLBACK. A borrowed clone copies pointers and clears
  * ownership. NULL context inherits the source owner, including custom direct
- * allocators. Output is NULL on failure. Compare/hash/user policy lifetimes are
- * inherited. */
+ * allocators. Output is NULL on failure. Compare/hash/user policy lifetimes
+ * are inherited. */
 ds_status_t ds_hash_table_clone_ex(ds_hash_table_t *table, bool borrowed,
                                    ds_context_t *context,
                                    ds_hash_table_t **out);

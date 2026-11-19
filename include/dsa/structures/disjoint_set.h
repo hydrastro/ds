@@ -17,21 +17,17 @@ typedef struct disjoint_set_node {
 
 typedef struct disjoint_set {
   size_t count;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_disjoint_set_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_disjoint_set_create_context(ds_context_t *context,
                                            ds_disjoint_set_t **out);
 
-ds_disjoint_set_t *ds_disjoint_set_create(void);
-ds_disjoint_set_t *ds_disjoint_set_create_alloc(void *(*allocator)(size_t),
-                                                void (*deallocator)(void *));
+ds_disjoint_set_t *ds_disjoint_set_create(ds_context_t *context);
 /* Nodes must be registered exactly once and belong to this set. Intrusive
  * nodes carry no ownership tag. Checked operations validate arguments/counts,
  * not membership or arbitrary link corruption. Find may compress paths.
@@ -44,7 +40,8 @@ ds_status_t ds_disjoint_set_find_ex(ds_disjoint_set_t *set,
 ds_status_t ds_disjoint_set_union_ex(ds_disjoint_set_t *set,
                                      ds_disjoint_set_node_t *a,
                                      ds_disjoint_set_node_t *b);
-void ds_disjoint_set_make(ds_disjoint_set_t *set, ds_disjoint_set_node_t *node);
+void ds_disjoint_set_make(ds_disjoint_set_t *set,
+                          ds_disjoint_set_node_t *node);
 ds_disjoint_set_node_t *ds_disjoint_set_find(ds_disjoint_set_t *set,
                                              ds_disjoint_set_node_t *node);
 bool ds_disjoint_set_union(ds_disjoint_set_t *set, ds_disjoint_set_node_t *a,

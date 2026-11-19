@@ -122,7 +122,7 @@ ds_status_t ds_d_tree_build(ds_d_tree_t *t, const double *xy,
   }
   memset(t, 0, sizeof(*t));
   t->regions = n;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   cap = 2 * n;
   total_edges = offsets[n] - offsets[0];
 #define DT_ALLOC(field, type, count)                                           \

@@ -49,7 +49,7 @@ ds_status_t ds_sdp_init(ds_sdp_t *p, size_t m, size_t blocks, const long *sizes,
   }
   p->m = m;
   p->blocks = blocks;
-  p->context = context;
+  p->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

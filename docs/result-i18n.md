@@ -29,7 +29,8 @@ turning memory exhaustion into a fabricated application error.
 | `andThen` | runs only on success; preceding diagnostics come before callback diagnostics |
 | error mapping/recovery | `map_error`, `or_else`, with the corresponding error-branch behavior |
 | `drainTo` | emits without consuming the source, preserving the source sequence |
-| immutable `Diagnostics` | Result logs use the RRB vector of immutable snapshot handles |
+| `zip` | combines independent Results; explicit callbacks combine successes or two errors |
+| immutable `Diagnostics` | replaceable log backend; RRB and flat-array implementations |
 
 An initialized, empty Result is `DS_RESULT_UNINITIALIZED`, not a domain error.
 Use a constructor before querying or composing it. All outputs must be
@@ -78,22 +79,72 @@ Result. Check direct collection return statuses. A collector used as a void
 sink records its first failure in `status`; constructing or appending a Result
 from that incomplete collector fails with that status. `clear` resets it.
 
-Result logs use the library's RRB vector with branching 32 by default. Initialize
-a `ds_result_config_t` and set `diagnostics.bits` to 2..8 to choose branching
-4..256; its context selects allocation. Other RRB policy fields are managed by
-the Result implementation. The config is borrowed and must remain unchanged
-and alive until all its versions are released; NULL selects a static default.
+A Result copies its `ds_result_config_t`, including the diagnostic backend's
+operation table. A stack-local configuration can go out of scope after
+construction. Allocation contexts and custom backend user state remain borrowed
+and must outlive every version using them. An empty Result with a borrowed
+payload allocates nothing.
 
-Retaining a Result is constant work. Same-config binding concatenates logs in
-O(M log_M n), sharing untouched RRB nodes, where M is branching. Different
-configs import the preceding log into the callback Result's configuration by
-repeated append; that conversion is not a logarithmic join. Snapshot strings
-are still shared. Their original allocator contexts must remain alive. Replacing
-an existing output additionally pays the cost of releasing its old version.
+The default log uses an RRB vector with branching 32. Set `diagnostics.bits`
+to 2..8 for branching 4..256. Set `diagnostics.ops` to
+`*ds_diagnostic_log_flat_ops()` to select a flat array, or supply an immutable
+backend through `ds_diagnostic_log_ops_t`. `diagnostics.context` selects log
+allocation; payload and snapshot owners can use different contexts.
+
+| Backend | Copy | Append | Compatible concatenation | Traversal |
+|---|---|---|---|---|
+| RRB (branching M) | O(1) | O(M log_M n) | O(M log_M n) | O(n) |
+| Flat array | O(1) | O(n) | O(n + m) | O(n) |
+
+These costs exclude releasing an existing destination. RRB updates share
+untouched nodes. Flat updates allocate a new array of retained snapshot handles.
+Both preserve immutable versions. Configurations with matching operations,
+context, branching and user state can use native concatenation. Otherwise the
+right log is imported by ordered appends into the **left** log's policy.
+An empty left log still determines that policy. Records retain their original
+snapshot owners; their contexts must remain alive after an import.
+
+A custom backend provides retain, release, count, indexed access and append.
+Concatenation and traversal are optional; ordered import and indexed traversal
+provide fallbacks. Its states own retained snapshot references. An update must
+return a separately owned state on success and leave inputs unchanged on failure.
+A callback returning a positive status is rejected. The log owns its configuration
+copy; backend state must copy any policy data it needs rather than keep a pointer
+to the operation's temporary configuration. See
+[diagnostic_log.h](../include/dsa/core/diagnostic_log.h) for the full contract.
+
+## Sequential composition and independent validation
+
+`and_then` runs the next operation only after success. `or_else` runs recovery
+only after an error. Both append callback diagnostics after the input diagnostics
+and preserve the input log policy. `map` and `map_error` change a payload on the
+selected branch without changing the log.
+
+`ds_result_zip` combines two already-computed Results. Two successes call
+`combine_ok`; two errors call `combine_error`; one error retains that error's
+payload. Only the callback for the selected case is required. The error callback
+can build an ordered collection, merge a field-error map, combine a bitset, or
+apply another domain-specific rule. There is no implicit policy that discards
+one error. Both logs are retained, left before right. A failing combine callback
+leaves the initialized output unchanged. These guarantees cover library state,
+not external side effects performed by callbacks.
+
+`DS_RESULT_DECLARE_POINTERS` in a header and `DS_RESULT_DEFINE_POINTERS` in one
+source file generate typed borrowed-pointer constructors and checked accessors.
+They avoid repeated pointer casts at application boundaries. The wrapper exposes
+its generic `core` for owned schema payloads and composition; using that escape
+hatch with the wrong payload type defeats the facade's type discipline.
+
+[The validation example](../examples/result_validation.c) combines independent
+field errors using both log backends and retains the result after destroying its
+inputs. [The ownership example](../examples/result_ownership.c) keeps a subobject
+alive through a mapped Result and handles an exhausted allocation context without
+replacing an existing output.
 
 Callbacks invoked by emission or filtering must not mutate or release their
 source. Emission borrows each record only during the callback; retain a snapshot
-or add it to a collector to keep it.
+or add it to a collector to keep it. `ds_result_drain_to` returns a traversal
+status; a void sink records its own presentation failures if it needs to report them.
 
 ## Catalog composition
 

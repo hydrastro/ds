@@ -19,7 +19,7 @@ ds_status_t ds_alist_init(ds_alist_t *l, size_t key_size, size_t value_size,
   l->value_size = value_size;
   l->equal = equal;
   l->user = user;
-  l->context = context;
+  l->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

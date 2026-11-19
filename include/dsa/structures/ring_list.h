@@ -19,21 +19,17 @@ typedef struct ring_list {
   ds_ring_list_node_t *tail;
   ds_ring_list_node_t *nil;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_ring_list_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_ring_list_create_context(ds_context_t *context,
                                         ds_ring_list_t **out);
 
-ds_ring_list_t *ds_ring_list_create(void);
-ds_ring_list_t *ds_ring_list_create_alloc(void *(*allocator)(size_t),
-                                          void (*deallocator)(void *));
+ds_ring_list_t *ds_ring_list_create(ds_context_t *context);
 void ds_ring_list_push_front(ds_ring_list_t *list, ds_ring_list_node_t *node);
 void ds_ring_list_push_back(ds_ring_list_t *list, ds_ring_list_node_t *node);
 ds_ring_list_node_t *ds_ring_list_pop_front(ds_ring_list_t *list);
@@ -41,10 +37,9 @@ ds_ring_list_node_t *ds_ring_list_front(ds_ring_list_t *list);
 ds_ring_list_node_t *ds_ring_list_back(ds_ring_list_t *list);
 void ds_ring_list_rotate(ds_ring_list_t *list);
 bool ds_ring_list_is_empty(ds_ring_list_t *list);
-ds_ring_list_node_t *ds_ring_list_search(ds_ring_list_t *list,
-                                         ds_ring_list_node_t *node,
-                                         int (*compare)(ds_ring_list_node_t *,
-                                                        ds_ring_list_node_t *));
+ds_ring_list_node_t *ds_ring_list_search(
+    ds_ring_list_t *list, ds_ring_list_node_t *node,
+    int (*compare)(ds_ring_list_node_t *, ds_ring_list_node_t *));
 void ds_ring_list_delete_node(ds_ring_list_t *list, ds_ring_list_node_t *node);
 void ds_ring_list_destroy_node(ds_ring_list_t *list, ds_ring_list_node_t *node,
                                void (*destroy)(ds_ring_list_node_t *));
@@ -62,11 +57,10 @@ ds_ring_list_clone(ds_ring_list_t *list,
  * made so far through destroy_clone and returns DS_ERR_CALLBACK;
  * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
  * are required. On any error *out is NULL and the source is unchanged. */
-ds_status_t
-ds_ring_list_clone_ex(const ds_ring_list_t *list,
-                      ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *),
-                      void (*destroy_clone)(ds_ring_list_node_t *),
-                      ds_ring_list_t **out);
+ds_status_t ds_ring_list_clone_ex(
+    const ds_ring_list_t *list,
+    ds_ring_list_node_t *(*clone_node)(ds_ring_list_node_t *),
+    void (*destroy_clone)(ds_ring_list_node_t *), ds_ring_list_t **out);
 
 /* Callback policies require stable topology during calls. Views are borrowed.
  * Walk stops on the first non-DS_OK result; find leaves out unchanged on
@@ -91,8 +85,8 @@ ds_status_t ds_ring_list_find_with(ds_ring_list_t *container,
  * not inspect or mutate the container during destruction. */
 ds_status_t ds_ring_list_clone_with(const ds_ring_list_t *container,
                                     ds_ring_list_clone_fn clone,
-                                    ds_ring_list_destroy_fn destroy, void *user,
-                                    ds_context_t *context,
+                                    ds_ring_list_destroy_fn destroy,
+                                    void *user, ds_context_t *context,
                                     ds_ring_list_t **out);
 void ds_ring_list_destroy_with(ds_ring_list_t *container,
                                ds_ring_list_destroy_fn destroy, void *user);

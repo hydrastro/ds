@@ -487,7 +487,7 @@ ds_status_t ds_dmsf_init(ds_dmsf_t *g, size_t n, const size_t *u,
   }
   g->n = n;
   g->m = m;
-  g->context = context;
+  g->context = context != NULL ? context : ds_default_context();
   g->levels = 1; /* floor(log2 n) + 1 */
   for (k = n; k > 1; k >>= 1) {
     g->levels++;

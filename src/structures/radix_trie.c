@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/radix_trie.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,17 +5,17 @@
 static ds_radix_trie_node_t *radix_trie_new_node(ds_radix_trie_t *trie,
                                                  const unsigned char *edge,
                                                  size_t edge_length) {
-  ds_radix_trie_node_t *node = (ds_radix_trie_node_t *)DS_OWNER_ALLOC(
-      trie, sizeof(ds_radix_trie_node_t));
+  ds_radix_trie_node_t *node = (ds_radix_trie_node_t *)ds_context_alloc(
+      trie->context, sizeof(ds_radix_trie_node_t));
   if (node == NULL) {
     return NULL;
   }
   node->edge_length = edge_length;
   if (edge_length > 0) {
     size_t i;
-    node->edge = (unsigned char *)DS_OWNER_ALLOC(trie, edge_length);
+    node->edge = (unsigned char *)ds_context_alloc(trie->context, edge_length);
     if (node->edge == NULL) {
-      DS_OWNER_FREE(trie, node);
+      ds_context_free(trie->context, node);
       return NULL;
     }
     for (i = 0; i < edge_length; i++) {
@@ -33,44 +32,33 @@ static ds_radix_trie_node_t *radix_trie_new_node(ds_radix_trie_t *trie,
   return node;
 }
 
-ds_radix_trie_t *ds_radix_trie_create(void) {
-  return ds_radix_trie_create_alloc(malloc, free);
-}
-
-static ds_radix_trie_t *radix_trie_create_internal(void *(*allocator)(size_t),
-                                                   void (*deallocator)(void *),
-                                                   ds_context_t *context) {
+static ds_radix_trie_t *radix_trie_create_internal(ds_context_t *context) {
   ds_radix_trie_t *trie;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  trie = (ds_radix_trie_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                              sizeof(ds_radix_trie_t));
+
+  trie = (ds_radix_trie_t *)ds_context_alloc(context, sizeof(ds_radix_trie_t));
   if (trie == NULL) {
     return NULL;
   }
-  trie->context = context;
-  trie->allocator = allocator;
-  trie->deallocator = deallocator;
+  trie->context = context != NULL ? context : ds_default_context();
+
   trie->size = 0;
   trie->root = radix_trie_new_node(trie, NULL, 0);
   if (trie->root == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, trie);
+    ds_context_free(context, trie);
     return NULL;
   }
   return trie;
 }
 
-ds_radix_trie_t *ds_radix_trie_create_alloc(void *(*allocator)(size_t),
-                                            void (*deallocator)(void *)) {
-  return radix_trie_create_internal(allocator, deallocator, NULL);
+ds_radix_trie_t *ds_radix_trie_create(ds_context_t *context) {
+  return radix_trie_create_internal(context);
 }
 ds_status_t ds_radix_trie_create_context(ds_context_t *context,
                                          ds_radix_trie_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = radix_trie_create_internal(
-      malloc, free, context != NULL ? context : ds_default_context());
+  *out = radix_trie_create_internal(context != NULL ? context
+                                                    : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -91,8 +79,9 @@ static bool radix_trie_add_child(ds_radix_trie_t *trie,
                                  ds_radix_trie_node_t *child) {
   ds_radix_trie_node_t **grown;
   size_t i;
-  grown = (ds_radix_trie_node_t **)DS_OWNER_ALLOC(
-      trie, (parent->num_children + 1) * sizeof(ds_radix_trie_node_t *));
+  grown = (ds_radix_trie_node_t **)ds_context_alloc(
+      trie->context,
+      (parent->num_children + 1) * sizeof(ds_radix_trie_node_t *));
   if (grown == NULL)
     return false;
   for (i = 0; i < parent->num_children; i++) {
@@ -100,7 +89,7 @@ static bool radix_trie_add_child(ds_radix_trie_t *trie,
   }
   grown[parent->num_children] = child;
   if (parent->children != NULL) {
-    DS_OWNER_FREE(trie, parent->children);
+    ds_context_free(trie->context, parent->children);
   }
   parent->children = grown;
   parent->num_children += 1;
@@ -117,7 +106,7 @@ static void radix_trie_remove_child(ds_radix_trie_t *trie,
       parent->children[n++] = parent->children[i];
   parent->num_children = n;
   if (n == 0) {
-    DS_OWNER_FREE(trie, parent->children);
+    ds_context_free(trie->context, parent->children);
     parent->children = NULL;
   }
 }
@@ -137,10 +126,10 @@ static void radix_trie_free_new(ds_radix_trie_t *trie,
   if (node == NULL)
     return;
   if (node->edge != NULL)
-    DS_OWNER_FREE(trie, node->edge);
+    ds_context_free(trie->context, node->edge);
   if (node->children != NULL)
-    DS_OWNER_FREE(trie, node->children);
-  DS_OWNER_FREE(trie, node);
+    ds_context_free(trie->context, node->children);
+  ds_context_free(trie->context, node);
 }
 
 ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
@@ -208,8 +197,8 @@ ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
         leaf->is_terminal = true;
         leaf->value = value;
       }
-      split->children = (ds_radix_trie_node_t **)DS_OWNER_ALLOC(
-          trie, slots * sizeof(*split->children));
+      split->children = (ds_radix_trie_node_t **)ds_context_alloc(
+          trie->context, slots * sizeof(*split->children));
       if (split->children == NULL) {
         radix_trie_free_new(trie, leaf);
         radix_trie_free_new(trie, split);
@@ -241,8 +230,8 @@ ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
   }
 }
 
-bool ds_radix_trie_insert(ds_radix_trie_t *trie, const void *key, size_t length,
-                          void *value) {
+bool ds_radix_trie_insert(ds_radix_trie_t *trie, const void *key,
+                          size_t length, void *value) {
   return ds_radix_trie_insert_ex(trie, key, length, value) == DS_OK;
 }
 
@@ -280,7 +269,8 @@ bool ds_radix_trie_contains(ds_radix_trie_t *trie, const void *key,
   return result;
 }
 
-void *ds_radix_trie_get(ds_radix_trie_t *trie, const void *key, size_t length) {
+void *ds_radix_trie_get(ds_radix_trie_t *trie, const void *key,
+                        size_t length) {
   ds_radix_trie_node_t *node;
   void *result = NULL;
   node = radix_trie_find_node(trie, (const unsigned char *)key, length);
@@ -300,7 +290,7 @@ static bool radix_trie_merge_with_child(ds_radix_trie_t *trie,
   if (child->edge_length > (size_t)-1 - node->edge_length)
     return false;
   merged_length = node->edge_length + child->edge_length;
-  merged = (unsigned char *)DS_OWNER_ALLOC(trie, merged_length);
+  merged = (unsigned char *)ds_context_alloc(trie->context, merged_length);
   if (merged == NULL)
     return false;
   for (i = 0; i < node->edge_length; i++) {
@@ -310,26 +300,26 @@ static bool radix_trie_merge_with_child(ds_radix_trie_t *trie,
     merged[node->edge_length + i] = child->edge[i];
   }
   if (node->edge != NULL) {
-    DS_OWNER_FREE(trie, node->edge);
+    ds_context_free(trie->context, node->edge);
   }
   node->edge = merged;
   node->edge_length = merged_length;
   node->is_terminal = child->is_terminal;
   node->value = child->value;
-  DS_OWNER_FREE(trie, node->children);
+  ds_context_free(trie->context, node->children);
   node->children = child->children;
   node->num_children = child->num_children;
   for (i = 0; i < node->num_children; i++)
     node->children[i]->parent = node;
   if (child->edge != NULL) {
-    DS_OWNER_FREE(trie, child->edge);
+    ds_context_free(trie->context, child->edge);
   }
-  DS_OWNER_FREE(trie, child);
+  ds_context_free(trie->context, child);
   return true;
 }
 
-bool ds_radix_trie_remove(ds_radix_trie_t *trie, const void *key, size_t length,
-                          void **out_value) {
+bool ds_radix_trie_remove(ds_radix_trie_t *trie, const void *key,
+                          size_t length, void **out_value) {
   ds_radix_trie_node_t *node;
   if (trie == NULL || (key == NULL && length != 0))
     return false;
@@ -398,7 +388,7 @@ static ds_status_t rt_enter(ds_radix_trie_t *trie, ds_radix_trie_node_t *node,
       }
       new_cap *= 2;
     }
-    grown = (unsigned char *)DS_OWNER_ALLOC(trie, new_cap);
+    grown = (unsigned char *)ds_context_alloc(trie->context, new_cap);
     if (grown == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -406,7 +396,7 @@ static ds_status_t rt_enter(ds_radix_trie_t *trie, ds_radix_trie_node_t *node,
       grown[i] = (*buffer)[i];
     }
     if (*buffer != NULL) {
-      DS_OWNER_FREE(trie, *buffer);
+      ds_context_free(trie->context, *buffer);
     }
     *buffer = grown;
     *cap = new_cap;
@@ -430,7 +420,8 @@ static ds_status_t rt_push_frame(ds_radix_trie_t *trie, rt_frame_t **stack,
     if (*cap > (size_t)-1 / 2 / sizeof(rt_frame_t)) {
       return DS_ERR_OVERFLOW;
     }
-    grown = (rt_frame_t *)DS_OWNER_ALLOC(trie, new_cap * sizeof(rt_frame_t));
+    grown = (rt_frame_t *)ds_context_alloc(trie->context,
+                                           new_cap * sizeof(rt_frame_t));
     if (grown == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -438,7 +429,7 @@ static ds_status_t rt_push_frame(ds_radix_trie_t *trie, rt_frame_t **stack,
       grown[i] = (*stack)[i];
     }
     if (*stack != NULL) {
-      DS_OWNER_FREE(trie, *stack);
+      ds_context_free(trie->context, *stack);
     }
     *stack = grown;
     *cap = new_cap;
@@ -479,9 +470,9 @@ ds_status_t ds_radix_trie_walk_with(ds_radix_trie_t *trie,
       st = rt_push_frame(trie, &stack, &depth, &stack_cap, child, prefix);
   }
   if (stack != NULL)
-    DS_OWNER_FREE(trie, stack);
+    ds_context_free(trie->context, stack);
   if (buffer != NULL)
-    DS_OWNER_FREE(trie, buffer);
+    ds_context_free(trie->context, buffer);
   return st;
 }
 static ds_status_t rt_visit_direct(const unsigned char *key, size_t length,
@@ -503,7 +494,7 @@ void ds_radix_trie_walk(ds_radix_trie_t *trie,
 static void rt_doom(ds_radix_trie_t *trie, ds_radix_trie_node_t **list,
                     ds_radix_trie_node_t *node) {
   if (node->edge != NULL) {
-    DS_OWNER_FREE(trie, node->edge);
+    ds_context_free(trie->context, node->edge);
   }
   node->edge = (unsigned char *)(void *)*list;
   *list = node;
@@ -529,11 +520,11 @@ void ds_radix_trie_destroy_with(ds_radix_trie_t *trie,
       destroy_value(x->value, user);
     }
     if (x->children != NULL) {
-      DS_OWNER_FREE(trie, x->children);
+      ds_context_free(trie->context, x->children);
     }
-    DS_OWNER_FREE(trie, x);
+    ds_context_free(trie->context, x);
   }
-  DS_OWNER_FREE(trie, trie);
+  ds_context_free(trie->context, trie);
 }
 static void rt_destroy_direct(void *value, void *user) {
   void (**destroy)(void *) = (void (**)(void *))user;

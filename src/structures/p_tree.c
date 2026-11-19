@@ -145,7 +145,7 @@ ds_status_t ds_p_tree_init(ds_p_tree_t *t, size_t dim, const double *dirs,
   t->max_entries = max_entries;
   t->min_entries = max_entries * 2 / 5 > 2 ? max_entries * 2 / 5 : 2;
   t->free_list = PT_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   t->dirs = (double *)ds_context_alloc(context, k * dim * sizeof(double));
   if (t->dirs == NULL) {
     return DS_ERR_ALLOC;

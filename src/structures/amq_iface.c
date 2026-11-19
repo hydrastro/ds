@@ -756,7 +756,7 @@ ds_status_t ds_amq_init(ds_amq_t *f, const ds_amq_ops_t *ops, size_t capacity,
     return st;
   }
   f->ops = ops;
-  f->context = context;
+  f->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -922,7 +922,7 @@ ds_status_t ds_amq_load_with(ds_amq_t *f, const ds_amq_ops_t *ops,
     return st;
   }
   f->ops = ops;
-  f->context = context;
+  f->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

@@ -28,7 +28,7 @@ ds_status_t ds_signature_file_init(ds_signature_file_t *f, size_t m, size_t k,
   f->row_bytes = (m + 7) / 8;
   f->hash = hash != NULL ? hash : sf_default_hash;
   f->user = user;
-  f->context = context;
+  f->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

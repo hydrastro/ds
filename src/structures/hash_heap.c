@@ -27,7 +27,7 @@ ds_status_t ds_hash_heap_init(ds_hash_heap_t *h, size_t key_size,
   h->equal = equal;
   h->compare = compare;
   h->user = user;
-  h->context = context;
+  h->context = context != NULL ? context : ds_default_context();
   h->tmp = (unsigned char *)ds_context_alloc(context, key_size + prio_size);
   return h->tmp == NULL ? DS_ERR_ALLOC : DS_OK;
 }

@@ -726,7 +726,7 @@ ds_status_t ds_dyn_msf_init(ds_dyn_msf_t *g, size_t n, ds_context_t *context) {
     return DS_ERR_OVERFLOW;
   }
   g->n = n;
-  g->context = context;
+  g->context = context != NULL ? context : ds_default_context();
   g->free_edge = DY_NONE;
   g->slot_capacity = 8;
   g->node = (ds_dyn_msf_node_t *)ds_context_alloc(

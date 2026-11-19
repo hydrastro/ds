@@ -254,7 +254,7 @@ ds_status_t ds_page_store_fault(ds_page_store_t *store, ds_page_store_t *base,
   f->page_size = base->page_size;
   f->fault = fault;
   f->user = user;
-  f->context = context;
+  f->context = context != NULL ? context : ds_default_context();
   fs_clear(f);
   traits = base->ops->traits &
            (DS_PAGE_STORE_DURABLE_SYNC | DS_PAGE_STORE_TRUNCATE_PERSISTS);

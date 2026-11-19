@@ -1,30 +1,19 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/queue.h>
 #include <stdlib.h>
 
-ds_queue_t *ds_queue_create(void) {
-  return ds_queue_create_alloc(malloc, free);
-}
-
-static ds_queue_t *queue_create_internal(void *(*allocator)(size_t),
-                                         void (*deallocator)(void *),
-                                         ds_context_t *context) {
+static ds_queue_t *queue_create_internal(ds_context_t *context) {
   ds_queue_t *queue;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  queue =
-      (ds_queue_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_queue_t));
+
+  queue = (ds_queue_t *)ds_context_alloc(context, sizeof(ds_queue_t));
   if (queue == NULL) {
     return NULL;
   }
-  queue->context = context;
-  queue->allocator = allocator;
-  queue->deallocator = deallocator;
-  queue->nil = (ds_queue_node_t *)DS_OWNER_ALLOCATE(context, allocator,
-                                                    sizeof(ds_queue_node_t));
+  queue->context = context != NULL ? context : ds_default_context();
+
+  queue->nil =
+      (ds_queue_node_t *)ds_context_alloc(context, sizeof(ds_queue_node_t));
   if (queue->nil == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, queue);
+    ds_context_free(context, queue);
     return NULL;
   }
   queue->nil->next = queue->nil;
@@ -35,15 +24,14 @@ static ds_queue_t *queue_create_internal(void *(*allocator)(size_t),
   return queue;
 }
 
-ds_queue_t *ds_queue_create_alloc(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *)) {
-  return queue_create_internal(allocator, deallocator, NULL);
+ds_queue_t *ds_queue_create(ds_context_t *context) {
+  return queue_create_internal(context);
 }
 ds_status_t ds_queue_create_context(ds_context_t *context, ds_queue_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = queue_create_internal(
-      malloc, free, context != NULL ? context : ds_default_context());
+  *out =
+      queue_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -106,9 +94,9 @@ static void queue_destroy_internal(ds_queue_t *queue,
     }
     node = next;
   }
-  DS_OWNER_FREE(queue, queue->nil);
+  ds_context_free(queue->context, queue->nil);
 
-  DS_OWNER_FREE(queue, queue);
+  ds_context_free(queue->context, queue);
 }
 void ds_queue_destroy_with(ds_queue_t *container, ds_queue_destroy_fn destroy,
                            void *user) {
@@ -255,8 +243,7 @@ ds_queue_t *ds_queue_clone(ds_queue_t *queue,
   if (queue == NULL || clone_node == NULL) {
     return NULL;
   }
-  copy = queue_create_internal(queue->allocator, queue->deallocator,
-                               queue->context);
+  copy = queue_create_internal(queue->context);
   if (copy != NULL && !queue_clone_nodes(queue, copy, clone_node)) {
     /* the clones made so far are not released */
     ds_queue_destroy(copy, NULL);
@@ -265,10 +252,10 @@ ds_queue_t *ds_queue_clone(ds_queue_t *queue,
   return copy;
 }
 
-ds_status_t ds_queue_clone_ex(const ds_queue_t *queue,
-                              ds_queue_node_t *(*clone_node)(ds_queue_node_t *),
-                              void (*destroy_clone)(ds_queue_node_t *),
-                              ds_queue_t **out) {
+ds_status_t
+ds_queue_clone_ex(const ds_queue_t *queue,
+                  ds_queue_node_t *(*clone_node)(ds_queue_node_t *),
+                  void (*destroy_clone)(ds_queue_node_t *), ds_queue_t **out) {
   ds_queue_t *copy;
   if (out == NULL) {
     return DS_ERR_NULL;
@@ -277,8 +264,7 @@ ds_status_t ds_queue_clone_ex(const ds_queue_t *queue,
   if (queue == NULL || clone_node == NULL || destroy_clone == NULL) {
     return DS_ERR_NULL;
   }
-  copy = queue_create_internal(queue->allocator, queue->deallocator,
-                               queue->context);
+  copy = queue_create_internal(queue->context);
   if (copy == NULL) {
     return DS_ERR_ALLOC;
   }
@@ -299,7 +285,6 @@ ds_status_t ds_queue_walk_with(ds_queue_t *container, ds_queue_visit_fn visit,
     return DS_ERR_NULL;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     st = visit(node, user);
     if (st != DS_OK)
       return st;
@@ -316,7 +301,6 @@ ds_status_t ds_queue_find_with(ds_queue_t *container, ds_queue_node_t *key,
     return DS_ERR_NULL;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     if (compare(node, key, user) == 0) {
       *out = node;
       return DS_OK;
@@ -341,14 +325,12 @@ ds_status_t ds_queue_clone_with(const ds_queue_t *container,
   *out = NULL;
   if (container == NULL || clone == NULL || destroy == NULL)
     return DS_ERR_NULL;
-  copy = queue_create_internal(container->allocator, container->deallocator,
-                               context != NULL ? context : container->context);
+  copy = queue_create_internal(context != NULL ? context : container->context);
   if (copy == NULL)
     return DS_ERR_ALLOC;
 
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     new_node = NULL;
     st = clone(node, &new_node, user);
     if (st != DS_OK || new_node == NULL) {
@@ -382,7 +364,8 @@ ds_status_t ds_queue_dequeue_ex(ds_queue_t *container, ds_queue_node_t **out) {
   return DS_OK;
 }
 
-ds_status_t ds_queue_remove_ex(ds_queue_t *container, ds_queue_node_t *target) {
+ds_status_t ds_queue_remove_ex(ds_queue_t *container,
+                               ds_queue_node_t *target) {
   size_t i;
   ds_queue_node_t *node;
   if (container == NULL || target == NULL)
@@ -391,7 +374,6 @@ ds_status_t ds_queue_remove_ex(ds_queue_t *container, ds_queue_node_t *target) {
     return DS_ERR_INVALID;
   node = container->head;
   for (i = 0; i < container->size; ++i) {
-
     if (node == target) {
       ds_queue_delete_node(container, node);
       return DS_OK;

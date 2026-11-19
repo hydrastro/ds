@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/rope.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,12 +10,12 @@ static void rope_release(ds_rope_t *r, ds_rope_node_t *n) {
   if (n == NULL || --n->refs != 0)
     return;
   if (n->is_leaf)
-    DS_OWNER_FREE(r, n->data);
+    ds_context_free(r->context, n->data);
   else {
     rope_release(r, n->left);
     rope_release(r, n->right);
   }
-  DS_OWNER_FREE(r, n);
+  ds_context_free(r->context, n);
 }
 
 static ds_status_t rope_retain(ds_rope_node_t *n, ds_rope_node_t **out) {
@@ -42,13 +41,13 @@ static ds_status_t rope_leaf(ds_rope_t *r, const char *s, size_t len,
   }
   if (len == (size_t)-1)
     return DS_ERR_OVERFLOW;
-  n = (ds_rope_node_t *)DS_OWNER_ALLOC(r, sizeof(*n));
+  n = (ds_rope_node_t *)ds_context_alloc(r->context, sizeof(*n));
   if (n == NULL)
     return DS_ERR_ALLOC;
   memset(n, 0, sizeof(*n));
-  n->data = (char *)DS_OWNER_ALLOC(r, len + 1);
+  n->data = (char *)ds_context_alloc(r->context, len + 1);
   if (n->data == NULL) {
-    DS_OWNER_FREE(r, n);
+    ds_context_free(r->context, n);
     return DS_ERR_ALLOC;
   }
   memcpy(n->data, s, len);
@@ -72,7 +71,7 @@ static ds_status_t rope_inner(ds_rope_t *r, ds_rope_node_t *left,
   if (right->length > (size_t)-1 - left->length ||
       right->leaves > (size_t)-1 - left->leaves)
     return DS_ERR_OVERFLOW;
-  n = (ds_rope_node_t *)DS_OWNER_ALLOC(r, sizeof(*n));
+  n = (ds_rope_node_t *)ds_context_alloc(r->context, sizeof(*n));
   if (n == NULL)
     return DS_ERR_ALLOC;
   memset(n, 0, sizeof(*n));
@@ -81,7 +80,7 @@ static ds_status_t rope_inner(ds_rope_t *r, ds_rope_node_t *left,
     st = rope_retain(right, &n->right);
   if (st != DS_OK) {
     rope_release(r, n->left);
-    DS_OWNER_FREE(r, n);
+    ds_context_free(r->context, n);
     return st;
   }
   n->weight = left->length;
@@ -131,8 +130,8 @@ static ds_status_t rope_balance(ds_rope_t *r, ds_rope_node_t *l,
   return st;
 }
 
-static ds_status_t rope_join(ds_rope_t *r, ds_rope_node_t *a, ds_rope_node_t *b,
-                             ds_rope_node_t **out) {
+static ds_status_t rope_join(ds_rope_t *r, ds_rope_node_t *a,
+                             ds_rope_node_t *b, ds_rope_node_t **out) {
   ds_rope_node_t *part = NULL;
   ds_status_t st;
   if (a == NULL)
@@ -225,43 +224,35 @@ static ds_status_t rope_split(ds_rope_t *r, ds_rope_node_t *n, size_t at,
   return st;
 }
 
-ds_rope_t *ds_rope_create(void) { return ds_rope_create_alloc(malloc, free); }
-
-static ds_rope_t *rope_create_internal(void *(*allocator)(size_t),
-                                       void (*deallocator)(void *),
-                                       ds_context_t *context) {
+static ds_rope_t *rope_create_internal(ds_context_t *context) {
   ds_rope_t *r;
-  if (allocator == NULL || deallocator == NULL)
-    return NULL;
-  r = (ds_rope_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(*r));
+  r = (ds_rope_t *)ds_context_alloc(context, sizeof(*r));
   if (r != NULL) {
     r->root = NULL;
-    r->context = context;
-    r->allocator = allocator;
-    r->deallocator = deallocator;
+    r->context = context != NULL ? context : ds_default_context();
   }
   return r;
 }
 
-ds_rope_t *ds_rope_create_alloc(void *(*allocator)(size_t),
-                                void (*deallocator)(void *)) {
-  return rope_create_internal(allocator, deallocator, NULL);
+ds_rope_t *ds_rope_create(ds_context_t *context) {
+  return rope_create_internal(context);
 }
 ds_status_t ds_rope_create_context(ds_context_t *context, ds_rope_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = rope_create_internal(malloc, free,
-                              context != NULL ? context : ds_default_context());
+  *out =
+      rope_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
-ds_rope_t *ds_rope_from_string(const char *s, size_t len) {
+ds_rope_t *ds_rope_from_string(const char *s, size_t len,
+                               ds_context_t *context) {
   ds_rope_t *r;
   if (s == NULL && len != 0)
     return NULL;
-  r = ds_rope_create();
+  r = ds_rope_create(context);
   if (r != NULL && rope_build(r, s, len, &r->root) != DS_OK) {
-    DS_OWNER_FREE(r, r);
+    ds_context_free(r->context, r);
     return NULL;
   }
   return r;
@@ -412,7 +403,7 @@ char *ds_rope_to_string(ds_rope_t *r) {
   len = ds_rope_length(r);
   if (len == (size_t)-1)
     return NULL;
-  out = (char *)DS_OWNER_ALLOC(r, len + 1);
+  out = (char *)ds_context_alloc(r->context, len + 1);
   if (out == NULL)
     return NULL;
   (void)rope_substring(r->root, 0, len, out);
@@ -425,11 +416,7 @@ ds_status_t ds_rope_concat_ex(ds_rope_t *r, ds_rope_t *other) {
   ds_status_t st;
   if (r == NULL || other == NULL)
     return DS_ERR_NULL;
-  if (r == other || ((r->context != NULL || other->context != NULL)
-                         ? (r->context == NULL || other->context == NULL ||
-                            !ds_context_compatible(r->context, other->context))
-                         : (r->allocator != other->allocator ||
-                            r->deallocator != other->deallocator)))
+  if (r == other || !ds_context_compatible(r->context, other->context))
     return DS_ERR_INVALID;
   st = rope_join(r, r->root, other->root, &root);
   if (st == DS_OK) {
@@ -459,7 +446,7 @@ ds_status_t ds_rope_rebalance_ex(ds_rope_t *r) {
   if (bytes == NULL)
     return ds_rope_length(r) == (size_t)-1 ? DS_ERR_OVERFLOW : DS_ERR_ALLOC;
   st = rope_build(r, bytes, ds_rope_length(r), &root);
-  DS_OWNER_FREE(r, bytes);
+  ds_context_free(r->context, bytes);
   if (st == DS_OK) {
     rope_release(r, r->root);
     r->root = root;
@@ -473,7 +460,7 @@ void ds_rope_destroy(ds_rope_t *r) {
   if (r == NULL)
     return;
   rope_release(r, r->root);
-  DS_OWNER_FREE(r, r);
+  ds_context_free(r->context, r);
 }
 
 ds_status_t ds_rope_char_at_ex(ds_rope_t *rope, size_t index, char *out) {

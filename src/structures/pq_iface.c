@@ -38,7 +38,7 @@ static ds_status_t pq_base_init(pq_base_t *b, size_t header, size_t item_size,
   b->item_size = item_size;
   b->compare = compare;
   b->user = user;
-  b->context = context;
+  b->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -340,7 +340,8 @@ static ds_status_t pqk_update(void *pq, ds_pq_handle_t handle,
   return DS_OK;
 }
 
-static ds_status_t pqk_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqk_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   pqk_t *h = (pqk_t *)pq;
   return pqk_remove_at(h, ((pqk_cell_t *)(void *)handle)->pos, out_item);
 }
@@ -481,8 +482,8 @@ static ds_status_t pqw_grow(pqw_t *h, size_t need) {
                                  h->b.node_size, need);
   if (st == DS_OK && need > h->bit_capacity) {
     size_t cap = h->capacity; /* bits follow the slots */
-    unsigned char *a =
-        (unsigned char *)ds_context_realloc(h->b.context, h->bits, cap / 8 + 1);
+    unsigned char *a = (unsigned char *)ds_context_realloc(
+        h->b.context, h->bits, cap / 8 + 1);
     if (a == NULL) {
       return DS_ERR_ALLOC;
     }
@@ -597,7 +598,8 @@ static ds_status_t pqw_update(void *pq, ds_pq_handle_t handle,
   return DS_OK;
 }
 
-static ds_status_t pqw_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqw_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   pqw_t *h = (pqw_t *)pq;
   pqk_cell_t *cell = (pqk_cell_t *)(void *)handle;
   if (out_item != NULL) {
@@ -631,7 +633,8 @@ typedef struct pqa {
   size_t d;
 } pqa_t;
 
-static bool pqa_less(const pqa_t *h, const pqa_node_t *x, const pqa_node_t *y) {
+static bool pqa_less(const pqa_t *h, const pqa_node_t *x,
+                     const pqa_node_t *y) {
   return h->b.compare(pq_citem(&h->b, x), pq_citem(&h->b, y), h->b.user) < 0;
 }
 
@@ -807,7 +810,8 @@ static ds_status_t pqa_update(void *pq, ds_pq_handle_t handle,
   return DS_OK;
 }
 
-static ds_status_t pqa_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqa_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   pqa_t *h = (pqa_t *)pq;
   return pqa_remove_at(h, ((pqa_node_t *)(void *)handle)->index, out_item);
 }
@@ -894,7 +898,8 @@ static ds_status_t pqb_update(void *pq, ds_pq_handle_t handle,
   return DS_OK;
 }
 
-static ds_status_t pqb_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqb_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   pqb_t *q = (pqb_t *)pq;
   ds_binomial_heap_node_t *n = (ds_binomial_heap_node_t *)(void *)handle;
   ds_binomial_heap_remove(&q->h, n);
@@ -1017,7 +1022,8 @@ static ds_status_t pqm_update(void *pq, ds_pq_handle_t handle,
   return DS_OK;
 }
 
-static ds_status_t pqm_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqm_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   pqm_t *q = (pqm_t *)pq;
   ds_meldable_heap_node_t *n = (ds_meldable_heap_node_t *)(void *)handle;
   ds_meldable_heap_remove(&q->h, n);
@@ -1110,15 +1116,14 @@ static ds_status_t pqp_init(void *pq, size_t item_size,
   q->box->user = user;
   q->box->offset = q->b.offset;
   q->box->refs = 1;
-  q->box->context = context;
+  q->box->context = context != NULL ? context : ds_default_context();
   ds_pairing_heap_node_init(&q->nil);
   memset(&q->h, 0, sizeof(q->h));
   q->h.root = NULL;
   q->h.nil = &q->nil;
   q->h.size = 0;
   q->h.compare = pqp_compare;
-  q->h.allocator = NULL;
-  q->h.deallocator = NULL;
+
   return DS_OK;
 }
 
@@ -1200,7 +1205,8 @@ static ds_status_t pqp_update(void *pq, ds_pq_handle_t handle,
   return DS_OK;
 }
 
-static ds_status_t pqp_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqp_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   pqp_t *q = (pqp_t *)pq;
   pqp_node_t *n = (pqp_node_t *)(void *)handle;
   pqp_detach(q, n);
@@ -1255,7 +1261,8 @@ static ds_status_t pqh_update(void *pq, ds_pq_handle_t handle,
                                (ds_hollow_item_t *)(void *)handle, item);
 }
 
-static ds_status_t pqh_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqh_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   return ds_hollow_heap_remove((ds_hollow_heap_t *)pq,
                                (ds_hollow_item_t *)(void *)handle, out_item);
 }
@@ -1316,7 +1323,8 @@ static ds_status_t pqr_update(void *pq, ds_pq_handle_t handle,
                            item);
 }
 
-static ds_status_t pqr_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqr_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   return ds_rp_heap_remove((ds_rp_heap_t *)pq, (ds_rp_node_t *)(void *)handle,
                            out_item);
 }
@@ -1371,7 +1379,8 @@ static ds_status_t pqf_update(void *pq, ds_pq_handle_t handle,
                             (ds_fib_item_t *)(void *)handle, item);
 }
 
-static ds_status_t pqf_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqf_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   return ds_fib_heap_remove((ds_fib_heap_t *)pq,
                             (ds_fib_item_t *)(void *)handle, out_item);
 }
@@ -1389,14 +1398,15 @@ static void pqf_meld(void *pq, void *other) {
   ds_fib_heap_meld((ds_fib_heap_t *)pq, (ds_fib_heap_t *)other);
 }
 
-/* ---- strict Fibonacci heap: dsa/structures/strict_fibonacci_heap.h behind the
- * ops table
+/* ---- strict Fibonacci heap: dsa/structures/strict_fibonacci_heap.h behind
+ * the ops table
  * ---- */
 
 static ds_status_t pqs_init(void *pq, size_t item_size,
                             ds_pq_compare_fn compare, void *user,
                             ds_context_t *context) {
-  return ds_sf_heap_init((ds_sf_heap_t *)pq, item_size, compare, user, context);
+  return ds_sf_heap_init((ds_sf_heap_t *)pq, item_size, compare, user,
+                         context);
 }
 
 static void pqs_destroy(void *pq) { ds_sf_heap_destroy((ds_sf_heap_t *)pq); }
@@ -1425,7 +1435,8 @@ static ds_status_t pqs_update(void *pq, ds_pq_handle_t handle,
                            item);
 }
 
-static ds_status_t pqs_remove(void *pq, ds_pq_handle_t handle, void *out_item) {
+static ds_status_t pqs_remove(void *pq, ds_pq_handle_t handle,
+                              void *out_item) {
   return ds_sf_heap_remove((ds_sf_heap_t *)pq, (ds_sf_cell_t *)(void *)handle,
                            out_item);
 }
@@ -1500,8 +1511,8 @@ static ds_status_t pqt_init(void *pq, size_t size, ds_pq_compare_fn compare,
     return st;
   h->shadow = shadow;
   if (shadow) {
-    st = ds_shadow_heap_init(&h->heap.shadow, sizeof(pqt_node_t *), pqt_compare,
-                             h, 0, context);
+    st = ds_shadow_heap_init(&h->heap.shadow, sizeof(pqt_node_t *),
+                             pqt_compare, h, 0, context);
     if (st == DS_OK)
       ds_shadow_heap_set_move_callback(&h->heap.shadow, pqt_moved, h);
   } else {
@@ -1632,81 +1643,83 @@ static const void *pqt_item(const void *pq, ds_pq_handle_t handle) {
 #define C_N DS_PQ_COST_LINEAR
 #define C_NONE DS_PQ_COST_UNSTATED
 /* push, pop, decrease, increase, remove, meld as {worst, amortized} */
-#define PQ_COSTS_ARRAY                                                         \
-  {                                                                            \
-    {C_N, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG},              \
-        {C_LOG, C_LOG}, {                                                      \
-      C_NONE, C_NONE                                                           \
-    }                                                                          \
+#define PQ_COSTS_ARRAY                                                        \
+  {                                                                           \
+    {C_N, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG},             \
+        {C_LOG, C_LOG}, {                                                     \
+      C_NONE, C_NONE                                                          \
+    }                                                                         \
   }
-#define PQ_COSTS_BINOMIAL                                                      \
-  {                                                                            \
-    {C_LOG, C_1}, {C_LOG, C_LOG}, {C_LOG2, C_LOG2}, {C_LOG2, C_LOG2},          \
-        {C_LOG2, C_LOG2}, {                                                    \
-      C_LOG, C_LOG                                                             \
-    }                                                                          \
+#define PQ_COSTS_BINOMIAL                                                     \
+  {                                                                           \
+    {C_LOG, C_1}, {C_LOG, C_LOG}, {C_LOG2, C_LOG2}, {C_LOG2, C_LOG2},         \
+        {C_LOG2, C_LOG2}, {                                                   \
+      C_LOG, C_LOG                                                            \
+    }                                                                         \
   }
-#define PQ_COSTS_LEFTIST                                                       \
-  {                                                                            \
-    {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG},            \
-        {C_LOG, C_LOG}, {                                                      \
-      C_LOG, C_LOG                                                             \
-    }                                                                          \
+#define PQ_COSTS_LEFTIST                                                      \
+  {                                                                           \
+    {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_LOG, C_LOG},           \
+        {C_LOG, C_LOG}, {                                                     \
+      C_LOG, C_LOG                                                            \
+    }                                                                         \
   }
-#define PQ_COSTS_WEIGHT                                                        \
-  {                                                                            \
-    {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_N, C_N}, {C_N, C_N}, {C_N, C_N}, {      \
-      C_LOG, C_LOG                                                             \
-    }                                                                          \
+#define PQ_COSTS_WEIGHT                                                       \
+  {                                                                           \
+    {C_LOG, C_LOG}, {C_LOG, C_LOG}, {C_N, C_N}, {C_N, C_N}, {C_N, C_N}, {     \
+      C_LOG, C_LOG                                                            \
+    }                                                                         \
   }
-#define PQ_COSTS_SKEW                                                          \
-  {                                                                            \
-    {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_NONE}, {C_N, C_NONE}, {C_N, C_NONE}, { \
-      C_N, C_LOG                                                               \
-    }                                                                          \
+#define PQ_COSTS_SKEW                                                         \
+  {                                                                           \
+    {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_NONE}, {C_N, C_NONE}, {C_N, C_NONE},  \
+    {                                                                         \
+      C_N, C_LOG                                                              \
+    }                                                                         \
   }
-#define PQ_COSTS_RANDOM                                                        \
-  {                                                                            \
-    {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {    \
-      C_N, C_LOG                                                               \
-    }                                                                          \
+#define PQ_COSTS_RANDOM                                                       \
+  {                                                                           \
+    {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {C_N, C_LOG}, {   \
+      C_N, C_LOG                                                              \
+    }                                                                         \
   }
-#define PQ_COSTS_PAIRING                                                       \
-  {                                                                            \
-    {C_1, C_1}, {C_N, C_LOG}, {C_1, C_SUB}, {C_N, C_LOG}, {C_N, C_LOG}, {      \
-      C_1, C_1                                                                 \
-    }                                                                          \
-  }
-
-#define PQ_COSTS_HOLLOW                                                        \
-  {                                                                            \
-    {C_1, C_1}, {C_N, C_LOG}, {C_N, C_1}, {C_N, C_LOG}, {C_N, C_LOG}, {        \
-      C_1, C_1                                                                 \
-    }                                                                          \
+#define PQ_COSTS_PAIRING                                                      \
+  {                                                                           \
+    {C_1, C_1}, {C_N, C_LOG}, {C_1, C_SUB}, {C_N, C_LOG}, {C_N, C_LOG}, {     \
+      C_1, C_1                                                                \
+    }                                                                         \
   }
 
-#define PQ_COSTS_RANK_PAIRING                                                  \
-  {                                                                            \
-    {C_1, C_1}, {C_N, C_LOG}, {C_N, C_1}, {C_N, C_LOG}, {C_N, C_LOG}, {        \
-      C_1, C_1                                                                 \
-    }                                                                          \
+#define PQ_COSTS_HOLLOW                                                       \
+  {                                                                           \
+    {C_1, C_1}, {C_N, C_LOG}, {C_N, C_1}, {C_N, C_LOG}, {C_N, C_LOG}, {       \
+      C_1, C_1                                                                \
+    }                                                                         \
   }
 
-#define PQ_COSTS_STRICT_FIBONACCI                                              \
-  {                                                                            \
-    {C_1, C_1}, {C_LOG, C_LOG}, {C_1, C_1}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, {  \
-      C_1, C_1                                                                 \
-    }                                                                          \
+#define PQ_COSTS_RANK_PAIRING                                                 \
+  {                                                                           \
+    {C_1, C_1}, {C_N, C_LOG}, {C_N, C_1}, {C_N, C_LOG}, {C_N, C_LOG}, {       \
+      C_1, C_1                                                                \
+    }                                                                         \
   }
 
-static const ds_pq_ops_t pq_binary_ops = {"binary",      PQ_WL | DS_PQ_IMPLICIT,
-                                          sizeof(pqa_t), pqa_init2,
-                                          pqa_destroy,   pqa_push,
-                                          pqa_top,       pqa_pop,
-                                          pqa_update,    pqa_remove,
-                                          pqa_item,      pqa_size,
-                                          NULL,          pqa_reserve,
-                                          PQ_COSTS_ARRAY};
+#define PQ_COSTS_STRICT_FIBONACCI                                             \
+  {                                                                           \
+    {C_1, C_1}, {C_LOG, C_LOG}, {C_1, C_1}, {C_LOG, C_LOG}, {C_LOG, C_LOG}, { \
+      C_1, C_1                                                                \
+    }                                                                         \
+  }
+
+static const ds_pq_ops_t pq_binary_ops = {
+    "binary",      PQ_WL | DS_PQ_IMPLICIT,
+    sizeof(pqa_t), pqa_init2,
+    pqa_destroy,   pqa_push,
+    pqa_top,       pqa_pop,
+    pqa_update,    pqa_remove,
+    pqa_item,      pqa_size,
+    NULL,          pqa_reserve,
+    PQ_COSTS_ARRAY};
 static const ds_pq_ops_t pq_quaternary_ops = {
     "quaternary",  PQ_WL | DS_PQ_IMPLICIT,
     sizeof(pqa_t), pqa_init4,
@@ -1937,7 +1950,9 @@ static const ds_pq_ops_t pq_strict_fibonacci_ops = {"strict-fibonacci",
 
 const ds_pq_ops_t *ds_pq_pairing_ops(void) { return &pq_pairing_ops; }
 const ds_pq_ops_t *ds_pq_hollow_ops(void) { return &pq_hollow_ops; }
-const ds_pq_ops_t *ds_pq_rank_pairing_ops(void) { return &pq_rank_pairing_ops; }
+const ds_pq_ops_t *ds_pq_rank_pairing_ops(void) {
+  return &pq_rank_pairing_ops;
+}
 const ds_pq_ops_t *ds_pq_rank_pairing2_ops(void) {
   return &pq_rank_pairing2_ops;
 }
@@ -1972,7 +1987,7 @@ ds_status_t ds_pq_init(ds_pq_t *pq, const ds_pq_ops_t *ops, size_t item_size,
   }
   pq->ops = ops;
   pq->item_size = item_size;
-  pq->context = context;
+  pq->context = context != NULL ? context : ds_default_context();
   pq->compare = compare;
   pq->user = user;
   return DS_OK;
@@ -2010,7 +2025,8 @@ ds_status_t ds_pq_pop(ds_pq_t *pq, void *out_item) {
   return pq->ops->pop(pq->impl, out_item);
 }
 
-ds_status_t ds_pq_update(ds_pq_t *pq, ds_pq_handle_t handle, const void *item) {
+ds_status_t ds_pq_update(ds_pq_t *pq, ds_pq_handle_t handle,
+                         const void *item) {
   if (pq == NULL || pq->ops == NULL || handle == NULL || item == NULL) {
     return DS_ERR_NULL;
   }

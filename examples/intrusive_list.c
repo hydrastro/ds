@@ -16,7 +16,7 @@ typedef struct task {
 } task_t;
 
 int main(void) {
-  ds_list_t *list = ds_list_create();
+  ds_list_t *list = ds_list_create(NULL);
   task_t a;
   task_t b;
   task_t c;

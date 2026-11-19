@@ -29,7 +29,7 @@ ds_status_t ds_dynamization_init(ds_dynamization_t *dyn, size_t elem_size,
   dyn->base = base;
   dyn->ops = *ops;
   dyn->rebuild_ratio = rebuild_ratio;
-  dyn->context = context;
+  dyn->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

@@ -27,7 +27,7 @@ static job_t *make_job(int cost) {
 }
 
 int main(void) {
-  ds_heap_t *heap = ds_heap_create(16);
+  ds_heap_t *heap = ds_heap_create(16, NULL);
   int costs[6];
   int i;
 

@@ -24,33 +24,29 @@ typedef struct radix_trie_node {
 typedef struct radix_trie {
   ds_radix_trie_node_t *root;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_radix_trie_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_radix_trie_create_context(ds_context_t *context,
                                          ds_radix_trie_t **out);
 
-ds_radix_trie_t *ds_radix_trie_create(void);
-ds_radix_trie_t *ds_radix_trie_create_alloc(void *(*allocator)(size_t),
-                                            void (*deallocator)(void *));
+ds_radix_trie_t *ds_radix_trie_create(ds_context_t *context);
 /* DS_OK/new or DS_EXISTS/update. Allocation failure leaves the tree unchanged.
  */
 ds_status_t ds_radix_trie_insert_ex(ds_radix_trie_t *trie, const void *key,
                                     size_t length, void *value);
 /* true only for a new key; false on update or failure. */
-bool ds_radix_trie_insert(ds_radix_trie_t *trie, const void *key, size_t length,
-                          void *value);
+bool ds_radix_trie_insert(ds_radix_trie_t *trie, const void *key,
+                          size_t length, void *value);
 bool ds_radix_trie_contains(ds_radix_trie_t *trie, const void *key,
                             size_t length);
 void *ds_radix_trie_get(ds_radix_trie_t *trie, const void *key, size_t length);
-bool ds_radix_trie_remove(ds_radix_trie_t *trie, const void *key, size_t length,
-                          void **out_value);
+bool ds_radix_trie_remove(ds_radix_trie_t *trie, const void *key,
+                          size_t length, void **out_value);
 /* Removal has no key-depth limit and succeeds if optional edge compression
  * cannot allocate; a valid unary node then remains. */
 size_t ds_radix_trie_size(ds_radix_trie_t *trie);

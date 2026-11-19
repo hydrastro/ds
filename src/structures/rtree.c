@@ -211,7 +211,7 @@ ds_status_t ds_rtree_init(ds_rtree_t *t, size_t dim, size_t max_entries,
   t->min_entries = max_entries * 2 / 5 > 2 ? max_entries * 2 / 5 : 2;
   t->variant = variant;
   t->free_list = RT_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = rt_node(t, true, 0, &t->root);
   if (st != DS_OK) {
     ds_rtree_destroy(t);
@@ -1226,7 +1226,7 @@ ds_status_t ds_rplus_build(ds_rplus_t *t, size_t dim, const double *boxes,
   memset(t, 0, sizeof(*t));
   t->dim = dim;
   t->objects = n;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = rp_grow(t, &ncap, 1);
   pieces = (rp_piece_t *)ds_context_alloc(t->context,
                                           leaf_capacity * sizeof(rp_piece_t));

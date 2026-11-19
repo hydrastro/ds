@@ -31,7 +31,7 @@ ds_status_t ds_mway_btree_init(ds_mway_btree_t *t, size_t elem_size,
   t->elem_size = elem_size;
   t->compare = compare;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   t->tmp = (unsigned char *)ds_context_alloc(context, elem_size);
   return t->tmp == NULL ? DS_ERR_ALLOC : DS_OK;
 }

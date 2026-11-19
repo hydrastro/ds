@@ -34,12 +34,12 @@ static ds_status_t vh_alloc(ds_virtual_hash_t *h, size_t buckets) {
   if (buckets > ((size_t)-1) / sizeof(void *)) {
     return DS_ERR_OVERFLOW;
   }
-#define VH_GROW(field, type)                                                   \
-  p = ds_context_realloc(h->context, (void *)h->field,                         \
-                         buckets * sizeof(type));                              \
-  if (p == NULL) {                                                             \
-    return DS_ERR_ALLOC;                                                       \
-  }                                                                            \
+#define VH_GROW(field, type)                                                  \
+  p = ds_context_realloc(h->context, (void *)h->field,                        \
+                         buckets * sizeof(type));                             \
+  if (p == NULL) {                                                            \
+    return DS_ERR_ALLOC;                                                      \
+  }                                                                           \
   h->field = (type *)p;
   VH_GROW(bkeys, unsigned char *)
   VH_GROW(bvals, unsigned char *)
@@ -87,7 +87,7 @@ ds_status_t ds_virtual_hash_init(ds_virtual_hash_t *h, size_t key_size,
   h->hash = hash;
   h->equal = equal;
   h->user = user;
-  h->context = context;
+  h->context = context != NULL ? context : ds_default_context();
   st = vh_alloc(h, n0);
   if (st != DS_OK) {
     ds_virtual_hash_destroy(h);
@@ -441,7 +441,8 @@ static ds_status_t eh_new_bucket(ds_expandable_hash_t *h, size_t *out) {
 ds_status_t ds_expandable_hash_init(ds_expandable_hash_t *h, size_t key_size,
                                     size_t value_size, ds_dyn_hash_func_t hash,
                                     ds_dyn_equal_func_t equal, void *user,
-                                    size_t bucket_size, ds_context_t *context) {
+                                    size_t bucket_size,
+                                    ds_context_t *context) {
   size_t b = 0;
   ds_status_t st;
   if (h == NULL || hash == NULL || equal == NULL) {
@@ -462,7 +463,7 @@ ds_status_t ds_expandable_hash_init(ds_expandable_hash_t *h, size_t key_size,
   h->hash = hash;
   h->equal = equal;
   h->user = user;
-  h->context = context;
+  h->context = context != NULL ? context : ds_default_context();
   st = eh_new_node(h, &h->root);
   if (st == DS_OK) {
     st = eh_new_bucket(h, &b);
@@ -530,7 +531,8 @@ static bool eh_find(const ds_expandable_hash_t *h, const void *key, size_t *ob,
   return false;
 }
 
-static void eh_move(ds_expandable_hash_t *h, size_t from, size_t i, size_t to) {
+static void eh_move(ds_expandable_hash_t *h, size_t from, size_t i,
+                    size_t to) {
   size_t j = h->load[to]++;
   memcpy(eh_key(h, to, j), eh_key(h, from, i), h->key_size);
   if (h->value_size > 0) {
@@ -540,7 +542,8 @@ static void eh_move(ds_expandable_hash_t *h, size_t from, size_t i, size_t to) {
   if (i != h->load[from]) {
     memcpy(eh_key(h, from, i), eh_key(h, from, h->load[from]), h->key_size);
     if (h->value_size > 0) {
-      memcpy(eh_val(h, from, i), eh_val(h, from, h->load[from]), h->value_size);
+      memcpy(eh_val(h, from, i), eh_val(h, from, h->load[from]),
+             h->value_size);
     }
   }
 }
@@ -734,13 +737,13 @@ void ds_expandable_hash_foreach(const ds_expandable_hash_t *h,
 /* ---- hashbelt -------------------------------------------------------------
  */
 
-static unsigned char *hb_key(const ds_hashbelt_t *b, const ds_hashbelt_gen_t *g,
-                             size_t i) {
+static unsigned char *hb_key(const ds_hashbelt_t *b,
+                             const ds_hashbelt_gen_t *g, size_t i) {
   return g->keys + i * b->key_size;
 }
 
-static unsigned char *hb_val(const ds_hashbelt_t *b, const ds_hashbelt_gen_t *g,
-                             size_t i) {
+static unsigned char *hb_val(const ds_hashbelt_t *b,
+                             const ds_hashbelt_gen_t *g, size_t i) {
   return g->values + i * b->value_size;
 }
 
@@ -769,7 +772,7 @@ ds_status_t ds_hashbelt_init(ds_hashbelt_t *b, size_t key_size,
   b->hash = hash;
   b->equal = equal;
   b->user = user;
-  b->context = context;
+  b->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -974,7 +977,8 @@ ds_status_t ds_hashbelt_get(ds_hashbelt_t *b, const void *key, void *out) {
     if (b->value_size > 0) {
       memcpy(tmp + b->key_size, hb_val(b, g, i), b->value_size);
     }
-    if (hb_gen_insert(b, &b->gen[b->newest], tmp, tmp + b->key_size) == DS_OK) {
+    if (hb_gen_insert(b, &b->gen[b->newest], tmp, tmp + b->key_size) ==
+        DS_OK) {
       hb_gen_erase(b, g, hb_slot(b, g, tmp));
     }
     ds_context_free(b->context, tmp);

@@ -43,7 +43,7 @@ ds_status_t ds_threaded_tree_init(ds_threaded_tree_t *t, size_t elem_size,
   t->mode = mode;
   t->compare = compare;
   t->user = user;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

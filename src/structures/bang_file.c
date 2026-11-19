@@ -345,7 +345,7 @@ ds_status_t ds_excell_init(ds_excell_t *e, size_t dim, const double *domain,
   e->max_depth = max_depth;
   memcpy(e->domain, domain, 2 * dim * sizeof(double));
   e->free_list = BF_NONE;
-  e->context = context;
+  e->context = context != NULL ? context : ds_default_context();
   e->dir = (size_t *)ds_context_alloc(context, sizeof(size_t));
   if (e->dir == NULL) {
     return DS_ERR_ALLOC;
@@ -836,7 +836,7 @@ static ds_status_t bb_init(ds_bang_base_t *t, size_t dim, size_t width,
   memcpy(t->domain, domain, 2 * dim * sizeof(double));
   t->node_free = BF_NONE;
   t->free_list = BF_NONE;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   st = bb_new_node(t, BF_NONE, 0, &root);
   if (st == DS_OK) {
     st = bb_new_bucket(t, root, &b);

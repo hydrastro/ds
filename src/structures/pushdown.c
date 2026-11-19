@@ -26,7 +26,7 @@ ds_status_t ds_pda_init(ds_pda_t *pda, size_t states, size_t input_symbols,
   pda->start = start;
   pda->start_stack = start_stack;
   pda->acceptance = acceptance;
-  pda->context = context;
+  pda->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

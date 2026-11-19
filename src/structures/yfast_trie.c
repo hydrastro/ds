@@ -93,7 +93,7 @@ ds_status_t ds_yfast_init_buckets(ds_yfast_t *t, unsigned bits,
   t->bits = bits;
   t->value_size = value_size;
   t->target = bits < 4 ? 4 : bits;
-  t->context = context;
+  t->context = context != NULL ? context : ds_default_context();
   t->bucket_ops = bucket_ops != NULL ? bucket_ops : ds_ordered_array_ops();
   return DS_OK;
 }

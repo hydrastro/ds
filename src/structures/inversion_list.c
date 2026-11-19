@@ -46,7 +46,7 @@ ds_status_t ds_inversion_list_init(ds_inversion_list_t *list,
   list->count = 0;
   list->capacity = 0;
   list->fixed = false;
-  list->context = context;
+  list->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

@@ -21,20 +21,16 @@ typedef struct deque {
   ds_deque_node_t *tail;
   ds_deque_node_t *nil;
   size_t size;
-  ds_context_t *context; /* NULL for allocator-pair constructors */
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+  ds_context_t *context; /* borrowed allocation owner */
 } ds_deque_t;
 
-/* NULL when memory runs out, or without an allocator and a deallocator */
+/* NULL when memory runs out */
 /* Context owns all internal storage and must outlive the container. NULL
  * context selects the default. On failure *out is NULL. The context is
  * borrowed. */
 ds_status_t ds_deque_create_context(ds_context_t *context, ds_deque_t **out);
 
-ds_deque_t *ds_deque_create(void);
-ds_deque_t *ds_deque_create_alloc(void *(*allocator)(size_t),
-                                  void (*deallocator)(void *));
+ds_deque_t *ds_deque_create(ds_context_t *context);
 void ds_deque_push_front(ds_deque_t *deque, ds_deque_node_t *node);
 void ds_deque_push_back(ds_deque_t *deque, ds_deque_node_t *node);
 ds_deque_node_t *ds_deque_pop_front(ds_deque_t *deque);
@@ -68,10 +64,10 @@ ds_deque_t *ds_deque_clone(ds_deque_t *deque,
  * made so far through destroy_clone and returns DS_ERR_CALLBACK;
  * DS_ERR_ALLOC when the copy itself cannot be allocated. All callbacks
  * are required. On any error *out is NULL and the source is unchanged. */
-ds_status_t ds_deque_clone_ex(const ds_deque_t *deque,
-                              ds_deque_node_t *(*clone_node)(ds_deque_node_t *),
-                              void (*destroy_clone)(ds_deque_node_t *),
-                              ds_deque_t **out);
+ds_status_t
+ds_deque_clone_ex(const ds_deque_t *deque,
+                  ds_deque_node_t *(*clone_node)(ds_deque_node_t *),
+                  void (*destroy_clone)(ds_deque_node_t *), ds_deque_t **out);
 
 /* Callback policies require stable topology during calls. Views are borrowed.
  * Walk stops on the first non-DS_OK result; find leaves out unchanged on
@@ -101,8 +97,10 @@ void ds_deque_destroy_with(ds_deque_t *container, ds_deque_destroy_fn destroy,
                            void *user);
 ds_status_t ds_deque_push_front_ex(ds_deque_t *container,
                                    ds_deque_node_t *node);
-ds_status_t ds_deque_push_back_ex(ds_deque_t *container, ds_deque_node_t *node);
-ds_status_t ds_deque_pop_front_ex(ds_deque_t *container, ds_deque_node_t **out);
+ds_status_t ds_deque_push_back_ex(ds_deque_t *container,
+                                  ds_deque_node_t *node);
+ds_status_t ds_deque_pop_front_ex(ds_deque_t *container,
+                                  ds_deque_node_t **out);
 ds_status_t ds_deque_pop_back_ex(ds_deque_t *container, ds_deque_node_t **out);
 /* Identity-based O(n) membership check before unlinking. */
 ds_status_t ds_deque_remove_ex(ds_deque_t *container, ds_deque_node_t *target);

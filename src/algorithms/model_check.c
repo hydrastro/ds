@@ -52,7 +52,7 @@ ds_status_t ds_kripke_init(ds_kripke_t *k, size_t states, size_t props,
   }
   k->states = states;
   k->props = props;
-  k->context = context;
+  k->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 
@@ -237,7 +237,7 @@ ds_status_t ds_ctl_init(ds_ctl_t *ctl, ds_context_t *context) {
     return DS_ERR_NULL;
   }
   memset(ctl, 0, sizeof(*ctl));
-  ctl->context = context;
+  ctl->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

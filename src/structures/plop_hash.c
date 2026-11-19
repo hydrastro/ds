@@ -68,7 +68,7 @@ ds_status_t ds_plop_init(ds_plop_hash_t *h, size_t dims, const double *lo,
   h->page_size = page_size;
   h->max_load = max_load;
   h->split = split;
-  h->context = context;
+  h->context = context != NULL ? context : ds_default_context();
   for (d = 0; d < dims; d++) {
     ds_plop_axis_t *a = &h->axis[d];
     h->lo[d] = lo[d];

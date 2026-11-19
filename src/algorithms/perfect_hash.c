@@ -66,7 +66,7 @@ ds_status_t ds_perfect_hash_build(ds_perfect_hash_t *hash, size_t count,
   }
   hash->g = NULL;
   hash->count = count;
-  hash->context = context;
+  hash->context = context != NULL ? context : ds_default_context();
   if (!(ratio > 0)) {
     ratio = 2.09;
   }

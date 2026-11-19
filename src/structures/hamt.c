@@ -1,4 +1,3 @@
-#include "core/owner_alloc.h"
 #include <dsa/structures/hamt.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,11 +55,9 @@ static bool hamt_slot_occupied(unsigned long bitmap, size_t slot) {
   return (bitmap & (1UL << slot)) != 0UL;
 }
 
-ds_hamt_t *ds_hamt_create(void) { return ds_hamt_create_alloc(malloc, free); }
-
 static ds_hamt_node_t *hamt_new_branch(ds_hamt_t *hamt) {
-  ds_hamt_node_t *node =
-      (ds_hamt_node_t *)DS_OWNER_ALLOC(hamt, sizeof(ds_hamt_node_t));
+  ds_hamt_node_t *node = (ds_hamt_node_t *)ds_context_alloc(
+      hamt->context, sizeof(ds_hamt_node_t));
   if (node == NULL) {
     return NULL;
   }
@@ -79,8 +76,8 @@ static ds_hamt_node_t *hamt_new_branch(ds_hamt_t *hamt) {
 static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
                                      size_t key_length, void *value,
                                      unsigned long hash) {
-  ds_hamt_node_t *node =
-      (ds_hamt_node_t *)DS_OWNER_ALLOC(hamt, sizeof(ds_hamt_node_t));
+  ds_hamt_node_t *node = (ds_hamt_node_t *)ds_context_alloc(
+      hamt->context, sizeof(ds_hamt_node_t));
   size_t i;
   if (node == NULL) {
     return NULL;
@@ -90,10 +87,11 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
   node->children = NULL;
   node->num_children = 0;
   node->key_length = key_length;
-  node->key =
-      key_length > 0 ? (unsigned char *)DS_OWNER_ALLOC(hamt, key_length) : NULL;
+  node->key = key_length > 0 ? (unsigned char *)ds_context_alloc(hamt->context,
+                                                                 key_length)
+                             : NULL;
   if (key_length > 0 && node->key == NULL) {
-    DS_OWNER_FREE(hamt, node);
+    ds_context_free(hamt->context, node);
     return NULL;
   }
   for (i = 0; i < key_length; i++) {
@@ -105,38 +103,32 @@ static ds_hamt_node_t *hamt_new_leaf(ds_hamt_t *hamt, const void *key,
   return node;
 }
 
-static ds_hamt_t *hamt_create_internal(void *(*allocator)(size_t),
-                                       void (*deallocator)(void *),
-                                       ds_context_t *context) {
+static ds_hamt_t *hamt_create_internal(ds_context_t *context) {
   ds_hamt_t *hamt;
-  if (allocator == NULL || deallocator == NULL) {
-    return NULL;
-  }
-  hamt = (ds_hamt_t *)DS_OWNER_ALLOCATE(context, allocator, sizeof(ds_hamt_t));
+
+  hamt = (ds_hamt_t *)ds_context_alloc(context, sizeof(ds_hamt_t));
   if (hamt == NULL) {
     return NULL;
   }
-  hamt->context = context;
-  hamt->allocator = allocator;
-  hamt->deallocator = deallocator;
+  hamt->context = context != NULL ? context : ds_default_context();
+
   hamt->size = 0;
   hamt->root = hamt_new_branch(hamt);
   if (hamt->root == NULL) {
-    DS_OWNER_RELEASE(context, deallocator, hamt);
+    ds_context_free(context, hamt);
     return NULL;
   }
   return hamt;
 }
 
-ds_hamt_t *ds_hamt_create_alloc(void *(*allocator)(size_t),
-                                void (*deallocator)(void *)) {
-  return hamt_create_internal(allocator, deallocator, NULL);
+ds_hamt_t *ds_hamt_create(ds_context_t *context) {
+  return hamt_create_internal(context);
 }
 ds_status_t ds_hamt_create_context(ds_context_t *context, ds_hamt_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
-  *out = hamt_create_internal(malloc, free,
-                              context != NULL ? context : ds_default_context());
+  *out =
+      hamt_create_internal(context != NULL ? context : ds_default_context());
   return *out != NULL ? DS_OK : DS_ERR_ALLOC;
 }
 
@@ -153,8 +145,8 @@ static bool hamt_key_equal(ds_hamt_node_t *leaf, const void *key,
 static bool hamt_branch_add(ds_hamt_t *hamt, ds_hamt_node_t *branch,
                             size_t slot, ds_hamt_node_t *child) {
   size_t idx = hamt_child_index(branch->bitmap, slot);
-  ds_hamt_node_t **grown = (ds_hamt_node_t **)DS_OWNER_ALLOC(
-      hamt, (branch->num_children + 1) * sizeof(ds_hamt_node_t *));
+  ds_hamt_node_t **grown = (ds_hamt_node_t **)ds_context_alloc(
+      hamt->context, (branch->num_children + 1) * sizeof(ds_hamt_node_t *));
   size_t i;
   if (grown == NULL) {
     return false;
@@ -167,7 +159,7 @@ static bool hamt_branch_add(ds_hamt_t *hamt, ds_hamt_node_t *branch,
     grown[i + 1] = branch->children[i];
   }
   if (branch->children != NULL) {
-    DS_OWNER_FREE(hamt, branch->children);
+    ds_context_free(hamt->context, branch->children);
   }
   branch->children = grown;
   branch->num_children += 1;
@@ -180,7 +172,7 @@ static void hamt_branch_remove(ds_hamt_t *hamt, ds_hamt_node_t *branch,
   size_t idx = hamt_child_index(branch->bitmap, slot);
   size_t i;
   if (branch->num_children == 1) {
-    DS_OWNER_FREE(hamt, branch->children);
+    ds_context_free(hamt->context, branch->children);
     branch->children = NULL;
     branch->num_children = 0;
     branch->bitmap = 0UL;
@@ -204,10 +196,10 @@ static ds_hamt_node_t *hamt_split_leaf(ds_hamt_t *hamt,
     return NULL;
   }
   branch->num_children = es == fs ? 1U : 2U;
-  branch->children = (ds_hamt_node_t **)DS_OWNER_ALLOC(
-      hamt, branch->num_children * sizeof(*branch->children));
+  branch->children = (ds_hamt_node_t **)ds_context_alloc(
+      hamt->context, branch->num_children * sizeof(*branch->children));
   if (branch->children == NULL) {
-    DS_OWNER_FREE(hamt, branch);
+    ds_context_free(hamt->context, branch);
     return NULL;
   }
   branch->bitmap = (1UL << es) | (1UL << fs);
@@ -216,8 +208,8 @@ static ds_hamt_node_t *hamt_split_leaf(ds_hamt_t *hamt,
      * Allocate the whole path before changing the existing leaf/chain. */
     branch->children[0] = hamt_split_leaf(hamt, existing, fresh, level + 1);
     if (branch->children[0] == NULL) {
-      DS_OWNER_FREE(hamt, branch->children);
-      DS_OWNER_FREE(hamt, branch);
+      ds_context_free(hamt->context, branch->children);
+      ds_context_free(hamt->context, branch);
       return NULL;
     }
   } else {
@@ -250,9 +242,9 @@ ds_status_t ds_hamt_insert_ex(ds_hamt_t *hamt, const void *key,
       }
       if (!hamt_branch_add(hamt, node, slot, leaf)) {
         if (leaf->key != NULL) {
-          DS_OWNER_FREE(hamt, leaf->key);
+          ds_context_free(hamt->context, leaf->key);
         }
-        DS_OWNER_FREE(hamt, leaf);
+        ds_context_free(hamt->context, leaf);
         return DS_ERR_ALLOC;
       }
       hamt->size += 1;
@@ -288,9 +280,9 @@ ds_status_t ds_hamt_insert_ex(ds_hamt_t *hamt, const void *key,
                 hamt_split_leaf(hamt, child, fresh, level + 1);
             if (split == NULL) {
               if (fresh->key != NULL) {
-                DS_OWNER_FREE(hamt, fresh->key);
+                ds_context_free(hamt->context, fresh->key);
               }
-              DS_OWNER_FREE(hamt, fresh);
+              ds_context_free(hamt->context, fresh);
               return DS_ERR_ALLOC;
             }
             node->children[idx] = split;
@@ -340,8 +332,8 @@ static ds_hamt_node_t *hamt_find_leaf(ds_hamt_t *hamt, const void *key,
 
 bool ds_hamt_contains(ds_hamt_t *hamt, const void *key, size_t key_length) {
   bool result;
-  result =
-      hamt_find_leaf(hamt, key, key_length, hamt_hash(key, key_length)) != NULL;
+  result = hamt_find_leaf(hamt, key, key_length, hamt_hash(key, key_length)) !=
+           NULL;
   return result;
 }
 
@@ -391,19 +383,20 @@ bool ds_hamt_remove(ds_hamt_t *hamt, const void *key, size_t key_length,
           } else {
             hamt_branch_remove(hamt, node, slot);
             /* prune now-empty branches up the recorded path */
-            while (depth > 0 && node->num_children == 0 && node != hamt->root) {
+            while (depth > 0 && node->num_children == 0 &&
+                   node != hamt->root) {
               ds_hamt_node_t *parent = parents[depth - 1];
               size_t pslot = parent_slots[depth - 1];
-              DS_OWNER_FREE(hamt, node);
+              ds_context_free(hamt->context, node);
               hamt_branch_remove(hamt, parent, pslot);
               node = parent;
               depth -= 1;
             }
           }
           if (cur->key != NULL) {
-            DS_OWNER_FREE(hamt, cur->key);
+            ds_context_free(hamt->context, cur->key);
           }
-          DS_OWNER_FREE(hamt, cur);
+          ds_context_free(hamt->context, cur);
           hamt->size -= 1;
           removed = true;
           break;
@@ -493,9 +486,9 @@ static void hamt_destroy_node(ds_hamt_t *hamt, ds_hamt_node_t *node,
         destroy_value(cur->value, user);
       }
       if (cur->key != NULL) {
-        DS_OWNER_FREE(hamt, cur->key);
+        ds_context_free(hamt->context, cur->key);
       }
-      DS_OWNER_FREE(hamt, cur);
+      ds_context_free(hamt->context, cur);
       cur = next;
     }
     return;
@@ -506,9 +499,9 @@ static void hamt_destroy_node(ds_hamt_t *hamt, ds_hamt_node_t *node,
       hamt_destroy_node(hamt, node->children[i], destroy_value, user);
     }
     if (node->children != NULL) {
-      DS_OWNER_FREE(hamt, node->children);
+      ds_context_free(hamt->context, node->children);
     }
-    DS_OWNER_FREE(hamt, node);
+    ds_context_free(hamt->context, node);
   }
 }
 
@@ -517,14 +510,15 @@ void ds_hamt_destroy_with(ds_hamt_t *hamt,
   if (hamt == NULL)
     return;
   hamt_destroy_node(hamt, hamt->root, destroy_value, user);
-  DS_OWNER_FREE(hamt, hamt);
+  ds_context_free(hamt->context, hamt);
 }
 static void hamt_destroy_direct(void *value, void *user) {
   void (**destroy)(void *) = (void (**)(void *))user;
   (*destroy)(value);
 }
 void ds_hamt_destroy(ds_hamt_t *tree, void (*destroy_value)(void *)) {
-  ds_hamt_destroy_with(tree, destroy_value != NULL ? hamt_destroy_direct : NULL,
+  ds_hamt_destroy_with(tree,
+                       destroy_value != NULL ? hamt_destroy_direct : NULL,
                        &destroy_value);
 }
 

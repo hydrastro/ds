@@ -20,7 +20,7 @@ ds_status_t ds_multiset_init(ds_multiset_t *m, size_t elem_size,
   m->hash = hash;
   m->equal = equal;
   m->user = user;
-  m->context = context;
+  m->context = context != NULL ? context : ds_default_context();
   return DS_OK;
 }
 

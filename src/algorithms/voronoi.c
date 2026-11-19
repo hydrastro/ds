@@ -263,7 +263,7 @@ ds_status_t ds_voronoi_from_delaunay(ds_voronoi_t *vd, const ds_delaunay_t *dt,
   n = dt->points;
   T = dt->triangles;
   vd->sites = n;
-  vd->context = context;
+  vd->context = context != NULL ? context : ds_default_context();
   vd->twin = (size_t *)vo_array(context, n, sizeof(size_t), &st);
   vd->unbounded = (bool *)vo_array(context, n, sizeof(bool), &st);
   vd->cell_ray = (double *)vo_array(context, 4 * n, sizeof(double), &st);
@@ -380,7 +380,7 @@ done:
   ds_context_free(context, incident);
   if (st != DS_OK) {
     ds_voronoi_destroy(vd);
-    vd->context = context;
+    vd->context = context != NULL ? context : ds_default_context();
   }
   return st;
 }

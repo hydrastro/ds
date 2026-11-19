@@ -45,10 +45,8 @@ struct ds_history {
   bool transaction_dirty;
   ds_history_branch_t *main_branch;
   struct ds_history_branch_node *branches;
-  void *(*allocator)(size_t);
-  void (*deallocator)(void *);
+
   ds_context_t *context;
-  bool use_context;
 };
 
 static char *history_strdup(ds_history_t *history, const char *str);
@@ -97,20 +95,16 @@ static bool history_time_before_fork(ds_history_branch_t *branch,
                                      unsigned long time);
 static unsigned long history_branch_insert_with_id(ds_history_branch_t *branch,
                                                    unsigned long id,
-                                                   unsigned long time, int kind,
-                                                   void *payload);
+                                                   unsigned long time,
+                                                   int kind, void *payload);
 static size_t history_branch_operation_count(ds_history_branch_t *branch);
 
 static void *history_alloc(ds_history_t *h, size_t bytes) {
-  return h->use_context ? ds_context_alloc(h->context, bytes)
-                        : h->allocator(bytes);
+  return ds_context_alloc(h->context, bytes);
 }
 
 static void history_free(ds_history_t *h, void *p) {
-  if (h->use_context)
-    ds_context_free(h->context, p);
-  else
-    h->deallocator(p);
+  ds_context_free(h->context, p);
 }
 
 static char *history_strdup(ds_history_t *history, const char *str) {
@@ -163,7 +157,8 @@ static bool history_branch_register(ds_history_t *history,
                                     ds_history_branch_t *branch) {
   struct ds_history_branch_node *node;
 
-  node = (struct ds_history_branch_node *)history_alloc(history, sizeof(*node));
+  node =
+      (struct ds_history_branch_node *)history_alloc(history, sizeof(*node));
   if (node == NULL) {
     return false;
   }
@@ -189,9 +184,8 @@ history_destroy_operation_list(ds_history_t *history,
   }
 }
 
-static void
-history_destroy_checkpoint_list(ds_history_t *history,
-                                struct ds_history_checkpoint_node *checkpoint) {
+static void history_destroy_checkpoint_list(
+    ds_history_t *history, struct ds_history_checkpoint_node *checkpoint) {
   struct ds_history_checkpoint_node *next;
 
   while (checkpoint != NULL) {
@@ -346,7 +340,8 @@ history_find_checkpoint(ds_history_branch_t *branch, unsigned long time) {
 }
 
 static struct ds_history_checkpoint_node *
-history_find_exact_checkpoint(ds_history_branch_t *branch, unsigned long time) {
+history_find_exact_checkpoint(ds_history_branch_t *branch,
+                              unsigned long time) {
   struct ds_history_checkpoint_node *checkpoint;
 
   checkpoint = branch->checkpoints;
@@ -587,16 +582,15 @@ history_branch_local_head_time(ds_history_branch_t *branch) {
   return head;
 }
 
-ds_history_t *ds_history_create(const ds_history_ops_t *ops, void *config) {
+ds_history_t *ds_history_create(const ds_history_ops_t *ops, void *config,
+                                ds_context_t *context) {
   ds_history_t *history = NULL;
-  (void)ds_history_create_context(ops, config, NULL, &history);
+  (void)ds_history_create_context(ops, config, context, &history);
   return history;
 }
 
 static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
-                                    void *(*allocator)(size_t),
-                                    void (*deallocator)(void *),
-                                    ds_context_t *context, bool use_context) {
+                                    ds_context_t *context) {
   ds_history_t *history;
   ds_history_branch_t *main_branch;
 
@@ -605,16 +599,7 @@ static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
     return NULL;
   }
 
-  if (!use_context && ((allocator == NULL) != (deallocator == NULL)))
-    return NULL;
-  if (allocator == NULL && deallocator == NULL)
-    use_context = true;
-  if (use_context && context == NULL)
-    context = ds_default_context();
-
-  history =
-      (ds_history_t *)(use_context ? ds_context_alloc(context, sizeof(*history))
-                                   : allocator(sizeof(*history)));
+  history = (ds_history_t *)ds_context_alloc(context, sizeof(*history));
   if (history == NULL) {
     return NULL;
   }
@@ -630,9 +615,6 @@ static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
   history->main_branch = NULL;
   history->branches = NULL;
   history->context = context != NULL ? context : ds_default_context();
-  history->use_context = use_context;
-  history->allocator = allocator;
-  history->deallocator = deallocator;
 
   main_branch = history_branch_alloc(history, NULL, 0UL, "main");
   if (main_branch == NULL) {
@@ -650,14 +632,8 @@ static ds_history_t *history_create(const ds_history_ops_t *ops, void *config,
   return history;
 }
 
-ds_history_t *ds_history_create_alloc(const ds_history_ops_t *ops, void *config,
-                                      void *(*allocator)(size_t),
-                                      void (*deallocator)(void *)) {
-  return history_create(ops, config, allocator, deallocator, NULL, false);
-}
-
-ds_status_t ds_history_create_context(const ds_history_ops_t *ops, void *config,
-                                      ds_context_t *context,
+ds_status_t ds_history_create_context(const ds_history_ops_t *ops,
+                                      void *config, ds_context_t *context,
                                       ds_history_t **out) {
   if (out == NULL)
     return DS_ERR_NULL;
@@ -665,7 +641,7 @@ ds_status_t ds_history_create_context(const ds_history_ops_t *ops, void *config,
   if (ops == NULL || ops->create_state == NULL || ops->clone_state == NULL ||
       ops->destroy_state == NULL || ops->apply == NULL)
     return DS_ERR_NULL;
-  *out = history_create(ops, config, NULL, NULL, context, true);
+  *out = history_create(ops, config, context);
   return *out == NULL ? DS_ERR_ALLOC : DS_OK;
 }
 
@@ -863,8 +839,8 @@ ds_history_operation_t *ds_history_branch_find_op(ds_history_branch_t *branch,
 
 static unsigned long history_branch_insert_with_id(ds_history_branch_t *branch,
                                                    unsigned long id,
-                                                   unsigned long time, int kind,
-                                                   void *payload) {
+                                                   unsigned long time,
+                                                   int kind, void *payload) {
   ds_history_t *history;
   struct ds_history_operation_node *node;
   struct ds_history_operation_node *walk;
@@ -880,8 +856,8 @@ static unsigned long history_branch_insert_with_id(ds_history_branch_t *branch,
     return 0UL;
   }
 
-  node =
-      (struct ds_history_operation_node *)history_alloc(history, sizeof(*node));
+  node = (struct ds_history_operation_node *)history_alloc(history,
+                                                           sizeof(*node));
   if (node == NULL) {
     return 0UL;
   }
@@ -1043,7 +1019,8 @@ ds_status_t ds_history_branch_merge_with_ex(
       if (payload == NULL && op->operation.payload != NULL)
         return DS_ERR_CALLBACK;
     } else {
-      if (history->ops.destroy_payload != NULL && op->operation.payload != NULL)
+      if (history->ops.destroy_payload != NULL &&
+          op->operation.payload != NULL)
         return DS_ERR_UNSUPPORTED;
       payload = op->operation.payload;
     }
@@ -1088,15 +1065,17 @@ size_t ds_history_branch_merge_with(
     unsigned long from_time, unsigned long through_time, unsigned int flags,
     ds_history_merge_policy_func_t policy, void *policy_user) {
   size_t merged = 0;
-  (void)ds_history_branch_merge_with_ex(target, source, from_time, through_time,
-                                        flags, policy, policy_user, &merged);
+  (void)ds_history_branch_merge_with_ex(target, source, from_time,
+                                        through_time, flags, policy,
+                                        policy_user, &merged);
   return merged;
 }
 
 size_t ds_history_branch_merge(ds_history_branch_t *target,
                                ds_history_branch_t *source,
                                unsigned long from_time,
-                               unsigned long through_time, unsigned int flags) {
+                               unsigned long through_time,
+                               unsigned int flags) {
   return ds_history_branch_merge_with(target, source, from_time, through_time,
                                       flags, NULL, NULL);
 }
@@ -1169,8 +1148,8 @@ void *ds_history_branch_query_head(ds_history_branch_t *branch,
   if (branch == NULL) {
     return NULL;
   }
-  return ds_history_branch_query_at(branch, ds_history_branch_head_time(branch),
-                                    query);
+  return ds_history_branch_query_at(
+      branch, ds_history_branch_head_time(branch), query);
 }
 
 size_t ds_history_branch_export_ops(ds_history_branch_t *branch,
@@ -1386,7 +1365,8 @@ ds_history_branch_deserialize_ops(ds_history_branch_t *branch,
     if (payload == NULL && read_payload != NULL) {
       break;
     }
-    if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
+    if (history_branch_insert_with_id(branch, id, time, kind, payload) ==
+        0UL) {
       if (history->ops.destroy_payload != NULL) {
         history->ops.destroy_payload(kind, payload);
       }
@@ -1503,7 +1483,8 @@ history_serialize_branch(ds_history_branch_t *branch,
 }
 
 static bool
-history_serialize_branches(ds_history_t *history, ds_history_write_func_t write,
+history_serialize_branches(ds_history_t *history,
+                           ds_history_write_func_t write,
                            ds_history_payload_write_func_t write_payload,
                            void *io_user, void *payload_user) {
   ds_history_branch_t *b;
@@ -1537,10 +1518,11 @@ static char *history_read_name(ds_history_t *history,
   return name;
 }
 
-static bool history_read_branch_ops(ds_history_branch_t *branch,
-                                    ds_history_read_func_t read,
-                                    ds_history_payload_read_func_t read_payload,
-                                    void *io_user, void *payload_user) {
+static bool
+history_read_branch_ops(ds_history_branch_t *branch,
+                        ds_history_read_func_t read,
+                        ds_history_payload_read_func_t read_payload,
+                        void *io_user, void *payload_user) {
   ds_history_t *history;
   size_t count;
   size_t i;
@@ -1562,7 +1544,8 @@ static bool history_read_branch_ops(ds_history_branch_t *branch,
     payload = read_payload(id, time, kind, read, io_user, payload_user);
     if (payload == NULL)
       return false;
-    if (history_branch_insert_with_id(branch, id, time, kind, payload) == 0UL) {
+    if (history_branch_insert_with_id(branch, id, time, kind, payload) ==
+        0UL) {
       if (history->ops.destroy_payload != NULL) {
         history->ops.destroy_payload(kind, payload);
       }
@@ -1597,11 +1580,10 @@ bool ds_history_serialize(ds_history_t *history, ds_history_write_func_t write,
   return ok;
 }
 
-ds_history_t *
-ds_history_deserialize(const ds_history_ops_t *ops, void *config,
-                       ds_history_read_func_t read,
-                       ds_history_payload_read_func_t read_payload,
-                       void *io_user, void *payload_user) {
+ds_history_t *ds_history_deserialize(
+    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user, ds_context_t *context) {
   static const unsigned char expected_magic[8] = {'D', 'S', 'H', 'I',
                                                   'S', 'T', '3', 0};
   unsigned char magic[8];
@@ -1634,7 +1616,7 @@ ds_history_deserialize(const ds_history_ops_t *ops, void *config,
     return NULL;
   }
 
-  history = ds_history_create(ops, config);
+  history = ds_history_create(ops, config, context);
   if (history == NULL) {
     return NULL;
   }
@@ -1713,11 +1695,10 @@ ds_history_deserialize(const ds_history_ops_t *ops, void *config,
   return history;
 }
 
-static bool
-history_write_branch_ops_portable(ds_history_branch_t *branch,
-                                  ds_history_write_func_t write,
-                                  ds_history_payload_write_func_t write_payload,
-                                  void *io_user, void *payload_user) {
+static bool history_write_branch_ops_portable(
+    ds_history_branch_t *branch, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
   struct ds_history_operation_node *op;
   size_t count;
 
@@ -1738,11 +1719,10 @@ history_write_branch_ops_portable(ds_history_branch_t *branch,
   return true;
 }
 
-static bool
-history_serialize_branch_portable(ds_history_branch_t *branch,
-                                  ds_history_write_func_t write,
-                                  ds_history_payload_write_func_t write_payload,
-                                  void *io_user, void *payload_user) {
+static bool history_serialize_branch_portable(
+    ds_history_branch_t *branch, ds_history_write_func_t write,
+    ds_history_payload_write_func_t write_payload, void *io_user,
+    void *payload_user) {
   unsigned long parent_id;
   size_t name_len;
 
@@ -1777,39 +1757,23 @@ static bool history_serialize_branches_portable(
   return true;
 }
 
-void ds_history_archive_init(ds_history_archive_t *archive) {
-  (void)ds_history_archive_init_context(archive, NULL);
+void ds_history_archive_init(ds_history_archive_t *archive,
+                             ds_context_t *context) {
+  (void)ds_history_archive_init_context(archive, context);
 }
 
 ds_status_t ds_history_archive_init_ex(ds_history_archive_t *a,
-                                       void *(*allocator)(size_t),
-                                       void (*deallocator)(void *)) {
+                                       ds_context_t *context) {
   if (a == NULL)
     return DS_ERR_NULL;
   memset(a, 0, sizeof(*a));
-  if ((allocator == NULL) != (deallocator == NULL))
-    return a->status = DS_ERR_INVALID;
-  a->allocator = allocator;
-  a->deallocator = deallocator;
-  a->use_context = allocator == NULL;
-  a->context = ds_default_context();
+  a->context = context != NULL ? context : ds_default_context();
   return DS_OK;
-}
-
-void ds_history_archive_init_alloc(ds_history_archive_t *a,
-                                   void *(*allocator)(size_t),
-                                   void (*deallocator)(void *)) {
-  (void)ds_history_archive_init_ex(a, allocator, deallocator);
 }
 
 ds_status_t ds_history_archive_init_context(ds_history_archive_t *a,
                                             ds_context_t *context) {
-  ds_status_t st = ds_history_archive_init_ex(a, NULL, NULL);
-  if (st == DS_OK) {
-    a->context = context != NULL ? context : ds_default_context();
-    a->use_context = true;
-  }
-  return st;
+  return ds_history_archive_init_ex(a, context);
 }
 
 ds_status_t ds_history_archive_status(const ds_history_archive_t *a) {
@@ -1817,10 +1781,7 @@ ds_status_t ds_history_archive_status(const ds_history_archive_t *a) {
 }
 
 static void history_archive_free(ds_history_archive_t *a, void *p) {
-  if (a->use_context)
-    ds_context_free(a->context, p);
-  else if (p != NULL && a->deallocator != NULL)
-    a->deallocator(p);
+  ds_context_free(a->context, p);
 }
 
 void ds_history_archive_destroy(ds_history_archive_t *a) {
@@ -1842,10 +1803,7 @@ void ds_history_archive_clear(ds_history_archive_t *a) {
 void ds_history_archive_rewind(ds_history_archive_t *a) {
   if (a != NULL) {
     a->offset = 0;
-    a->status =
-        a->use_context || (a->allocator != NULL && a->deallocator != NULL)
-            ? DS_OK
-            : DS_ERR_INVALID;
+    a->status = DS_OK;
   }
 }
 
@@ -1872,10 +1830,7 @@ bool ds_history_archive_write(const void *data, size_t size, void *user) {
     a->status = DS_ERR_OVERFLOW;
     return false;
   }
-  if (!a->use_context && (a->allocator == NULL || a->deallocator == NULL)) {
-    a->status = DS_ERR_INVALID;
-    return false;
-  }
+
   needed = a->size + size;
   if (needed > a->capacity) {
     capacity = a->capacity == 0 ? 64 : a->capacity;
@@ -1886,9 +1841,7 @@ bool ds_history_archive_write(const void *data, size_t size, void *user) {
       }
       capacity *= 2;
     }
-    next = (unsigned char *)(a->use_context
-                                 ? ds_context_alloc(a->context, capacity)
-                                 : a->allocator(capacity));
+    next = (unsigned char *)(ds_context_alloc(a->context, capacity));
     if (next == NULL) {
       a->status = DS_ERR_ALLOC;
       return false;
@@ -2036,7 +1989,8 @@ ds_status_t ds_history_deserialize_portable_ex(
         st = DS_ERR_ALLOC;
         goto done;
       }
-      if (!read(name, name_len, io_user) || memchr(name, 0, name_len) != NULL) {
+      if (!read(name, name_len, io_user) ||
+          memchr(name, 0, name_len) != NULL) {
         history_free(h, name);
         goto done;
       }
@@ -2160,19 +2114,22 @@ static ds_status_t history_read_direct(unsigned long id, unsigned long time,
   return *out == NULL ? DS_ERR_CALLBACK : DS_OK;
 }
 
-ds_history_t *
-ds_history_deserialize_portable(const ds_history_ops_t *ops, void *config,
-                                ds_history_read_func_t read,
-                                ds_history_payload_read_func_t read_payload,
-                                void *io_user, void *payload_user) {
+ds_history_t *ds_history_deserialize_portable(
+    const ds_history_ops_t *ops, void *config, ds_history_read_func_t read,
+    ds_history_payload_read_func_t read_payload, void *io_user,
+    void *payload_user, ds_context_t *context) {
   history_direct_reader_t reader;
+  ds_history_load_options_t options;
   ds_history_t *out = NULL;
   if (read_payload == NULL)
     return NULL;
+  ds_history_load_options_init(&options);
+  options.context = context;
   reader.read = read_payload;
   reader.user = payload_user;
-  (void)ds_history_deserialize_portable_ex(
-      ops, config, read, history_read_direct, io_user, &reader, NULL, &out);
+  (void)ds_history_deserialize_portable_ex(ops, config, read,
+                                           history_read_direct, io_user,
+                                           &reader, &options, &out);
   return out;
 }
 
