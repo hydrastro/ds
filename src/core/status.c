@@ -30,6 +30,8 @@ const char *ds_status_name(ds_status_t status) {
     return "DS_ERR_CALLBACK";
   case DS_ERR_UNSUPPORTED:
     return "DS_ERR_UNSUPPORTED";
+  case DS_ERR_IO:
+    return "DS_ERR_IO";
   case DS_ERR_INTERNAL:
     return "DS_ERR_INTERNAL";
   default:

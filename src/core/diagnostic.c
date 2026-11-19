@@ -210,6 +210,7 @@ void ds_diagnostics_init_context(ds_diagnostics_t *d, ds_context_t *context) {
   memset(d, 0, sizeof(*d));
   d->context = context != NULL ? context : ds_default_context();
 
+  d->limit = (size_t)-1;
   d->sink.emit = diagnostics_collector_emit;
   d->sink.user = d;
 }
@@ -225,6 +226,7 @@ void ds_diagnostics_clear(ds_diagnostics_t *d) {
   for (i = 0; i < d->size; i++)
     ds_diagnostic_snapshot_release(d->snapshots[i]);
   d->size = 0;
+  d->dropped = 0;
   d->status = DS_OK;
 }
 
@@ -232,8 +234,10 @@ void ds_diagnostics_destroy(ds_diagnostics_t *d) {
   if (d == NULL)
     return;
   ds_diagnostics_clear(d);
-  diag_free(d, d->items);
-  diag_free(d, d->snapshots);
+  if (!d->fixed_storage) {
+    diag_free(d, d->items);
+    diag_free(d, d->snapshots);
+  }
   d->items = NULL;
   d->snapshots = NULL;
   d->capacity = 0;
@@ -245,6 +249,8 @@ static ds_status_t diag_reserve(ds_diagnostics_t *d, size_t need) {
   ds_diagnostic_snapshot_t **snapshots;
   if (need <= d->capacity)
     return DS_OK;
+  if (d->fixed_storage || need > d->limit)
+    return DS_ERR_RANGE;
   cap = d->capacity < 8 ? 8 : d->capacity;
   while (cap < need) {
     if (cap > (size_t)-1 / 2) {
@@ -253,6 +259,8 @@ static ds_status_t diag_reserve(ds_diagnostics_t *d, size_t need) {
     }
     cap *= 2;
   }
+  if (cap > d->limit)
+    cap = d->limit;
   if (!ds_size_mul(cap, sizeof(*items), &bytes))
     return DS_ERR_OVERFLOW;
   items = (ds_diagnostic_t *)diag_alloc(d, bytes);
@@ -285,8 +293,18 @@ ds_status_t ds_diagnostics_add(ds_diagnostics_t *d,
   ds_status_t st;
   if (d == NULL || item == NULL)
     return DS_ERR_NULL;
-  if (d->size == (size_t)-1)
-    return DS_ERR_OVERFLOW;
+  if ((item->arg_count != 0 && item->args == NULL))
+    return DS_ERR_NULL;
+  if (item->level < DS_DIAG_DEBUG || item->level > DS_DIAG_EMERGENCY)
+    return DS_ERR_INVALID;
+  if (d->size == d->limit) {
+    if (d->policy == DS_DIAGNOSTICS_STRICT)
+      return DS_ERR_RANGE;
+    if (d->dropped == (size_t)-1)
+      return DS_ERR_OVERFLOW;
+    d->dropped++;
+    return DS_OK;
+  }
   st = ds_diagnostic_snapshot_create(&s, item, d->context);
   if (st != DS_OK)
     return st;
@@ -301,15 +319,22 @@ ds_status_t ds_diagnostics_add(ds_diagnostics_t *d,
 
 ds_status_t ds_diagnostics_append(ds_diagnostics_t *d,
                                   const ds_diagnostics_t *more) {
-  size_t n, i, retained = 0;
+  size_t n, i, retained = 0, dropped;
   ds_status_t st = DS_OK;
   if (d == NULL || more == NULL)
     return DS_ERR_NULL;
   if (more->status != DS_OK)
     return more->status;
   n = more->size;
-  if (n > (size_t)-1 - d->size)
+  if (!ds_size_add(d->dropped, more->dropped, &dropped))
     return DS_ERR_OVERFLOW;
+  if (n > d->limit - d->size) {
+    if (d->policy == DS_DIAGNOSTICS_STRICT)
+      return DS_ERR_RANGE;
+    if (!ds_size_add(dropped, n - (d->limit - d->size), &dropped))
+      return DS_ERR_OVERFLOW;
+    n = d->limit - d->size;
+  }
   for (i = 0; i < n; i++) {
     st = ds_diagnostic_snapshot_retain(more->snapshots[i]);
     if (st != DS_OK)
@@ -328,6 +353,7 @@ ds_status_t ds_diagnostics_append(ds_diagnostics_t *d,
     d->snapshots[d->size + i] = more->snapshots[i];
   }
   d->size += n;
+  d->dropped = dropped;
   return DS_OK;
 }
 
@@ -344,9 +370,24 @@ ds_status_t ds_diagnostics_filter(const ds_diagnostics_t *source,
     return source->status;
 
   ds_diagnostics_init_context(&temp, out->context);
+  temp.limit = out->limit;
+  temp.policy = out->policy;
+  temp.dropped = source->dropped;
   for (i = 0; i < source->size; i++) {
     if (keep(&source->items[i], user)) {
       ds_diagnostic_snapshot_t *snapshot = source->snapshots[i];
+      if (temp.size == temp.limit) {
+        if (temp.policy == DS_DIAGNOSTICS_STRICT) {
+          st = DS_ERR_RANGE;
+          break;
+        }
+        if (temp.dropped == (size_t)-1) {
+          st = DS_ERR_OVERFLOW;
+          break;
+        }
+        temp.dropped++;
+        continue;
+      }
       st = ds_diagnostic_snapshot_retain(snapshot);
       if (st != DS_OK)
         break;
@@ -360,6 +401,18 @@ ds_status_t ds_diagnostics_filter(const ds_diagnostics_t *source,
     }
   }
   if (st == DS_OK) {
+    if (out->fixed_storage) {
+      ds_diagnostics_clear(out);
+      for (i = 0; i < temp.size; i++) {
+        out->items[i] = temp.items[i];
+        out->snapshots[i] = temp.snapshots[i];
+      }
+      out->size = temp.size;
+      out->dropped = temp.dropped;
+      temp.size = 0;
+      ds_diagnostics_destroy(&temp);
+      return DS_OK;
+    }
     ds_diagnostics_destroy(out);
     *out = temp;
     out->sink.user = out;
@@ -394,4 +447,113 @@ static void diagnostics_collector_emit(ds_diagnostic_sink_t *sink,
   st = ds_diagnostics_add(d, diagnostic);
   if (d->status == DS_OK && st != DS_OK)
     d->status = st;
+}
+
+bool ds_diagnostic_matches(const ds_diagnostic_t *r, const char *id) {
+  return r != NULL && r->id != NULL && id != NULL && strcmp(r->id, id) == 0;
+}
+ds_status_t ds_diagnostic_arg_get(const ds_diagnostic_t *r, const char *name,
+                                  ds_diagnostic_arg_type_t type,
+                                  const ds_diagnostic_arg_t **out) {
+  size_t i;
+  const ds_diagnostic_arg_t *found = NULL;
+  if (r == NULL || name == NULL || out == NULL ||
+      (r->arg_count != 0 && r->args == NULL))
+    return DS_ERR_NULL;
+  if (type < DS_ARG_CSTR || type > DS_ARG_BOOL)
+    return DS_ERR_INVALID;
+  for (i = 0; i < r->arg_count; i++)
+    if (r->args[i].name != NULL && strcmp(r->args[i].name, name) == 0) {
+      if (found != NULL || r->args[i].type != type)
+        return DS_ERR_INVALID;
+      found = &r->args[i];
+    }
+  if (found == NULL)
+    return DS_NOT_FOUND;
+  *out = found;
+  return DS_OK;
+}
+ds_status_t ds_diagnostic_validate(const ds_diagnostic_t *r,
+                                   const ds_diagnostic_schema_t *s) {
+  size_t i, j;
+  const ds_diagnostic_arg_t *arg;
+  ds_status_t st;
+  if (r == NULL || s == NULL || s->descriptor.id == NULL ||
+      (s->field_count != 0 && s->fields == NULL))
+    return DS_ERR_NULL;
+  if (!ds_diagnostic_matches(r, s->descriptor.id) ||
+      r->arg_count != s->field_count || r->level < DS_DIAG_DEBUG ||
+      r->level > DS_DIAG_EMERGENCY)
+    return DS_ERR_INVALID;
+  for (i = 0; i < s->field_count; i++) {
+    if (s->fields[i].name == NULL)
+      return DS_ERR_INVALID;
+    for (j = 0; j < i; j++)
+      if (strcmp(s->fields[i].name, s->fields[j].name) == 0)
+        return DS_ERR_INVALID;
+    st = ds_diagnostic_arg_get(r, s->fields[i].name, s->fields[i].type, &arg);
+    if (st != DS_OK)
+      return st == DS_NOT_FOUND ? DS_ERR_INVALID : st;
+  }
+  return DS_OK;
+}
+ds_status_t ds_diagnostic_build(const ds_diagnostic_schema_t *s,
+                                const ds_diagnostic_arg_t *args, size_t count,
+                                ds_diagnostic_t *out) {
+  ds_diagnostic_t r;
+  ds_status_t st;
+  if (s == NULL || out == NULL)
+    return DS_ERR_NULL;
+  memset(&r, 0, sizeof(r));
+  r.id = s->descriptor.id;
+  r.module = s->descriptor.module;
+  r.message = s->descriptor.message;
+  r.level = s->descriptor.level;
+  r.args = args;
+  r.arg_count = count;
+  st = ds_diagnostic_validate(&r, s);
+  if (st == DS_OK)
+    *out = r;
+  return st;
+}
+ds_status_t ds_diagnostics_add_schema(ds_diagnostics_t *d,
+                                      const ds_diagnostic_schema_t *s,
+                                      const ds_diagnostic_arg_t *args,
+                                      size_t count) {
+  ds_diagnostic_t r;
+  ds_status_t st = ds_diagnostic_build(s, args, count, &r);
+  return st == DS_OK ? ds_diagnostics_add(d, &r) : st;
+}
+ds_status_t ds_diagnostics_init_bounded(ds_diagnostics_t *d, size_t limit,
+                                        ds_diagnostics_policy_t policy,
+                                        ds_context_t *context) {
+  if (d == NULL)
+    return DS_ERR_NULL;
+  if (policy != DS_DIAGNOSTICS_STRICT && policy != DS_DIAGNOSTICS_TRUNCATE)
+    return DS_ERR_INVALID;
+  ds_diagnostics_init_context(d, context);
+  d->limit = limit;
+  d->policy = policy;
+  return DS_OK;
+}
+ds_status_t ds_diagnostics_init_buffer(ds_diagnostics_t *d,
+                                       ds_diagnostic_t *items,
+                                       ds_diagnostic_snapshot_t **snapshots,
+                                       size_t capacity,
+                                       ds_diagnostics_policy_t policy,
+                                       ds_context_t *context) {
+  ds_status_t st;
+  if (capacity != 0 && (items == NULL || snapshots == NULL))
+    return DS_ERR_NULL;
+  st = ds_diagnostics_init_bounded(d, capacity, policy, context);
+  if (st != DS_OK)
+    return st;
+  d->items = items;
+  d->snapshots = snapshots;
+  d->capacity = capacity;
+  d->fixed_storage = true;
+  return DS_OK;
+}
+size_t ds_diagnostics_dropped(const ds_diagnostics_t *d) {
+  return d != NULL ? d->dropped : 0;
 }

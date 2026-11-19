@@ -41,7 +41,8 @@ ds_context_t *ds_default_context(void) {
                                  ctx_default_free,
                                  NULL,
                                  NULL,
-                                 {DS_OK, NULL, NULL, NULL, NULL, 0UL, NULL},
+                                 {DS_OK, NULL, NULL, NULL, NULL, 0UL, NULL,
+                                  DS_ERROR_UNCLASSIFIED, NULL, 0},
                                  0U,
                                  DS_RESOURCE_HEAP};
   return &context;
@@ -137,8 +138,8 @@ void ds_context_emit_diagnostic(ds_context_t *context,
   }
   if (context == NULL)
     context = ds_default_context();
-  ds_diagnostic_emit_desc(context->diagnostic_sink, desc, args, arg_count, file,
-                          line, function);
+  ds_diagnostic_emit_desc(context->diagnostic_sink, desc, args, arg_count,
+                          file, line, function);
 }
 
 unsigned int ds_context_resource(const ds_context_t *context) {
@@ -169,7 +170,7 @@ bool ds_context_compatible(const ds_context_t *a, const ds_context_t *b) {
   if (b == NULL) {
     b = ds_default_context();
   }
-  return a == b ||
-         (a->alloc == b->alloc && a->calloc == b->calloc &&
-          a->realloc == b->realloc && a->free == b->free && a->user == b->user);
+  return a == b || (a->alloc == b->alloc && a->calloc == b->calloc &&
+                    a->realloc == b->realloc && a->free == b->free &&
+                    a->user == b->user);
 }

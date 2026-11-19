@@ -20,6 +20,20 @@ typedef struct px_store {
   ds_context_t *context;
 } px_store_t;
 
+/* Save native identity without allocation or strerror's shared buffer. */
+static ds_status_t px_error(ds_context_t *context, const char *id, int code) {
+  if (context == NULL)
+    context = ds_default_context();
+  DS_CONTEXT_ERROR(context, DS_ERR_IO, id, "posix_store",
+                   "POSIX storage operation failed");
+  if ((context->flags & DS_CONTEXT_NO_LAST_ERROR) == 0U) {
+    context->last_error.category = DS_ERROR_IO;
+    context->last_error.native_domain = "posix.errno";
+    context->last_error.native_code = code;
+  }
+  return DS_ERR_IO;
+}
+
 /* the largest off_t, 2^(bits - 1) - 1, built without overflow */
 static off_t px_off_max(void) {
   off_t m = 1;
@@ -59,7 +73,7 @@ static ds_status_t px_read(void *impl, unsigned long page, void *buf) {
       if (errno == EINTR) {
         continue;
       }
-      return DS_ERR_STATE;
+      return px_error(p->context, "ds.posix_store/read", errno);
     }
     if (r == 0) {
       memset(b + done, 0, p->ps - done); /* past the end of the file */
@@ -89,7 +103,7 @@ static ds_status_t px_write(void *impl, unsigned long page, const void *buf) {
       if (errno == EINTR) {
         continue;
       }
-      return DS_ERR_STATE;
+      return px_error(p->context, "ds.posix_store/write", errno);
     }
     if (r == 0) {
       return DS_ERR_STATE; /* no progress */
@@ -116,21 +130,23 @@ static ds_status_t px_sync(void *impl) {
     return DS_OK;
   }
   if (px_fsync(p->fd) != 0) {
-    return DS_ERR_STATE;
+    return px_error(p->context, "ds.posix_store/sync", errno);
   }
   if (p->dir != NULL) {
     int d = open(p->dir, O_RDONLY);
-    int r;
+    int r, saved_errno;
     if (d < 0) {
-      return DS_ERR_STATE;
+      return px_error(p->context, "ds.posix_store/open_directory", errno);
     }
     r = px_fsync(d);
     if (r != 0 && errno == EINVAL) {
       r = 0; /* this file system does not sync directories */
     }
+    saved_errno = errno;
     (void)close(d);
     if (r != 0) {
-      return DS_ERR_STATE;
+      return px_error(p->context, "ds.posix_store/sync_directory",
+                      saved_errno);
     }
     ds_context_free(p->context, p->dir);
     p->dir = NULL;
@@ -155,7 +171,7 @@ static ds_status_t px_truncate(void *impl, unsigned long pages) {
     r = ftruncate(p->fd, px_offset(p, pages));
   } while (r != 0 && errno == EINTR);
   if (r != 0) {
-    return DS_ERR_STATE;
+    return px_error(p->context, "ds.posix_store/truncate", errno);
   }
   p->count = pages;
   return DS_OK;
@@ -200,7 +216,7 @@ static ds_status_t px_adopt(ds_page_store_t *store, int fd, size_t ps,
   off_t pages;
   unsigned long limit = px_page_limit(ps);
   if (fstat(fd, &sb) != 0) {
-    return DS_ERR_STATE;
+    return px_error(context, "ds.posix_store/stat", errno);
   }
   if (sb.st_size < 0) {
     return DS_ERR_STATE;
@@ -238,7 +254,7 @@ ds_status_t ds_page_store_posix_fd(ds_page_store_t *store, int fd,
   }
   mode = fcntl(fd, F_GETFL);
   if (mode < 0) {
-    return DS_ERR_STATE;
+    return px_error(context, "ds.posix_store/fcntl", errno);
   }
   return px_adopt(store, fd, page_size, (mode & O_ACCMODE) == O_RDONLY, NULL,
                   context);
@@ -271,7 +287,7 @@ ds_status_t ds_page_store_posix(ds_page_store_t *store, const char *path,
     if (fd >= 0) {
       created = true;
     } else if (errno != EEXIST || (flags & DS_POSIX_STORE_EXCLUSIVE) != 0) {
-      return DS_ERR_STATE;
+      return px_error(context, "ds.posix_store/create", errno);
     }
   }
   if (fd < 0) {
@@ -280,7 +296,8 @@ ds_status_t ds_page_store_posix(ds_page_store_t *store, const char *path,
       fd = open(path, access | extra);
     } while (fd < 0 && errno == EINTR);
     if (fd < 0) {
-      return errno == ENOENT ? DS_NOT_FOUND : DS_ERR_STATE;
+      return errno == ENOENT ? DS_NOT_FOUND
+                             : px_error(context, "ds.posix_store/open", errno);
     }
   }
   if (created) {
